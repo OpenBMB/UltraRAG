@@ -22,6 +22,9 @@ retriever_app = Flask(__name__)
 
 class Retriever:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
+        self.faiss_use_gpu = False
+        self.faiss_index = None
+
         mcp_inst.tool(
             self.retriever_init,
             output="retriever_path,corpus_path,index_path,faiss_use_gpu,infinity_kwargs,cuda_devices,is_multimodal->None",
@@ -130,7 +133,6 @@ class Retriever:
                     abs_path = str((corpus_dir / rel).resolve())
                     self.contents.append(abs_path)
 
-        self.faiss_index = None
         if index_path is not None and os.path.exists(index_path):
             cpu_index = faiss.read_index(index_path)
 
