@@ -14,3 +14,10 @@ search_r1_gen_template: prompt/search_r1_append.jinja
 r1_searcher_gen_template: prompt/r1_searcher_append.jinja
 
 # For other prompts, please add parameters here as needed
+
+# Take webnote as an example:
+webnote_gen_plan_template: prompt/webnote_gen_plan.jinja
+webnote_init_page_template: prompt/webnote_init_page.jinja
+webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
+webnote_fill_page_template: prompt/webnote_fill_page.jinja
+webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
