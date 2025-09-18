@@ -18,6 +18,7 @@ cuda_devices: "2,3"
 query_instruction: "Query: "
 faiss_use_gpu: True
 top_k: 5
+retrieve_thread_num: 1
 overwrite: false
 retriever_url: http://localhost:8080
 index_chunk_size: 50000

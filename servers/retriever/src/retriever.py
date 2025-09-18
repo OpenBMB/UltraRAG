@@ -2,6 +2,7 @@ import os
 from urllib.parse import urlparse, urlunparse
 from typing import Any, Dict, List, Optional
 
+import requests
 import aiohttp
 import asyncio
 import jsonlines
@@ -68,11 +69,15 @@ class Retriever:
         )
         mcp_inst.tool(
             self.retriever_exa_search,
-            output="q_ls,top_k->ret_psg",
+            output="q_ls,top_k,retrieve_thread_num->ret_psg",
         )
         mcp_inst.tool(
             self.retriever_tavily_search,
-            output="q_ls,top_k->ret_psg",
+            output="q_ls,top_k,retrieve_thread_num->ret_psg",
+        )
+        mcp_inst.tool(
+            self.retriever_zhipuai_search,
+            output="q_ls,top_k,retrieve_thread_num->ret_psg",
         )
 
     def retriever_init(
@@ -718,6 +723,7 @@ class Retriever:
         self,
         query_list: List[str],
         top_k: Optional[int] | None = None,
+        thread_num: Optional[int] | None = 1,
     ) -> dict[str, List[List[str]]]:
 
         try:
@@ -733,7 +739,7 @@ class Retriever:
         exa_api_key = os.environ.get("EXA_API_KEY", "")
         exa = AsyncExa(api_key=exa_api_key if exa_api_key else "EMPTY")
 
-        sem = asyncio.Semaphore(16)
+        sem = asyncio.Semaphore(thread_num)
 
         async def call_with_retry(
             idx: int, q: str, retries: int = 3, delay: float = 1.0
@@ -783,6 +789,7 @@ class Retriever:
         self,
         query_list: List[str],
         top_k: Optional[int] | None = None,
+        retrieve_thread_num: Optional[int] | None = 1,
     ) -> dict[str, List[List[str]]]:
 
         try:
@@ -805,7 +812,7 @@ class Retriever:
             )
         tavily = AsyncTavilyClient(api_key=tavily_api_key)
 
-        sem = asyncio.Semaphore(16)
+        sem = asyncio.Semaphore(retrieve_thread_num)
 
         async def call_with_retry(
             idx: int, q: str, retries: int = 3, delay: float = 1.0
@@ -845,6 +852,74 @@ class Retriever:
         for fut in iterator:
             idx, psg_ls = await fut
             ret[idx] = psg_ls
+
+        return {"ret_psg": ret}
+
+    async def retriever_zhipuai_search(
+        self,
+        query_list: List[str],
+        top_k: Optional[int] | None = 5,
+        retrieve_thread_num: Optional[int] | None = 1,
+    ) -> dict[str, List[List[str]]]:
+
+        zhipuai_api_key = os.environ.get("ZHIPUAI_API_KEY", "")
+        if not zhipuai_api_key:
+            raise MissingAPIKeyError(
+                "ZHIPUAI_API_KEY environment variable is not set. Please set it to use ZhipuAI."
+            )
+
+        retrieval_url = "https://open.bigmodel.cn/api/paas/v4/web_search"
+        headers = {
+            "Authorization": f"Bearer {zhipuai_api_key}",
+            "Content-Type": "application/json",
+        }
+
+        sem = asyncio.Semaphore(retrieve_thread_num)
+
+        async def call_with_retry(
+            idx: int, q: str, retries: int = 3, delay: float = 1.0
+        ):
+            async with sem:
+                for attempt in range(retries):
+                    try:
+                        payload = {
+                            "search_query": q,
+                            "search_engine": "search_std",  # [search_std, search_pro, search_pro_sogou, search_pro_quark]
+                            "search_intent": False,
+                            "count": top_k,  # [10,20,30,40,50]
+                            "search_recency_filter": "noLimit",  # [oneDay, oneWeek, oneMonth, oneYear, noLimit]
+                            "content_size": "medium",  # [medium, high]
+                        }
+                        async with aiohttp.ClientSession() as session:
+                            async with session.post(
+                                retrieval_url, json=payload, headers=headers
+                            ) as resp:
+                                resp.raise_for_status()
+                                data = await resp.json()
+                                results: List[Dict[str, Any]] = data["search_result"]
+                                psg_ls: List[str] = [
+                                    (r["content"] or "") for r in results
+                                ]
+                                return idx, psg_ls
+                    except (aiohttp.ClientError, Exception) as e:
+                        app.logger.warning(
+                            f"[Retry {attempt+1}] ZhipuAI failed (idx={idx}): {e}"
+                        )
+                        await asyncio.sleep(delay)
+                return idx, []
+
+        tasks = [
+            asyncio.create_task(call_with_retry(i, q)) for i, q in enumerate(query_list)
+        ]
+        ret: List[List[str]] = [None] * len(query_list)
+
+        iterator = tqdm(
+            asyncio.as_completed(tasks), total=len(tasks), desc="ZhipuAI Searching: "
+        )
+
+        for fut in iterator:
+            idx, psg_ls = await fut
+            ret[idx] = psg_ls[:top_k]
 
         return {"ret_psg": ret}
 
