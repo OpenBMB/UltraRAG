@@ -719,12 +719,34 @@ class Retriever:
                     app.logger.error(err_msg)
                     raise ToolError(err_msg)
 
+    async def _parallel_search(
+        self,
+        query_list: List[str],
+        retrieve_thread_num: int,
+        desc: str,
+        worker_factory,
+    ) -> Dict[str, List[List[str]]]:
+        sem = asyncio.Semaphore(retrieve_thread_num)
+
+        async def _wrap(i: int, q: str):
+            async with sem:
+                return await worker_factory(i, q)
+
+        tasks = [asyncio.create_task(_wrap(i, q)) for i, q in enumerate(query_list)]
+        ret: List[List[str]] = [None] * len(query_list)
+
+        iterator = tqdm(asyncio.as_completed(tasks), total=len(tasks), desc=desc)
+        for fut in iterator:
+            idx, psg_ls = await fut
+            ret[idx] = psg_ls
+        return {"ret_psg": ret}
+
     async def retriever_exa_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = None,
-        thread_num: Optional[int] | None = 1,
-    ) -> dict[str, List[List[str]]]:
+        top_k: Optional[int] | None = 5,
+        retrieve_thread_num: Optional[int] | None = 1,
+    ) -> Dict[str, List[List[str]]]:
 
         try:
             from exa_py import AsyncExa
@@ -739,58 +761,41 @@ class Retriever:
         exa_api_key = os.environ.get("EXA_API_KEY", "")
         exa = AsyncExa(api_key=exa_api_key if exa_api_key else "EMPTY")
 
-        sem = asyncio.Semaphore(thread_num)
+        async def worker_factory(idx: int, q: str):
+            retries, delay = 3, 1.0
+            for attempt in range(retries):
+                try:
+                    resp = await exa.search_and_contents(
+                        q, num_results=top_k, text=True
+                    )
+                    results: List[Result] = getattr(resp, "results", []) or []
+                    psg_ls: List[str] = [(r.text or "") for r in results]
+                    return idx, psg_ls
+                except Exception as e:
+                    status = getattr(getattr(e, "response", None), "status_code", None)
+                    if status == 401 or "401" in str(e):
+                        raise ToolError(
+                            "Unauthorized (401): Invalid or missing EXA_API_KEY."
+                        ) from e
+                    app.logger.warning(
+                        f"[Retry {attempt+1}] EXA failed (idx={idx}): {e}"
+                    )
+                    await asyncio.sleep(delay)
+            return idx, []
 
-        async def call_with_retry(
-            idx: int, q: str, retries: int = 3, delay: float = 1.0
-        ):
-            async with sem:
-                for attempt in range(retries):
-                    try:
-                        resp = await exa.search_and_contents(
-                            q,
-                            num_results=top_k,
-                            text=True,
-                        )
-                        results: List[Result] = getattr(resp, "results", []) or []
-                        psg_ls: List[str] = [(r.text or "") for r in results]
-                        return idx, psg_ls
-                    except Exception as e:
-                        status = getattr(
-                            getattr(e, "response", None), "status_code", None
-                        )
-                        if status == 401 or "401" in str(e):
-                            raise RuntimeError(
-                                "Unauthorized (401): Access denied by Exa API. "
-                                "Invalid or missing EXA_API_KEY."
-                            ) from e
-                        app.logger.warning(
-                            f"[Retry {attempt+1}] EXA failed (idx={idx}): {e}"
-                        )
-                        await asyncio.sleep(delay)
-                return idx, []
-
-        tasks = [
-            asyncio.create_task(call_with_retry(i, q)) for i, q in enumerate(query_list)
-        ]
-        ret: List[List[str]] = [None] * len(query_list)
-
-        iterator = tqdm(
-            asyncio.as_completed(tasks), total=len(tasks), desc="EXA Searching: "
+        return await self._parallel_search(
+            query_list=query_list,
+            retrieve_thread_num=retrieve_thread_num or 1,
+            desc="EXA Searching:",
+            worker_factory=worker_factory,
         )
-
-        for fut in iterator:
-            idx, psg_ls = await fut
-            ret[idx] = psg_ls
-
-        return {"ret_psg": ret}
 
     async def retriever_tavily_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = None,
+        top_k: Optional[int] | None = 5,
         retrieve_thread_num: Optional[int] | None = 1,
-    ) -> dict[str, List[List[str]]]:
+    ) -> Dict[str, List[List[str]]]:
 
         try:
             from tavily import (
@@ -812,59 +817,44 @@ class Retriever:
             )
         tavily = AsyncTavilyClient(api_key=tavily_api_key)
 
-        sem = asyncio.Semaphore(retrieve_thread_num)
+        async def worker_factory(idx: int, q: str):
+            retries, delay = 3, 1.0
+            for attempt in range(retries):
+                try:
+                    resp = await tavily.search(query=q, max_results=top_k)
+                    results: List[Dict[str, Any]] = resp["results"]
+                    psg_ls: List[str] = [(r.get("content") or "") for r in results]
+                    return idx, psg_ls
+                except UsageLimitExceededError as e:
+                    app.logger.error(f"Usage limit exceeded: {e}")
+                    raise ToolError(f"Usage limit exceeded: {e}") from e
+                except InvalidAPIKeyError as e:
+                    app.logger.error(f"Invalid API key: {e}")
+                    raise ToolError(f"Invalid API key: {e}") from e
+                except (BadRequestError, Exception) as e:
+                    app.logger.warning(
+                        f"[Retry {attempt+1}] Tavily failed (idx={idx}): {e}"
+                    )
+                    await asyncio.sleep(delay)
+            return idx, []
 
-        async def call_with_retry(
-            idx: int, q: str, retries: int = 3, delay: float = 1.0
-        ):
-            async with sem:
-                for attempt in range(retries):
-                    try:
-                        resp = await tavily.search(
-                            query=q,
-                            max_results=top_k,
-                        )
-                        results: List[Dict[str, Any]] = resp["results"]
-                        psg_ls: List[str] = [(r["content"] or "") for r in results]
-                        return idx, psg_ls
-                    except UsageLimitExceededError as e:
-                        app.logger.error(f"Usage limit exceeded: {e}")
-                        raise ToolError(f"Usage limit exceeded: {e}") from e
-                    except InvalidAPIKeyError as e:
-                        app.logger.error(f"Invalid API key: {e}")
-                        raise ToolError(f"Invalid API key: {e}") from e
-                    except (BadRequestError, Exception) as e:
-                        app.logger.warning(
-                            f"[Retry {attempt+1}] Tavily failed (idx={idx}): {e}"
-                        )
-                        await asyncio.sleep(delay)
-                return idx, []
-
-        tasks = [
-            asyncio.create_task(call_with_retry(i, q)) for i, q in enumerate(query_list)
-        ]
-        ret: List[List[str]] = [None] * len(query_list)
-
-        iterator = tqdm(
-            asyncio.as_completed(tasks), total=len(tasks), desc="Tavily Searching: "
+        return await self._parallel_search(
+            query_list=query_list,
+            retrieve_thread_num=retrieve_thread_num or 1,
+            desc="Tavily Searching:",
+            worker_factory=worker_factory,
         )
-
-        for fut in iterator:
-            idx, psg_ls = await fut
-            ret[idx] = psg_ls
-
-        return {"ret_psg": ret}
 
     async def retriever_zhipuai_search(
         self,
         query_list: List[str],
         top_k: Optional[int] | None = 5,
         retrieve_thread_num: Optional[int] | None = 1,
-    ) -> dict[str, List[List[str]]]:
+    ) -> Dict[str, List[List[str]]]:
 
         zhipuai_api_key = os.environ.get("ZHIPUAI_API_KEY", "")
         if not zhipuai_api_key:
-            raise MissingAPIKeyError(
+            raise ToolError(
                 "ZHIPUAI_API_KEY environment variable is not set. Please set it to use ZhipuAI."
             )
 
@@ -874,54 +864,45 @@ class Retriever:
             "Content-Type": "application/json",
         }
 
-        sem = asyncio.Semaphore(retrieve_thread_num)
+        session = aiohttp.ClientSession()
 
-        async def call_with_retry(
-            idx: int, q: str, retries: int = 3, delay: float = 1.0
-        ):
-            async with sem:
-                for attempt in range(retries):
-                    try:
-                        payload = {
-                            "search_query": q,
-                            "search_engine": "search_std",  # [search_std, search_pro, search_pro_sogou, search_pro_quark]
-                            "search_intent": False,
-                            "count": top_k,  # [10,20,30,40,50]
-                            "search_recency_filter": "noLimit",  # [oneDay, oneWeek, oneMonth, oneYear, noLimit]
-                            "content_size": "medium",  # [medium, high]
-                        }
-                        async with aiohttp.ClientSession() as session:
-                            async with session.post(
-                                retrieval_url, json=payload, headers=headers
-                            ) as resp:
-                                resp.raise_for_status()
-                                data = await resp.json()
-                                results: List[Dict[str, Any]] = data["search_result"]
-                                psg_ls: List[str] = [
-                                    (r["content"] or "") for r in results
-                                ]
-                                return idx, psg_ls
-                    except (aiohttp.ClientError, Exception) as e:
-                        app.logger.warning(
-                            f"[Retry {attempt+1}] ZhipuAI failed (idx={idx}): {e}"
-                        )
-                        await asyncio.sleep(delay)
-                return idx, []
+        async def worker_factory(idx: int, q: str):
+            retries, delay = 3, 1.0
+            for attempt in range(retries):
+                try:
+                    payload = {
+                        "search_query": q,
+                        "search_engine": "search_std",  # [search_std, search_pro, search_pro_sogou, search_pro_quark]
+                        "search_intent": False,
+                        "count": top_k,  # [10,20,30,40,50]
+                        "search_recency_filter": "noLimit",  # [oneDay, oneWeek, oneMonth, oneYear, noLimit]
+                        "content_size": "medium",  # [medium, high]
+                    }
+                    async with session.post(
+                        retrieval_url, json=payload, headers=headers
+                    ) as resp:
+                        resp.raise_for_status()
+                        data = await resp.json()
+                        results: List[Dict[str, Any]] = data.get("search_result", [])
+                        psg_ls: List[str] = [(r.get("content") or "") for r in results]
+                        # Respect top_k
+                        return idx, (psg_ls[:top_k] if top_k is not None else psg_ls)
+                except (aiohttp.ClientError, Exception) as e:
+                    app.logger.warning(
+                        f"[Retry {attempt+1}] ZhipuAI failed (idx={idx}): {e}"
+                    )
+                    await asyncio.sleep(delay)
+            return idx, []
 
-        tasks = [
-            asyncio.create_task(call_with_retry(i, q)) for i, q in enumerate(query_list)
-        ]
-        ret: List[List[str]] = [None] * len(query_list)
-
-        iterator = tqdm(
-            asyncio.as_completed(tasks), total=len(tasks), desc="ZhipuAI Searching: "
-        )
-
-        for fut in iterator:
-            idx, psg_ls = await fut
-            ret[idx] = psg_ls[:top_k]
-
-        return {"ret_psg": ret}
+        try:
+            return await self._parallel_search(
+                query_list=query_list,
+                retrieve_thread_num=retrieve_thread_num or 1,
+                desc="ZhipuAI Searching:",
+                worker_factory=worker_factory,
+            )
+        finally:
+            await session.close()
 
 
 if __name__ == "__main__":
