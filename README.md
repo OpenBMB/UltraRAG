@@ -18,6 +18,8 @@
 | 
 <a href="https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark"><b>数据集</b></a> 
 | 
+<a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>每日论文</b></a> 
+| 
 <b>简体中文</b>
 |
 <a href="./docs/README-English.md"><b>English</b></a>
@@ -28,8 +30,9 @@
 
 *更新日志* 🔥
 
-- [2025.09.09] 我们发布了一期上手教程，带你在本地搭建轻量级 DeepResearch Pipeline👉 [📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/01_build_light_deepresearch.md)
-- [2025.09.01] 我们录了一期上手视频，手把手教你安装 UltraRAG 并跑通完整的 RAG 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/00_Installing_and_Running_RAG.md)|
+- [2025.09.23] 新增每日 RAG 论文分享界面，每日更新最新前沿论文，方便快速浏览 👉 |[📖 论文](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+- [2025.09.09] 发布轻量级 DeepResearch Pipeline 本地搭建教程 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/01_build_light_deepresearch.md)|
+- [2025.09.01] 发布 UltraRAG 安装与完整 RAG 跑通视频 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 发布 UltraRAG 2.0! UltraRAG 2.0 全新升级：几十行代码实现高性能 RAG，让科研专注思想创新！
 - [2025.01.23] 发布 UltraRAG! 让大模型读懂善用知识库！我们保留了UltraRAG 1.0的代码，可以点击 [v1](https://github.com/OpenBMB/UltraRAG/tree/v1) 查看。
 

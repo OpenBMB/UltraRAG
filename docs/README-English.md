@@ -18,6 +18,8 @@ Less Code, Lower Barrier, Faster Deployment
 | 
 <a href="https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark"><b>Datasets</b></a> 
 |
+<a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>Paper Daily</b></a> 
+| 
 <a href="../README.md"><b>简体中文</b></a>
 |
 <b>English</b>
@@ -28,8 +30,9 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
-- [2025.09.09] We’ve released a hands-on tutorial to guide you through building a lightweight DeepResearch pipeline locally 👉 [📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)
-- [2025.09.01] We recorded a beginner-friendly tutorial video that walks you through installing UltraRAG and running a complete RAG workflow 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
+- [2025.09.23] Added a Daily RAG Paper Sharing page, featuring the latest cutting-edge papers updated every day for quick browsing 👉 |[📖 paper](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+- [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
+- [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 Released UltraRAG 2.0! UltraRAG 2.0 is fully upgraded: build high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation!
 - [2025.01.23] UltraRAG Released! Enabling large models to better comprehend and utilize knowledge bases. The UltraRAG 1.0 code is still available at [v1](https://github.com/OpenBMB/UltraRAG/tree/v1).
 
