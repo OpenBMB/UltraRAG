@@ -1,6 +1,0 @@
-# servers/corpus/parameter.yaml
-file_path: data/UltraRAG.pdf
-chunk_strategy: word # choices=["token", "word", "sentence", "recursive"]
-chunk_size: 256
-output_path: null
-tokenizer_name_or_path: null

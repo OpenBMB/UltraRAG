@@ -1,9 +1,0 @@
-# Sayhello Demo
-
-# MCP Server
-servers:
-  sayhello: servers/sayhello
-
-# MCP Client Pipeline
-pipeline:
-- sayhello.greet

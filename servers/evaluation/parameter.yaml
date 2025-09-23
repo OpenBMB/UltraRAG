@@ -1,3 +1,0 @@
-# servers/evaluation/parameter.yaml
-metrics: [ 'acc', 'f1', 'em', 'coverem', 'stringem', 'rouge-1', 'rouge-2', 'rouge-l' ]
-save_path: output/evaluate_results.json

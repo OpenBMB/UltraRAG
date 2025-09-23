@@ -1,9 +1,0 @@
-sayhello:
-  parameter: servers/sayhello/parameter.yaml
-  path: servers/sayhello/src/sayhello.py
-  tools:
-    greet:
-      input:
-        name: $name
-      output:
-      - msg
