@@ -1,5 +1,82 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-23
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.19218v1">HyKid: An Open MRI Dataset with Expert-Annotated Multi-Structure and Choroid Plexus in Pediatric Hydrocephalus</a></td><td><details><summary>展开</summary>Evaluation of hydrocephalus in children is challenging, and the related
+research is limited by a lack of publicly available, expert-annotated datasets,
+particularly those with segmentation of the choroid plexus. To address this, we
+present HyKid, an open-source dataset from 48 pediatric patients with
+hydrocephalus. 3D MRIs were provided with 1mm isotropic resolution, which was
+reconstructed from routine low-resolution images using a slice-to-volume
+algorithm. Manually corrected segmentations of brain tissues, including white
+matter, grey matter, lateral ventricle, external CSF, and the choroid plexus,
+were provided by an experienced neurologist. Additionally, structured data was
+extracted from clinical radiology reports using a Retrieval-Augmented
+Generation framework. The strong correlation between choroid plexus volume and
+total CSF volume provided a potential biomarker for hydrocephalus evaluation,
+achieving excellent performance in a predictive model (AUC = 0.87). The
+proposed HyKid dataset provided a high-quality benchmark for neuroimaging
+algorithms development, and it revealed the choroid plexus-related features in
+hydrocephalus assessments. Our datasets are publicly available at
+https://www.synapse.org/Synapse:syn68544889.</details></td><td><details><summary>展开</summary>这篇论文介绍了HyKid数据集，一个针对儿童脑积水的开源数据集，包含高分辨率3D MRI图像和专家手动校正的分割标注。研究利用RAG框架从临床放射学报告中提取结构化数据，并发现了脉络丛体积与脑脊液总量的相关性可作为脑积水评估的生物标志物，预测模型表现优异（AUC=0.87）。该数据集为神经影像算法开发提供了高质量基准。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.19209v1">A Knowledge Graph and a Tripartite Evaluation Framework Make Retrieval-Augmented Generation Scalable and Transparent</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have significantly enhanced conversational
+Artificial Intelligence(AI) chatbots; however, domain-specific accuracy and the
+avoidance of factual inconsistencies remain pressing challenges, particularly
+for large datasets. Designing an effective chatbot with appropriate methods and
+evaluating its effectiveness is among the challenges in this domain. This study
+presents a Retrieval Augmented Generation (RAG) chatbot that harnesses a
+knowledge graph and vector search retrieval to deliver precise, context-rich
+responses in an exemplary use case from over high-volume engineering
+project-related emails, thereby minimising the need for document chunking. A
+central innovation of this work is the introduction of RAG Evaluation
+(RAG-Eval), a novel chain-of-thought LLM-based tripartite evaluation framework
+specifically developed to assess RAG applications. This framework operates in
+parallel with the chatbot, jointly assessing the user's query, the retrieved
+document, and the generated response, enabling a holistic evaluation across
+multiple quality metrics like query relevance, factual accuracy, coverage,
+coherence and fluency. The resulting scoring system is provided directly to
+users as a confidence score (1 to 100%), enabling quick identification of
+possible misaligned or incomplete answers. This proposed approach promotes
+transparency and rapid verification by incorporating metadata email IDs,
+timestamps into responses. Experimental comparisons against BERTScore and
+G-EVAL for summarisation evaluation tasks confirm its effectiveness, and
+empirical analysis also shows RAG-Eval reliably detects factual gaps and query
+mismatches, thereby fostering trust in high demand, data centric environments.
+These findings highlight a scalable path for developing accurate,
+user-verifiable chatbots that bridge the gap between high-level conversational
+fluency and factual accuracy.</details></td><td><details><summary>展开</summary>这篇论文提出了一种基于检索增强生成（RAG）的聊天机器人，结合知识图谱和向量搜索检索技术，从大规模工程相关邮件数据中生成精准且上下文丰富的回答，减少文档分块的需求。论文还创新地引入了RAG-Eval，一个基于大语言模型的三方评估框架，旨在评估RAG应用的查询相关性、事实准确性、覆盖范围等质量指标，并通过置信度分数和元数据增强透明度。实验证明该方法在高效性和可信度上优于BERTScore和G-EVAL。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.18868v1">Memory in Large Language Models: Mechanisms, Evaluation and Evolution</a></td><td><details><summary>展开</summary>Under a unified operational definition, we define LLM memory as a persistent
+state written during pretraining, finetuning, or inference that can later be
+addressed and that stably influences outputs. We propose a four-part taxonomy
+(parametric, contextual, external, procedural/episodic) and a memory quadruple
+(location, persistence, write/access path, controllability). We link mechanism,
+evaluation, and governance via the chain write -> read -> inhibit/update. To
+avoid distorted comparisons across heterogeneous setups, we adopt a
+three-setting protocol (parametric only, offline retrieval, online retrieval)
+that decouples capability from information availability on the same data and
+timeline. On this basis we build a layered evaluation: parametric (closed-book
+recall, edit differential, memorization/privacy), contextual (position curves
+and the mid-sequence drop), external (answer correctness vs snippet
+attribution/faithfulness), and procedural/episodic (cross-session consistency
+and timeline replay, E MARS+). The framework integrates temporal governance and
+leakage auditing (freshness hits, outdated answers, refusal slices) and
+uncertainty reporting via inter-rater agreement plus paired tests with
+multiple-comparison correction. For updating and forgetting, we present DMM
+Gov: coordinating DAPT/TAPT, PEFT, model editing (ROME, MEND, MEMIT, SERAC),
+and RAG to form an auditable loop covering admission thresholds, rollout,
+monitoring, rollback, and change audits, with specs for timeliness, conflict
+handling, and long-horizon consistency. Finally, we give four testable
+propositions: minimum identifiability; a minimal evaluation card; causally
+constrained editing with verifiable forgetting; and when retrieval with
+small-window replay outperforms ultra-long-context reading. This yields a
+reproducible, comparable, and governable coordinate system for research and
+deployment.</details></td><td><details><summary>展开</summary>这篇论文提出了一个关于LLM记忆的统一操作定义和四部分分类法（参数化、上下文、外部、过程/情景），并设计了一个评估框架，其中包括外部记忆（与RAG相关）的评估标准，如答案正确性与片段归因/忠实性。论文还讨论了DMM Gov框架，协调包括RAG在内的多种技术形成一个可审计的循环，用于更新和遗忘。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.18667v1">TERAG: Token-Efficient Graph-Based Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Graph-based Retrieval-augmented generation (RAG) has become a widely studied
+approach for improving the reasoning, accuracy, and factuality of Large
+Language Models. However, many existing graph-based RAG systems overlook the
+high cost associated with LLM token usage during graph construction, hindering
+large-scale adoption. To address this, we propose TERAG, a simple yet effective
+framework designed to build informative graphs at a significantly lower cost.
+Inspired by HippoRAG, we incorporate Personalized PageRank (PPR) during the
+retrieval phase, and we achieve at least 80% of the accuracy of widely used
+graph-based RAG methods while consuming only 3%-11% of the output tokens.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为TERAG的低成本图结构检索增强生成框架，通过结合个性化PageRank（PPR）优化检索阶段，大幅减少LLM建图时的token消耗（降至3%-11%），同时保持主流图基RAG方法80%以上的准确性。</details></td></tr></tbody></table>
+
 ### 📅 2025-09-22
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.18054v1">A Knowledge Graph-based Retrieval-Augmented Generation Framework for Algorithm Selection in the Facility Layout Problem</a></td><td><details><summary>展开</summary>Selecting a solution algorithm for the Facility Layout Problem (FLP), an
 NP-hard optimization problem with a multiobjective trade-off, is a complex task
