@@ -1,5 +1,104 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-24
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.20324v1">RAG Security and Privacy: Formalizing the Threat Model and Attack Surface</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is an emerging approach in natural
+language processing that combines large language models (LLMs) with external
+document retrieval to produce more accurate and grounded responses. While RAG
+has shown strong potential in reducing hallucinations and improving factual
+consistency, it also introduces new privacy and security challenges that differ
+from those faced by traditional LLMs. Existing research has demonstrated that
+LLMs can leak sensitive information through training data memorization or
+adversarial prompts, and RAG systems inherit many of these vulnerabilities. At
+the same time, reliance of RAG on an external knowledge base opens new attack
+surfaces, including the potential for leaking information about the presence or
+content of retrieved documents, or for injecting malicious content to
+manipulate model behavior. Despite these risks, there is currently no formal
+framework that defines the threat landscape for RAG systems. In this paper, we
+address a critical gap in the literature by proposing, to the best of our
+knowledge, the first formal threat model for retrieval-RAG systems. We
+introduce a structured taxonomy of adversary types based on their access to
+model components and data, and we formally define key threat vectors such as
+document-level membership inference and data poisoning, which pose serious
+privacy and integrity risks in real-world deployments. By establishing formal
+definitions and attack models, our work lays the foundation for a more rigorous
+and principled understanding of privacy and security in RAG systems.</details></td><td><details><summary>展开</summary>这篇论文探讨了检索增强生成（RAG）系统在隐私和安全方面的新挑战，提出了首个针对RAG系统的正式威胁模型，并定义了包括文档级成员推断和数据投毒在内的关键威胁向量，为理解和应对RAG系统的安全风险提供了理论基础。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.20190v1">STAF: Leveraging LLMs for Automated Attack Tree-Based Security Test Generation</a></td><td><details><summary>展开</summary>In modern automotive development, security testing is critical for
+safeguarding systems against increasingly advanced threats. Attack trees are
+widely used to systematically represent potential attack vectors, but
+generating comprehensive test cases from these trees remains a labor-intensive,
+error-prone task that has seen limited automation in the context of testing
+vehicular systems. This paper introduces STAF (Security Test Automation
+Framework), a novel approach to automating security test case generation.
+Leveraging Large Language Models (LLMs) and a four-step self-corrective
+Retrieval-Augmented Generation (RAG) framework, STAF automates the generation
+of executable security test cases from attack trees, providing an end-to-end
+solution that encompasses the entire attack surface. We particularly show the
+elements and processes needed to provide an LLM to actually produce sensible
+and executable automotive security test suites, along with the integration with
+an automated testing framework. We further compare our tailored approach with
+general purpose (vanilla) LLMs and the performance of different LLMs (namely
+GPT-4.1 and DeepSeek) using our approach. We also demonstrate the method of our
+operation step-by-step in a concrete case study. Our results show significant
+improvements in efficiency, accuracy, scalability, and easy integration in any
+workflow, marking a substantial advancement in automating automotive security
+testing methodologies. Using TARAs as an input for verfication tests, we create
+synergies by connecting two vital elements of a secure automotive development
+process.</details></td><td><details><summary>展开</summary>这篇论文介绍了STAF框架，利用LLM和四步自校正RAG技术，自动化生成汽车安全测试用例，显著提升了测试效率、准确性及可扩展性，并对比了不同LLM（如GPT-4.1和DeepSeek）的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.19980v1">RAD: Towards Trustworthy Retrieval-Augmented Multi-modal Clinical Diagnosis</a></td><td><details><summary>展开</summary>Clinical diagnosis is a highly specialized discipline requiring both domain
+expertise and strict adherence to rigorous guidelines. While current AI-driven
+medical research predominantly focuses on knowledge graphs or natural text
+pretraining paradigms to incorporate medical knowledge, these approaches
+primarily rely on implicitly encoded knowledge within model parameters,
+neglecting task-specific knowledge required by diverse downstream tasks. To
+address this limitation, we propose Retrieval-Augmented Diagnosis (RAD), a
+novel framework that explicitly injects external knowledge into multimodal
+models directly on downstream tasks. Specifically, RAD operates through three
+key mechanisms: retrieval and refinement of disease-centered knowledge from
+multiple medical sources, a guideline-enhanced contrastive loss that constrains
+the latent distance between multi-modal features and guideline knowledge, and
+the dual transformer decoder that employs guidelines as queries to steer
+cross-modal fusion, aligning the models with clinical diagnostic workflows from
+guideline acquisition to feature extraction and decision-making. Moreover,
+recognizing the lack of quantitative evaluation of interpretability for
+multimodal diagnostic models, we introduce a set of criteria to assess the
+interpretability from both image and text perspectives. Extensive evaluations
+across four datasets with different anatomies demonstrate RAD's
+generalizability, achieving state-of-the-art performance. Furthermore, RAD
+enables the model to concentrate more precisely on abnormal regions and
+critical indicators, ensuring evidence-based, trustworthy diagnosis. Our code
+is available at https://github.com/tdlhl/RAD.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为“Retrieval-Augmented Diagnosis (RAD)”的新框架，通过检索和整合多源医学知识（如疾病指南），结合对比损失和双Transformer解码器等机制，显式地将外部知识注入多模态模型，以提升临床诊断的准确性、可解释性及与工作流程的契合度，并设计了定量评估指标。该框架在多个数据集上表现优异，属于RAG技术在医疗诊断领域的扩展应用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.19952v1">When Words Can't Capture It All: Towards Video-Based User Complaint Text Generation with Multimodal Video Complaint Dataset</a></td><td><details><summary>展开</summary>While there exists a lot of work on explainable complaint mining,
+articulating user concerns through text or video remains a significant
+challenge, often leaving issues unresolved. Users frequently struggle to
+express their complaints clearly in text but can easily upload videos depicting
+product defects (e.g., vague text such as `worst product' paired with a
+5-second video depicting a broken headphone with the right earcup). This paper
+formulates a new task in the field of complaint mining to aid the common users'
+need to write an expressive complaint, which is Complaint Description from
+Videos (CoD-V) (e.g., to help the above user articulate her complaint about the
+defective right earcup). To this end, we introduce ComVID, a video complaint
+dataset containing 1,175 complaint videos and the corresponding descriptions,
+also annotated with the emotional state of the complainer. Additionally, we
+present a new complaint retention (CR) evaluation metric that discriminates the
+proposed (CoD-V) task against standard video summary generation and description
+tasks. To strengthen this initiative, we introduce a multimodal
+Retrieval-Augmented Generation (RAG) embedded VideoLLaMA2-7b model, designed to
+generate complaints while accounting for the user's emotional state. We conduct
+a comprehensive evaluation of several Video Language Models on several tasks
+(pre-trained and fine-tuned versions) with a range of established evaluation
+metrics, including METEOR, perplexity, and the Coleman-Liau readability score,
+among others. Our study lays the foundation for a new research direction to
+provide a platform for users to express complaints through video. Dataset and
+resources are available at: https://github.com/sarmistha-D/CoD-V.</details></td><td><details><summary>展开</summary>本文提出了一种新的投诉挖掘任务——视频投诉描述（CoD-V），旨在帮助用户通过视频表达投诉内容，并引入了一个包含1175条投诉视频及对应描述的数据集ComVID。作者提出了一种新的评估指标CR，并开发了一种基于检索增强生成（RAG）的多模态模型VideoLLaMA2-7b，用于生成考虑用户情感状态的投诉描述。研究通过多种评估指标对模型性能进行了全面验证，为该领域的新研究方向奠定了基础。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.19931v1">Documentation Retrieval Improves Planning Language Generation</a></td><td><details><summary>展开</summary>Certain strong LLMs have shown promise for zero-shot formal planning by
+generating planning languages like PDDL. Yet, performance of most open-source
+models under 50B parameters has been reported to be close to zero due to the
+low-resource nature of these languages. We significantly improve their
+performance via a series of lightweight pipelines that integrates documentation
+retrieval with modular code generation and error refinement. With models like
+Llama-4-Maverick, our best pipeline improves plan correctness from 0\% to over
+80\% on the common BlocksWorld domain. However, while syntactic errors are
+substantially reduced, semantic errors persist in more challenging domains,
+revealing fundamental limitations in current models' reasoning
+capabilities.\footnote{Our code and data can be found at
+https://github.com/Nangxxxxx/PDDL-RAG</details></td><td><details><summary>展开</summary>该论文提出了一种通过整合文档检索、模块化代码生成和错误修正的轻量级流程，显著提升了中小型开源LLMs在零样本形式化规划任务中的表现（如生成PDDL规划语言），尤其在BlocksWorld领域将正确率从0%提升至80%以上，但指出模型在复杂领域的语义推理仍存在根本性局限。其方法核心涉及检索增强技术（代码库标注了PDDL-RAG）。</details></td></tr></tbody></table>
+
 ### 📅 2025-09-23
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.19218v1">HyKid: An Open MRI Dataset with Expert-Annotated Multi-Structure and Choroid Plexus in Pediatric Hydrocephalus</a></td><td><details><summary>展开</summary>Evaluation of hydrocephalus in children is challenging, and the related
 research is limited by a lack of publicly available, expert-annotated datasets,
