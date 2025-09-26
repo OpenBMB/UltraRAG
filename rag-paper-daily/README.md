@@ -1,5 +1,174 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-25
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.21237v1">Query-Centric Graph Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Graph-based retrieval-augmented generation (RAG) enriches large language
+models (LLMs) with external knowledge for long-context understanding and
+multi-hop reasoning, but existing methods face a granularity dilemma:
+fine-grained entity-level graphs incur high token costs and lose context, while
+coarse document-level graphs fail to capture nuanced relations. We introduce
+QCG-RAG, a query-centric graph RAG framework that enables query-granular
+indexing and multi-hop chunk retrieval. Our query-centric approach leverages
+Doc2Query and Doc2Query{-}{-} to construct query-centric graphs with
+controllable granularity, improving graph quality and interpretability. A
+tailored multi-hop retrieval mechanism then selects relevant chunks via the
+generated queries. Experiments on LiHuaWorld and MultiHop-RAG show that QCG-RAG
+consistently outperforms prior chunk-based and graph-based RAG methods in
+question answering accuracy, establishing a new paradigm for multi-hop
+reasoning.</details></td><td><details><summary>展开</summary>该论文提出了QCG-RAG框架，通过构建查询为中心的图结构解决现有基于图的RAG方法中粒度困境（细粒度导致高开销，粗粒度丢失细节关系），结合可控粒度索引和多跳分块检索机制，在问答任务中超越传统分块和图基方法，提升了多跳推理性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21208v1">CLaw: Benchmarking Chinese Legal Knowledge in Large Language Models - A Fine-grained Corpus and Reasoning Analysis</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) are increasingly tasked with analyzing legal
+texts and citing relevant statutes, yet their reliability is often compromised
+by general pre-training that ingests legal texts without specialized focus,
+obscuring the true depth of their legal knowledge. This paper introduces CLaw,
+a novel benchmark specifically engineered to meticulously evaluate LLMs on
+Chinese legal knowledge and its application in reasoning. CLaw comprises two
+key components: (1) a comprehensive, fine-grained corpus of all 306 Chinese
+national statutes, segmented to the subparagraph level and incorporating
+precise historical revision timesteps for rigorous recall evaluation (64,849
+entries), and (2) a challenging set of 254 case-based reasoning instances
+derived from China Supreme Court curated materials to assess the practical
+application of legal knowledge. Our empirical evaluation reveals that most
+contemporary LLMs significantly struggle to faithfully reproduce legal
+provisions. As accurate retrieval and citation of legal provisions form the
+basis of legal reasoning, this deficiency critically undermines the reliability
+of their responses. We contend that achieving trustworthy legal reasoning in
+LLMs requires a robust synergy of accurate knowledge retrieval--potentially
+enhanced through supervised fine-tuning (SFT) or retrieval-augmented generation
+(RAG)--and strong general reasoning capabilities. This work provides an
+essential benchmark and critical insights for advancing domain-specific LLM
+reasoning, particularly within the complex legal sphere.</details></td><td><details><summary>展开</summary>这篇论文介绍了CLaw基准，旨在评估大语言模型（LLMs）在中国法律知识及其推理应用中的表现，发现现有模型在准确检索和引用法律条文方面存在重大缺陷，并指出通过监督微调（SFT）或检索增强生成（RAG）等技术改进知识检索能力是实现可靠法律推理的关键。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21193v1">Eigen-1: Adaptive Multi-Agent Refinement with Monitor-Based RAG for Scientific Reasoning</a></td><td><details><summary>展开</summary>Large language models (LLMs) have recently shown strong progress on
+scientific reasoning, yet two major bottlenecks remain. First, explicit
+retrieval fragments reasoning, imposing a hidden "tool tax" of extra tokens and
+steps. Second, multi-agent pipelines often dilute strong solutions by averaging
+across all candidates. We address these challenges with a unified framework
+that combines implicit retrieval and structured collaboration. At its
+foundation, a Monitor-based retrieval module operates at the token level,
+integrating external knowledge with minimal disruption to reasoning. On top of
+this substrate, Hierarchical Solution Refinement (HSR) iteratively designates
+each candidate as an anchor to be repaired by its peers, while Quality-Aware
+Iterative Reasoning (QAIR) adapts refinement to solution quality. On Humanity's
+Last Exam (HLE) Bio/Chem Gold, our framework achieves 48.3\% accuracy -- the
+highest reported to date, surpassing the strongest agent baseline by 13.4
+points and leading frontier LLMs by up to 18.1 points, while simultaneously
+reducing token usage by 53.5\% and agent steps by 43.7\%. Results on SuperGPQA
+and TRQA confirm robustness across domains. Error analysis shows that reasoning
+failures and knowledge gaps co-occur in over 85\% of cases, while diversity
+analysis reveals a clear dichotomy: retrieval tasks benefit from solution
+variety, whereas reasoning tasks favor consensus. Together, these findings
+demonstrate how implicit augmentation and structured refinement overcome the
+inefficiencies of explicit tool use and uniform aggregation. Code is available
+at: https://github.com/tangxiangru/Eigen-1.</details></td><td><details><summary>展开</summary>这篇论文提出了一种结合隐式检索和结构化协作的统一框架来解决大语言模型在科学推理中的问题。该框架通过基于Monitor的检索模块在token级别集成外部知识，减少推理中断，并采用分层解决方案精炼（HSR）和质量感知迭代推理（QAIR）来优化结果。实验表明，该框架在多项任务中实现了最高准确率，同时显著降低了token和计算步骤的消耗。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21188v1">Adoption, usability and perceived clinical value of a UK AI clinical reference platform (iatroX): a mixed-methods formative evaluation of real-world usage and a 1,223-respondent user survey</a></td><td><details><summary>展开</summary>Clinicians face growing information overload from biomedical literature and
+guidelines, hindering evidence-based care. Retrieval-augmented generation (RAG)
+with large language models may provide fast, provenance-linked answers, but
+requires real-world evaluation. We describe iatroX, a UK-centred RAG-based
+clinical reference platform, and report early adoption, usability, and
+perceived clinical value from a formative implementation evaluation. Methods
+comprised a retrospective analysis of usage across web, iOS, and Android over
+16 weeks (8 April-31 July 2025) and an in-product intercept survey. Usage
+metrics were drawn from web and app analytics with bot filtering. A client-side
+script randomized single-item prompts to approx. 10% of web sessions from a
+predefined battery assessing usefulness, reliability, and adoption intent.
+Proportions were summarized with Wilson 95% confidence intervals; free-text
+comments underwent thematic content analysis. iatroX reached 19,269 unique web
+users, 202,660 engagement events, and approx. 40,000 clinical queries. Mobile
+uptake included 1,960 iOS downloads and Android growth (peak >750 daily active
+users). The survey yielded 1,223 item-level responses: perceived usefulness
+86.2% (95% CI 74.8-93.9%; 50/58); would use again 93.3% (95% CI 68.1-99.8%;
+14/15); recommend to a colleague 88.4% (95% CI 75.1-95.9%; 38/43); perceived
+accuracy 75.0% (95% CI 58.8-87.3%; 30/40); reliability 79.4% (95% CI
+62.1-91.3%; 27/34). Themes highlighted speed, guideline-linked answers, and UK
+specificity. Early real-world use suggests iatroX can mitigate information
+overload and support timely answers for UK clinicians. Limitations include
+small per-item samples and early-adopter bias; future work will include
+accuracy audits and prospective studies on workflow and care quality.</details></td><td><details><summary>展开</summary>这篇文章介绍了基于RAG技术的临床参考平台iatroX，旨在解决临床医生面临的信息过载问题。该平台通过检索增强生成提供快速、可溯源的医疗答案，并在英国进行实际应用评估，结果显示早期用户对其有用性、准确性和可靠性持积极评价。研究还分析了平台的使用数据、用户反馈及局限性，并展望了未来的研究方向。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21035v1">CLAUSE: Agentic Neuro-Symbolic Knowledge Graph Reasoning via Dynamic Learnable Context Engineering</a></td><td><details><summary>展开</summary>Knowledge graphs provide structured context for multi-hop question answering,
+but deployed systems must balance answer accuracy with strict latency and cost
+targets while preserving provenance. Static k-hop expansions and "think-longer"
+prompting often over-retrieve, inflate context, and yield unpredictable
+runtime. We introduce CLAUSE, an agentic three-agent neuro-symbolic framework
+that treats context construction as a sequential decision process over
+knowledge graphs, deciding what to expand, which paths to follow or backtrack,
+what evidence to keep, and when to stop. Latency (interaction steps) and prompt
+cost (selected tokens) are exposed as user-specified budgets or prices,
+allowing per-query adaptation to trade-offs among accuracy, latency, and cost
+without retraining. CLAUSE employs the proposed Lagrangian-Constrained
+Multi-Agent Proximal Policy Optimization (LC-MAPPO) algorithm to coordinate
+three agents: Subgraph Architect, Path Navigator, and Context Curator, so that
+subgraph construction, reasoning-path discovery, and evidence selection are
+jointly optimized under per-query resource budgets on edge edits, interaction
+steps, and selected tokens. Across HotpotQA, MetaQA, and FactKG, CLAUSE yields
+higher EM@1 while reducing subgraph growth and end-to-end latency at equal or
+lower token budgets. On MetaQA-2-hop, relative to the strongest RAG baseline
+(GraphRAG), CLAUSE achieves +39.3 EM@1 with 18.6% lower latency and 40.9% lower
+edge growth. The resulting contexts are compact, provenance-preserving, and
+deliver predictable performance under deployment constraints.</details></td><td><details><summary>展开</summary>这篇论文提出了CLAUSE，一种基于智能神经符号框架的多代理系统，用于优化知识图谱上的上下文构建过程，通过动态决策在准确性、延迟和成本之间进行权衡。CLAUSE利用LC-MAPPO算法协调三个代理（子图构建、路径导航和上下文管理），在资源限制下提升多跳问答的性能，相较于传统RAG方法（如GraphRAG），它在减少子图增长和延迟的同时显著提高了准确率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.20953v1">Beyond Stars: Bridging the Gap Between Ratings and Review Sentiment with LLM</a></td><td><details><summary>展开</summary>We present an advanced approach to mobile app review analysis aimed at
+addressing limitations inherent in traditional star-rating systems. Star
+ratings, although intuitive and popular among users, often fail to capture the
+nuanced feedback present in detailed review texts. Traditional NLP techniques
+-- such as lexicon-based methods and classical machine learning classifiers --
+struggle to interpret contextual nuances, domain-specific terminology, and
+subtle linguistic features like sarcasm. To overcome these limitations, we
+propose a modular framework leveraging large language models (LLMs) enhanced by
+structured prompting techniques. Our method quantifies discrepancies between
+numerical ratings and textual sentiment, extracts detailed, feature-level
+insights, and supports interactive exploration of reviews through
+retrieval-augmented conversational question answering (RAG-QA). Comprehensive
+experiments conducted on three diverse datasets (AWARE, Google Play, and
+Spotify) demonstrate that our LLM-driven approach significantly surpasses
+baseline methods, yielding improved accuracy, robustness, and actionable
+insights in challenging and context-rich review scenarios.</details></td><td><details><summary>展开</summary>本文提出了一种利用大型语言模型（LLMs）和结构化提示技术的模块化框架，通过检索增强的对话问答（RAG-QA）来分析移动应用评论，以克服传统星级评分和非结构化NLP方法的局限性，并在多数据集实验中展现出优越性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.20859v1">Concise and Sufficient Sub-Sentence Citations for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>In retrieval-augmented generation (RAG) question answering systems,
+generating citations for large language model (LLM) outputs enhances
+verifiability and helps users identify potential hallucinations. However, we
+observe two problems in the citations produced by existing attribution methods.
+First, the citations are typically provided at the sentence or even paragraph
+level. Long sentences or paragraphs may include a substantial amount of
+irrelevant content. Second, sentence-level citations may omit information that
+is essential for verifying the output, forcing users to read the surrounding
+context. In this paper, we propose generating sub-sentence citations that are
+both concise and sufficient, thereby reducing the effort required by users to
+confirm the correctness of the generated output. To this end, we first develop
+annotation guidelines for such citations and construct a corresponding dataset.
+Then, we propose an attribution framework for generating citations that adhere
+to our standards. This framework leverages LLMs to automatically generate
+fine-tuning data for our task and employs a credit model to filter out
+low-quality examples. Our experiments on the constructed dataset demonstrate
+that the propose approach can generate high-quality and more readable
+citations.</details></td><td><details><summary>展开</summary>该论文探讨了在RAG问答系统中为LLM输出生成更精确的子句级别引用（而非传统句子或段落级）的方法，旨在提升引用信息的简洁性和充分性，减少用户验证成本，并提出了一种结合自动标注和数据过滤的归因框架，通过实验验证了其有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.20769v1">Provenance Analysis of Archaeological Artifacts via Multimodal RAG Systems</a></td><td><details><summary>展开</summary>In this work, we present a retrieval-augmented generation (RAG)-based system
+for provenance analysis of archaeological artifacts, designed to support expert
+reasoning by integrating multimodal retrieval and large vision-language models
+(VLMs). The system constructs a dual-modal knowledge base from reference texts
+and images, enabling raw visual, edge-enhanced, and semantic retrieval to
+identify stylistically similar objects. Retrieved candidates are synthesized by
+the VLM to generate structured inferences, including chronological,
+geographical, and cultural attributions, alongside interpretive justifications.
+We evaluate the system on a set of Eastern Eurasian Bronze Age artifacts from
+the British Museum. Expert evaluation demonstrates that the system produces
+meaningful and interpretable outputs, offering scholars concrete starting
+points for analysis and significantly alleviating the cognitive burden of
+navigating vast comparative corpora.</details></td><td><details><summary>展开</summary>该论文提出了一种基于检索增强生成（RAG）的系统，用于考古文物来源分析，通过整合多模态检索和大型视觉-语言模型（VLMs），构建双模态知识库以检索风格相似的文物，并生成结构化推断（如年代、地理和文化属性）及解释性理由，经大英博物馆的欧亚青铜器文物验证，专家评估表明系统能有效支持学术分析并减轻认知负担。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.20707v1">An Automated Retrieval-Augmented Generation LLaMA-4 109B-based System for Evaluating Radiotherapy Treatment Plans</a></td><td><details><summary>展开</summary>Purpose: To develop a retrieval-augmented generation (RAG) system powered by
+LLaMA-4 109B for automated, protocol-aware, and interpretable evaluation of
+radiotherapy treatment plans.
+  Methods and Materials: We curated a multi-protocol dataset of 614
+radiotherapy plans across four disease sites and constructed a knowledge base
+containing normalized dose metrics and protocol-defined constraints. The RAG
+system integrates three core modules: a retrieval engine optimized across five
+SentenceTransformer backbones, a percentile prediction component based on
+cohort similarity, and a clinical constraint checker. These tools are directed
+by a large language model (LLM) using a multi-step prompt-driven reasoning
+pipeline to produce concise, grounded evaluations.
+  Results: Retrieval hyperparameters were optimized using Gaussian Process on a
+scalarized loss function combining root mean squared error (RMSE), mean
+absolute error (MAE), and clinically motivated accuracy thresholds. The best
+configuration, based on all-MiniLM-L6-v2, achieved perfect nearest-neighbor
+accuracy within a 5-percentile-point margin and a sub-2pt MAE. When tested
+end-to-end, the RAG system achieved 100% agreement with the computed values by
+standalone retrieval and constraint-checking modules on both percentile
+estimates and constraint identification, confirming reliable execution of all
+retrieval, prediction and checking steps.
+  Conclusion: Our findings highlight the feasibility of combining structured
+population-based scoring with modular tool-augmented reasoning for transparent,
+scalable plan evaluation in radiation therapy. The system offers traceable
+outputs, minimizes hallucination, and demonstrates robustness across protocols.
+Future directions include clinician-led validation, and improved domain-adapted
+retrieval models to enhance real-world integration.</details></td><td><details><summary>展开</summary>这篇文章提出了一种基于LLaMA-4 109B的RAG系统，用于放射治疗计划的自动化、协议感知和可解释性评估。该系统通过整合检索引擎、百分位数预测组件和临床约束检查器，利用多步提示驱动的推理流程生成精确评估，并在实验中展现了高准确性和可靠性，同时减少了幻觉输出。</details></td></tr></tbody></table>
+
 ### 📅 2025-09-24
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.20324v1">RAG Security and Privacy: Formalizing the Threat Model and Attack Surface</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is an emerging approach in natural
 language processing that combines large language models (LLMs) with external
