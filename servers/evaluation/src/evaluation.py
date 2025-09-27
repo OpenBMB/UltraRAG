@@ -61,6 +61,8 @@ def normalize_text(text: str) -> str:
 # Accuracy Score
 def accuracy_score(gt: List[str], pred: str) -> float:
     pred_norm = normalize_text(pred)
+    if not pred_norm:
+        return 0.0
     gt_norm_ls = [normalize_text(g) for g in gt]
     return 1.0 if any(pred_norm in g for g in gt_norm_ls) else 0.0
 
@@ -188,6 +190,7 @@ def compute_metrics(
     for metric, scores in results.items():
         if not scores:
             avg_results[f"avg_{metric}"] = 0.0
+            continue
         avg_results[f"avg_{metric}"] = sum(scores) / len(scores)
     return {**results, **avg_results}
 
