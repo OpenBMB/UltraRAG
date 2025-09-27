@@ -74,7 +74,12 @@ def elem_match(elem: Dict, pairs: List[Tuple[int, str]]) -> bool:
 
 
 class UltraData:
-    def __init__(self, pipeline_yaml_path: str, server_configs: Dict[str, Dict] = None):
+    def __init__(
+        self,
+        pipeline_yaml_path: str,
+        server_configs: Dict[str, Dict] = None,
+        parameter_file: str | Path | None = None,
+    ):
         self.pipeline_yaml_path = pipeline_yaml_path
         cfg = Configuration()
         pipeline = cfg.load_config(pipeline_yaml_path)
@@ -94,7 +99,10 @@ class UltraData:
             for name, path in server_paths.items()
         }
         cfg_path = Path(pipeline_yaml_path)
-        param_file = cfg_path.parent / "parameter" / f"{cfg_path.stem}_parameter.yaml"
+        if parameter_file is not None:
+            param_file = Path(parameter_file)
+        else:
+            param_file = cfg_path.parent / "parameter" / f"{cfg_path.stem}_parameter.yaml"
         all_local_vals = cfg.load_parameter_config(param_file)
         self.local_vals.update(all_local_vals)
         self.io = {}
@@ -805,7 +813,7 @@ async def build(config_path: str):
     logger.info(f"All server configurations have been saved in {server_save_path}")
 
 
-async def run(config_path: str):
+async def run(config_path: str, param_path: str | Path | None = None):
     cfg_path = Path(config_path)
     log_server_banner(cfg_path.stem)
     logger.info(f"Executing pipeline with configuration {config_path}")
@@ -826,7 +834,23 @@ async def run(config_path: str):
         if name in all_server_configs
     }
 
-    param_config_path = root_path / "parameter" / f"{cfg_name}_parameter.yaml"
+    if param_path is not None:
+        provided_path = Path(param_path).expanduser()
+        candidate_paths = []
+        if provided_path.is_absolute():
+            candidate_paths.append(provided_path)
+        else:
+            candidate_paths.append(Path.cwd() / provided_path)
+            candidate_paths.append(root_path / provided_path)
+
+        param_config_path = next((p for p in candidate_paths if p.exists()), None)
+        if param_config_path is None:
+            raise FileNotFoundError(
+                f"[UltraRAG Error] Parameter file '{provided_path}' does not exist"
+            )
+        param_config_path = param_config_path.resolve()
+    else:
+        param_config_path = root_path / "parameter" / f"{cfg_name}_parameter.yaml"
     param_cfg = cfg.load_parameter_config(param_config_path)
     for srv_name in server_cfg.keys():
         server_cfg[srv_name]["parameter"] = param_cfg.get(srv_name, {})
@@ -873,7 +897,9 @@ async def run(config_path: str):
 
     logger.info("Initializing servers...")
     client = Client(mcp_cfg)
-    Data: UltraData = UltraData(config_path, server_configs=server_cfg)
+    Data: UltraData = UltraData(
+        config_path, server_configs=server_cfg, parameter_file=param_config_path
+    )
 
     async def execute_steps(
         steps: List[PipelineStep],
@@ -1026,6 +1052,11 @@ def main():
         "run", help="Run the pipeline with the given configuration"
     )
     p_run.add_argument("config")
+    p_run.add_argument(
+        "--param",
+        type=str,
+        help="Custom parameter file path",
+    )
 
     p_run.add_argument(
         "--log_level",
@@ -1049,7 +1080,7 @@ def main():
         log_server_banner("Building")
         asyncio.run(build(args.config))
     elif args.cmd == "run":
-        asyncio.run(run(args.config))
+        asyncio.run(run(args.config, args.param))
     else:
         parser.print_help()
         sys.exit(1)
