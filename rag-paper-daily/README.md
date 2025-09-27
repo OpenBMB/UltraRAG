@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-26
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-09-25
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.21237v1">Query-Centric Graph Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Graph-based retrieval-augmented generation (RAG) enriches large language
 models (LLMs) with external knowledge for long-context understanding and
