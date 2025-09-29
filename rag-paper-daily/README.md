@@ -7,7 +7,232 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-09-26
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.22565v1">Retrieval-Augmented Guardrails for AI-Drafted Patient-Portal Messages: Error Taxonomy Construction and Large-Scale Evaluation</a></td><td><details><summary>展开</summary>Asynchronous patient-clinician messaging via EHR portals is a growing source
+of clinician workload, prompting interest in large language models (LLMs) to
+assist with draft responses. However, LLM outputs may contain clinical
+inaccuracies, omissions, or tone mismatches, making robust evaluation
+essential. Our contributions are threefold: (1) we introduce a clinically
+grounded error ontology comprising 5 domains and 59 granular error codes,
+developed through inductive coding and expert adjudication; (2) we develop a
+retrieval-augmented evaluation pipeline (RAEC) that leverages semantically
+similar historical message-response pairs to improve judgment quality; and (3)
+we provide a two-stage prompting architecture using DSPy to enable scalable,
+interpretable, and hierarchical error detection. Our approach assesses the
+quality of drafts both in isolation and with reference to similar past
+message-response pairs retrieved from institutional archives. Using a two-stage
+DSPy pipeline, we compared baseline and reference-enhanced evaluations on over
+1,500 patient messages. Retrieval context improved error identification in
+domains such as clinical completeness and workflow appropriateness. Human
+validation on 100 messages demonstrated superior agreement (concordance = 50%
+vs. 33%) and performance (F1 = 0.500 vs. 0.256) of context-enhanced labels vs.
+baseline, supporting the use of our RAEC pipeline as AI guardrails for patient
+messaging.</details></td><td><details><summary>展开</summary>这篇论文提出了一种检索增强的评估管道（RAEC），利用语义相似的历史消息-响应对来改进对大型语言模型（LLMs）生成的临床回复草案的质量评估，并通过两阶段提示架构实现可扩展和分层次的错误检测，验证了检索上下文在提升临床完整性和工作流适当性等领域的错误识别效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22516v1">TrueGradeAI: Retrieval-Augmented and Bias-Resistant AI for Transparent and Explainable Digital Assessments</a></td><td><details><summary>展开</summary>This paper introduces TrueGradeAI, an AI-driven digital examination framework
+designed to overcome the shortcomings of traditional paper-based assessments,
+including excessive paper usage, logistical complexity, grading delays, and
+evaluator bias. The system preserves natural handwriting by capturing stylus
+input on secure tablets and applying transformer-based optical character
+recognition for transcription. Evaluation is conducted through a
+retrieval-augmented pipeline that integrates faculty solutions, cache layers,
+and external references, enabling a large language model to assign scores with
+explicit, evidence-linked reasoning. Unlike prior tablet-based exam systems
+that primarily digitize responses, TrueGradeAI advances the field by
+incorporating explainable automation, bias mitigation, and auditable grading
+trails. By uniting handwriting preservation with scalable and transparent
+evaluation, the framework reduces environmental costs, accelerates feedback
+cycles, and progressively builds a reusable knowledge base, while actively
+working to mitigate grading bias and ensure fairness in assessment.</details></td><td><details><summary>展开</summary>该论文提出TrueGradeAI框架，通过基于触控笔输入的数字化考试系统结合检索增强流程（集成教师答案、缓存层和外部参考），利用大语言模型进行可解释、证据关联的评分，解决传统考试弊端并提升透明度和公平性，属于RAG在自动化评估领域的应用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22490v1">JGU Mainz's Submission to the WMT25 Shared Task on LLMs with Limited Resources for Slavic Languages: MT and QA</a></td><td><details><summary>展开</summary>This paper presents the JGU Mainz submission to the WMT25 Shared Task on LLMs
+with Limited Resources for Slavic Languages: Machine Translation and Question
+Answering, focusing on Ukrainian, Upper Sorbian, and Lower Sorbian. For each
+language, we jointly fine-tune a Qwen2.5-3B-Instruct model for both tasks with
+parameter-efficient finetuning. Our pipeline integrates additional translation
+and multiple-choice question answering (QA) data. For Ukrainian QA, we further
+use retrieval-augmented generation. We also apply ensembling for QA in Upper
+and Lower Sorbian. Experiments show that our models outperform the baseline on
+both tasks.</details></td><td><details><summary>展开</summary>该论文介绍了JGU Mainz团队针对低资源斯拉夫语（乌克兰语、上索布语和下索布语）的机器翻译和问答任务，使用Qwen2.5-3B-Instruct模型进行联合微调，并在乌克兰语问答中采用检索增强生成（RAG）技术，实验表明模型性能优于基线。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22486v1">Your RAG is Unfair: Exposing Fairness Vulnerabilities in Retrieval-Augmented Generation via Backdoor Attacks</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) enhances factual grounding by
+integrating retrieval mechanisms with generative models but introduces new
+attack surfaces, particularly through backdoor attacks. While prior research
+has largely focused on disinformation threats, fairness vulnerabilities remain
+underexplored. Unlike conventional backdoors that rely on direct
+trigger-to-target mappings, fairness-driven attacks exploit the interaction
+between retrieval and generation models, manipulating semantic relationships
+between target groups and social biases to establish a persistent and covert
+influence on content generation.
+  This paper introduces BiasRAG, a systematic framework that exposes fairness
+vulnerabilities in RAG through a two-phase backdoor attack. During the
+pre-training phase, the query encoder is compromised to align the target group
+with the intended social bias, ensuring long-term persistence. In the
+post-deployment phase, adversarial documents are injected into knowledge bases
+to reinforce the backdoor, subtly influencing retrieved content while remaining
+undetectable under standard fairness evaluations. Together, BiasRAG ensures
+precise target alignment over sensitive attributes, stealthy execution, and
+resilience. Empirical evaluations demonstrate that BiasRAG achieves high attack
+success rates while preserving contextual relevance and utility, establishing a
+persistent and evolving threat to fairness in RAG.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG技术在公平性方面的潜在漏洞，提出了一种名为BiasRAG的两阶段后门攻击框架。该攻击通过在预训练阶段操纵查询编码器使其与特定社会偏见对齐，并在部署后阶段向知识库注入对抗性文档，从而在保持隐蔽性的同时持续影响生成内容。研究表明，BiasRAG不仅能高效实施攻击，还揭示了现有公平性评估的局限性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22378v1">Zero-Effort Image-to-Music Generation: An Interpretable RAG-based VLM Approach</a></td><td><details><summary>展开</summary>Recently, Image-to-Music (I2M) generation has garnered significant attention,
+with potential applications in fields such as gaming, advertising, and
+multi-modal art creation. However, due to the ambiguous and subjective nature
+of I2M tasks, most end-to-end methods lack interpretability, leaving users
+puzzled about the generation results. Even methods based on emotion mapping
+face controversy, as emotion represents only a singular aspect of art.
+Additionally, most learning-based methods require substantial computational
+resources and large datasets for training, hindering accessibility for common
+users. To address these challenges, we propose the first Vision Language Model
+(VLM)-based I2M framework that offers high interpretability and low
+computational cost. Specifically, we utilize ABC notation to bridge the text
+and music modalities, enabling the VLM to generate music using natural
+language. We then apply multi-modal Retrieval-Augmented Generation (RAG) and
+self-refinement techniques to allow the VLM to produce high-quality music
+without external training. Furthermore, we leverage the generated motivations
+in text and the attention maps from the VLM to provide explanations for the
+generated results in both text and image modalities. To validate our method, we
+conduct both human studies and machine evaluations, where our method
+outperforms others in terms of music quality and music-image consistency,
+indicating promising results. Our code is available at
+https://github.com/RS2002/Image2Music .</details></td><td><details><summary>展开</summary>这篇文章提出了一种基于视觉语言模型（VLM）的Image-to-Music（I2M）生成框架，通过多模态检索增强生成（RAG）和自优化技术，无需外部训练即可生成高质量音乐，并利用文本动机和注意力图提供跨模态解释，在音乐质量与图文一致性上优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22325v1">Can Synthetic Query Rewrites Capture User Intent Better than Humans in Retrieval-Augmented Generation?</a></td><td><details><summary>展开</summary>Multi-turn RAG systems often face queries with colloquial omissions and
+ambiguous references, posing significant challenges for effective retrieval and
+generation. Traditional query rewriting relies on human annotators to clarify
+queries, but due to limitations in annotators' expressive ability and depth of
+understanding, manually rewritten queries often diverge from those needed in
+real-world RAG systems, resulting in a gap between user intent and system
+response. We observe that high-quality synthetic queries can better bridge this
+gap, achieving superior performance in both retrieval and generation compared
+to human rewrites. This raises an interesting question: Can rewriting models
+trained on synthetic queries better capture user intent than human annotators?
+In this paper, we propose SynRewrite, a synthetic data-driven query rewriting
+model to generate high-quality synthetic rewrites more aligned with user
+intent. To construct training data, we prompt GPT-4o with dialogue history,
+current queries, positive documents, and answers to synthesize high-quality
+rewrites. A Flan-T5 model is then finetuned on this dataset to map dialogue
+history and queries to synthetic rewrites. Finally, we further enhance the
+rewriter using the generator's feedback through the DPO algorithm to boost
+end-task performance. Experiments on TopiOCQA and QRECC datasets show that
+SynRewrite consistently outperforms human rewrites in both retrieval and
+generation tasks. Our results demonstrate that synthetic rewrites can serve as
+a scalable and effective alternative to human annotations.</details></td><td><details><summary>展开</summary>这篇论文探讨了多轮RAG系统中面对口语化省略和模糊指代查询时的挑战，提出了一种基于合成数据的查询重写模型SynRewrite。该方法利用GPT-4o生成高质量的重写查询训练数据，并微调Flan-T5模型，再通过DPO算法结合生成器反馈优化性能。实验表明，SynRewrite在检索和生成任务中表现优于人工重写，证明合成数据能有效替代人工标注。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.22009v1">GraphSearch: An Agentic Deep Searching Workflow for Graph Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Graph Retrieval-Augmented Generation (GraphRAG) enhances factual reasoning in
+LLMs by structurally modeling knowledge through graph-based representations.
+However, existing GraphRAG approaches face two core limitations: shallow
+retrieval that fails to surface all critical evidence, and inefficient
+utilization of pre-constructed structural graph data, which hinders effective
+reasoning from complex queries. To address these challenges, we propose
+\textsc{GraphSearch}, a novel agentic deep searching workflow with dual-channel
+retrieval for GraphRAG. \textsc{GraphSearch} organizes the retrieval process
+into a modular framework comprising six modules, enabling multi-turn
+interactions and iterative reasoning. Furthermore, \textsc{GraphSearch} adopts
+a dual-channel retrieval strategy that issues semantic queries over chunk-based
+text data and relational queries over structural graph data, enabling
+comprehensive utilization of both modalities and their complementary strengths.
+Experimental results across six multi-hop RAG benchmarks demonstrate that
+\textsc{GraphSearch} consistently improves answer accuracy and generation
+quality over the traditional strategy, confirming \textsc{GraphSearch} as a
+promising direction for advancing graph retrieval-augmented generation.</details></td><td><details><summary>展开</summary>该论文提出了一种名为GraphSearch的新型图检索增强生成（GraphRAG）方法，通过双通道检索策略（语义查询和关系查询）及模块化工作流解决了传统GraphRAG方法中检索浅层化和图数据利用效率低的问题，实验证明其在多跳RAG基准测试中显著提升了答案准确性和生成质量。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21875v1">LUMINA: Detecting Hallucinations in RAG System with Context-Knowledge Signals</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) aims to mitigate hallucinations in large
+language models (LLMs) by grounding responses in retrieved documents. Yet,
+RAG-based LLMs still hallucinate even when provided with correct and sufficient
+context. A growing line of work suggests that this stems from an imbalance
+between how models use external context and their internal knowledge, and
+several approaches have attempted to quantify these signals for hallucination
+detection. However, existing methods require extensive hyperparameter tuning,
+limiting their generalizability. We propose LUMINA, a novel framework that
+detects hallucinations in RAG systems through context-knowledge signals:
+external context utilization is quantified via distributional distance, while
+internal knowledge utilization is measured by tracking how predicted tokens
+evolve across transformer layers. We further introduce a framework for
+statistically validating these measurements. Experiments on common RAG
+hallucination benchmarks and four open-source LLMs show that LUMINA achieves
+consistently high AUROC and AUPRC scores, outperforming prior utilization-based
+methods by up to +13% AUROC on HalluRAG. Moreover, LUMINA remains robust under
+relaxed assumptions about retrieval quality and model matching, offering both
+effectiveness and practicality.</details></td><td><details><summary>展开</summary>这篇论文提出了LUMINA框架，专门用于检测RAG系统中因上下文与内部知识利用不平衡导致的幻觉问题。通过量化外部上下文分布距离和内部知识在Transformer层中的演化，结合统计验证方法，LUMINA在多个RAG基准测试中显著优于现有方法（如AUROC提升13%），且对检索质量和模型适配具有更强鲁棒性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21865v1">Beyond RAG vs. Long-Context: Learning Distraction-Aware Retrieval for Efficient Knowledge Grounding</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is a framework for grounding Large
+Language Models (LLMs) in external, up-to-date information. However, recent
+advancements in context window size allow LLMs to process inputs of up to 128K
+tokens or more, offering an alternative strategy: supplying the full document
+context directly to the model, rather than relying on RAG to retrieve a subset
+of contexts. Nevertheless, this emerging alternative strategy has notable
+limitations: (i) it is token-inefficient to handle large and potentially
+redundant contexts; (ii) it exacerbates the `lost in the middle' phenomenon;
+and (iii) under limited model capacity, it amplifies distraction, ultimately
+degrading LLM output quality. In this paper, we propose LDAR (Learning
+Distraction-Aware Retrieval), an adaptive retriever that learns to retrieve
+contexts in a way that mitigates interference from distracting passages,
+thereby achieving significantly higher performance with reduced token usage
+compared to long-context approaches. Extensive experiments across diverse LLM
+architectures and six knowledge-intensive benchmarks demonstrate the
+effectiveness and robustness of our approach, highlighting the importance of
+balancing the trade-off between information coverage and distraction.</details></td><td><details><summary>展开</summary>这篇论文探讨了在大型语言模型（LLM）上下文窗口增大的背景下，RAG（检索增强生成）面临的挑战与改进方法，提出了LDAR（Learning Distraction-Aware Retrieval）算法，通过自适应检索减少干扰性段落的影响，以提高性能并降低token使用量，证明了在信息覆盖与干扰间平衡的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21856v1">KnowMT-Bench: Benchmarking Knowledge-Intensive Long-Form Question Answering in Multi-Turn Dialogues</a></td><td><details><summary>展开</summary>Multi-Turn Long-Form Question Answering (MT-LFQA) is a key application
+paradigm of Large Language Models (LLMs) in knowledge-intensive domains.
+However, existing benchmarks are limited to single-turn dialogue, while
+multi-turn dialogue benchmarks typically assess other orthogonal capabilities
+rather than knowledge-intensive factuality. To bridge this critical gap, we
+introduce \textbf{KnowMT-Bench}, the \textit{first-ever} benchmark designed to
+systematically evaluate MT-LFQA for LLMs across knowledge-intensive fields,
+including medicine, finance, and law. To faithfully assess the model's
+real-world performance, KnowMT-Bench employs a dynamic evaluation setting where
+models generate their own multi-turn dialogue histories given logically
+progressive question sequences. The factual capability and information delivery
+efficiency of the \textit{final-turn} answer are then evaluated using a
+human-validated automated pipeline. Our experiments reveal that multi-turn
+contexts degrade performance: factual capability declines due to the contextual
+noise from self-generated histories, while information efficiency drops as
+models become more verbose with increasing dialogue length. We then investigate
+mitigation strategies, demonstrating that retrieval-augmented generation (RAG)
+can effectively alleviate and even reverse this factual degradation. These
+findings underscore the importance of our benchmark in evaluating and enhancing
+the conversational factual capabilities of LLMs in real-world
+knowledge-intensive applications. Code is available at
+\href{https://github.com/hardenyu21/KnowMT-Bench}{\textcolor{cyan}{\texttt{KnowMT-Bench}}}.</details></td><td><details><summary>展开</summary>这篇文章介绍了KnowMT-Bench，首个用于评估大语言模型在多轮长形式问答（MT-LFQA）中知识密集型领域性能的基准测试，研究发现多轮对话会降低模型的事实性表现，但检索增强生成（RAG）能有效缓解这一退化，强调了RAG在提升模型对话事实性能力中的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21848v1">Graph of Agents: Principled Long Context Modeling by Emergent Multi-Agent Collaboration</a></td><td><details><summary>展开</summary>As a model-agnostic approach to long context modeling, multi-agent systems
+can process inputs longer than a large language model's context window without
+retraining or architectural modifications. However, their performance often
+heavily relies on hand-crafted multi-agent collaboration strategies and prompt
+engineering, which limit generalizability. In this work, we introduce a
+principled framework that formalizes the model-agnostic long context modeling
+problem as a compression problem, yielding an information-theoretic compression
+objective. Building on this framework, we propose Graph of Agents (GoA), which
+dynamically constructs an input-dependent collaboration structure that
+maximizes this objective. For Llama 3.1 8B and Qwen3 8B across six document
+question answering benchmarks, GoA improves the average $F_1$ score of
+retrieval-augmented generation by 5.7\% and a strong multi-agent baseline using
+a fixed collaboration structure by 16.35\%, respectively. Even with only a 2K
+context window, GoA surpasses the 128K context window Llama 3.1 8B on
+LongBench, showing a dramatic increase in effective context length. Our source
+code is available at https://github.com/tjoo512/graph-of-agents.</details></td><td><details><summary>展开</summary>本文提出了一种名为"Graph of Agents (GoA)"的多智能体框架，通过将长上下文建模问题形式化为压缩问题，并动态构建输入相关的协作结构来优化检索增强生成（RAG）性能。实验表明，GoA在六个文档问答基准测试中显著提升了RAG的F1分数（5.7%）和多智能体基线性能（16.35%），且在仅有2K上下文窗口时超越128K窗口的Llama 3.1模型，大幅提升了有效上下文长度。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21730v1">ProPerSim: Developing Proactive and Personalized AI Assistants through User-Assistant Simulation</a></td><td><details><summary>展开</summary>As large language models (LLMs) become increasingly integrated into daily
+life, there is growing demand for AI assistants that are not only reactive but
+also proactive and personalized. While recent advances have pushed forward
+proactivity and personalization individually, their combination remains
+underexplored. To bridge this gap, we introduce ProPerSim, a new task and
+simulation framework for developing assistants capable of making timely,
+personalized recommendations in realistic home scenarios. In our simulation
+environment, a user agent with a rich persona interacts with the assistant,
+providing ratings on how well each suggestion aligns with its preferences and
+context. The assistant's goal is to use these ratings to learn and adapt to
+achieve higher scores over time. Built on ProPerSim, we propose
+ProPerAssistant, a retrieval-augmented, preference-aligned assistant that
+continually learns and adapts through user feedback. Experiments across 32
+diverse personas show that ProPerAssistant adapts its strategy and steadily
+improves user satisfaction, highlighting the promise of uniting proactivity and
+personalization.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为ProPerSim的任务和仿真框架，旨在开发能够在现实家庭场景中提供主动且个性化推荐的AI助手。论文介绍了ProPerAssistant，一种基于检索增强（retrieval-augmented）、偏好对齐的助手，通过用户反馈持续学习和适应，实验结果表明其在32种不同用户角色中能逐步提升用户满意度。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.21710v1">Think-on-Graph 3.0: Efficient and Adaptive LLM Reasoning on Heterogeneous Graphs via Multi-Agent Dual-Evolving Context Retrieval</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) and Graph-based RAG has become the
+important paradigm for enhancing Large Language Models (LLMs) with external
+knowledge. However, existing approaches face a fundamental trade-off. While
+graph-based methods are inherently dependent on high-quality graph structures,
+they face significant practical constraints: manually constructed knowledge
+graphs are prohibitively expensive to scale, while automatically extracted
+graphs from corpora are limited by the performance of the underlying LLM
+extractors, especially when using smaller, local-deployed models. This paper
+presents Think-on-Graph 3.0 (ToG-3), a novel framework that introduces
+Multi-Agent Context Evolution and Retrieval (MACER) mechanism to overcome these
+limitations. Our core innovation is the dynamic construction and refinement of
+a Chunk-Triplets-Community heterogeneous graph index, which pioneeringly
+incorporates a dual-evolution mechanism of Evolving Query and Evolving
+Sub-Graph for precise evidence retrieval. This approach addresses a critical
+limitation of prior Graph-based RAG methods, which typically construct a static
+graph index in a single pass without adapting to the actual query. A
+multi-agent system, comprising Constructor, Retriever, Reflector, and Responser
+agents, collaboratively engages in an iterative process of evidence retrieval,
+answer generation, sufficiency reflection, and, crucially, evolving query and
+subgraph. This dual-evolving multi-agent system allows ToG-3 to adaptively
+build a targeted graph index during reasoning, mitigating the inherent
+drawbacks of static, one-time graph construction and enabling deep, precise
+reasoning even with lightweight LLMs. Extensive experiments demonstrate that
+ToG-3 outperforms compared baselines on both deep and broad reasoning
+benchmarks, and ablation studies confirm the efficacy of the components of
+MACER framework.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Think-on-Graph 3.0（ToG-3）的新型RAG框架，通过创新的多代理上下文演化与检索（MACER）机制和动态构建的Chunk-Triplets-Community异构图索引，改进了传统基于图的RAG方法中静态图索引的局限性，实现了查询和子图的双重演化，从而在轻量级大语言模型上实现了更深更精准的推理。</details></td></tr></tbody></table>
 
 ### 📅 2025-09-25
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.21237v1">Query-Centric Graph Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Graph-based retrieval-augmented generation (RAG) enriches large language
