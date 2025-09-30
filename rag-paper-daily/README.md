@@ -122,7 +122,59 @@ strong generalization and practical plug-and-play capabilities in real-world
 scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了RAG-GUI，一种基于视觉语言模型（VLM）的轻量级GUI代理，通过利用网页教程作为检索增强的推理资源来解决复杂数字任务中训练数据稀缺和长尾知识不足的问题。该方法通过监督微调和自引导拒绝采样微调优化模型，展现出强泛化能力和即插即用特性，在多项任务中优于基线模型。</details></td></tr></tbody></table>
 
 ### 📅 2025-09-28
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.23874v1">Multi-Value-Product Retrieval-Augmented Generation for Industrial Product Attribute Value Identification</a></td><td><details><summary>展开</summary>Identifying attribute values from product profiles is a key task for
+improving product search, recommendation, and business analytics on e-commerce
+platforms, which we called Product Attribute Value Identification (PAVI) .
+However, existing PAVI methods face critical challenges, such as cascading
+errors, inability to handle out-of-distribution (OOD) attribute values, and
+lack of generalization capability. To address these limitations, we introduce
+Multi-Value-Product Retrieval-Augmented Generation (MVP-RAG), combining the
+strengths of retrieval, generation, and classification paradigms. MVP-RAG
+defines PAVI as a retrieval-generation task, where the product title
+description serves as the query, and products and attribute values act as the
+corpus. It first retrieves similar products of the same category and candidate
+attribute values, and then generates the standardized attribute values. The key
+advantages of this work are: (1) the proposal of a multi-level retrieval
+scheme, with products and attribute values as distinct hierarchical levels in
+PAVI domain (2) attribute value generation of large language model to
+significantly alleviate the OOD problem and (3) its successful deployment in a
+real-world industrial environment. Extensive experimental results demonstrate
+that MVP-RAG performs better than the state-of-the-art baselines.</details></td><td><details><summary>展开</summary>该论文提出了一种称为MVP-RAG（Multi-Value-Product Retrieval-Augmented Generation）的方法，用于解决电子商务平台中的产品属性值识别（PAVI）问题。MVP-RAG结合了检索、生成和分类范式，通过多级检索方案（产品层级和属性值层级）检索相似产品和候选属性值，然后利用大语言模型生成标准化的属性值，显著缓解了分布外（OOD）问题，并已在工业环境中成功部署，实验结果显示其性能优于现有最优基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.23793v1">Transformer Tafsir at QIAS 2025 Shared Task: Hybrid Retrieval-Augmented Generation for Islamic Knowledge Question Answering</a></td><td><details><summary>展开</summary>This paper presents our submission to the QIAS 2025 shared task on Islamic
+knowledge understanding and reasoning. We developed a hybrid
+retrieval-augmented generation (RAG) system that combines sparse and dense
+retrieval methods with cross-encoder reranking to improve large language model
+(LLM) performance. Our three-stage pipeline incorporates BM25 for initial
+retrieval, a dense embedding retrieval model for semantic matching, and
+cross-encoder reranking for precise content retrieval. We evaluate our approach
+on both subtasks using two LLMs, Fanar and Mistral, demonstrating that the
+proposed RAG pipeline enhances performance across both, with accuracy
+improvements up to 25%, depending on the task and model configuration. Our best
+configuration is achieved with Fanar, yielding accuracy scores of 45% in
+Subtask 1 and 80% in Subtask 2.</details></td><td><details><summary>展开</summary>这篇论文介绍了一个用于伊斯兰知识理解和推理的混合检索增强生成（RAG）系统，结合了稀疏与密集检索方法及交叉编码器重排序，通过三阶段流程（BM25初检、密集嵌入语义匹配、交叉编码器精检）提升大语言模型（Fanar和Mistral）性能，实验显示最高可将准确率提升25%，其中Fanar模型在两项子任务中分别达到45%和80%的准确率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.23659v1">Aligning LLMs for Multilingual Consistency in Enterprise Applications</a></td><td><details><summary>展开</summary>Large language models (LLMs) remain unreliable for global enterprise
+applications due to substantial performance gaps between high-resource and
+mid/low-resource languages, driven by English-centric pretraining and internal
+reasoning biases. This inconsistency undermines customer experience and
+operational reliability in multilingual settings such as customer support,
+content moderation, and information retrieval. Even with advanced
+Retrieval-Augmented Generation (RAG) systems, we observe up to an 29% accuracy
+drop in non-English languages compared to English.
+  We propose a practical, batch-wise alignment strategy for fine-tuning LLMs,
+leveraging semantically equivalent multilingual data in each training batch to
+directly align model outputs across languages. This approach improves
+non-English accuracy by up to 23.9\% without compromising English performance,
+model reasoning, or retrieval quality. Our method is simple to implement,
+scalable, and integrates seamlessly with existing LLM training \& deployment
+pipelines, enabling more robust and equitable multilingual AI solutions in
+industry.</details></td><td><details><summary>展开</summary>这篇论文探讨了大语言模型（LLMs）在多语言环境下（尤其是中低资源语言）性能下降的问题，指出即使采用RAG系统，非英语语言的准确率仍显著低于英语。作者提出了一种基于批量对齐的微调策略，利用多语言语义等效数据直接对齐模型输出，从而提升非英语语言的准确率（最高23.9%），同时不影响英语性能或检索质量。研究旨在增强RAG在多语言工业场景（如客服、内容审核等）中的公平性和可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.23630v1">Game-Oriented ASR Error Correction via RAG-Enhanced LLM</a></td><td><details><summary>展开</summary>With the rise of multiplayer online games, real-time voice communication is
+essential for team coordination. However, general ASR systems struggle with
+gaming-specific challenges like short phrases, rapid speech, jargon, and noise,
+leading to frequent errors. To address this, we propose the GO-AEC framework,
+which integrates large language models, Retrieval-Augmented Generation (RAG),
+and a data augmentation strategy using LLMs and TTS. GO-AEC includes data
+augmentation, N-best hypothesis-based correction, and a dynamic game knowledge
+base. Experiments show GO-AEC reduces character error rate by 6.22% and
+sentence error rate by 29.71%, significantly improving ASR accuracy in gaming
+scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了GO-AEC框架，结合大语言模型、检索增强生成（RAG）以及数据增强策略，针对游戏场景中的实时语音识别（ASR）挑战（如短短语、快速语音、术语和噪声）进行优化，通过动态游戏知识库和N-best假设校正显著降低了错误率。</details></td></tr></tbody></table>
 
 ### 📅 2025-09-27
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.23519v1">ReliabilityRAG: Effective and Provably Robust Defense for RAG-based Web-Search</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) enhances Large Language Models by
