@@ -1,5 +1,126 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-29
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.25143v1">TemMed-Bench: Evaluating Temporal Medical Image Reasoning in Vision-Language Models</a></td><td><details><summary>展开</summary>Existing medical reasoning benchmarks for vision-language models primarily
+focus on analyzing a patient's condition based on an image from a single visit.
+However, this setting deviates significantly from real-world clinical practice,
+where doctors typically refer to a patient's historical conditions to provide a
+comprehensive assessment by tracking their changes over time. In this paper, we
+introduce TemMed-Bench, the first benchmark designed for analyzing changes in
+patients' conditions between different clinical visits, which challenges large
+vision-language models (LVLMs) to reason over temporal medical images.
+TemMed-Bench consists of a test set comprising three tasks - visual
+question-answering (VQA), report generation, and image-pair selection - and a
+supplementary knowledge corpus of over 17,000 instances. With TemMed-Bench, we
+conduct an evaluation of six proprietary and six open-source LVLMs. Our results
+show that most LVLMs lack the ability to analyze patients' condition changes
+over temporal medical images, and a large proportion perform only at a
+random-guessing level in the closed-book setting. In contrast, GPT o3, o4-mini
+and Claude 3.5 Sonnet demonstrate comparatively decent performance, though they
+have yet to reach the desired level. Furthermore, we explore augmenting the
+input with both retrieved visual and textual modalities in the medical domain.
+We also show that multi-modal retrieval augmentation yields notably higher
+performance gains than no retrieval and textual retrieval alone across most
+models on our benchmark, with the VQA task showing an average improvement of
+2.59%. Overall, we compose a benchmark grounded on real-world clinical
+practice, and it reveals LVLMs' limitations in temporal medical image
+reasoning, as well as highlighting the use of multi-modal retrieval
+augmentation as a potentially promising direction worth exploring to address
+this challenge.</details></td><td><details><summary>展开</summary>这篇论文介绍了TemMed-Bench，一个用于评估大视觉语言模型（LVLMs）在时间性医学图像推理中分析患者病情变化能力的基准测试。研究揭示了现有模型在此任务上的局限性，并探讨了通过多模态检索增强（结合视觉和文本检索）提升模型性能的方法，证明了其在视觉问答等任务中的有效性（平均提升2.59%），表明多模态检索增强是解决这一挑战的潜在方向。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24869v1">Retro*: Optimizing LLMs for Reasoning-Intensive Document Retrieval</a></td><td><details><summary>展开</summary>With the growing popularity of LLM agents and RAG, it has become increasingly
+important to retrieve documents that are essential for solving a task, even
+when their connection to the task is indirect or implicit. Addressing this
+problem requires fine-grained reasoning to accurately assess the relevance
+between the task and each candidate document. This capability, however, poses a
+significant challenge for existing IR techniques. Despite recent progress in
+reasoning-enhanced IR, existing approaches still face significant challenges in
+applicability, scalability, and efficiency. In this work, we propose Retro*, a
+novel approach for reasoning-intensive document retrieval. Our method
+introduces a rubric-based relevance scoring mechanism, enabling the model to
+reason about the relationship between a task and a document based on explicitly
+defined criteria, whereby producing a fine-grained, interpretable relevance
+score. Retro* also supports test-time scaling by combining multiple reasoning
+trajectories via score integration, which produces more reliable relevance
+estimates. To optimize Retro*'s reasoning capabilities, we introduce a novel
+reinforcement learning algorithm tailored for its relevance scoring mechanism,
+which employs two composite rewards to fully exploit the trajectories of each
+training sample. Our experiments show that Retro* outperforms existing document
+retrieval methods with notable advantages, leading to state-of-the-art
+performance on the BRIGHT benchmark.</details></td><td><details><summary>展开</summary>这篇论文提出了Retro*方法，通过细粒度推理和基于标准的评分机制来改进文档检索，解决RAG中因任务与文档间接关联导致的检索难题，并在BRIGHT基准测试中达到了最先进的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24866v1">Metaphor identification using large language models: A comparison of RAG, prompt engineering, and fine-tuning</a></td><td><details><summary>展开</summary>Metaphor is a pervasive feature of discourse and a powerful lens for
+examining cognition, emotion, and ideology. Large-scale analysis, however, has
+been constrained by the need for manual annotation due to the context-sensitive
+nature of metaphor. This study investigates the potential of large language
+models (LLMs) to automate metaphor identification in full texts. We compare
+three methods: (i) retrieval-augmented generation (RAG), where the model is
+provided with a codebook and instructed to annotate texts based on its rules
+and examples; (ii) prompt engineering, where we design task-specific verbal
+instructions; and (iii) fine-tuning, where the model is trained on hand-coded
+texts to optimize performance. Within prompt engineering, we test zero-shot,
+few-shot, and chain-of-thought strategies. Our results show that
+state-of-the-art closed-source LLMs can achieve high accuracy, with fine-tuning
+yielding a median F1 score of 0.79. A comparison of human and LLM outputs
+reveals that most discrepancies are systematic, reflecting well-known grey
+areas and conceptual challenges in metaphor theory. We propose that LLMs can be
+used to at least partly automate metaphor identification and can serve as a
+testbed for developing and refining metaphor identification protocols and the
+theory that underpins them.</details></td><td><details><summary>展开</summary>该论文研究了利用大语言模型（LLMs）自动化识别文本中隐喻的三种方法，包括检索增强生成（RAG）、提示工程和微调，并发现RAG结合代码书规则与示例的方法能有效提升隐喻标注的准确性，同时揭示了模型与人类标注差异的系统性理论根源。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24276v1">G-reasoner: Foundation Models for Unified Reasoning over Graph-structured Knowledge</a></td><td><details><summary>展开</summary>Large language models (LLMs) excel at complex reasoning but remain limited by
+static and incomplete parametric knowledge. Retrieval-augmented generation
+(RAG) mitigates this by incorporating external knowledge, yet existing RAGs
+struggle with knowledge-intensive tasks due to fragmented information and weak
+modeling of knowledge structure. Graphs offer a natural way to model
+relationships within knowledge, but LLMs are inherently unstructured and cannot
+effectively reason over graph-structured data. Recent graph-enhanced RAG
+(GraphRAG) attempts to bridge this gap by constructing tailored graphs and
+enabling LLMs to reason on them. However, these methods often depend on ad-hoc
+graph designs, heuristic search, or costly agent pipelines, which hinder
+scalability and generalization. To address these challenges, we present
+G-reasoner, a unified framework that integrates graph and language foundation
+models for reasoning over diverse graph-structured knowledge. Central to our
+approach is QuadGraph, a standardized four-layer abstraction that unifies
+heterogeneous knowledge sources into a common graph representation. Building on
+this, we introduce a 34M-parameter graph foundation model (GFM) that jointly
+captures graph topology and textual semantics, and is integrated with LLMs to
+enhance reasoning in downstream applications. To ensure scalability and
+efficiency, mixed-precision training and distributed message-passing are
+implemented to scale GFM with more GPUs. Extensive experiments on six
+benchmarks show that G-reasoner consistently outperforms state-of-the-art
+baselines, significantly enhances LLM reasoning, and achieves strong efficiency
+and cross-graph generalization.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为G-reasoner的统一框架，通过结合图结构和语言基础模型（如QuadGraph标准化抽象层和图基础模型GFM），改进现有RAG在知识密集型任务中的局限性（如信息碎片化和知识结构建模薄弱），并实验证明了其在增强大语言模型推理能力、效率及跨图泛化性方面的优越性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24253v1">MRAG-Suite: A Diagnostic Evaluation Platform for Visual Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Multimodal Retrieval-Augmented Generation (Visual RAG) significantly advances
+question answering by integrating visual and textual evidence. Yet, current
+evaluations fail to systematically account for query difficulty and ambiguity.
+We propose MRAG-Suite, a diagnostic evaluation platform integrating diverse
+multimodal benchmarks (WebQA, Chart-RAG, Visual-RAG, MRAG-Bench). We introduce
+difficulty-based and ambiguity-aware filtering strategies, alongside
+MM-RAGChecker, a claim-level diagnostic tool. Our results demonstrate
+substantial accuracy reductions under difficult and ambiguous queries,
+highlighting prevalent hallucinations. MM-RAGChecker effectively diagnoses
+these issues, guiding future improvements in Visual RAG systems.</details></td><td><details><summary>展开</summary>该论文提出了MRAG-Suite，一个针对多模态检索增强生成（Visual RAG）的诊断评估平台，通过整合多种多模态基准和引入基于难度及模糊性的过滤策略，揭示了现有系统在面对困难和模糊查询时的准确率下降问题，并提供了诊断工具MM-RAGChecker以指导未来改进。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24212v1">ScenarioBench: Trace-Grounded Compliance Evaluation for Text-to-SQL and RAG</a></td><td><details><summary>展开</summary>ScenarioBench is a policy-grounded, trace-aware benchmark for evaluating
+Text-to-SQL and retrieval-augmented generation in compliance contexts. Each
+YAML scenario includes a no-peek gold-standard package with the expected
+decision, a minimal witness trace, the governing clause set, and the canonical
+SQL, enabling end-to-end scoring of both what a system decides and why. Systems
+must justify outputs using clause IDs from the same policy canon, making
+explanations falsifiable and audit-ready. The evaluator reports decision
+accuracy, trace quality (completeness, correctness, order), retrieval
+effectiveness, SQL correctness via result-set equivalence, policy coverage,
+latency, and an explanation-hallucination rate. A normalized Scenario
+Difficulty Index (SDI) and a budgeted variant (SDI-R) aggregate results while
+accounting for retrieval difficulty and time. Compared with prior Text-to-SQL
+or KILT/RAG benchmarks, ScenarioBench ties each decision to clause-level
+evidence under strict grounding and no-peek rules, shifting gains toward
+justification quality under explicit time budgets.</details></td><td><details><summary>展开</summary>ScenarioBench是一个用于评估文本到SQL（Text-to-SQL）和检索增强生成（RAG）在合规场景下的基准测试工具，它通过YAML场景整合了决策依据、追踪信息、条款集和标准SQL，支持端到端评分，并强调输出的可验证性与审计就绪性，同时提供多维度评估指标和难度指数。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.24183v1">Retrieval-augmented GUI Agents with Generative Guidelines</a></td><td><details><summary>展开</summary>GUI agents powered by vision-language models (VLMs) show promise in
+automating complex digital tasks. However, their effectiveness in real-world
+applications is often limited by scarce training data and the inherent
+complexity of these tasks, which frequently require long-tailed knowledge
+covering rare, unseen scenarios. We propose RAG-GUI , a lightweight VLM that
+leverages web tutorials at inference time. RAG-GUI is first warm-started via
+supervised finetuning (SFT) and further refined through self-guided rejection
+sampling finetuning (RSF). Designed to be model-agnostic, RAG-GUI functions as
+a generic plug-in that enhances any VLM-based agent. Evaluated across three
+distinct tasks, it consistently outperforms baseline agents and surpasses other
+inference baselines by 2.6% to 13.3% across two model sizes, demonstrating
+strong generalization and practical plug-and-play capabilities in real-world
+scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了RAG-GUI，一种基于视觉语言模型（VLM）的轻量级GUI代理，通过利用网页教程作为检索增强的推理资源来解决复杂数字任务中训练数据稀缺和长尾知识不足的问题。该方法通过监督微调和自引导拒绝采样微调优化模型，展现出强泛化能力和即插即用特性，在多项任务中优于基线模型。</details></td></tr></tbody></table>
+
 ### 📅 2025-09-28
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
