@@ -125,7 +125,73 @@ scenarios.</details></td><td><details><summary>展开</summary>这篇论文提�
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-09-27
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.23519v1">ReliabilityRAG: Effective and Provably Robust Defense for RAG-based Web-Search</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) enhances Large Language Models by
+grounding their outputs in external documents. These systems, however, remain
+vulnerable to attacks on the retrieval corpus, such as prompt injection.
+RAG-based search systems (e.g., Google's Search AI Overview) present an
+interesting setting for studying and protecting against such threats, as
+defense algorithms can benefit from built-in reliability signals -- like
+document ranking -- and represent a non-LLM challenge for the adversary due to
+decades of work to thwart SEO.
+  Motivated by, but not limited to, this scenario, this work introduces
+ReliabilityRAG, a framework for adversarial robustness that explicitly
+leverages reliability information of retrieved documents.
+  Our first contribution adopts a graph-theoretic perspective to identify a
+"consistent majority" among retrieved documents to filter out malicious ones.
+We introduce a novel algorithm based on finding a Maximum Independent Set (MIS)
+on a document graph where edges encode contradiction. Our MIS variant
+explicitly prioritizes higher-reliability documents and provides provable
+robustness guarantees against bounded adversarial corruption under natural
+assumptions. Recognizing the computational cost of exact MIS for large
+retrieval sets, our second contribution is a scalable weighted sample and
+aggregate framework. It explicitly utilizes reliability information, preserving
+some robustness guarantees while efficiently handling many documents.
+  We present empirical results showing ReliabilityRAG provides superior
+robustness against adversarial attacks compared to prior methods, maintains
+high benign accuracy, and excels in long-form generation tasks where prior
+robustness-focused methods struggled. Our work is a significant step towards
+more effective, provably robust defenses against retrieved corpus corruption in
+RAG.</details></td><td><details><summary>展开</summary>这篇文章提出了ReliabilityRAG框架，旨在增强RAG系统对抗检索文档库中恶意攻击（如提示注入）的鲁棒性。通过图论方法识别文档间的矛盾关系并优先选择高可靠性文档，结合可扩展的加权采样聚合技术，该框架在保证高效处理大规模检索集的同时，提供了理论上的对抗攻击防御保证，并在实验中展现出优于现有方法的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.23233v1">Detecting Corpus-Level Knowledge Inconsistencies in Wikipedia with Large Language Models</a></td><td><details><summary>展开</summary>Wikipedia is the largest open knowledge corpus, widely used worldwide and
+serving as a key resource for training large language models (LLMs) and
+retrieval-augmented generation (RAG) systems. Ensuring its accuracy is
+therefore critical. But how accurate is Wikipedia, and how can we improve it?
+  We focus on inconsistencies, a specific type of factual inaccuracy, and
+introduce the task of corpus-level inconsistency detection. We present CLAIRE,
+an agentic system that combines LLM reasoning with retrieval to surface
+potentially inconsistent claims along with contextual evidence for human
+review. In a user study with experienced Wikipedia editors, 87.5% reported
+higher confidence when using CLAIRE, and participants identified 64.7% more
+inconsistencies in the same amount of time.
+  Combining CLAIRE with human annotation, we contribute WIKICOLLIDE, the first
+benchmark of real Wikipedia inconsistencies. Using random sampling with
+CLAIRE-assisted analysis, we find that at least 3.3% of English Wikipedia facts
+contradict another fact, with inconsistencies propagating into 7.3% of FEVEROUS
+and 4.0% of AmbigQA examples. Benchmarking strong baselines on this dataset
+reveals substantial headroom: the best fully automated system achieves an AUROC
+of only 75.1%.
+  Our results show that contradictions are a measurable component of Wikipedia
+and that LLM-based systems like CLAIRE can provide a practical tool to help
+editors improve knowledge consistency at scale.</details></td><td><details><summary>展开</summary>本文聚焦于维基百科中的事实不一致性问题，提出了一种结合大语言模型（LLM）与检索技术的智能系统CLAIRE，用于检测语料库级别的不一致主张并提供上下文证据，最终构建了首个真实维基百科不一致性基准WIKICOLLIDE。研究证实LLM驱动的系统（如CLAIRE）可辅助编辑高效提升知识一致性，同时揭示了此类不一致在现有数据集（如FEVEROUS、AmbigQA）中的渗透情况，凸显了自动化系统的改进空间。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.23071v1">From Evidence to Trajectory: Abductive Reasoning Path Synthesis for Training Retrieval-Augmented Generation Agents</a></td><td><details><summary>展开</summary>Retrieval-augmented generation agents development is hindered by the lack of
+process-level supervision to effectively guide agentic capabilities like task
+decomposition, retriever invocation, and stepwise decision-making. While
+reinforcement learning offers a potential solution, it suffers from sparse
+rewards and the limited reasoning capabilities of large language models (LLMs).
+Meanwhile, existing data synthesis methods only produce chain-of-thought
+rationales and fail to model environmental interactions. In this paper, we
+propose EviPath, an evidence-anchored reasoning path synthesis paradigm for RAG
+agent development. EviPath comprises: (i) Abductive Subtask Planning, which
+decomposes the problem into sub-questions and iteratively plans an optimal
+solution path based on the dependencies between them; (ii) Faithful
+Sub-question Answering, which uses supporting evidence to construct a proxy
+environment to generate reasoning thoughts and answers for each sub-question;
+and (iii) Conversational Fine-Tuning, which formats the complete
+agent-environment interaction trajectory into a dialogue format suitable for
+Supervised Fine-Tuning. EviPath allows LLMs to learn complex reasoning and
+tool-use capabilities directly from synthesized data. Extensive experiments on
+widely-used question-answering benchmarks show that an 8B parameter model
+trained with EviPath-synthesized data significantly and consistently
+outperforms state-of-the-art baselines with a double-digit absolute EM gain of
+14.7% in open-domain question answering.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为EviPath的证据锚定推理路径合成范式，用于解决RAG（检索增强生成）代理开发中过程级监督不足的问题。通过将问题分解为子任务、利用支持证据构建代理环境生成子问题答案，并将交互轨迹格式化为对话数据进行监督微调，EviPath显著提升了模型在开放域问答任务中的性能（EM增益达14.7%）。</details></td></tr></tbody></table>
 
 ### 📅 2025-09-26
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.22565v1">Retrieval-Augmented Guardrails for AI-Drafted Patient-Portal Messages: Error Taxonomy Construction and Large-Scale Evaluation</a></td><td><details><summary>展开</summary>Asynchronous patient-clinician messaging via EHR portals is a growing source
