@@ -1,5 +1,165 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-09-30
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.26584v1">Fairness Testing in Retrieval-Augmented Generation: How Small Perturbations Reveal Bias in Small Language Models</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) are widely used across multiple domains but
+continue to raise concerns regarding security and fairness. Beyond known attack
+vectors such as data poisoning and prompt injection, LLMs are also vulnerable
+to fairness bugs. These refer to unintended behaviors influenced by sensitive
+demographic cues (e.g., race or sexual orientation) that should not affect
+outcomes. Another key issue is hallucination, where models generate plausible
+yet false information. Retrieval-Augmented Generation (RAG) has emerged as a
+strategy to mitigate hallucinations by combining external retrieval with text
+generation. However, its adoption raises new fairness concerns, as the
+retrieved content itself may surface or amplify bias. This study conducts
+fairness testing through metamorphic testing (MT), introducing controlled
+demographic perturbations in prompts to assess fairness in sentiment analysis
+performed by three Small Language Models (SLMs) hosted on HuggingFace
+(Llama-3.2-3B-Instruct, Mistral-7B-Instruct-v0.3, and Llama-3.1-Nemotron-8B),
+each integrated into a RAG pipeline. Results show that minor demographic
+variations can break up to one third of metamorphic relations (MRs). A detailed
+analysis of these failures reveals a consistent bias hierarchy, with
+perturbations involving racial cues being the predominant cause of the
+violations. In addition to offering a comparative evaluation, this work
+reinforces that the retrieval component in RAG must be carefully curated to
+prevent bias amplification. The findings serve as a practical alert for
+developers, testers and small organizations aiming to adopt accessible SLMs
+without compromising fairness or reliability.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG技术中的公平性问题，通过蜕变测试评估小型语言模型在RAG流程中对敏感人口统计线索的偏差表现，并揭示检索内容可能加剧偏见的现象，提出需谨慎处理检索组件以避免偏见放大。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.26383v1">Efficient and Transferable Agentic Knowledge Graph RAG via Reinforcement Learning</a></td><td><details><summary>展开</summary>Knowledge-graph retrieval-augmented generation (KG-RAG) couples large
+language models (LLMs) with structured, verifiable knowledge graphs (KGs) to
+reduce hallucinations and expose reasoning traces. However, many KG-RAG systems
+compose multiple LLM modules (e.g planning, reasoning, and responding),
+inflating inference cost and binding behavior to a specific target KG. To
+address this, we introduce KG-R1, an agentic KG retrieval-augmented generation
+(KG-RAG) framework through reinforcement learning (RL). KG-R1 utilizes a single
+agent that interacts with KGs as its environment, learning to retrieve at each
+step and incorporating the retrieved information into its reasoning and
+generation. The process is optimized through end-to-end RL. In controlled
+experiments across Knowledge-Graph Question Answering (KGQA) benchmarks, our
+method demonstrates both efficiency and transferability: Using Qwen-2.5-3B,
+KG-R1 improves answer accuracy with fewer generation tokens than prior
+multi-module workflow methods that use larger foundation or fine-tuned models.
+Furthermore, KG-R1 enables plug and play: after training, it maintains strong
+accuracy on new KGs without modification. These properties make KG-R1 a
+promising KG-RAG framework for real-world deployment. Our code is publicly
+available at https://github.com/Jinyeop3110/KG-R1.</details></td><td><details><summary>展开</summary>该论文提出了一种基于强化学习的知识图谱检索增强生成框架KG-R1，通过单智能体与知识图谱交互，优化检索和生成过程，在降低推理成本的同时提高准确性和可迁移性，并在KGQA基准测试中验证了其高效性和即插即用能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.26205v1">Human-Centered Evaluation of RAG outputs: a framework and questionnaire for human-AI collaboration</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) systems are increasingly deployed in
+user-facing applications, yet systematic, human-centered evaluation of their
+outputs remains underexplored. Building on Gienapp's utility-dimension
+framework, we designed a human-centred questionnaire that assesses RAG outputs
+across 12 dimensions. We iteratively refined the questionnaire through several
+rounds of ratings on a set of query-output pairs and semantic discussions.
+Ultimately, we incorporated feedback from both a human rater and a human-LLM
+pair. Results indicate that while large language models (LLMs) reliably focus
+on metric descriptions and scale labels, they exhibit weaknesses in detecting
+textual format variations. Humans struggled to focus strictly on metric
+descriptions and labels. LLM ratings and explanations were viewed as a helpful
+support, but numeric LLM and human ratings lacked agreement. The final
+questionnaire extends the initial framework by focusing on user intent, text
+structuring, and information verifiability.</details></td><td><details><summary>展开</summary>该论文探讨了以用户为中心的RAG系统评估方法，通过设计包含12个维度的问卷，结合人类与LLM的反馈迭代优化，发现LLM在文本格式识别上的不足及人机评分差异，最终扩展了评估框架以重点关注用户意图、文本结构和信息可验证性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.26184v1">Auto-ARGUE: LLM-Based Report Generation Evaluation</a></td><td><details><summary>展开</summary>Generation of long-form, citation-backed reports is a primary use case for
+retrieval augmented generation (RAG) systems. While open-source evaluation
+tools exist for various RAG tasks, ones tailored to report generation are
+lacking. Accordingly, we introduce Auto-ARGUE, a robust LLM-based
+implementation of the recent ARGUE framework for report generation evaluation.
+We present analysis of Auto-ARGUE on the report generation pilot task from the
+TREC 2024 NeuCLIR track, showing good system-level correlations with human
+judgments. We further release a web app for visualization of Auto-ARGUE
+outputs.</details></td><td><details><summary>展开</summary>这篇论文介绍了Auto-ARGUE，一个基于大语言模型的工具，用于评估检索增强生成（RAG）系统在生成带引用的长篇报告任务中的性能，并展示了其在TREC 2024 NeuCLIR任务上与人类评价的良好相关性，同时发布了可视化输出的网页应用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.26136v1">CliniBench: A Clinical Outcome Prediction Benchmark for Generative and Encoder-Based Language Models</a></td><td><details><summary>展开</summary>With their growing capabilities, generative large language models (LLMs) are
+being increasingly investigated for complex medical tasks. However, their
+effectiveness in real-world clinical applications remains underexplored. To
+address this, we present CliniBench, the first benchmark that enables
+comparability of well-studied encoder-based classifiers and generative LLMs for
+discharge diagnosis prediction from admission notes in MIMIC-IV dataset. Our
+extensive study compares 12 generative LLMs and 3 encoder-based classifiers and
+demonstrates that encoder-based classifiers consistently outperform generative
+models in diagnosis prediction. We assess several retrieval augmentation
+strategies for in-context learning from similar patients and find that they
+provide notable performance improvements for generative LLMs.</details></td><td><details><summary>展开</summary>这篇文章介绍了CliniBench，一个用于比较基于编码器的分类器和生成式大语言模型在MIMIC-IV数据集出院诊断预测任务中表现的基准测试，研究发现编码器模型表现更优，并通过检索增强策略提升了生成模型的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.26011v1">RAGferee: Building Contextual Reward Models for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Existing Reward Models (RMs), typically trained on general preference data,
+struggle in Retrieval Augmented Generation (RAG) settings, which require
+judging responses for faithfulness to retrieved context, relevance to the user
+query, appropriate refusals when context is insufficient, completeness and
+conciseness of information. To address the lack of publicly available
+RAG-centric preference datasets and specialised RMs, we introduce RAGferee, a
+methodology that repurposes question-answering (QA) datasets into preference
+pairs that prioritise groundedness over stylistic features, enabling the
+training of contextual RMs better suited to judging RAG responses. Using
+RAGferee, we curate a small preference dataset of 4K samples and fine-tune RMs
+ranging from 7B to 24B parameters. Our RAG-centric RMs achieve state-of-the-art
+performance on ContextualJudgeBench, surpassing existing 70B+ RMs trained on
+much larger (up to 2.4M samples) general corpora, with an absolute improvement
+of +15.5%.</details></td><td><details><summary>展开</summary>该论文针对现有奖励模型（RMs）在RAG场景中的不足（如对检索内容忠实度、查询相关性、信息完整性的评估），提出RAGferee方法，将问答数据集转换为优先考虑事实准确性的偏好数据，并训练出专用于RAG响应的RM，其性能在ContextualJudgeBench上超越通用大型RM（+15.5%）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.25973v1">Scalable and Robust LLM Unlearning by Correcting Responses with Retrieved Exclusions</a></td><td><details><summary>展开</summary>Language models trained on web-scale corpora risk memorizing and exposing
+sensitive information, prompting the need for effective machine unlearning.
+Prior methods mainly focus on input queries to suppress sensitive outputs, yet
+this often fails to eliminate the underlying knowledge and limits scalability.
+To address this, we propose Corrective Unlearning with Retrieved Exclusions
+(CURE), a novel unlearning framework that verifies model outputs for leakage
+and revises them into safe responses. Specifically, CURE employs a lightweight
+corrector that is applied to the original model to verify whether outputs
+contain target knowledge and to rewrite them if any leakage is detected. To
+efficiently handle large-scale unlearning requests, CURE retrieves unlearning
+targets that are relevant to the initial response and provides them as
+in-context references to the corrector for detection and conditional revision.
+By leveraging this retrieval augmentation, the corrector can adapt to new
+unlearning requests without additional training. Extensive evaluations
+demonstrate that CURE substantially reduces information leakage, even from
+indirect queries where prior works fall short, while maintaining response
+quality and general utility. Moreover, it demonstrates robustness under
+continual unlearning scenarios, making it practical for real-world
+applications.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为CURE的机器遗忘框架，通过检索增强生成技术检测和修正模型输出中的敏感信息泄漏。它利用轻量级校正器结合检索到的相关遗忘目标，动态调整输出以确保安全，同时保持模型性能和扩展性，适用于大规模持续遗忘场景。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.25839v1">RAE: A Neural Network Dimensionality Reduction Method for Nearest Neighbors Preservation in Vector Search</a></td><td><details><summary>展开</summary>While high-dimensional embedding vectors are being increasingly employed in
+various tasks like Retrieval-Augmented Generation and Recommendation Systems,
+popular dimensionality reduction (DR) methods such as PCA and UMAP have rarely
+been adopted for accelerating the retrieval process due to their inability of
+preserving the nearest neighbor (NN) relationship among vectors. Empowered by
+neural networks' optimization capability and the bounding effect of Rayleigh
+quotient, we propose a Regularized Auto-Encoder (RAE) for k-NN preserving
+dimensionality reduction. RAE constrains the network parameter variation
+through regularization terms, adjusting singular values to control embedding
+magnitude changes during reduction, thus preserving k-NN relationships. We
+provide a rigorous mathematical analysis demonstrating that regularization
+establishes an upper bound on the norm distortion rate of transformed vectors,
+thereby offering provable guarantees for k-NN preservation. With modest
+training overhead, RAE achieves superior k-NN recall compared to existing DR
+approaches while maintaining fast retrieval efficiency.</details></td><td><details><summary>展开</summary>这篇论文提出了一种用于保持k最近邻（k-NN）关系的正则化自动编码器（RAE），旨在解决高维嵌入向量在检索增强生成（RAG）等任务中因维度缩减导致的最近邻关系破坏问题，从而提升检索效率并保证准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.25736v1">Think Less, Label Better: Multi-Stage Domain-Grounded Synthetic Data Generation for Fine-Tuning Large Language Models in Telecommunications</a></td><td><details><summary>展开</summary>The success of large language models (LLMs) depends heavily on large-scale,
+high-quality instruction-following and reinforcement datasets. However,
+generating such data through human annotation is prohibitively time-consuming
+particularly for domain-specific tasks like telecom network troubleshooting,
+where accurate responses require deep technical expertise and contextual
+understanding. In this paper, we present a fully automated, retrieval-augmented
+pipeline for generating synthetic question-answer (QA) pairs grounded in
+structured domain knowledge. Our multi-stage framework integrates a retriever,
+base generator, and refinement model to synthesize and enhance QA pairs using
+documents retrieved from a domain-specific knowledge graph. To ensure data
+quality, we employ customized RAGAS-based scoring to filter low-quality
+samples, producing a high-quality dataset suitable for reinforcement
+fine-tuning (RFT). We demonstrate our approach in a real-world telecom scenario
+focused on radio access network (RAN) troubleshooting. The resulting pipeline
+generates complex, context-rich troubleshooting solution plans without human
+intervention. This work offers a scalable solution for building instruction and
+reinforcement datasets in specialized domains, significantly reducing
+dependence on manual labeling while maintaining high technical fidelity.</details></td><td><details><summary>展开</summary>本文提出了一种全自动、检索增强的流程，用于生成基于结构化领域知识的合成问答对（QA），通过结合检索器、基础生成器和精炼模型的多阶段框架，从领域特定知识图谱中检索文档并生成高质量QA数据集，应用于电信网络故障排除等专业领域。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.25716v1">DeepCodeSeek: Real-Time API Retrieval for Context-Aware Code Generation</a></td><td><details><summary>展开</summary>Current search techniques are limited to standard RAG query-document
+applications. In this paper, we propose a novel technique to expand the code
+and index for predicting the required APIs, directly enabling high-quality,
+end-to-end code generation for auto-completion and agentic AI applications. We
+address the problem of API leaks in current code-to-code benchmark datasets by
+introducing a new dataset built from real-world ServiceNow Script Includes that
+capture the challenge of unclear API usage intent in the code. Our evaluation
+metrics show that this method achieves 87.86% top-40 retrieval accuracy,
+allowing the critical context with APIs needed for successful downstream code
+generation. To enable real-time predictions, we develop a comprehensive
+post-training pipeline that optimizes a compact 0.6B reranker through synthetic
+dataset generation, supervised fine-tuning, and reinforcement learning. This
+approach enables our compact reranker to outperform a much larger 8B model
+while maintaining 2.5x reduced latency, effectively addressing the nuances of
+enterprise-specific code without the computational overhead of larger models.</details></td><td><details><summary>展开</summary>这篇论文提出了一种扩展RAG技术和索引的新方法，专注于通过检索预测所需API以实现高质量的端到端代码生成，解决了当前代码基准数据集中API泄露问题，并通过优化的后训练流程提升实时预测性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2509.25669v1">GroundSight: Augmenting Vision-Language Models with Grounding Information and De-hallucination</a></td><td><details><summary>展开</summary>We propose a method to improve Visual Question Answering (VQA) with
+Retrieval-Augmented Generation (RAG) by introducing text-grounded object
+localization. Rather than retrieving information based on the entire image, our
+approach enables the model to generate a bounding box around the object most
+relevant to the question, allowing for targeted image cropping and focused
+retrieval. This reduces background noise, improves alignment between visual and
+textual cues, and helps mitigate hallucinations. Our RAG method enhances
+context-aware VQA responses increased the accuracy from 22.19% to 25.64%, with
+an absolute increase of 3.45 percentage points, compared to the baseline
+Llama-3.2-Vision-11B agent. We also proposed a de-hallucination method based on
+question type which can effectively reduce the hallucination rate from 65.79%
+to 13.88% and improves the truthfulness score.</details></td><td><details><summary>展开</summary>该论文提出了一种改进视觉问答（VQA）的方法，通过结合RAG技术和基于文本的物体定位，模型能够生成与问题最相关物体的边界框，从而进行针对性图像裁剪和聚焦检索。此方法减少了背景噪声，提升了视觉与文本线索的对齐，并降低了幻觉现象。实验表明，该RAG方法将VQA准确率从22.19%提升至25.64%，并提出了基于问题类型的去幻觉方法，将幻觉率从65.79%降低至13.88%。</details></td></tr></tbody></table>
+
 ### 📅 2025-09-29
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.25143v1">TemMed-Bench: Evaluating Temporal Medical Image Reasoning in Vision-Language Models</a></td><td><details><summary>展开</summary>Existing medical reasoning benchmarks for vision-language models primarily
 focus on analyzing a patient's condition based on an image from a single visit.
