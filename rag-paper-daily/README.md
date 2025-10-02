@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-01
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-09-30
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.26584v1">Fairness Testing in Retrieval-Augmented Generation: How Small Perturbations Reveal Bias in Small Language Models</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) are widely used across multiple domains but
 continue to raise concerns regarding security and fairness. Beyond known attack
