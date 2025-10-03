@@ -1,5 +1,154 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-02
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.02243v1">AccurateRAG: A Framework for Building Accurate Retrieval-Augmented Question-Answering Applications</a></td><td><details><summary>展开</summary>We introduce AccurateRAG -- a novel framework for constructing
+high-performance question-answering applications based on retrieval-augmented
+generation (RAG). Our framework offers a pipeline for development efficiency
+with tools for raw dataset processing, fine-tuning data generation, text
+embedding & LLM fine-tuning, output evaluation, and building RAG systems
+locally. Experimental results show that our framework outperforms previous
+strong baselines and obtains new state-of-the-art question-answering
+performance on benchmark datasets.</details></td><td><details><summary>展开</summary>这篇论文介绍了名为AccurateRAG的新框架，旨在基于检索增强生成（RAG）构建高性能问答应用。该框架提供了一套开发流程工具，包括原始数据集处理、微调数据生成、文本嵌入与大模型微调、输出评估及本地RAG系统构建，并在实验中超越现有基线，实现了基准数据集上的最新最先进问答性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02044v1">Stream RAG: Instant and Accurate Spoken Dialogue Systems with Streaming Tool Usage</a></td><td><details><summary>展开</summary>End-to-end speech-in speech-out dialogue systems are emerging as a powerful
+alternative to traditional ASR-LLM-TTS pipelines, generating more natural,
+expressive responses with significantly lower latency. However, these systems
+remain prone to hallucinations due to limited factual grounding. While
+text-based dialogue systems address this challenge by integrating tools such as
+web search and knowledge graph APIs, we introduce the first approach to extend
+tool use directly into speech-in speech-out systems. A key challenge is that
+tool integration substantially increases response latency, disrupting
+conversational flow. To mitigate this, we propose Streaming Retrieval-Augmented
+Generation (Streaming RAG), a novel framework that reduces user-perceived
+latency by predicting tool queries in parallel with user speech, even before
+the user finishes speaking. Specifically, we develop a post-training pipeline
+that teaches the model when to issue tool calls during ongoing speech and how
+to generate spoken summaries that fuse audio queries with retrieved text
+results, thereby improving both accuracy and responsiveness. To evaluate our
+approach, we construct AudioCRAG, a benchmark created by converting queries
+from the publicly available CRAG dataset into speech form. Experimental results
+demonstrate that our streaming RAG approach increases QA accuracy by up to 200%
+relative (from 11.1% to 34.2% absolute) and further enhances user experience by
+reducing tool use latency by 20%. Importantly, our streaming RAG approach is
+modality-agnostic and can be applied equally to typed input, paving the way for
+more agentic, real-time AI assistants.</details></td><td><details><summary>展开</summary>该论文提出了一种名为"Streaming Retrieval-Augmented Generation (Streaming RAG)"的新型框架，旨在解决端到端语音对话系统中存在的事实基础不足和延迟问题。通过并行预测工具查询并与用户语音同步处理，该方法显著提高了问答准确性（相对提升200%）并降低20%的工具使用延迟，同时构建了专门的语音评测基准AudioCRAG。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01910v1">Are LLMs Better GNN Helpers? Rethinking Robust Graph Learning under Deficiencies with Iterative Refinement</a></td><td><details><summary>展开</summary>Graph Neural Networks (GNNs) are widely adopted in Web-related applications,
+serving as a core technique for learning from graph-structured data, such as
+text-attributed graphs. Yet in real-world scenarios, such graphs exhibit
+deficiencies that substantially undermine GNN performance. While prior
+GNN-based augmentation studies have explored robustness against individual
+imperfections, a systematic understanding of how graph-native and Large
+Language Models (LLMs) enhanced methods behave under compound deficiencies is
+still missing. Specifically, there has been no comprehensive investigation
+comparing conventional approaches and recent LLM-on-graph frameworks, leaving
+their merits unclear. To fill this gap, we conduct the first empirical study
+that benchmarks these two lines of methods across diverse graph deficiencies,
+revealing overlooked vulnerabilities and challenging the assumption that LLM
+augmentation is consistently superior. Building on empirical findings, we
+propose Robust Graph Learning via Retrieval-Augmented Contrastive Refinement
+(RoGRAD) framework. Unlike prior one-shot LLM-as-Enhancer designs, RoGRAD is
+the first iterative paradigm that leverages Retrieval-Augmented Generation
+(RAG) to inject retrieval-grounded augmentations by supplying class-consistent,
+diverse augmentations and enforcing discriminative representations through
+iterative graph contrastive learning. It transforms LLM augmentation for graphs
+from static signal injection into dynamic refinement. Extensive experiments
+demonstrate RoGRAD's superiority over both conventional GNN- and LLM-enhanced
+baselines, achieving up to 82.43% average improvement.</details></td><td><details><summary>展开</summary>该论文提出了一种名为RoGRAD的新型图学习框架，首次将检索增强生成（RAG）技术迭代应用于图神经网络（GNN）增强任务，通过动态对比学习注入检索到的类别一致性数据，解决了传统LLM静态增强和复合图缺陷下的性能瓶颈，实验显示其效果显著优于基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01800v1">REBot: From RAG to CatRAG with Semantic Enrichment and Graph Routing</a></td><td><details><summary>展开</summary>Academic regulation advising is essential for helping students interpret and
+comply with institutional policies, yet building effective systems requires
+domain specific regulatory resources. To address this challenge, we propose
+REBot, an LLM enhanced advisory chatbot powered by CatRAG, a hybrid retrieval
+reasoning framework that integrates retrieval augmented generation with graph
+based reasoning. CatRAG unifies dense retrieval and graph reasoning, supported
+by a hierarchical, category labeled knowledge graph enriched with semantic
+features for domain alignment. A lightweight intent classifier routes queries
+to the appropriate retrieval modules, ensuring both factual accuracy and
+contextual depth. We construct a regulation specific dataset and evaluate REBot
+on classification and question answering tasks, achieving state of the art
+performance with an F1 score of 98.89%. Finally, we implement a web application
+that demonstrates the practical value of REBot in real world academic advising
+scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了REBot，一种基于CatRAG（结合检索增强生成与图推理的混合框架）的学术法规咨询聊天机器人。CatRAG通过分层标记的知识图谱和语义特征整合密集检索与图推理，轻量级意图分类器确保查询的准确性和上下文深度。实验表明REBot在分类和问答任务中表现优异（F1分数98.89%），并通过网页应用验证了其实际应用价值。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01622v1">LLM4Rec: Large Language Models for Multimodal Generative Recommendation with Causal Debiasing</a></td><td><details><summary>展开</summary>Contemporary generative recommendation systems face significant challenges in
+handling multimodal data, eliminating algorithmic biases, and providing
+transparent decision-making processes. This paper introduces an enhanced
+generative recommendation framework that addresses these limitations through
+five key innovations: multimodal fusion architecture, retrieval-augmented
+generation mechanisms, causal inference-based debiasing, explainable
+recommendation generation, and real-time adaptive learning capabilities. Our
+framework leverages advanced large language models as the backbone while
+incorporating specialized modules for cross-modal understanding, contextual
+knowledge integration, bias mitigation, explanation synthesis, and continuous
+model adaptation. Extensive experiments on three benchmark datasets
+(MovieLens-25M, Amazon-Electronics, Yelp-2023) demonstrate consistent
+improvements in recommendation accuracy, fairness, and diversity compared to
+existing approaches. The proposed framework achieves up to 2.3% improvement in
+NDCG@10 and 1.4% enhancement in diversity metrics while maintaining
+computational efficiency through optimized inference strategies.</details></td><td><details><summary>展开</summary>这篇论文提出了一个改进的生成式推荐框架，通过五项关键创新解决多模态数据处理、算法偏差消除和决策透明度等问题，其中包括检索增强生成机制（RAG）。该框架结合大型语言模型与多模态融合、去偏因果推理等技术，在多个基准数据集上验证了其在推荐准确性、公平性和多样性方面的提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01612v1">RAG-BioQA Retrieval-Augmented Generation for Long-Form Biomedical Question Answering</a></td><td><details><summary>展开</summary>The exponential growth of biomedical literature creates significant
+challenges for accessing precise medical information. Current biomedical
+question-answering systems primarily focus on short-form answers, failing to
+provide the comprehensive explanations necessary for clinical decision-making.
+We present RAG-BioQA, a novel framework combining retrieval-augmented
+generation with domain-specific fine-tuning to produce evidence-based,
+long-form biomedical answers. Our approach integrates BioBERT embeddings with
+FAISS indexing and compares various re-ranking strategies (BM25, ColBERT,
+MonoT5) to optimize context selection before synthesizing evidence through a
+fine-tuned T5 model. Experimental results on the PubMedQA dataset show
+significant improvements over baselines, with our best model achieving
+substantial gains across BLEU, ROUGE, and METEOR metrics, advancing the state
+of accessible, evidence-based biomedical knowledge retrieval.</details></td><td><details><summary>展开</summary>这篇论文介绍了RAG-BioQA框架，通过结合检索增强生成（RAG）和领域特定微调，生成基于证据的长篇生物医学答案，优化了上下文检索与合成，并在PubMedQA数据集上表现出显著优于基线的性能提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01600v1">A Comparison of Independent and Joint Fine-tuning Strategies for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>A Comparison of Independent and Joint Fine-tuning Strategies for
+Retrieval-Augmented Generation Download PDF Neal Gregory Lawton, Alfy Samuel,
+Anoop Kumar, Daben Liu Published: 20 Aug 2025, Last Modified: 17 Sept 2025EMNLP
+2025 FindingsConference, Publication Chairs, AuthorsRevisionsBibTeXCC BY 4.0
+Keywords: Retrieval-Augmented Generation (RAG), Large Language Models (LLMs),
+Fine-tuning, Question Answering, Joint fine-tuning TL;DR: We evaluate and
+compare strategies for fine-tuning Retrieval Augmented Generation (RAG)
+pipelines, including independent fine-tuning, joint fine-tuning, and two-phase
+fine-tuning. Abstract: Retrieval augmented generation (RAG) is a popular
+framework for question answering that is powered by two large language models
+(LLMs): an embedding model that retrieves context documents from a database
+that are relevant to a given question, and a generator model that uses the
+retrieved context to generate an answer to the question. Both the embedding and
+generator models can be fine-tuned to increase performance of a RAG pipeline on
+a new task, but multiple fine-tuning strategies exist with different costs and
+benefits. In this paper, we evaluate and compare several RAG fine-tuning
+strategies, including independent, joint, and two-phase fine-tuning. In our
+experiments, we observe that all of these strategies achieve about equal
+improvement in EM and F1 generation quality metrics, although they have
+significantly different computational costs. We conclude the optimal
+fine-tuning strategy to use depends on whether the training dataset includes
+context labels and whether a grid search over the learning rates for the
+embedding and generator models is required.</details></td><td><details><summary>展开</summary>这篇论文比较了检索增强生成（RAG）中不同微调策略（独立、联合和两阶段微调）的性能和计算成本，发现在生成质量上表现相近但计算代价差异显著，并指出最优策略取决于训练数据是否包含上下文标签及是否需要学习率调优。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01558v1">CardioRAG: A Retrieval-Augmented Generation Framework for Multimodal Chagas Disease Detection</a></td><td><details><summary>展开</summary>Chagas disease affects nearly 6 million people worldwide, with Chagas
+cardiomyopathy representing its most severe complication. In regions where
+serological testing capacity is limited, AI-enhanced electrocardiogram (ECG)
+screening provides a critical diagnostic alternative. However, existing machine
+learning approaches face challenges such as limited accuracy, reliance on large
+labeled datasets, and more importantly, weak integration with evidence-based
+clinical diagnostic indicators. We propose a retrieval-augmented generation
+framework, CardioRAG, integrating large language models with interpretable
+ECG-based clinical features, including right bundle branch block, left anterior
+fascicular block, and heart rate variability metrics. The framework uses
+variational autoencoder-learned representations for semantic case retrieval,
+providing contextual cases to guide clinical reasoning. Evaluation demonstrated
+high recall performance of 89.80%, with a maximum F1 score of 0.68 for
+effective identification of positive cases requiring prioritized serological
+testing. CardioRAG provides an interpretable, clinical evidence-based approach
+particularly valuable for resource-limited settings, demonstrating a pathway
+for embedding clinical indicators into trustworthy medical AI systems.</details></td><td><details><summary>展开</summary>该论文提出了一种名为CardioRAG的检索增强生成框架，结合大语言模型和可解释的心电图临床特征（如右束支传导阻滞等），通过检索相关病例提供临床推理指导，显著提升了恰加斯病心肌病筛查的准确性和可解释性，适用于资源有限地区。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01553v1">IoDResearch: Deep Research on Private Heterogeneous Data via the Internet of Data</a></td><td><details><summary>展开</summary>The rapid growth of multi-source, heterogeneous, and multimodal scientific
+data has increasingly exposed the limitations of traditional data management.
+Most existing DeepResearch (DR) efforts focus primarily on web search while
+overlooking local private data. Consequently, these frameworks exhibit low
+retrieval efficiency for private data and fail to comply with the FAIR
+principles, ultimately resulting in inefficiency and limited reusability. To
+this end, we propose IoDResearch (Internet of Data Research), a private
+data-centric Deep Research framework that operationalizes the Internet of Data
+paradigm. IoDResearch encapsulates heterogeneous resources as FAIR-compliant
+digital objects, and further refines them into atomic knowledge units and
+knowledge graphs, forming a heterogeneous graph index for multi-granularity
+retrieval. On top of this representation, a multi-agent system supports both
+reliable question answering and structured scientific report generation.
+Furthermore, we establish the IoD DeepResearch Benchmark to systematically
+evaluate both data representation and Deep Research capabilities in IoD
+scenarios. Experimental results on retrieval, QA, and report-writing tasks show
+that IoDResearch consistently surpasses representative RAG and Deep Research
+baselines. Overall, IoDResearch demonstrates the feasibility of
+private-data-centric Deep Research under the IoD paradigm, paving the way
+toward more trustworthy, reusable, and automated scientific discovery.</details></td><td><details><summary>展开</summary>该论文提出IoDResearch框架，通过将异构数据封装为FAIR合规的数字对象并构建多粒度检索的异构图索引，结合多智能体系统实现可靠问答和结构化报告生成，实验表明其在检索和生成任务上优于RAG基线，属于RAG技术在私有数据场景下的优化应用。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-01
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
