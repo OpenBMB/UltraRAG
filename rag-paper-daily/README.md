@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-03
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-10-02
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.02243v1">AccurateRAG: A Framework for Building Accurate Retrieval-Augmented Question-Answering Applications</a></td><td><details><summary>展开</summary>We introduce AccurateRAG -- a novel framework for constructing
 high-performance question-answering applications based on retrieval-augmented
