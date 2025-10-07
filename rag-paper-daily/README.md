@@ -1,5 +1,79 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-06
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.04905v1">Retrieval-Augmented Code Generation: A Survey with Focus on Repository-Level Approaches</a></td><td><details><summary>展开</summary>Recent advancements in large language models (LLMs) have substantially
+improved automated code generation. While function-level and file-level
+generation have achieved promising results, real-world software development
+typically requires reasoning across entire repositories. This gives rise to the
+challenging task of Repository-Level Code Generation (RLCG), where models must
+capture long-range dependencies, ensure global semantic consistency, and
+generate coherent code spanning multiple files or modules. To address these
+challenges, Retrieval-Augmented Generation (RAG) has emerged as a powerful
+paradigm that integrates external retrieval mechanisms with LLMs, enhancing
+context-awareness and scalability. In this survey, we provide a comprehensive
+review of research on Retrieval-Augmented Code Generation (RACG), with an
+emphasis on repository-level approaches. We categorize existing work along
+several dimensions, including generation strategies, retrieval modalities,
+model architectures, training paradigms, and evaluation protocols. Furthermore,
+we summarize widely used datasets and benchmarks, analyze current limitations,
+and outline key challenges and opportunities for future research. Our goal is
+to establish a unified analytical framework for understanding this rapidly
+evolving field and to inspire continued progress in AI-powered software
+engineering.</details></td><td><details><summary>展开</summary>这篇论文探讨了在大语言模型（LLMs）背景下，利用检索增强生成（RAG）技术解决**仓库级代码生成（RLCG）**挑战的研究进展，系统综述了检索增强代码生成（RACG）的方法、分类（如生成策略、检索模态等）、数据集及未来方向，旨在构建统一的分析框架并推动AI驱动的软件工程发展。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04757v1">ModernBERT + ColBERT: Enhancing biomedical RAG through an advanced re-ranking retriever</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is a powerful technique for enriching
+Large Language Models (LLMs) with external knowledge, allowing for factually
+grounded responses, a critical requirement in high-stakes domains such as
+healthcare. However, the efficacy of RAG systems is fundamentally restricted by
+the performance of their retrieval module, since irrelevant or semantically
+misaligned documents directly compromise the accuracy of the final generated
+response. General-purpose dense retrievers can struggle with the nuanced
+language of specialised domains, while the high accuracy of in-domain models is
+often achieved at prohibitive computational costs. In this work, we aim to
+address this trade-off by developing and evaluating a two-stage retrieval
+architecture that combines a lightweight ModernBERT bidirectional encoder for
+efficient initial candidate retrieval with a ColBERTv2 late-interaction model
+for fine-grained re-ranking. We conduct comprehensive evaluations of our
+retriever module performance and RAG system performance in the biomedical
+context, fine-tuning the IR module using 10k question-passage pairs from
+PubMedQA. Our analysis of the retriever module confirmed the positive impact of
+the ColBERT re-ranker, which improved Recall@3 by up to 4.2 percentage points
+compared to its retrieve-only counterpart. When integrated into the biomedical
+RAG, our IR module leads to a state-of-the-art average accuracy of 0.4448 on
+the five tasks of the MIRAGE question-answering benchmark, outperforming strong
+baselines such as MedCPT (0.4436). Our ablation studies reveal that this
+performance is critically dependent on a joint fine-tuning process that aligns
+the retriever and re-ranker; otherwise, the re-ranker might degrade the
+performance.</details></td><td><details><summary>展开</summary>该论文提出了一种结合轻量级ModernBERT和ColBERTv2的两阶段检索架构，以提升生物医学领域RAG系统的检索性能，通过在PubMedQA数据集上的微调和实验验证，显著提高了召回率和问答准确性，并在MIRAGE基准测试中达到最优水平。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04536v1">3Dify: a Framework for Procedural 3D-CG Generation Assisted by LLMs Using MCP and RAG</a></td><td><details><summary>展开</summary>This paper proposes "3Dify," a procedural 3D computer graphics (3D-CG)
+generation framework utilizing Large Language Models (LLMs). The framework
+enables users to generate 3D-CG content solely through natural language
+instructions. 3Dify is built upon Dify, an open-source platform for AI
+application development, and incorporates several state-of-the-art LLM-related
+technologies such as the Model Context Protocol (MCP) and Retrieval-Augmented
+Generation (RAG). For 3D-CG generation support, 3Dify automates the operation
+of various Digital Content Creation (DCC) tools via MCP. When DCC tools do not
+support MCP-based interaction, the framework employs the Computer-Using Agent
+(CUA) method to automate Graphical User Interface (GUI) operations. Moreover,
+to enhance image generation quality, 3Dify allows users to provide feedback by
+selecting preferred images from multiple candidates. The LLM then learns
+variable patterns from these selections and applies them to subsequent
+generations. Furthermore, 3Dify supports the integration of locally deployed
+LLMs, enabling users to utilize custom-developed models and to reduce both time
+and monetary costs associated with external API calls by leveraging their own
+computational resources.</details></td><td><details><summary>展开</summary>这篇论文提出了“3Dify”，一个基于大语言模型（LLMs）的程序化3D计算机图形生成框架，通过自然语言指令生成3D内容。它整合了包括检索增强生成（RAG）在内的先进LLM技术，并利用Model Context Protocol（MCP）和Computer-Using Agent（CUA）方法自动化数字内容创建工具的操作，同时支持用户反馈和本地LLM部署以优化生成质量和降低成本。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04488v1">Multi-Agent Collaborative Intelligence: Dual-Dial Control for Reliable LLM Reasoning</a></td><td><details><summary>展开</summary>Multi-agent debate often wastes compute by using a fixed adversarial stance,
+aggregating without deliberation, or stopping on heuristics. We introduce MACI,
+an active controller with two independent dials that decouple information from
+behavior: an information dial that gates evidence by quality, and a behavior
+dial that schedules contentiousness from exploration to consolidation. A
+moderator tracks disagreement, overlap, evidence quality, and argument quality,
+and halts when gains plateau. We provide theory-lite guarantees for
+nonincreasing dispersion and provable termination, with a budget-feasible
+scheduler. Across clinical diagnosis and news-bias tasks, MACI improves
+accuracy and calibration while reducing tokens, and converts residual
+uncertainty into precision RAG plans that specify what to retrieve next. We use
+a cross-family LLM judge (CRIT) as a conservative soft weight and stop signal,
+validated for order invariance and judge-swap stability; stability depends on
+using high-capability judges. MACI turns debate into a budget-aware,
+measurable, and provably terminating controller.</details></td><td><details><summary>展开</summary>这篇论文介绍了MACI，一种多智能体辩论控制器，通过信息质量筛选和行为调度优化辩论过程，并在残余不确定性时生成精确的RAG计划以指导后续检索，从而提升任务准确性和校准度。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-05
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
