@@ -1,5 +1,51 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-07
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.06002v1">Deterministic Legal Retrieval: An Action API for Querying the SAT-Graph RAG</a></td><td><details><summary>展开</summary>The Structure-Aware Temporal Graph RAG (SAT-Graph RAG) addresses core
+limitations of standard Retrieval-Augmented Generation in the legal domain by
+providing a verifiable knowledge graph that models hierarchical structure,
+temporal evolution, and causal events of legal norms. However, a critical gap
+remains: how to reliably query this structured knowledge without sacrificing
+its deterministic properties. This paper introduces the SAT-Graph API, a formal
+query execution layer centered on canonical actions-atomic, composable, and
+auditable primitives that isolate probabilistic discovery from deterministic
+retrieval. These actions enable: (i) high-precision hybrid search; (ii) robust
+reference resolution; (iii) point-in-time version retrieval; and (iv) auditable
+causal tracing. We demonstrate how planner-guided agents can decompose complex
+queries into Directed Acyclic Graphs (DAGs) of these actions. This two-layer
+architecture transforms retrieval from an opaque black box to a transparent,
+auditable process, directly addressing Explainable AI (XAI) requirements for
+high-stakes domains.</details></td><td><details><summary>展开</summary>这篇论文提出了SAT-Graph RAG，一种改进标准RAG在司法领域应用的技术，通过构建可验证的知识图谱来建模法律规范的结构、时间和因果关系。为了解决如何在不牺牲其确定性属性的前提下可靠查询结构化知识的问题，论文引入了SAT-Graph API，一个基于规范化操作的查询执行层，支持高精度混合搜索、版本检索和可审计的因果追踪等功能，并通过双层架构增强了检索过程的透明度和可解释性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.05691v1">DecEx-RAG: Boosting Agentic Retrieval-Augmented Generation with Decision and Execution Optimization via Process Supervision</a></td><td><details><summary>展开</summary>Agentic Retrieval-Augmented Generation (Agentic RAG) enhances the processing
+capability for complex tasks through dynamic retrieval and adaptive workflows.
+Recent advances (e.g., Search-R1) have shown that outcome-supervised
+reinforcement learning demonstrate strong performance. However, this approach
+still suffers from inefficient exploration, sparse reward signals, and
+ambiguous global reward feedback. To address these challenges, we propose
+DecEx-RAG, which models RAG as a Markov Decision Process (MDP) incorporating
+decision-making and execution, while introducing an efficient pruning strategy
+to optimize data expansion. Through comprehensive process-level policy
+optimization, DecEx-RAG significantly enhances the autonomous task
+decomposition, dynamic retrieval, and high-quality answer generation
+capabilities of large language models (LLMs). Experiments show that DecEx-RAG
+achieves an average absolute performance improvement of $6.2\%$ across six
+datasets, significantly outperforming existing baselines. Moreover, the pruning
+strategy improves data construction efficiency by nearly $6 \times$, providing
+an efficient solution for process-supervised RAG training. The code is
+available at https://github.com/sdsxdxl/DecEx-RAG.</details></td><td><details><summary>展开</summary>该论文提出了一种名为DecEx-RAG的改进方法，通过将RAG建模为马尔可夫决策过程（MDP）并引入高效剪枝策略，解决了传统RAG在探索效率、稀疏奖励和全局反馈模糊性上的问题，显著提升了任务分解、动态检索和答案生成能力，实验表明其在多个数据集上性能提升6.2%，数据构建效率提高近6倍。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.05524v1">KEO: Knowledge Extraction on OMIn via Knowledge Graphs and RAG for Safety-Critical Aviation Maintenance</a></td><td><details><summary>展开</summary>We present Knowledge Extraction on OMIn (KEO), a domain-specific knowledge
+extraction and reasoning framework with large language models (LLMs) in
+safety-critical contexts. Using the Operations and Maintenance Intelligence
+(OMIn) dataset, we construct a QA benchmark spanning global sensemaking and
+actionable maintenance tasks. KEO builds a structured Knowledge Graph (KG) and
+integrates it into a retrieval-augmented generation (RAG) pipeline, enabling
+more coherent, dataset-wide reasoning than traditional text-chunk RAG. We
+evaluate locally deployable LLMs (Gemma-3, Phi-4, Mistral-Nemo) and employ
+stronger models (GPT-4o, Llama-3.3) as judges. Experiments show that KEO
+markedly improves global sensemaking by revealing patterns and system-level
+insights, while text-chunk RAG remains effective for fine-grained procedural
+tasks requiring localized retrieval. These findings underscore the promise of
+KG-augmented LLMs for secure, domain-specific QA and their potential in
+high-stakes reasoning.</details></td><td><details><summary>展开</summary>该论文提出了KEO框架，通过构建结构化知识图谱（KG）并将其集成到检索增强生成（RAG）流程中，提升大语言模型在安全关键领域（基于OMIn数据集）的全局推理能力，实验表明KG增强的RAG在系统级分析上优于传统文本片段检索，同时保留了细粒度任务的处理优势。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-06
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.04905v1">Retrieval-Augmented Code Generation: A Survey with Focus on Repository-Level Approaches</a></td><td><details><summary>展开</summary>Recent advancements in large language models (LLMs) have substantially
 improved automated code generation. While function-level and file-level
