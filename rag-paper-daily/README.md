@@ -1,5 +1,86 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-08
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.07233v1">LAD-RAG: Layout-aware Dynamic RAG for Visually-Rich Document Understanding</a></td><td><details><summary>展开</summary>Question answering over visually rich documents (VRDs) requires reasoning not
+only over isolated content but also over documents' structural organization and
+cross-page dependencies. However, conventional retrieval-augmented generation
+(RAG) methods encode content in isolated chunks during ingestion, losing
+structural and cross-page dependencies, and retrieve a fixed number of pages at
+inference, regardless of the specific demands of the question or context. This
+often results in incomplete evidence retrieval and degraded answer quality for
+multi-page reasoning tasks. To address these limitations, we propose LAD-RAG, a
+novel Layout-Aware Dynamic RAG framework. During ingestion, LAD-RAG constructs
+a symbolic document graph that captures layout structure and cross-page
+dependencies, adding it alongside standard neural embeddings to yield a more
+holistic representation of the document. During inference, an LLM agent
+dynamically interacts with the neural and symbolic indices to adaptively
+retrieve the necessary evidence based on the query. Experiments on
+MMLongBench-Doc, LongDocURL, DUDE, and MP-DocVQA demonstrate that LAD-RAG
+improves retrieval, achieving over 90% perfect recall on average without any
+top-k tuning, and outperforming baseline retrievers by up to 20% in recall at
+comparable noise levels, yielding higher QA accuracy with minimal latency.</details></td><td><details><summary>展开</summary>本文提出了一种名为LAD-RAG的新型布局感知动态RAG框架，旨在解决传统RAG方法在处理视觉丰富文档（VRDs）时因忽略文档结构和跨页依赖关系而导致的证据不完整和答案质量下降问题。LAD-RAG通过构建符号文档图来捕捉布局结构和跨页依赖，并结合神经嵌入技术，在推理阶段由LLM智能体动态交互以自适应检索证据，实验表明其在多个数据集上显著提升了检索效果和问答准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07096v1">Making Machines Sound Sarcastic: LLM-Enhanced and Retrieval-Guided Sarcastic Speech Synthesis</a></td><td><details><summary>展开</summary>Sarcasm is a subtle form of non-literal language that poses significant
+challenges for speech synthesis due to its reliance on nuanced semantic,
+contextual, and prosodic cues. While existing speech synthesis research has
+focused primarily on broad emotional categories, sarcasm remains largely
+unexplored. In this paper, we propose a Large Language Model (LLM)-enhanced
+Retrieval-Augmented framework for sarcasm-aware speech synthesis. Our approach
+combines (1) semantic embeddings from a LoRA-fine-tuned LLaMA 3, which capture
+pragmatic incongruity and discourse-level cues of sarcasm, and (2) prosodic
+exemplars retrieved via a Retrieval Augmented Generation (RAG) module, which
+provide expressive reference patterns of sarcastic delivery. Integrated within
+a VITS backbone, this dual conditioning enables more natural and contextually
+appropriate sarcastic speech. Experiments demonstrate that our method
+outperforms baselines in both objective measures and subjective evaluations,
+yielding improvements in speech naturalness, sarcastic expressivity, and
+downstream sarcasm detection.</details></td><td><details><summary>展开</summary>该论文提出了一种基于LLM增强的检索增强框架，用于具有讽刺感知的语音合成，结合了微调LLaMA 3的语义嵌入和通过RAG模块检索的韵律范例，以生成更自然和符合上下文的讽刺语音。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.06999v1">Towards Reliable Retrieval in RAG Systems for Large Legal Datasets</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is a promising approach to mitigate
+hallucinations in Large Language Models (LLMs) for legal applications, but its
+reliability is critically dependent on the accuracy of the retrieval step. This
+is particularly challenging in the legal domain, where large databases of
+structurally similar documents often cause retrieval systems to fail. In this
+paper, we address this challenge by first identifying and quantifying a
+critical failure mode we term Document-Level Retrieval Mismatch (DRM), where
+the retriever selects information from entirely incorrect source documents. To
+mitigate DRM, we investigate a simple and computationally efficient technique
+which we refer to as Summary-Augmented Chunking (SAC). This method enhances
+each text chunk with a document-level synthetic summary, thereby injecting
+crucial global context that would otherwise be lost during a standard chunking
+process. Our experiments on a diverse set of legal information retrieval tasks
+show that SAC greatly reduces DRM and, consequently, also improves text-level
+retrieval precision and recall. Interestingly, we find that a generic
+summarization strategy outperforms an approach that incorporates legal expert
+domain knowledge to target specific legal elements. Our work provides evidence
+that this practical, scalable, and easily integrable technique enhances the
+reliability of RAG systems when applied to large-scale legal document datasets.</details></td><td><details><summary>展开</summary>这篇论文针对法律领域中检索增强生成（RAG）系统的检索步骤准确性不足问题，提出了一种名为“摘要增强分块”（SAC）的方法，通过为文本块添加文档级合成摘要来减少文档级检索不匹配（DRM），从而提升检索精度和召回率，增强RAG系统在法律文档数据集上的可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.06888v1">M3Retrieve: Benchmarking Multimodal Retrieval for Medicine</a></td><td><details><summary>展开</summary>With the increasing use of RetrievalAugmented Generation (RAG), strong
+retrieval models have become more important than ever. In healthcare,
+multimodal retrieval models that combine information from both text and images
+offer major advantages for many downstream tasks such as question answering,
+cross-modal retrieval, and multimodal summarization, since medical data often
+includes both formats. However, there is currently no standard benchmark to
+evaluate how well these models perform in medical settings. To address this
+gap, we introduce M3Retrieve, a Multimodal Medical Retrieval Benchmark.
+M3Retrieve, spans 5 domains,16 medical fields, and 4 distinct tasks, with over
+1.2 Million text documents and 164K multimodal queries, all collected under
+approved licenses. We evaluate leading multimodal retrieval models on this
+benchmark to explore the challenges specific to different medical specialities
+and to understand their impact on retrieval performance. By releasing
+M3Retrieve, we aim to enable systematic evaluation, foster model innovation,
+and accelerate research toward building more capable and reliable multimodal
+retrieval systems for medical applications. The dataset and the baselines code
+are available in this github page https://github.com/AkashGhosh/M3Retrieve.</details></td><td><details><summary>展开</summary>这篇论文介绍了M3Retrieve，一个多模态医学检索基准，旨在评估结合文本和图像的检索模型在医疗领域的性能，以支持RAG等下游任务，并促进医疗应用中更可靠的多模态检索系统的研究。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.06719v1">Differentially Private Synthetic Text Generation for Retrieval-Augmented Generation (RAG)</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) enhances large language models (LLMs) by
+grounding them in external knowledge. However, its application in sensitive
+domains is limited by privacy risks. Existing private RAG methods typically
+rely on query-time differential privacy (DP), which requires repeated noise
+injection and leads to accumulated privacy loss. To address this issue, we
+propose DP-SynRAG, a framework that uses LLMs to generate differentially
+private synthetic RAG databases. Unlike prior methods, the synthetic text can
+be reused once created, thereby avoiding repeated noise injection and
+additional privacy costs. To preserve essential information for downstream RAG
+tasks, DP-SynRAG extends private prediction, which instructs LLMs to generate
+text that mimics subsampled database records in a DP manner. Experiments show
+that DP-SynRAG achieves superior performanec to the state-of-the-art private
+RAG systems while maintaining a fixed privacy budget, offering a scalable
+solution for privacy-preserving RAG.</details></td><td><details><summary>展开</summary>该论文提出了一种名为DP-SynRAG的隐私保护框架，通过生成差分隐私的合成RAG数据库来解决传统RAG在敏感领域应用时的隐私风险问题，避免了重复噪声注入和隐私损失累积，实验表明其在固定隐私预算下性能优于现有隐私RAG系统。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-07
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.06002v1">Deterministic Legal Retrieval: An Action API for Querying the SAT-Graph RAG</a></td><td><details><summary>展开</summary>The Structure-Aware Temporal Graph RAG (SAT-Graph RAG) addresses core
 limitations of standard Retrieval-Augmented Generation in the legal domain by
