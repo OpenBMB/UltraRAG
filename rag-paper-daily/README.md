@@ -202,7 +202,75 @@ using high-capability judges. MACI turns debate into a budget-aware,
 measurable, and provably terminating controller.</details></td><td><details><summary>展开</summary>这篇论文介绍了MACI，一种多智能体辩论控制器，通过信息质量筛选和行为调度优化辩论过程，并在残余不确定性时生成精确的RAG计划以指导后续检索，从而提升任务准确性和校准度。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-05
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.04392v1">Improving Consistency in Retrieval-Augmented Systems with Group Similarity Rewards</a></td><td><details><summary>展开</summary>RAG systems are increasingly deployed in high-stakes domains where users
+expect outputs to be consistent across semantically equivalent queries.
+However, existing systems often exhibit significant inconsistencies due to
+variability in both the retriever and generator (LLM), undermining trust and
+reliability. In this work, we focus on information consistency, i.e., the
+requirement that outputs convey the same core content across semantically
+equivalent inputs. We introduce a principled evaluation framework that
+decomposes RAG consistency into retriever-level, generator-level, and
+end-to-end components, helping identify inconsistency sources. To improve
+consistency, we propose Paraphrased Set Group Relative Policy Optimization
+(PS-GRPO), an RL approach that leverages multiple rollouts across paraphrased
+set to assign group similarity rewards. We leverage PS-GRPO to achieve
+Information Consistent RAG (Con-RAG), training the generator to produce
+consistent outputs across paraphrased queries and remain robust to
+retrieval-induced variability. Because exact reward computation over paraphrase
+sets is computationally expensive, we also introduce a scalable approximation
+method that retains effectiveness while enabling efficient, large-scale
+training. Empirical evaluations across short-form, multi-hop, and long-form QA
+benchmarks demonstrate that Con-RAG significantly improves both consistency and
+accuracy over strong baselines, even in the absence of explicit ground-truth
+supervision. Our work provides practical solutions for evaluating and building
+reliable RAG systems for safety-critical deployments.</details></td><td><details><summary>展开</summary>该论文针对RAG系统在语义等效查询下输出不一致的问题，提出了一种评估框架（分解检索器、生成器和端到端不一致性）和改进方法PS-GRPO（基于强化学习的组相似性奖励），最终实现了信息一致性更强的Con-RAG系统，并通过实验验证了其在多任务中提升一致性和准确性的有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04293v1">Equipping Retrieval-Augmented Large Language Models with Document Structure Awareness</a></td><td><details><summary>展开</summary>While large language models (LLMs) demonstrate impressive capabilities, their
+reliance on parametric knowledge often leads to factual inaccuracies.
+Retrieval-Augmented Generation (RAG) mitigates this by leveraging external
+documents, yet existing approaches treat retrieved passages as isolated chunks,
+ignoring valuable structure that is crucial for document organization.
+Motivated by this gap, we propose Retrieve-DocumentRoute-Read (RDR2), a novel
+framework that explicitly incorporates structural information throughout the
+RAG process. RDR2 employs an LLM-based router to dynamically navigate document
+structure trees, jointly evaluating content relevance and hierarchical
+relationships to assemble optimal evidence. Our key innovation lies in
+formulating document routing as a trainable task, with automatic action
+curation and structure-aware passage selection inspired by human reading
+strategies. Through comprehensive evaluation on five challenging datasets, RDR2
+achieves state-of-the-art performance, demonstrating that explicit structural
+awareness significantly enhances RAG systems' ability to acquire and utilize
+knowledge, particularly in complex scenarios requiring multi-document
+synthesis.</details></td><td><details><summary>展开</summary>本文提出了一种名为RDR2的新型检索增强生成（RAG）框架，通过显式利用文档结构信息改进传统RAG方法。该框架采用基于LLM的路由器动态导航文档结构树，结合内容相关性和层次关系选择最优证据，并在五个数据集上实现了最先进的性能，证明了结构感知能显著提升RAG系统在复杂多文档场景下的知识获取与利用能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04226v3">Epistemic Diversity and Knowledge Collapse in Large Language Models</a></td><td><details><summary>展开</summary>Large language models (LLMs) tend to generate lexically, semantically, and
+stylistically homogenous texts. This poses a risk of knowledge collapse, where
+homogenous LLMs mediate a shrinking in the range of accessible information over
+time. Existing works on homogenization are limited by a focus on closed-ended
+multiple-choice setups or fuzzy semantic features, and do not look at trends
+across time and cultural contexts. To overcome this, we present a new
+methodology to measure epistemic diversity, i.e., variation in real-world
+claims in LLM outputs, which we use to perform a broad empirical study of LLM
+knowledge collapse. We test 27 LLMs, 155 topics covering 12 countries, and 200
+prompt variations sourced from real user chats. For the topics in our study, we
+show that while newer models tend to generate more diverse claims, nearly all
+models are less epistemically diverse than a basic web search. We find that
+model size has a negative impact on epistemic diversity, while
+retrieval-augmented generation (RAG) has a positive impact, though the
+improvement from RAG varies by the cultural context. Finally, compared to a
+traditional knowledge source (Wikipedia), we find that country-specific claims
+reflect the English language more than the local one, highlighting a gap in
+epistemic representation</details></td><td><details><summary>展开</summary>这篇论文研究了大型语言模型（LLMs）生成文本的同质化问题及其导致的“知识崩溃”风险，提出了一种衡量认知多样性（epistemic diversity）的新方法，并通过实验发现检索增强生成（RAG）技术能显著提升模型输出的多样性，但其效果受文化背景影响。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.04145v1">Automating construction safety inspections using a multi-modal vision-language RAG framework</a></td><td><details><summary>展开</summary>Conventional construction safety inspection methods are often inefficient as
+they require navigating through large volume of information. Recent advances in
+large vision-language models (LVLMs) provide opportunities to automate safety
+inspections through enhanced visual and linguistic understanding. However,
+existing applications face limitations including irrelevant or unspecific
+responses, restricted modal inputs and hallucinations. Utilisation of Large
+Language Models (LLMs) for this purpose is constrained by availability of
+training data and frequently lack real-time adaptability. This study introduces
+SiteShield, a multi-modal LVLM-based Retrieval-Augmented Generation (RAG)
+framework for automating construction safety inspection reports by integrating
+visual and audio inputs. Using real-world data, SiteShield outperformed
+unimodal LLMs without RAG with an F1 score of 0.82, hamming loss of 0.04,
+precision of 0.76, and recall of 0.96. The findings indicate that SiteShield
+offers a novel pathway to enhance information retrieval and efficiency in
+generating safety reports.</details></td><td><details><summary>展开</summary>该论文提出了一种基于多模态大视觉语言模型（LVLM）的检索增强生成（RAG）框架SiteShield，用于自动化生成建筑安全检查报告，通过整合视觉和音频输入提升检索和生成效率，实验表明其性能优于单模态LLM模型。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-04
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.03847v1">Small Language Models for Agentic Systems: A Survey of Architectures, Capabilities, and Deployment Trade offs</a></td><td><details><summary>展开</summary>Small language models (SLMs; 1-12B params, sometimes up to 20B) are
