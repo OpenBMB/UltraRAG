@@ -23,7 +23,7 @@ UltraRAG 2.0 （UR-2.0）是首个基于 [Model Context Protocol (MCP)](https://
   </Card>
 </Columns>
 
-此外，UR-2.0 内置了 ToolCall 功能，支持开发者在不改动原有代码结构的前提下，直接调用 UltraRAG 提供的工具函数，实现无缝集成与灵活扩展。框架还配套提供从入门到进阶的完整教学示例，内置 17 个主流 benchmark 任务与多种高质量 baseline，结合统一的评测体系与知识库支持，显著提升系统开发效率与实验的可复现性。
+此外，UR-2.0 提供由浅入深的完整教学示例，集成多项主流 benchmark 任务与高质量 baseline，配合统一的评测体系与知识库支持，能够显著提升系统开发效率并确保实验的可复现性。
 
 ## Why UltraRAG 2.0?
 
@@ -36,9 +36,9 @@ RAG 系统正从早期模块串联的简单模式，演进为依赖模型主动�
 </Card>
 
 <Card title="⚡ 快速复现与功能扩展">
-  基于 MCP 架构，所有模块均封装为独立、可复用的 Server，支持用户按需自定义 Server 或复用现有模块。每个 Server 的功能以函数级别的 Tool 形式注册，新增功能仅需添加一个函数即可接入完整流程；此外，UR-2.0 也支持调用外部 MCP Server，轻松扩展 Pipeline 能力与应用场景。
+  基于 MCP 架构，所有模块均封装为独立、可复用的 Server，支持用户按需自定义或复用现有模块。每个 Server 的功能均以函数级别的 Tool 形式注册，新功能只需添加一个函数即可无缝接入整体流程。
 </Card>
 
 <Card title="📊 统一评测与对比">
-  内置标准化的评测流程与指标管理，支持 17 个主流科研 [Benchmark](/pages/cn/tutorials/part_3/reproduction) 的开箱即用与扩展，持续集成最新基线，提供 [Leaderboard](https://pbem31gvoj.feishu.cn/sheets/TfbisiADfhOpnnt9wBhcE5gsn4o?from=from_copylink&sheet=4d3449) 结果，助力系统性研究与优化。
+  内置标准化的评测流程与指标管理，支持多个主流科研 [Benchmark](/pages/cn/tutorials/part_3/reproduction) 的开箱即用与扩展，并通过持续集成最新基线，提升研究复现性与优化效率。
 </Card>
