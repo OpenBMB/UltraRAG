@@ -360,7 +360,288 @@ private-data-centric Deep Research under the IoD paradigm, paving the way
 toward more trustworthy, reusable, and automated scientific discovery.</details></td><td><details><summary>展开</summary>该论文提出IoDResearch框架，通过将异构数据封装为FAIR合规的数字对象并构建多粒度检索的异构图索引，结合多智能体系统实现可靠问答和结构化报告生成，实验表明其在检索和生成任务上优于RAG基线，属于RAG技术在私有数据场景下的优化应用。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-01
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.01523v1">MetaSynth: Multi-Agent Metadata Generation from Implicit Feedback in Black-Box Systems</a></td><td><details><summary>展开</summary>Meta titles and descriptions strongly shape engagement in search and
+recommendation platforms, yet optimizing them remains challenging. Search
+engine ranking models are black box environments, explicit labels are
+unavailable, and feedback such as click-through rate (CTR) arrives only
+post-deployment. Existing template, LLM, and retrieval-augmented approaches
+either lack diversity, hallucinate attributes, or ignore whether candidate
+phrasing has historically succeeded in ranking. This leaves a gap in directly
+leveraging implicit signals from observable outcomes. We introduce MetaSynth, a
+multi-agent retrieval-augmented generation framework that learns from implicit
+search feedback. MetaSynth builds an exemplar library from top-ranked results,
+generates candidate snippets conditioned on both product content and exemplars,
+and iteratively refines outputs via evaluator-generator loops that enforce
+relevance, promotional strength, and compliance. On both proprietary e-commerce
+data and the Amazon Reviews corpus, MetaSynth outperforms strong baselines
+across NDCG, MRR, and rank metrics. Large-scale A/B tests further demonstrate
+10.26% CTR and 7.51% clicks. Beyond metadata, this work contributes a general
+paradigm for optimizing content in black-box systems using implicit signals.</details></td><td><details><summary>展开</summary>这篇论文介绍了MetaSynth，一个多智能体检索增强生成框架，用于优化搜索引擎的元标题和描述。它通过从排名靠前的搜索结果中构建示例库，结合产品内容和历史成功案例生成候选片段，并通过评估-生成循环迭代优化输出，以提高相关性、推广强度和合规性。实验表明，MetaSynth在多个指标上优于现有基线，并显著提升了点击率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01409v1">OntoLogX: Ontology-Guided Knowledge Graph Extraction from Cybersecurity Logs with Large Language Models</a></td><td><details><summary>展开</summary>System logs represent a valuable source of Cyber Threat Intelligence (CTI),
+capturing attacker behaviors, exploited vulnerabilities, and traces of
+malicious activity. Yet their utility is often limited by lack of structure,
+semantic inconsistency, and fragmentation across devices and sessions.
+Extracting actionable CTI from logs therefore requires approaches that can
+reconcile noisy, heterogeneous data into coherent and interoperable
+representations. We introduce OntoLogX, an autonomous Artificial Intelligence
+(AI) agent that leverages Large Language Models (LLMs) to transform raw logs
+into ontology-grounded Knowledge Graphs (KGs). OntoLogX integrates a
+lightweight log ontology with Retrieval Augmented Generation (RAG) and
+iterative correction steps, ensuring that generated KGs are syntactically and
+semantically valid. Beyond event-level analysis, the system aggregates KGs into
+sessions and employs a LLM to predict MITRE ATT&CK tactics, linking low-level
+log evidence to higher-level adversarial objectives. We evaluate OntoLogX on
+both logs from a public benchmark and a real-world honeypot dataset,
+demonstrating robust KG generation across multiple KGs backends and accurate
+mapping of adversarial activity to ATT&CK tactics. Results highlight the
+benefits of retrieval and correction for precision and recall, the
+effectiveness of code-oriented models in structured log analysis, and the value
+of ontology-grounded representations for actionable CTI extraction.</details></td><td><details><summary>展开</summary>这篇论文介绍了OntoLogX，一个利用大语言模型（LLMs）将原始日志转化为基于本体的知识图谱（KGs）的自主AI代理。它结合了轻量级日志本体与检索增强生成（RAG）技术，通过迭代校正步骤确保生成的KGs在语法和语义上有效，并将日志事件关联到MITRE ATT&CK框架中的高级攻击策略，从而提升网络威胁情报（CTI）的可操作性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01375v1">Fine-tuning with RAG for Improving LLM Learning of New Skills</a></td><td><details><summary>展开</summary>Large language model (LLM) agents deployed for multi-step tasks frequently
+fail in predictable ways: attempting actions with unmet preconditions, issuing
+redundant commands, or mishandling environment constraints. While
+retrieval-augmented generation (RAG) can improve performance by providing
+runtime guidance, it requires maintaining external knowledge databases and adds
+computational overhead at every deployment. We propose a simple pipeline that
+converts inference-time retrieval into learned competence through distillation.
+Our approach: (1) extracts compact, reusable hints from agent failures, (2)
+uses these hints to generate improved teacher trajectories via one-shot
+retrieval at episode start, and (3) trains student models on these trajectories
+with hint strings removed, forcing internalization rather than memorization.
+Across two interactive benchmarks, ALFWorld (household tasks) and WebShop
+(online shopping), distilled students consistently outperform baseline agents,
+achieving up to 91% success on ALFWorld (vs. 79% for baselines) and improving
+WebShop scores to 72 (vs. 61 for baselines), while using 10-60% fewer tokens
+than retrieval-augmented teachers depending on the environment. The approach
+generalizes across model scales (7B/14B parameters) and agent architectures
+(ReAct/StateAct), demonstrating that retrieval benefits can be effectively
+internalized through targeted fine-tuning without permanent runtime
+dependencies.</details></td><td><details><summary>展开</summary>这篇论文提出了一种通过知识蒸馏将检索增强生成（RAG）的运行时检索转化为模型内部能力的方法，以减少对外部知识库的依赖和计算开销。该方法从智能体失败中提取紧凑的提示，生成改进的教师轨迹，并训练学生模型内部化这些知识，在ALFWorld和WebShop基准测试中表现优于基线模型。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01363v1">Retrieval-Augmented Framework for LLM-Based Clinical Decision Support</a></td><td><details><summary>展开</summary>The increasing complexity of clinical decision-making, alongside the rapid
+expansion of electronic health records (EHR), presents both opportunities and
+challenges for delivering data-informed care. This paper proposes a clinical
+decision support system powered by Large Language Models (LLMs) to assist
+prescribing clinicians. The system generates therapeutic suggestions by
+analyzing historical EHR data, including patient demographics, presenting
+complaints, clinical symptoms, diagnostic information, and treatment histories.
+The framework integrates natural language processing with structured clinical
+inputs to produce contextually relevant recommendations. Rather than replacing
+clinician judgment, it is designed to augment decision-making by retrieving and
+synthesizing precedent cases with comparable characteristics, drawing on local
+datasets or federated sources where applicable. At its core, the system employs
+a retrieval-augmented generation (RAG) pipeline that harmonizes unstructured
+narratives and codified data to support LLM-based inference. We outline the
+system's technical components, including representation representation
+alignment and generation strategies. Preliminary evaluations, conducted with
+de-identified and synthetic clinical datasets, examine the clinical
+plausibility and consistency of the model's outputs. Early findings suggest
+that LLM-based tools may provide valuable decision support in prescribing
+workflows when appropriately constrained and rigorously validated. This work
+represents an initial step toward integration of generative AI into real-world
+clinical decision-making with an emphasis on transparency, safety, and
+alignment with established practices.</details></td><td><details><summary>展开</summary>这篇论文提出了一种基于大语言模型（LLMs）的临床决策支持系统，通过检索增强生成（RAG）技术整合电子健康记录（EHR）中的结构化和非结构化数据，生成治疗建议。系统利用历史病例数据检索相似案例，辅助临床医生决策，并强调透明度、安全性与临床验证。初步评估表明其在处方工作流中具有潜在价值。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01165v1">GRAD: Generative Retrieval-Aligned Demonstration Sampler for Efficient Few-Shot Reasoning</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) achieve strong performance across diverse tasks,
+but their effectiveness often depends on the quality of the provided context.
+Retrieval-Augmented Generation (RAG) enriches prompts with external
+information, but its reliance on static databases constrains adaptability and
+can result in irrelevant demonstrations. In this work, we propose a Generative
+Retrieval-Aligned Demonstrator (GRAD), a dynamic demonstration-based approach
+where an LLM model is trained to generate input-specific concise
+demonstrations. By tailoring demonstrations to each input, our method offers
+better contextual support than traditional RAG approaches. We demonstrate the
+superiority of GRAD under budget constraints, where we limit both the number of
+tokens used per demonstration and the number of tokens used for the final
+output. Trained solely on a math dataset, GRAD consistently outperforms strong
+baselines on Qwen2.5-14B across mathematical reasoning and advanced STEM
+questions, highlighting GRAD's robust generalization to out-of-distribution
+(OOD) domains such as physics, chemistry, and computer science. Furthermore, we
+show that demonstrations generated by trained smaller models can effectively
+guide larger target models, reducing training costs while maintaining
+competitive accuracy. Overall, this work introduces a scalable demonstration
+generator model presenting the first step toward a dynamic few-shot learning
+paradigm in resource-constrained settings. We release the code used for the
+project.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为GRAD（Generative Retrieval-Aligned Demonstrator）的动态演示生成方法，通过训练大语言模型为每个输入生成特定且简洁的演示，以提供比传统RAG更精准的上下文支持。实验表明，GRAD在数学推理和STEM问题中表现优异，并能泛化到物理、化学等OOD领域，同时小模型生成的演示可有效指导大模型，降低训练成本。该研究为资源受限环境下的动态小样本学习提供了新思路。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.01115v1">Exploring Network-Knowledge Graph Duality: A Case Study in Agentic Supply Chain Risk Analysis</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) struggle with the complex, multi-modal, and
+network-native data underlying financial risk. Standard Retrieval-Augmented
+Generation (RAG) oversimplifies relationships, while specialist models are
+costly and static. We address this gap with an LLM-centric agent framework for
+supply chain risk analysis. Our core contribution is to exploit the inherent
+duality between networks and knowledge graphs (KG). We treat the supply chain
+network as a KG, allowing us to use structural network science principles for
+retrieval. A graph traverser, guided by network centrality scores, efficiently
+extracts the most economically salient risk paths. An agentic architecture
+orchestrates this graph retrieval alongside data from numerical factor tables
+and news streams. Crucially, it employs novel ``context shells'' -- descriptive
+templates that embed raw figures in natural language -- to make quantitative
+data fully intelligible to the LLM. This lightweight approach enables the model
+to generate concise, explainable, and context-rich risk narratives in real-time
+without costly fine-tuning or a dedicated graph database.</details></td><td><details><summary>展开</summary>该论文提出了一种基于LLM的供应链风险分析框架，通过将供应链网络视为知识图谱（KG），利用网络中心性评分指导检索，并结合数值因子表和新闻流数据，采用创新的"context shells"技术使定量数据更易被LLM理解，从而生成实时、可解释且上下文的风险分析报告，改进了传统RAG方法在金融风险领域的局限性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00919v2">Benchmarking Foundation Models with Retrieval-Augmented Generation in Olympic-Level Physics Problem Solving</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) with foundation models has achieved
+strong performance across diverse tasks, but their capacity for expert-level
+reasoning-such as solving Olympiad-level physics problems-remains largely
+unexplored. Inspired by the way students prepare for competitions by reviewing
+past problems, we investigate the potential of RAG to enhance physics reasoning
+in foundation models. We introduce PhoPile, a high-quality multimodal dataset
+specifically designed for Olympiad-level physics, enabling systematic study of
+retrieval-based reasoning. PhoPile includes diagrams, graphs, and equations,
+capturing the inherently multimodal nature of physics problem solving. Using
+PhoPile, we benchmark RAG-augmented foundation models, covering both large
+language models (LLMs) and large multimodal models (LMMs) with multiple
+retrievers. Our results demonstrate that integrating retrieval with physics
+corpora can improve model performance, while also highlighting challenges that
+motivate further research in retrieval-augmented physics reasoning.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG技术在基础模型中增强物理推理能力的潜力，特别是针对奥林匹克级物理问题的解决。作者提出了一个高质量的多模态数据集PhoPile，用于系统研究基于检索的推理，并评估了不同检索器和基础模型（包括LLMs和LMMs）的性能，结果表明检索物理语料库能提升模型表现，但也指出了未来研究的挑战。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00880v1">HalluGuard: Evidence-Grounded Small Reasoning Models to Mitigate Hallucinations in Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) excel in many NLP tasks but remain prone to
+hallucinations, limiting trust in real-world applications. We present
+HalluGuard, a 4B-parameter Small Reasoning Model (SRM) for mitigating
+hallucinations in Retrieval-Augmented Generation (RAG). HalluGuard classifies
+document-claim pairs as grounded or hallucinated and produces evidence-grounded
+justifications for transparency. Our approach combines (i) a domain-agnostic
+synthetic dataset derived from FineWeb and refined through multi-stage curation
+and data reformation, (ii) synthetic grounded and hallucinated claims, and
+(iii) preference-based fine-tuning with Odds Ratio Preference Optimization to
+distill large-model reasoning into a smaller backbone. On the RAGTruth subset
+of the LLM-AggreFact benchmark, HalluGuard achieves 84.0% balanced accuracy
+(BAcc), rivaling specialized models, MiniCheck (7B; 84.0%) and Granite Guardian
+3.3 (8B; 82.2%) while using roughly half their parameters. Over the full
+benchmark it reaches 75.7% BAcc, matching larger general-purpose LLMs such as
+GPT-4o (75.9%). We will release HalluGuard and datasets under Apache 2.0 upon
+acceptance.</details></td><td><details><summary>展开</summary>该论文提出了HalluGuard，一个4B参数的小型推理模型（SRM），用于缓解检索增强生成（RAG）中的幻觉问题。HalluGuard通过分类文档-声明对是否基于事实，并生成证据支持的合理解释，结合了领域无关的数据集、合成数据及偏好微调技术，在多个基准测试中表现优异，性能接近或超越更大规模的模型。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00829v1">Exposing the Cracks: Vulnerabilities of Retrieval-Augmented LLM-based Machine Translation</a></td><td><details><summary>展开</summary>\textbf{RE}trieval-\textbf{A}ugmented \textbf{L}LM-based \textbf{M}achine
+\textbf{T}ranslation (REAL-MT) shows promise for knowledge-intensive tasks like
+idiomatic translation, but its reliability under noisy retrieval contexts
+remains poorly understood despite this being a common challenge in real-world
+deployment. To address this gap, we propose a noise synthesis framework and new
+metrics to evaluate the robustness of REAL-MT systematically. Using this
+framework, we instantiate REAL-MT with Qwen-series models, including standard
+LLMs and large reasoning models (LRMs) with enhanced reasoning, and evaluate
+their performance on idiomatic translation across high-, medium-, and
+low-resource language pairs under synthesized noise. Our results show that
+low-resource language pairs, which rely more heavily on retrieved context,
+degrade more severely under noise than high-resource ones and often produce
+nonsensical translations. Although LRMs possess enhanced reasoning
+capabilities, they show no improvement in error correction and are even more
+susceptible to noise, tending to rationalize incorrect contexts. We find that
+this stems from an attention shift away from the source idiom to noisy content,
+while confidence increases despite declining accuracy, indicating poor
+calibration. To mitigate these issues, we investigate training-free and
+fine-tuning strategies, which improve robustness at the cost of performance in
+clean contexts, revealing a fundamental trade-off. Our findings highlight the
+limitations of current approaches, underscoring the need for self-verifying
+integration mechanisms.</details></td><td><details><summary>展开</summary>该论文研究了基于检索增强的大语言模型机器翻译（REAL-MT）在噪声检索环境下的鲁棒性，提出噪声合成框架和评估指标，发现低资源语言对和增强推理模型（LRMs）易受噪声干扰，并探讨了无训练和微调策略的改进方法，揭示了性能与鲁棒性的权衡。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00662v1">Facilitating Cognitive Accessibility with LLMs: A Multi-Task Approach to Easy-to-Read Text Generation</a></td><td><details><summary>展开</summary>Simplifying complex texts is essential for ensuring equitable access to
+information, especially for individuals with cognitive impairments. The
+Easy-to-Read (ETR) initiative offers a framework for making content accessible
+to the neurodivergent population, but the manual creation of such texts remains
+time-consuming and resource-intensive. In this work, we investigate the
+potential of large language models (LLMs) to automate the generation of ETR
+content. To address the scarcity of aligned corpora and the specificity of ETR
+constraints, we propose a multi-task learning (MTL) approach that trains models
+jointly on text summarization, text simplification, and ETR generation. We
+explore two different strategies: multi-task retrieval-augmented generation
+(RAG) for in-context learning, and MTL-LoRA for parameter-efficient
+fine-tuning. Our experiments with Mistral-7B and LLaMA-3-8B, based on ETR-fr, a
+new high-quality dataset, demonstrate the benefits of multi-task setups over
+single-task baselines across all configurations. Moreover, results show that
+the RAG-based strategy enables generalization in out-of-domain settings, while
+MTL-LoRA outperforms all learning strategies within in-domain configurations.</details></td><td><details><summary>展开</summary>该论文研究了利用大语言模型（LLMs）自动生成易读文本（ETR）的方法，提出了一种多任务学习（MTL）框架，结合文本摘要、文本简化和ETR生成任务，并探索了基于检索增强生成（RAG）的上下文学习策略和参数高效微调方法（MTL-LoRA）。实验表明，多任务设置优于单任务基线，RAG策略在跨领域场景中表现良好，而MTL-LoRA在领域内配置中效果最佳。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.05137v1">Demystifying deep search: a holistic evaluation with hint-free multi-hop questions and factorised metrics</a></td><td><details><summary>展开</summary>RAG (Retrieval-Augmented Generation) systems and web agents are increasingly
+evaluated on multi-hop deep search tasks, yet current practice suffers from two
+major limitations. First, most benchmarks leak the reasoning path in the
+question text, allowing models to follow surface cues rather than discover
+reasoning chains autonomously. Second, evaluation is typically reduced to a
+single pass rate, which collapses diverse behaviours into one score and
+obscures whether failures stem from inadequate search, poor knowledge use, or
+inappropriate refusal. To address these issues, we present WebDetective, a
+benchmark of hint-free multi-hop questions paired with a controlled Wikipedia
+sandbox that ensures full traceability of model actions, and a holistic
+evaluation framework that separates search sufficiency, knowledge utilisation,
+and refusal behaviour. Our evaluation of 25 state-of-the-art models reveals
+systematic weaknesses across all architectures: models struggle with knowledge
+utilisation despite having sufficient evidence and demonstrate near-absent
+appropriate refusal when evidence is lacking. These patterns expose a
+fundamental gap: today's systems excel at executing given reasoning paths but
+fail when required to discover them. We develop an agentic workflow,
+EvidenceLoop, that explicitly targets the challenges our benchmark identifies,
+incorporating verification loops and systematic evidence tracking that improve
+both search and synthesis capabilities. This baseline demonstrates that
+WebDetective's diagnostic framework can guide concrete architectural
+improvements, establishing our benchmark as a critical tool for developing
+genuinely autonomous reasoning systems rather than pattern-following agents.</details></td><td><details><summary>展开</summary>这篇论文提出了WebDetective，一个针对RAG系统和网页代理的多跳深度搜索任务的基准测试和评估框架，旨在解决现有评估方法中推理路径泄露和单一评分的问题，并揭示模型在知识利用和拒绝行为方面的系统性弱点，最终提出了一个改进的代理工作流程EvidenceLoop来提升搜索和合成能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00586v1">Eyes-on-Me: Scalable RAG Poisoning through Transferable Attention-Steering Attractors</a></td><td><details><summary>展开</summary>Existing data poisoning attacks on retrieval-augmented generation (RAG)
+systems scale poorly because they require costly optimization of poisoned
+documents for each target phrase. We introduce Eyes-on-Me, a modular attack
+that decomposes an adversarial document into reusable Attention Attractors and
+Focus Regions. Attractors are optimized to direct attention to the Focus
+Region. Attackers can then insert semantic baits for the retriever or malicious
+instructions for the generator, adapting to new targets at near zero cost. This
+is achieved by steering a small subset of attention heads that we empirically
+identify as strongly correlated with attack success. Across 18 end-to-end RAG
+settings (3 datasets $\times$ 2 retrievers $\times$ 3 generators), Eyes-on-Me
+raises average attack success rates from 21.9 to 57.8 (+35.9 points,
+2.6$\times$ over prior work). A single optimized attractor transfers to unseen
+black box retrievers and generators without retraining. Our findings establish
+a scalable paradigm for RAG data poisoning and show that modular, reusable
+components pose a practical threat to modern AI systems. They also reveal a
+strong link between attention concentration and model outputs, informing
+interpretability research.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Eyes-on-Me的新型数据投毒攻击方法，针对检索增强生成（RAG）系统。该方法通过将对抗性文档分解为可重用的“注意力吸引器”和“焦点区域”，显著提高了攻击效率，无需针对每个目标短语进行昂贵的优化。实验表明，该方法在多种RAG设置下将攻击成功率从21.9%提升至57.8%，并揭示了注意力集中与模型输出之间的强关联，为RAG系统的安全性和可解释性研究提供了新见解。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00566v2">Panorama: Fast-Track Nearest Neighbors</a></td><td><details><summary>展开</summary>Approximate Nearest-Neighbor Search (ANNS) efficiently finds data items whose
+embeddings are close to that of a given query in a high-dimensional space,
+aiming to balance accuracy with speed. Used in recommendation systems, image
+and video retrieval, natural language processing, and retrieval-augmented
+generation (RAG), ANNS algorithms such as IVFPQ, HNSW graphs, Annoy, and MRPT
+utilize graph, tree, clustering, and quantization techniques to navigate large
+vector spaces. Despite this progress, ANNS systems spend up to 99\% of query
+time to compute distances in their final refinement phase. In this paper, we
+present PANORAMA, a machine learning-driven approach that tackles the ANNS
+verification bottleneck through data-adaptive learned orthogonal transforms
+that facilitate the accretive refinement of distance bounds. Such transforms
+compact over 90\% of signal energy into the first half of dimensions, enabling
+early candidate pruning with partial distance computations. We integrate
+PANORAMA into state-of-the-art ANNS methods, namely IVFPQ/Flat, HNSW, MRPT, and
+Annoy, without index modification, using level-major memory layouts,
+SIMD-vectorized partial distance computations, and cache-aware access patterns.
+Experiments across diverse datasets -- from image-based CIFAR-10 and GIST to
+modern embedding spaces including OpenAI's Ada 2 and Large 3 -- demonstrate
+that PANORAMA affords a 2--30$\times$ end-to-end speedup with no recall loss.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为PANORAMA的机器学习驱动方法，通过数据自适应的学习正交变换优化近似最近邻搜索（ANNS）的验证瓶颈，显著提升检索效率，并特别提到ANNS在检索增强生成（RAG）等领域的应用。该方法在不修改索引的情况下集成到现有ANNS算法中，实现了2-30倍的端到端加速且不损失召回率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00552v1">Data Quality Challenges in Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Organizations increasingly adopt Retrieval-Augmented Generation (RAG) to
+enhance Large Language Models with enterprise-specific knowledge. However,
+current data quality (DQ) frameworks have been primarily developed for static
+datasets, and only inadequately address the dynamic, multi-stage nature of RAG
+systems. This study aims to develop DQ dimensions for this new type of AI-based
+systems. We conduct 16 semi-structured interviews with practitioners of leading
+IT service companies. Through a qualitative content analysis, we inductively
+derive 15 distinct DQ dimensions across the four processing stages of RAG
+systems: data extraction, data transformation, prompt & search, and generation.
+Our findings reveal that (1) new dimensions have to be added to traditional DQ
+frameworks to also cover RAG contexts; (2) these new dimensions are
+concentrated in early RAG steps, suggesting the need for front-loaded quality
+management strategies, and (3) DQ issues transform and propagate through the
+RAG pipeline, necessitating a dynamic, step-aware approach to quality
+management.</details></td><td><details><summary>展开</summary>这篇论文探讨了在检索增强生成（RAG）系统中数据质量（DQ）维度的开发，通过访谈IT服务公司的实践者，归纳出15个DQ维度，覆盖RAG系统的四个处理阶段，并指出需要更新传统DQ框架以适应RAG的动态特性，强调早期阶段的质量管理重要性及问题在流程中的传递性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00508v1">Copy-Paste to Mitigate Large Language Model Hallucinations</a></td><td><details><summary>展开</summary>While Retrieval-Augmented Generation (RAG) enables large language models
+(LLMs) to generate contextually grounded responses, contextual faithfulness
+remains challenging as LLMs may not consistently trust provided context,
+leading to hallucinations that undermine reliability. We observe an inverse
+correlation between response copying degree and context-unfaithful
+hallucinations on RAGTruth, suggesting that higher copying degrees reduce
+hallucinations by fostering genuine contextual belief. We propose CopyPasteLLM,
+obtained through two-stage high-copying response preference training. We design
+three prompting methods to enhance copying degree, demonstrating that
+high-copying responses achieve superior contextual faithfulness and
+hallucination control. These approaches enable a fully automated pipeline that
+transforms generated responses into high-copying preference data for training
+CopyPasteLLM. On FaithEval, ConFiQA and PubMedQA, CopyPasteLLM achieves best
+performance in both counterfactual and original contexts, remarkably with 12.2%
+to 24.5% accuracy improvements on FaithEval over the best baseline, while
+requiring only 365 training samples -- 1/50th of baseline data. To elucidate
+CopyPasteLLM's effectiveness, we propose the Context-Parameter Copying
+Capturing algorithm. Interestingly, this reveals that CopyPasteLLM recalibrates
+reliance on internal parametric knowledge rather than external knowledge during
+generation. All codes are available at
+https://github.com/longyongchao/CopyPasteLLM</details></td><td><details><summary>展开</summary>该论文针对RAG中LLMs对检索内容信任不足导致的幻觉问题，提出CopyPasteLLM模型，通过高复制度响应训练和提示方法增强上下文忠实度，显著降低幻觉并提升准确性，在多个基准测试中表现优异。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.00482v1">Agent Fine-tuning through Distillation for Domain-specific LLMs in Microdomains</a></td><td><details><summary>展开</summary>Agentic large language models (LLMs) have become prominent for autonomously
+interacting with external environments and performing multi-step reasoning
+tasks. Most approaches leverage these capabilities via in-context learning with
+few-shot prompts, but this often results in lengthy inputs and higher
+computational costs. Agent fine-tuning offers an alternative by enabling LLMs
+to internalize procedural reasoning and domain-specific knowledge through
+training on relevant data and demonstration trajectories. While prior studies
+have focused on general domains, their effectiveness in specialized technical
+microdomains remains unclear. This paper explores agent fine-tuning for domain
+adaptation within Hitachi's JP1 middleware, a microdomain for specialized IT
+operations. We fine-tuned LLMs using JP1-specific datasets derived from domain
+manuals and distilled reasoning trajectories generated by LLMs themselves,
+enhancing decision making accuracy and search efficiency. During inference, we
+used an agentic prompt with retrieval-augmented generation and introduced a
+context-answer extractor to improve information relevance. On JP1 certification
+exam questions, our method achieved a 14% performance improvement over the base
+model, demonstrating the potential of agent fine-tuning for domain-specific
+reasoning in complex microdomains.</details></td><td><details><summary>展开</summary>该论文探讨了在日立JP1中间件这一特定技术微领域中，通过微调大型语言模型（LLMs）以提升领域适应性的方法，其中在推理阶段采用了检索增强生成（RAG）技术和上下文-答案提取器来提高信息的相关性，最终在JP1认证考试问题上实现了14%的性能提升。</details></td></tr></tbody></table>
 
 ### 📅 2025-09-30
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2509.26584v1">Fairness Testing in Retrieval-Augmented Generation: How Small Perturbations Reveal Bias in Small Language Models</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) are widely used across multiple domains but
