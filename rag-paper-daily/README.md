@@ -1,5 +1,167 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-09
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.08383v1">QAgent: A modular Search Agent with Interactive Query Understanding</a></td><td><details><summary>展开</summary>Large language models (LLMs) excel at natural language tasks but are limited
+by their static parametric knowledge, especially in knowledge-intensive task.
+Retrieval-augmented generation (RAG) mitigates this by integrating external
+information. However, (1) traditional RAG struggles with complex query
+understanding, and (2) even search agents trained with reinforcement learning
+(RL), despite their promise, still face generalization and deployment
+challenges. To address these limitations, we propose QAgent, a unified agentic
+RAG framework that employs a search agent for adaptive retrieval. This agent
+optimizes its understanding of the query through interactive reasoning and
+retrieval. To facilitate real-world application, we focus on modular search
+agent for query understanding that are plug-and-play in complex systems.
+Secifically, the agent follows a multi-step decision process trained with RL to
+maximize retrieval quality and support accurate downstream answers. We further
+analyze the strengths and weaknesses of end-to-end RL and propose a strategy
+that focuses on effective retrieval, thereby enhancing generalization in LLM
+applications. Experiments show QAgent excels at QA and serves as a
+plug-and-play module for real-world deployment.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为QAgent的新型检索增强生成（RAG）框架，通过强化学习训练搜索代理以优化复杂查询的理解和自适应检索，解决传统RAG在查询理解和泛化能力上的不足，并实现即插即用的模块化部署，实验表明其在问答任务中表现优异。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08149v1">AI Knowledge Assist: An Automated Approach for the Creation of Knowledge Bases for Conversational AI Agents</a></td><td><details><summary>展开</summary>The utilization of conversational AI systems by leveraging Retrieval
+Augmented Generation (RAG) techniques to solve customer problems has been on
+the rise with the rapid progress of Large Language Models (LLMs). However, the
+absence of a company-specific dedicated knowledge base is a major barrier to
+the integration of conversational AI systems in contact centers. To this end,
+we introduce AI Knowledge Assist, a system that extracts knowledge in the form
+of question-answer (QA) pairs from historical customer-agent conversations to
+automatically build a knowledge base. Fine-tuning a lightweight LLM on internal
+data demonstrates state-of-the-art performance, outperforming larger
+closed-source LLMs. More specifically, empirical evaluation on 20 companies
+demonstrates that the proposed AI Knowledge Assist system that leverages the
+LLaMA-3.1-8B model eliminates the cold-start gap in contact centers by
+achieving above 90% accuracy in answering information-seeking questions. This
+enables immediate deployment of RAG-powered chatbots.</details></td><td><details><summary>展开</summary>该论文介绍了AI Knowledge Assist系统，通过从历史客户-代理对话中提取问答对自动构建知识库，并利用轻量级LLM（如LLaMA-3.1-8B）微调内部数据，在解决联系中心冷启动问题中实现超过90%的准确率，支持基于RAG技术的聊天机器人快速部署。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08109v1">VersionRAG: Version-Aware Retrieval-Augmented Generation for Evolving Documents</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems fail when documents evolve
+through versioning-a ubiquitous characteristic of technical documentation.
+Existing approaches achieve only 58-64% accuracy on version-sensitive
+questions, retrieving semantically similar content without temporal validity
+checks. We present VersionRAG, a version-aware RAG framework that explicitly
+models document evolution through a hierarchical graph structure capturing
+version sequences, content boundaries, and changes between document states.
+During retrieval, VersionRAG routes queries through specialized paths based on
+intent classification, enabling precise version-aware filtering and change
+tracking. On our VersionQA benchmark-100 manually curated questions across 34
+versioned technical documents-VersionRAG achieves 90% accuracy, outperforming
+naive RAG (58%) and GraphRAG (64%). VersionRAG reaches 60% accuracy on implicit
+change detection where baselines fail (0-10%), demonstrating its ability to
+track undocumented modifications. Additionally, VersionRAG requires 97% fewer
+tokens during indexing than GraphRAG, making it practical for large-scale
+deployment. Our work establishes versioned document QA as a distinct task and
+provides both a solution and benchmark for future research.</details></td><td><details><summary>展开</summary>这篇论文提出了VersionRAG，一个针对版本化文档的检索增强生成框架，通过分层图结构显式建模文档演变过程，解决了传统RAG在文档版本更新时准确性不足的问题。VersionRAG在版本敏感问题上达到90%的准确率，显著优于基线方法，并大幅降低索引开销，为版本化文档问答任务提供了解决方案和基准。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07925v1">Enabling Personalized Long-term Interactions in LLM-based Agents through Persistent Memory and User Profiles</a></td><td><details><summary>展开</summary>Large language models (LLMs) increasingly serve as the central control unit
+of AI agents, yet current approaches remain limited in their ability to deliver
+personalized interactions. While Retrieval Augmented Generation enhances LLM
+capabilities by improving context-awareness, it lacks mechanisms to combine
+contextual information with user-specific data. Although personalization has
+been studied in fields such as human-computer interaction or cognitive science,
+existing perspectives largely remain conceptual, with limited focus on
+technical implementation. To address these gaps, we build on a unified
+definition of personalization as a conceptual foundation to derive technical
+requirements for adaptive, user-centered LLM-based agents. Combined with
+established agentic AI patterns such as multi-agent collaboration or
+multi-source retrieval, we present a framework that integrates persistent
+memory, dynamic coordination, self-validation, and evolving user profiles to
+enable personalized long-term interactions. We evaluate our approach on three
+public datasets using metrics such as retrieval accuracy, response correctness,
+or BertScore. We complement these results with a five-day pilot user study
+providing initial insights into user feedback on perceived personalization. The
+study provides early indications that guide future work and highlights the
+potential of integrating persistent memory and user profiles to improve the
+adaptivity and perceived personalization of LLM-based agents.</details></td><td><details><summary>展开</summary>这篇论文探讨了如何通过结合检索增强生成（RAG）与用户特定数据，提升基于大语言模型（LLM）的AI代理的个性化交互能力。作者提出了一个框架，整合持久记忆、动态协调、自我验证和动态用户画像等技术，以实现长期个性化互动，并通过实验和用户研究验证了其效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07923v1">STEPER: Step-wise Knowledge Distillation for Enhancing Reasoning Ability in Multi-Step Retrieval-Augmented Language Models</a></td><td><details><summary>展开</summary>Answering complex real-world questions requires step-by-step retrieval and
+integration of relevant information to generate well-grounded responses.
+However, existing knowledge distillation methods overlook the need for
+different reasoning abilities at different steps, hindering transfer in
+multi-step retrieval-augmented frameworks. To address this, we propose Stepwise
+Knowledge Distillation for Enhancing Reasoning Ability in Multi-Step
+Retrieval-Augmented Language Models (StepER). StepER employs step-wise
+supervision to align with evolving information and reasoning demands across
+stages. Additionally, it incorporates difficulty-aware training to
+progressively optimize learning by prioritizing suitable steps. Our method is
+adaptable to various multi-step retrieval-augmented language models, including
+those that use retrieval queries for reasoning paths or decomposed questions.
+Extensive experiments show that StepER outperforms prior methods on multi-hop
+QA benchmarks, with an 8B model achieving performance comparable to a 70B
+teacher model.</details></td><td><details><summary>展开</summary>该论文提出了一种名为StepER的逐步知识蒸馏方法，旨在提升多步检索增强语言模型（RAG）的推理能力，通过分步监督和难度感知训练优化不同步骤的信息整合与推理需求，实验表明其在多跳问答任务中显著优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07920v1">Profit Mirage: Revisiting Information Leakage in LLM-based Financial Agents</a></td><td><details><summary>展开</summary>LLM-based financial agents have attracted widespread excitement for their
+ability to trade like human experts. However, most systems exhibit a "profit
+mirage": dazzling back-tested returns evaporate once the model's knowledge
+window ends, because of the inherent information leakage in LLMs. In this
+paper, we systematically quantify this leakage issue across four dimensions and
+release FinLake-Bench, a leakage-robust evaluation benchmark. Furthermore, to
+mitigate this issue, we introduce FactFin, a framework that applies
+counterfactual perturbations to compel LLM-based agents to learn causal drivers
+instead of memorized outcomes. FactFin integrates four core components:
+Strategy Code Generator, Retrieval-Augmented Generation, Monte Carlo Tree
+Search, and Counterfactual Simulator. Extensive experiments show that our
+method surpasses all baselines in out-of-sample generalization, delivering
+superior risk-adjusted performance.</details></td><td><details><summary>展开</summary>这篇论文探讨了基于LLM的金融代理因信息泄露导致的"利润幻象"问题，提出了泄漏鲁棒性基准FinLake-Bench和解决方案框架FactFin。FactFin通过反事实扰动使模型学习因果驱动而非记忆结果，其核心包含检索增强生成（RAG）等组件，实验表明该方法在样本外泛化中优于基线并提升风险调整后表现。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07794v1">HiPRAG: Hierarchical Process Rewards for Efficient Agentic Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Agentic RAG is a powerful technique for incorporating external information
+that LLMs lack, enabling better problem solving and question answering.
+However, suboptimal search behaviors exist widely, such as over-search
+(retrieving information already known) and under-search (failing to search when
+necessary), which leads to unnecessary overhead and unreliable outputs. Current
+training methods, which typically rely on outcome-based rewards in a RL
+framework, lack the fine-grained control needed to address these
+inefficiencies. To overcome this, we introduce Hierarchical Process Rewards for
+Efficient agentic RAG (HiPRAG), a training methodology that incorporates a
+fine-grained, knowledge-grounded process reward into the RL training. Our
+approach evaluates the necessity of each search decision on-the-fly by
+decomposing the agent's reasoning trajectory into discrete, parsable steps. We
+then apply a hierarchical reward function that provides an additional bonus
+based on the proportion of optimal search and non-search steps, on top of
+commonly used outcome and format rewards. Experiments on the Qwen2.5 and
+Llama-3.2 models across seven diverse QA benchmarks show that our method
+achieves average accuracies of 65.4% (3B) and 67.2% (7B). This is accomplished
+while improving search efficiency, reducing the over-search rate to just 2.3%
+and concurrently lowering the under-search rate. These results demonstrate the
+efficacy of optimizing the reasoning process itself, not just the final
+outcome. Further experiments and analysis demonstrate that HiPRAG shows good
+generalizability across a wide range of RL algorithms, model families, sizes,
+and types. This work demonstrates the importance and potential of fine-grained
+control through RL, for improving the efficiency and optimality of reasoning
+for search agents.</details></td><td><details><summary>展开</summary>本文提出了一种名为HiPRAG的训练方法，通过分层过程奖励优化RAG中的搜索行为，减少过度搜索和不足搜索问题，提高搜索效率和回答准确性，并在多个QA基准测试中验证了其有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07748v1">Haibu Mathematical-Medical Intelligent Agent:Enhancing Large Language Model Reliability in Medical Tasks via Verifiable Reasoning Chains</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) show promise in medicine but are prone to
+factual and logical errors, which is unacceptable in this high-stakes field. To
+address this, we introduce the "Haibu Mathematical-Medical Intelligent Agent"
+(MMIA), an LLM-driven architecture that ensures reliability through a formally
+verifiable reasoning process. MMIA recursively breaks down complex medical
+tasks into atomic, evidence-based steps. This entire reasoning chain is then
+automatically audited for logical coherence and evidence traceability, similar
+to theorem proving. A key innovation is MMIA's "bootstrapping" mode, which
+stores validated reasoning chains as "theorems." Subsequent tasks can then be
+efficiently solved using Retrieval-Augmented Generation (RAG), shifting from
+costly first-principles reasoning to a low-cost verification model. We
+validated MMIA across four healthcare administration domains, including DRG/DIP
+audits and medical insurance adjudication, using expert-validated benchmarks.
+Results showed MMIA achieved an error detection rate exceeding 98% with a false
+positive rate below 1%, significantly outperforming baseline LLMs. Furthermore,
+the RAG matching mode is projected to reduce average processing costs by
+approximately 85% as the knowledge base matures. In conclusion, MMIA's
+verifiable reasoning framework is a significant step toward creating
+trustworthy, transparent, and cost-effective AI systems, making LLM technology
+viable for critical applications in medicine.</details></td><td><details><summary>展开</summary>该论文介绍了“Haibu Mathematical-Medical Intelligent Agent (MMIA)”，一种基于大语言模型（LLM）的架构，通过可验证的推理过程确保医学任务的可靠性。MMIA将复杂任务分解为基于证据的原子步骤，并利用检索增强生成（RAG）技术存储已验证的推理链作为“定理”，从而降低处理成本。实验表明，MMIA在医疗管理领域显著优于基线LLM，错误检测率达98%以上，且RAG模式预计可降低85%的成本。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07728v1">Who Stole Your Data? A Method for Detecting Unauthorized RAG Theft</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) enhances Large Language Models (LLMs) by
+mitigating hallucinations and outdated information issues, yet simultaneously
+facilitates unauthorized data appropriation at scale. This paper addresses this
+challenge through two key contributions. First, we introduce RPD, a novel
+dataset specifically designed for RAG plagiarism detection that encompasses
+diverse professional domains and writing styles, overcoming limitations in
+existing resources. Second, we develop a dual-layered watermarking system that
+embeds protection at both semantic and lexical levels, complemented by an
+interrogator-detective framework that employs statistical hypothesis testing on
+accumulated evidence. Extensive experimentation demonstrates our approach's
+effectiveness across varying query volumes, defense prompts, and retrieval
+parameters, while maintaining resilience against adversarial evasion
+techniques. This work establishes a foundational framework for intellectual
+property protection in retrieval-augmented AI systems.</details></td><td><details><summary>展开</summary>这篇论文针对RAG技术可能导致的未经授权数据滥用问题，提出了两个解决方案：一是构建专门用于检测RAG抄袭的多领域数据集RPD，二是设计一种结合语义和词汇双层次水印的保护系统，并通过统计假设检验框架验证其有效性，旨在保护检索增强AI系统中的知识产权。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.07718v1">SUBQRAG: sub-question driven dynamic graph rag</a></td><td><details><summary>展开</summary>Graph Retrieval-Augmented Generation (Graph RAG) effectively builds a
+knowledge graph (KG) to connect disparate facts across a large document corpus.
+However, this broad-view approach often lacks the deep structured reasoning
+needed for complex multi-hop question answering (QA), leading to incomplete
+evidence and error accumulation. To address these limitations, we propose
+SubQRAG, a sub-question-driven framework that enhances reasoning depth. SubQRAG
+decomposes a complex question into an ordered chain of verifiable
+sub-questions. For each sub-question, it retrieves relevant triples from the
+graph. When the existing graph is insufficient, the system dynamically expands
+it by extracting new triples from source documents in real time. All triples
+used in the reasoning process are aggregated into a "graph memory," forming a
+structured and traceable evidence path for final answer generation. Experiments
+on three multi-hop QA benchmarks demonstrate that SubQRAG achieves consistent
+and significant improvements, especially in Exact Match scores.</details></td><td><details><summary>展开</summary>该论文提出了一种名为SubQRAG的子问题驱动的图检索增强生成框架，通过将复杂问题分解为可验证的子问题链，动态检索和扩展知识图谱中的三元组，并构建可追溯的"图记忆"路径，显著提升了多跳问答任务的性能。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-08
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.07233v1">LAD-RAG: Layout-aware Dynamic RAG for Visually-Rich Document Understanding</a></td><td><details><summary>展开</summary>Question answering over visually rich documents (VRDs) requires reasoning not
 only over isolated content but also over documents' structural organization and
