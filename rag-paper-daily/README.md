@@ -205,7 +205,70 @@ measurable, and provably terminating controller.</details></td><td><details><sum
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-04
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.03847v1">Small Language Models for Agentic Systems: A Survey of Architectures, Capabilities, and Deployment Trade offs</a></td><td><details><summary>展开</summary>Small language models (SLMs; 1-12B params, sometimes up to 20B) are
+sufficient and often superior for agentic workloads where the objective is
+schema- and API-constrained accuracy rather than open-ended generation. We
+synthesize recent evidence across open and proprietary SLMs (Phi-4-Mini,
+Qwen-2.5-7B, Gemma-2-9B, Llama-3.2-1B/3B, Ministral-3B/8B, Apple on-device 3B,
+DeepSeek-R1-Distill) and connect it to modern evaluations (BFCL v3/v4,
+StableToolBench) and serving stacks (vLLM, SGLang, TensorRT-LLM) paired with
+guided decoding libraries (XGrammar, Outlines). We formalize SLM-default,
+LLM-fallback systems with uncertainty-aware routing and verifier cascades, and
+propose engineering metrics that reflect real production goals: cost per
+successful task (CPS), schema validity rate, executable call rate, p50/p95
+latency, and energy per request. Guided decoding, strict JSON Schema outputs,
+and validator-first tool execution close much of the capability gap with larger
+models and often let SLMs match or surpass LLMs on tool use, function calling,
+and RAG at 10x-100x lower token cost with materially better latency and energy.
+We provide design patterns for agent stacks that prioritize SLMs: schema-first
+prompting, type-safe function registries, confidence scoring with verifier
+rollups, and lightweight adaptation via LoRA/QLoRA. We also delineate limits
+where fallback remains valuable (open-domain reasoning and some long-horizon
+planning). The result is a practical blueprint for building fast, inexpensive,
+and reliable agents that default to SLMs while preserving headroom with
+targeted LLM assistance.
+  Keywords: small language models, agents, function calling, structured
+outputs, JSON Schema, guided decoding, LoRA/QLoRA, routing, energy efficiency,
+edge inference</details></td><td><details><summary>展开</summary>这篇论文探讨了小型语言模型（SLMs）在代理任务中的优势，特别是在结构化输出和API调用等受限场景下的高效表现，并提出了结合不确定性感知路由和验证器级联的SLM-default系统。虽然主要聚焦于工具使用和函数调用，但明确提到SLMs在RAG任务中能以更低成本匹配或超越大型模型，同时提供了优化RAG性能的设计模式（如schema-first提示和轻量级适配技术）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.03687v1">MedReflect: Teaching Medical LLMs to Self-Improve via Reflective Correction</a></td><td><details><summary>展开</summary>Medical problem solving demands expert knowledge and intricate reasoning.
+Recent studies of large language models (LLMs) attempt to ease this complexity
+by introducing external knowledge verification through retrieval-augmented
+generation or by training on reasoning datasets. However, these approaches
+suffer from drawbacks such as retrieval overhead and high annotation costs, and
+they heavily rely on substituted external assistants to reach limited
+performance in medical field. In this paper, we introduce MedReflect, a
+generalizable framework designed to inspire LLMs with a physician-like
+reflective thinking mode. MedReflect generates a single-pass reflection chain
+that includes initial hypothesis generation, self-questioning, self-answering
+and decision refinement. This self-verified and self-reflective nature releases
+large language model's latent capability in medical problem-solving without
+external retrieval or heavy annotation. We demonstrate that MedReflect enables
+cost-efficient medical dataset construction: with merely 2,000 randomly sampled
+training examples and a light fine-tuning, this approach achieves notable
+absolute accuracy improvements across a series of medical benchmarks while
+cutting annotation requirements. Our results provide evidence that LLMs can
+learn to solve specialized medical problems via self-reflection and
+self-improve, reducing reliance on external supervision and extensive
+task-specific fine-tuning data.</details></td><td><details><summary>展开</summary>这篇论文探讨了在医学问题解决中，大型语言模型（LLMs）通过自我反思模式（MedReflect框架）提升性能的方法，同时对比了传统检索增强生成（RAG）的局限性（如检索开销和依赖外部知识）。研究提出了一种无需外部检索或大量标注的自验证反思链机制，显著降低了数据需求并提高了模型在医学任务中的准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.03663v2">UNIDOC-BENCH: A Unified Benchmark for Document-Centric Multimodal RAG</a></td><td><details><summary>展开</summary>Multimodal retrieval-augmented generation (MM-RAG) is a key approach for
+applying large language models (LLMs) and agents to real-world knowledge bases,
+yet current evaluations are fragmented, focusing on either text or images in
+isolation or on simplified multimodal setups that fail to capture
+document-centric multimodal use cases. In this paper, we introduce
+UniDoc-Bench, the first large-scale, realistic benchmark for MM-RAG built from
+70k real-world PDF pages across eight domains. Our pipeline extracts and links
+evidence from text, tables, and figures, then generates 1,600 multimodal QA
+pairs spanning factual retrieval, comparison, summarization, and logical
+reasoning queries. To ensure reliability, 20% of QA pairs are validated by
+multiple annotators and expert adjudication. UniDoc-Bench supports
+apples-to-apples comparison across four paradigms: (1) text-only, (2)
+image-only, (3) multimodal text-image fusion, and (4) multimodal joint
+retrieval -- under a unified protocol with standardized candidate pools,
+prompts, and evaluation metrics. Our experiments show that multimodal
+text-image fusion RAG systems consistently outperform both unimodal and jointly
+multimodal embedding-based retrieval, indicating that neither text nor images
+alone are sufficient and that current multimodal embeddings remain inadequate.
+Beyond benchmarking, our analysis reveals when and how visual context
+complements textual evidence, uncovers systematic failure modes, and offers
+actionable guidance for developing more robust MM-RAG pipelines.</details></td><td><details><summary>展开</summary>这篇论文介绍了UniDoc-Bench，一个针对多模态检索增强生成（MM-RAG）的大规模真实基准测试，通过从8个领域的7万页PDF中提取文本、表格和图像证据并生成1,600个多模态QA对，评估了四种检索范式（纯文本、纯图像、多模态融合等），揭示了多模态融合系统的优势及当前嵌入方法的不足，为MM-RAG系统开发提供了实践指导。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-03
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.03521v1">Identifying Financial Risk Information Using RAG with a Contrastive Insight</a></td><td><details><summary>展开</summary>In specialized domains, humans often compare new problems against similar
