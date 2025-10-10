@@ -208,7 +208,189 @@ measurable, and provably terminating controller.</details></td><td><details><sum
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-03
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.03521v1">Identifying Financial Risk Information Using RAG with a Contrastive Insight</a></td><td><details><summary>展开</summary>In specialized domains, humans often compare new problems against similar
+examples, highlight nuances, and draw conclusions instead of analyzing
+information in isolation. When applying reasoning in specialized contexts with
+LLMs on top of a RAG, the pipeline can capture contextually relevant
+information, but it is not designed to retrieve comparable cases or related
+problems.
+  While RAG is effective at extracting factual information, its outputs in
+specialized reasoning tasks often remain generic, reflecting broad facts rather
+than context-specific insights. In finance, it results in generic risks that
+are true for the majority of companies. To address this limitation, we propose
+a peer-aware comparative inference layer on top of RAG.
+  Our contrastive approach outperforms baseline RAG in text generation metrics
+such as ROUGE and BERTScore in comparison with human-generated equity research
+and risk.</details></td><td><details><summary>展开</summary>该论文提出在RAG基础上增加一个同行感知的比较推理层，以解决RAG在专业领域推理任务中输出过于通用的问题，并在金融领域通过对比实验验证了该方法在生成质量指标（如ROUGE和BERTScore）上优于基线RAG模型。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.03458v1">Omni-Embed-Nemotron: A Unified Multimodal Retrieval Model for Text, Image, Audio, and Video</a></td><td><details><summary>展开</summary>We present Omni-Embed-Nemotron, a unified multimodal retrieval embedding
+model developed to handle the increasing complexity of real-world information
+needs. While Retrieval-Augmented Generation (RAG) has significantly advanced
+language models by incorporating external knowledge, existing text-based
+retrievers rely on clean, structured input and struggle with the visually and
+semantically rich content found in real-world documents such as PDFs, slides,
+or videos. Recent work such as ColPali has shown that preserving document
+layout using image-based representations can improve retrieval quality.
+Building on this, and inspired by the capabilities of recent multimodal models
+such as Qwen2.5-Omni, we extend retrieval beyond text and images to also
+support audio and video modalities. Omni-Embed-Nemotron enables both
+cross-modal (e.g., text - video) and joint-modal (e.g., text - video+audio)
+retrieval using a single model. We describe the architecture, training setup,
+and evaluation results of Omni-Embed-Nemotron, and demonstrate its
+effectiveness in text, image, and video retrieval.</details></td><td><details><summary>展开</summary>该论文提出了Omni-Embed-Nemotron，一种统一的多模态检索嵌入模型，旨在处理现实世界中复杂的信息需求。文章指出，尽管RAG技术通过整合外部知识显著提升了语言模型的能力，但现有的基于文本的检索器在处理PDF、幻灯片或视频等视觉和语义丰富的内容时存在局限。Omni-Embed-Nemotron扩展了检索范围，支持文本、图像、音频和视频的多模态检索，包括跨模态和联合模态检索，并展示了其在文本、图像和视频检索中的有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.03418v1">ContraGen: A Multi-Agent Generation Framework for Enterprise Contradictions Detection</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) integrates LLMs with external sources,
+offering advanced capabilities for information access and decision-making.
+However, contradictions in retrieved evidence can result in inconsistent or
+untrustworthy outputs, which is especially problematic in enterprise settings
+where compliance, governance, and accountability are critical. Existing
+benchmarks for contradiction detection are limited to sentence-level analysis
+and do not capture the complexity of enterprise documents such as contracts,
+financial filings, compliance reports, or policy manuals. To address this
+limitation, we propose ContraGen, a contradiction-aware benchmark framework
+tailored to enterprise domain. The framework generates synthetic
+enterprise-style documents with embedded contradictions, enabling systematic
+evaluation of both intra-document and cross-document consistency. Automated
+contradiction mining is combined with human-in-the-loop validation to ensure
+high accuracy. Our contributions include generating realistic enterprise
+documents, modeling a taxonomy of contradiction types common in business
+processes, enabling controlled creation of self- and pairwise contradictions,
+developing a contradiction-aware retrieval evaluation pipeline and embedding
+human oversight to reflect domain-specific judgment complexity. This work
+establishes a foundation for more trustworthy and accountable RAG systems in
+enterprise information-seeking applications, where detecting and resolving
+contradictions is essential for reducing risk and ensuring compliance.</details></td><td><details><summary>展开</summary>该论文针对RAG系统中检索证据矛盾导致输出不可信的问题，提出面向企业领域的ContraGen基准框架，通过生成含矛盾的企业文档、构建矛盾分类体系及评估流程，提升RAG在企业合规场景下的可靠性与矛盾检测能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02967v1">Grounding Large Language Models in Clinical Evidence: A Retrieval-Augmented Generation System for Querying UK NICE Clinical Guidelines</a></td><td><details><summary>展开</summary>This paper presents the development and evaluation of a Retrieval-Augmented
+Generation (RAG) system for querying the United Kingdom's National Institute
+for Health and Care Excellence (NICE) clinical guidelines using Large Language
+Models (LLMs). The extensive length and volume of these guidelines can impede
+their utilisation within a time-constrained healthcare system, a challenge this
+project addresses through the creation of a system capable of providing users
+with precisely matched information in response to natural language queries. The
+system's retrieval architecture, composed of a hybrid embedding mechanism, was
+evaluated against a database of 10,195 text chunks derived from three hundred
+guidelines. It demonstrates high performance, with a Mean Reciprocal Rank (MRR)
+of 0.814, a Recall of 81% at the first chunk and of 99.1% within the top ten
+retrieved chunks, when evaluated on 7901 queries.
+  The most significant impact of the RAG system was observed during the
+generation phase. When evaluated on a manually curated dataset of seventy
+question-answer pairs, RAG-enhanced models showed substantial gains in
+performance. Faithfulness, the measure of whether an answer is supported by the
+source text, was increased by 64.7 percentage points to 99.5% for the
+RAG-enhanced O4-Mini model and significantly outperformed the medical-focused
+Meditron3-8B LLM, which scored 43%. This, combined with a perfect Context
+Precision score of 1 for all RAG-enhanced models, confirms the system's ability
+to prevent information fabrication by grounding its answers in relevant source
+material. This study thus establishes RAG as an effective, reliable, and
+scalable approach for applying generative AI in healthcare, enabling
+cost-effective access to medical guidelines.</details></td><td><details><summary>展开</summary>该论文开发并评估了一个基于RAG的系统，用于通过大语言模型查询英国NICE临床指南，通过混合嵌入检索架构从大量指南文本中精准匹配信息，显著提升了生成答案的准确性和可靠性（如忠实度提升至99.5%），验证了RAG在医疗领域的高效应用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02936v1">RAxSS: Retrieval-Augmented Sparse Sampling for Explainable Variable-Length Medical Time Series Classification</a></td><td><details><summary>展开</summary>Medical time series analysis is challenging due to data sparsity, noise, and
+highly variable recording lengths. Prior work has shown that stochastic sparse
+sampling effectively handles variable-length signals, while retrieval-augmented
+approaches improve explainability and robustness to noise and weak temporal
+correlations. In this study, we generalize the stochastic sparse sampling
+framework for retrieval-informed classification. Specifically, we weight window
+predictions by within-channel similarity and aggregate them in probability
+space, yielding convex series-level scores and an explicit evidence trail for
+explainability. Our method achieves competitive iEEG classification performance
+and provides practitioners with greater transparency and explainability. We
+evaluate our method in iEEG recordings collected in four medical centers,
+demonstrating its potential for reliable and explainable clinical
+variable-length time series classification.</details></td><td><details><summary>展开</summary>该论文提出了一种结合随机稀疏采样和检索增强方法的框架，用于处理医疗时间序列分类问题，通过基于通道内相似性加权的窗口预测和概率空间聚合，提高了分类性能、可解释性及对噪声的鲁棒性，并在多中心iEEG数据上验证了其可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02827v1">StepChain GraphRAG: Reasoning Over Knowledge Graphs for Multi-Hop Question Answering</a></td><td><details><summary>展开</summary>Recent progress in retrieval-augmented generation (RAG) has led to more
+accurate and interpretable multi-hop question answering (QA). Yet, challenges
+persist in integrating iterative reasoning steps with external knowledge
+retrieval. To address this, we introduce StepChain GraphRAG, a framework that
+unites question decomposition with a Breadth-First Search (BFS) Reasoning Flow
+for enhanced multi-hop QA. Our approach first builds a global index over the
+corpus; at inference time, only retrieved passages are parsed on-the-fly into a
+knowledge graph, and the complex query is split into sub-questions. For each
+sub-question, a BFS-based traversal dynamically expands along relevant edges,
+assembling explicit evidence chains without overwhelming the language model
+with superfluous context. Experiments on MuSiQue, 2WikiMultiHopQA, and HotpotQA
+show that StepChain GraphRAG achieves state-of-the-art Exact Match and F1
+scores. StepChain GraphRAG lifts average EM by 2.57% and F1 by 2.13% over the
+SOTA method, achieving the largest gain on HotpotQA (+4.70% EM, +3.44% F1).
+StepChain GraphRAG also fosters enhanced explainability by preserving the
+chain-of-thought across intermediate retrieval steps. We conclude by discussing
+how future work can mitigate the computational overhead and address potential
+hallucinations from large language models to refine efficiency and reliability
+in multi-hop QA.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为StepChain GraphRAG的框架，通过结合问题分解和广度优先搜索（BFS）推理流程，改进了多跳问答（QA）任务。该方法在检索时动态构建知识图，将复杂查询拆分为子问题，并通过BFS遍历扩展相关证据链，从而提升准确性（在多个数据集上达到SOTA性能）和可解释性，同时讨论了未来优化计算效率和减少大模型幻觉的方向。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02803v1">Work Zones challenge VLM Trajectory Planning: Toward Mitigation and Robust Autonomous Driving</a></td><td><details><summary>展开</summary>Visual Language Models (VLMs), with powerful multimodal reasoning
+capabilities, are gradually integrated into autonomous driving by several
+automobile manufacturers to enhance planning capability in challenging
+environments. However, the trajectory planning capability of VLMs in work
+zones, which often include irregular layouts, temporary traffic control, and
+dynamically changing geometric structures, is still unexplored. To bridge this
+gap, we conduct the \textit{first} systematic study of VLMs for work zone
+trajectory planning, revealing that mainstream VLMs fail to generate correct
+trajectories in $68.0%$ of cases. To better understand these failures, we first
+identify candidate patterns via subgraph mining and clustering analysis, and
+then confirm the validity of $8$ common failure patterns through human
+verification. Building on these findings, we propose REACT-Drive, a trajectory
+planning framework that integrates VLMs with Retrieval-Augmented Generation
+(RAG). Specifically, REACT-Drive leverages VLMs to convert prior failure cases
+into constraint rules and executable trajectory planning code, while RAG
+retrieves similar patterns in new scenarios to guide trajectory generation.
+Experimental results on the ROADWork dataset show that REACT-Drive yields a
+reduction of around $3\times$ in average displacement error relative to VLM
+baselines under evaluation with Qwen2.5-VL. In addition, REACT-Drive yields the
+lowest inference time ($0.58$s) compared with other methods such as fine-tuning
+($17.90$s). We further conduct experiments using a real vehicle in 15 work zone
+scenarios in the physical world, demonstrating the strong practicality of
+REACT-Drive.</details></td><td><details><summary>展开</summary>这篇文章探讨了视觉语言模型（VLMs）在自主驾驶工作区轨迹规划中的局限性和改进方法，提出了一种名为REACT-Drive的框架，该框架通过结合检索增强生成（RAG）技术，利用检索到的相似失败模式指导轨迹规划，显著提升了轨迹生成的准确性和效率。实验证明REACT-Drive在减少平均位移误差和推理时间方面优于基线方法，并在真实场景中验证了其实用性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02668v1">AgenticRAG: Tool-Augmented Foundation Models for Zero-Shot Explainable Recommender Systems</a></td><td><details><summary>展开</summary>Foundation models have revolutionized artificial intelligence, yet their
+application in recommender systems remains limited by reasoning opacity and
+knowledge constraints. This paper introduces AgenticRAG, a novel framework that
+combines tool-augmented foundation models with retrieval-augmented generation
+for zero-shot explainable recommendations. Our approach integrates external
+tool invocation, knowledge retrieval, and chain-of-thought reasoning to create
+autonomous recommendation agents capable of transparent decision-making without
+task-specific training. Experimental results on three real-world datasets
+demonstrate that AgenticRAG achieves consistent improvements over
+state-of-the-art baselines, with NDCG@10 improvements of 0.4\% on Amazon
+Electronics, 0.8\% on MovieLens-1M, and 1.6\% on Yelp datasets. The framework
+exhibits superior explainability while maintaining computational efficiency
+comparable to traditional methods.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为AgenticRAG的新型框架，将工具增强的基础模型与检索增强生成（RAG）相结合，用于零样本可解释推荐。该框架通过整合外部工具调用、知识检索和思维链推理，创建了能够透明决策的自主推荐代理，无需特定任务训练。实验表明其在多个数据集上的性能优于现有基准模型，同时保持了较好的解释性和计算效率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02657v2">Less LLM, More Documents: Searching for Improved RAG</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) couples document retrieval with large
+language models (LLMs). While scaling generators improves accuracy, it also
+raises cost and limits deployability. We explore an orthogonal axis: enlarging
+the retriever's corpus to reduce reliance on large LLMs. Experimental results
+show that corpus scaling consistently strengthens RAG and can often serve as a
+substitute for increasing model size, though with diminishing returns at larger
+scales. Small- and mid-sized generators paired with larger corpora often rival
+much larger models with smaller corpora; mid-sized models tend to gain the
+most, while tiny and large models benefit less. Our analysis shows that
+improvements arise primarily from increased coverage of answer-bearing
+passages, while utilization efficiency remains largely unchanged. These
+findings establish a principled corpus-generator trade-off: investing in larger
+corpora offers an effective path to stronger RAG, often comparable to enlarging
+the LLM itself.</details></td><td><details><summary>展开</summary>该论文探讨了通过扩大检索器的语料库来减少对大型语言模型（LLM）依赖的方法，实验表明语料库扩展能有效增强RAG性能，可作为增大模型规模的替代方案，尤其对中小型生成器效果显著，并揭示了语料覆盖范围与模型效率之间的权衡关系。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02653v1">Geolog-IA: Conversational System for Academic Theses</a></td><td><details><summary>展开</summary>This study presents the development of Geolog-IA, a novel conversational
+system based on artificial intelligence that responds naturally to questions
+about geology theses from the Central University of Ecuador. Our proposal uses
+the Llama 3.1 and Gemini 2.5 language models, which are complemented by a
+Retrieval Augmented Generation (RAG) architecture and an SQLite database. This
+strategy allows us to overcome problems such as hallucinations and outdated
+knowledge. The evaluation of Geolog-IA's performance with the BLEU metric
+reaches an average of 0.87, indicating high consistency and accuracy in the
+responses generated. The system offers an intuitive, web-based interface that
+facilitates interaction and information retrieval for directors, teachers,
+students, and administrative staff at the institution. This tool can be a key
+support in education, training, and research and establishes a basis for future
+applications in other disciplines.</details></td><td><details><summary>展开</summary>该论文介绍了Geolog-IA，一个基于人工智能的对话系统，利用Llama 3.1和Gemini 2.5语言模型，结合RAG架构和SQLite数据库，以解决幻觉和知识过时问题，为厄瓜多尔中央大学的地质学论文提供高准确性的自然语言回答，并通过BLEU指标评估显示其高一致性（平均0.87）。系统提供基于网页的直观界面，支持教育、培训和研究，并适用于其他学科。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.02634v1">Automatic Building Code Review: A Case Study</a></td><td><details><summary>展开</summary>Building officials, particularly those in resource-constrained or rural
+jurisdictions, face labor-intensive, error-prone, and costly manual reviews of
+design documents as projects increase in size and complexity. The growing
+adoption of Building Information Modeling (BIM) and Large Language Models
+(LLMs) presents opportunities for automated code review (ACR) solutions. This
+study introduces a novel agent-driven framework that integrates BIM-based data
+extraction with automated verification using both retrieval-augmented
+generation (RAG) and Model Context Protocol (MCP) agent pipelines. The
+framework employs LLM-enabled agents to extract geometry, schedules, and system
+attributes from heterogeneous file types, which are then processed for building
+code checking through two complementary mechanisms: (1) direct API calls to the
+US Department of Energy COMcheck engine, providing deterministic and
+audit-ready outputs, and (2) RAG-based reasoning over rule provisions, enabling
+flexible interpretation where coverage is incomplete or ambiguous.
+  The framework was evaluated through case demonstrations, including automated
+extraction of geometric attributes (such as surface area, tilt, and insulation
+values), parsing of operational schedules, and validation of lighting
+allowances under ASHRAE Standard 90.1-2022. Comparative performance tests
+across multiple LLMs showed that GPT-4o achieved the best balance of efficiency
+and stability, while smaller models exhibited inconsistencies or failures.
+Results confirm that MCP agent pipelines outperform RAG reasoning pipelines in
+rigor and reliability. This work advances ACR research by demonstrating a
+scalable, interoperable, and production-ready approach that bridges BIM with
+authoritative code review tools.</details></td><td><details><summary>展开</summary>该论文提出了一种基于BIM和LLM的自动化建筑规范审查框架，整合了检索增强生成（RAG）和模型上下文协议（MCP）代理流程，通过两种机制验证建筑规范：直接调用COMcheck引擎和RAG对规则条款进行推理，案例测试表明MCP在严谨性和可靠性上优于RAG，但RAG在规则不明确时提供了灵活解释能力。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-02
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.02243v1">AccurateRAG: A Framework for Building Accurate Retrieval-Augmented Question-Answering Applications</a></td><td><details><summary>展开</summary>We introduce AccurateRAG -- a novel framework for constructing
