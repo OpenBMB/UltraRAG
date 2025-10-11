@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-10
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-10-09
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.08383v1">QAgent: A modular Search Agent with Interactive Query Understanding</a></td><td><details><summary>展开</summary>Large language models (LLMs) excel at natural language tasks but are limited
 by their static parametric knowledge, especially in knowledge-intensive task.
