@@ -110,7 +110,8 @@ generation:
       dtype: auto             # 自动选择精度（如 fp16/bf16）
       gpu_ids: 2,3            # 指定 GPU ID
       gpu_memory_utilization: 0.9  # GPU 显存利用率上限
-      model_name_or_path: openbmb/MiniCPM4-8B
+      model_name_or_path: openbmb/MiniCPM4-8B  # [!code --]
+      model_name_or_path: your generation model path # [!code ++]
       trust_remote_code: true
   sampling_params:             # 采样参数（影响生成多样性）
     chat_template_kwargs:
@@ -121,7 +122,8 @@ generation:
   system_prompt: ''            # 系统提示词（可留空）
 
 prompt:
-  template: prompt/qa_rag_boxed.jinja  # 使用的 Prompt 模板路径（Jinja 格式）
+  template: prompt/qa_boxed.jinja # [!code --]
+  template: prompt/qa_rag_boxed.jinja  # 使用的 Prompt 模板路径（Jinja 格式） [!code ++]
 
 retriever:
   backend: sentence_transformers       # 向量化后端，可选 sentence_transformers / infinity / openai
@@ -154,7 +156,8 @@ retriever:
   index_chunk_size: 50000               # 每批构建索引的文档数
   index_path: index/index.index         # 索引文件保存路径
   is_multimodal: false                  # 是否为多模态检索（图文混合）
-  model_name_or_path: openbmb/MiniCPM-Embedding-Light  # 向量化模型路径
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light  # [!code --]
+  model_name_or_path: your retriever model path  # 向量化模型路径 [!code ++]
   overwrite: false                      # 是否覆盖已有 embedding / index
   query_instruction: ''                 # query 前置指令（可为空）
   top_k: 5                              # 检索返回的 Top-K 文档数

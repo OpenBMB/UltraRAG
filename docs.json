@@ -14,7 +14,7 @@
         "language": "cn",
         "tabs": [
           {
-            "tab": "项目文档",
+            "tab": "Documentation",
             "groups": [
               {
                 "group": "开始使用",
@@ -25,33 +25,38 @@
                 ]
               },
               {
+                "group": "RAG Servers",
+                "pages": [
+                  "pages/cn/rag_servers/overview",
+                  {
+                    "group": "核心模块",
+                    "icon": "gears",
+                    "pages": [
+                      "pages/cn/rag_servers/corpus",
+                      "pages/cn/rag_servers/benchmark",
+                      "pages/cn/rag_servers/retriever",
+                      "pages/cn/rag_servers/prompt",
+                      "pages/cn/rag_servers/generation",
+                      "pages/cn/rag_servers/evaluation",
+                      "pages/cn/rag_servers/router",
+                      "pages/cn/rag_servers/custom"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "RAG Client",
+                "pages": [
+                  "pages/cn/rag_client/pipeline",
+                  "pages/cn/rag_client/serial",
+                  "pages/cn/rag_client/loop",
+                  "pages/cn/rag_client/branch",
+                  "pages/cn/rag_client/data_and_params"
+                ]
+              },
+              {
                 "group": "开发指南",
                 "pages": [
-                  {
-                    "group": "RAG 组件开发指南",
-                    "icon": "compass",
-                    "pages": [
-                      "pages/cn/tutorials/part_1/server_index",
-                      "pages/cn/tutorials/part_1/benchmark",
-                      "pages/cn/tutorials/part_1/retriever",
-                      "pages/cn/tutorials/part_1/prompt",
-                      "pages/cn/tutorials/part_1/generation",
-                      "pages/cn/tutorials/part_1/evaluation",
-                      "pages/cn/tutorials/part_1/router",
-                      "pages/cn/tutorials/part_1/custom"
-                    ]
-                  },
-                  {
-                    "group": "掌握 RAG 推理流程",
-                    "icon": "share-nodes",
-                    "pages": [
-                      "pages/cn/tutorials/part_2/pipeline",
-                      "pages/cn/tutorials/part_2/serial",
-                      "pages/cn/tutorials/part_2/loop",
-                      "pages/cn/tutorials/part_2/branch",
-                      "pages/cn/tutorials/part_2/data_and_params"
-                    ]
-                  },
                   {
                     "group": "数据构建与基线复现",
                     "icon": "database",
@@ -108,7 +113,7 @@
         "language": "en",
         "tabs": [
           {
-            "tab": "Project Docs",
+            "tab": "Documentation",
             "groups": [
               {
                 "group": "Getting Started",
