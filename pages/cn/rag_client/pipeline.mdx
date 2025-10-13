@@ -3,30 +3,42 @@ title: "流程控制"
 icon: "diagram-project"
 ---
 
-## 什么是 Pipeline？
+## Pipeline 简介
 
-在 UR-2.0 中，Pipeline 是你定义“推理任务如何执行”的流程脚本。它像一个“任务计划表”或“工作流蓝图”，用来明确告诉系统每一步该做什么、怎么做、做完后怎么走下一步。
+在 UR-2.0 中，Pipeline 是用于定义“推理任务如何执行”的流程脚本，它就像一份“任务计划表”，用于明确系统每一步需要执行的操作。
 
-你可以通过 Pipeline 组合不同模块（Server）中的功能（Tool），构建出一个完整、可复现、可控制的 RAG 推理流程。例如：
+你可以通过 Pipeline 将不同模块（Server）中的功能（Tool）灵活组合，从而构建出一个完整、可复现、可控的 RAG 推理流程。例如：
 
 - 加载数据 → 检索文档 → 构造 prompt → 调用大模型 → 评估结果；
-- 或者在多轮生成中，根据模型中间的表现决定是否重新检索或停止生成。
+- 或者在多轮生成中，根据模型中间的表现决定是否重新检索或提前停止生成。
 
-Pipeline 的核心作用是：让复杂的 RAG 流程结构清晰、灵活、模块化，并通过 YAML 配置实现零代码编排。
+<Note>通过一份 YAML 文件，即可定义并运行完整的 RAG 推理流程。</Note>
 
-## Pipeline 的构成要素
+## 编写规范
 
-在 UR-2.0 中，Pipeline 是以 YAML 文件形式编写的流程配置，它由两个顶层结构组成：
+在 UR-2.0 中，Pipeline 以 YAML 文件的形式编写，用于定义完整的任务执行流程。一个 Pipeline 文件通常由两个顶层结构组成：
 
-- `servers`：用于声明本流程中所使用的所有 MCP Server 模块。每个 Server 对应一个功能模块（如检索、生成等），键为模块名称，值为其在项目中的路径。
-- `pipeline`：定义任务执行流程，按步骤组织执行逻辑，支持串行（顺序执行）、循环（loop）与分支判断（branch）等控制结构。每一项表示一个执行步骤或流程控制节点。
+- `servers`：声明当前流程中所使用的所有 MCP Server 模块。每个 Server 对应一个功能模块（如检索、生成、评测等），键为模块名称，值为其在项目中的路径。
+- `pipeline`：定义任务的执行逻辑。其中每一项表示一个执行步骤或流程控制节点，支持串行、循环与分支判断等控制结构。
 
-```yaml examples/sayhello.yaml icon="/images/yaml.svg"
-# MCP Server
+```yaml examples/rag_full.yaml icon="/images/yaml.svg"
 servers:
-  sayhello: servers/sayhello
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
 
-# MCP Client Pipeline
 pipeline:
-- sayhello.greet
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_embed
+- retriever.retriever_index
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
 ```

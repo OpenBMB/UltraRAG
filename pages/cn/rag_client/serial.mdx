@@ -3,13 +3,11 @@ title: "串型结构"
 icon: "arrow-right-arrow-left"
 ---
 
-串行结构是 UltraRAG Pipeline 中最基本、最常见的执行方式。多个步骤按顺序依次执行，前一步的输出（若有）可以作为下一步的输入，也可以独立执行。构建一个基础的 RAG 工作流通常只需使用串行结构即可完成。
+串行结构 是 Pipeline 中最基础、也最常用的执行方式。多个步骤按顺序依次执行，前一步的输出（若有）可以作为下一步的输入，也可以独立执行。构建一个标准的 RAG 工作流通常仅依靠串行结构即可完成，从数据加载到结果评估都能清晰衔接。
 
-## 示例：Vanilla RAG Pipeline
+## 使用示例
 
 ```yaml examples/rag.yaml icon="/images/yaml.svg"
-# Vanilla RAG demo
-
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -22,18 +20,22 @@ servers:
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
-- retriever.retriever_deploy_search
+- retriever.retriever_init
+- retriever.retriever_search
+- generation.generation_init
 - prompt.qa_rag_boxed
 - generation.generate
 - custom.output_extract_from_boxed
 - evaluation.evaluate
 ```
 
-## 说明
+在串行结构中，Pipeline 的每一行都表示一次对某个 Tool 的调用，其基本语法为：
 
-在串行结构中，每一行代表调用一个注册的 Tool，其基本语法为：`server_name.tool_name`
+```yaml
+- server_name.tool_name
+```
 
-- `server_name`：表示调用的模块名，必须在 servers 部分提前定义；
-- `tool_name`：表示该模块中通过 @tool(...) 或 @prompt(...) 装饰器注册的函数。
+- `server_name`：调用的模块名称，必须在 servers 部分中提前声明；
+- `tool_name`：该模块中通过 @tool(...) 或 @prompt(...) 装饰器注册的函数名称。
 
 这种结构适用于大多数单轮问答或推理任务，也是理解更复杂流程（如循环、分支）前的基础。

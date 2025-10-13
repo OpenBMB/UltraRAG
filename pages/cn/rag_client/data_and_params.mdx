@@ -3,13 +3,14 @@ title: "数据流动"
 icon: "arrows-split-up-and-left"
 ---
 
-在 UR-2.0 中，pipeline 是通过变量名进行数据绑定的：每个工具（Tool）在注册时会声明自己的输入参数名和输出变量名，而 pipeline 中的每一步执行，都是通过这些变量名完成传参和数据流动的。
+在 UR-2.0 中，Pipeline 通过变量名实现数据绑定：每个工具在注册时都会声明自身的输入参数与输出变量，而 Pipeline 在执行时，会依靠这些变量名在各步骤之间传递与共享数据。
 
-这一机制简单直接，但在多轮调用、复杂控制结构（如 loop 或 branch）中，会带来一些变量名冲突或重名绑定的问题。为解决此问题，UltraRAG 提供了 参数重写机制（参数重命名），使得你可以灵活控制数据在 pipeline 中的流动。
+这种机制简单直观，便于构建顺序化的数据流。但在多轮调用或复杂控制结构中，可能会出现变量名冲突或数据覆盖的问题。为此，UR-2.0 提供了参数重写机制，允许开发者在 Pipeline 灵活重命名变量而无需修改源码。
+
 
 ## 数据如何流动？
 
-每个工具在 Server 中注册时，都指定了其输入和输出变量名。例如：
+每个工具在注册时都会声明自身的输入与输出变量名，从而确定数据流的入口与出口。例如：
 
 <CodeGroup>
 
@@ -36,22 +37,21 @@ def retriever_search(q_ls, top_k) -> ...
 
 </CodeGroup>
 
-含义是：
+这里的定义表示：
 
-- 工具接收两个输入变量 `q_ls` 和 `top_k`
-- 工具输出变量名为 `ret_psg`
+- 工具接收两个输入变量：`q_ls` 和 `top_k`
+- 工具返回一个输出变量：`ret_psg`
 
-在最简单的串行 Pipeline 中，这种默认绑定没有问题。但如果你在循环或分支中多次调用 `retriever_search`，希望传入不同的数据（比如第一次叫 `q_ls`，第二次叫 `subq_ls`），那你就需要一个方法来告诉 Pipeline：这些变量其实是 **“同义词”**。
+如果你多次调用同一个工具（如 retriever_search），并希望传入不同的数据变量（例如第一次为 q_ls，第二次为 subq_ls），
+就需要一种方式告诉 Pipeline：这些变量其实是 **“同义词”**。
 
 ## 参数重命名机制
 
-为了解决上述变量名绑定冲突，UR-2.0 提供了如下机制：
+为了解决变量名冲突与绑定歧义问题，UR-2.0 提供了灵活的 参数重命名机制。
+你可以直接在 pipeline.yaml 中使用 `input:` 与 `output:` 字段，
+显式指定参数与变量的映射关系——无需修改 Server 内部代码，即可完成数据绑定重定向。
 
-UR-2.0 支持在 pipeline.yaml 中 使用 `input:` 和 `output:` 明确重命名传参与变量映射，而无需修改 Server 中的代码。
-
-### 基本语法
-
-```yaml
+```yaml  icon="/images/yaml.svg"
 - module.tool:
     input:
       函数形参名: Pipeline里的变量名
@@ -59,13 +59,14 @@ UR-2.0 支持在 pipeline.yaml 中 使用 `input:` 和 `output:` 明确重命名
       Tool输出键: Pipeline里的变量名
 ```
 
-这套机制遵循以下原则：
+这套机制遵循“按名称显式绑定”原则：
+`input:` 映射函数的入参名，`output:` 映射工具注册时定义的输出键。
 
 ### 示例1：输入变量重命名
 
 假设工具函数声明如下：
 
-```python
+```python icon="python"
 async def retriever_search(
         self,
         query_list: List[str],
@@ -75,58 +76,65 @@ async def retriever_search(
     ) -> Dict[str, List[List[str]]]:
 ```
 
-你可以这样在 Pipeline 中重命名输入变量：
+可以在 Pipeline 中显式重命名输入变量：
 
-```yaml
+```yaml  icon="/images/yaml.svg"
 - retriever.retriever_search:
     input:
       query_list: sub_q_ls
 ```
 
-`retriever_search` 原本期待名为 `query_list` 的输入参数，此时你实际使用的变量名是 `sub_q_ls`，通过 `input:` 显式绑定即可完成映射，无需修改工具内部实现。
+这里，工具原本期望接收名为 `query_list` 的输入参数，但我们通过 `input:` 将其映射为 Pipeline 中的变量 `sub_q_ls`，从而实现无缝绑定。
 
-<Tip>这里是根据函数声明中的参数名进行映射。</Tip>
+<Tip>输入参数映射是根据函数声明中的参数名进行的。</Tip>
 
 ### 示例2：输出变量重命名
 
 假设该工具在注册时定义如下：
 
-```python
+```python icon="python"
 mcp_inst.tool(
     self.retriever_search,
     output="q_ls,top_k,query_instruction,use_openai->ret_psg",
 )
 ```
 
-你可以在 Pipeline 中这样重写输出名：
+可以在 Pipeline 中重写输出变量名：
 
-```yaml
+```yaml  icon="/images/yaml.svg"
 - retriever.retriever_search:
     output:
       ret_psg: round1_result
 ```
 
-无论该函数内部返回变量的名字是什么，只要在注册时指定为 `ret_psg`，现在就会被映射为 `round1_result`，供后续步骤使用。
+此时，无论函数内部返回变量名为何，只要注册时指定了输出键为 `ret_psg`，
+该结果都会被映射为 `round1_result`，供后续步骤使用。
 
-<Tip>这里是根据工具注册时指定的输出名进行映射。</Tip>
+<Tip>输出变量映射是根据工具注册时指定的输出键进行的。</Tip>
 
-此时，若有下游模块依赖该结果：
+如果下游模块依赖该输出结果：
 
-```python
+```python icon="python"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed(
     q_ls: List[str], ret_psg: List[str | Any], template: str | Path
 ) -> list[PromptMessage]:
+```
+
+则可以在 Pipeline 中显式完成输入重定向：
+
+```yaml  icon="/images/yaml.svg"
 - prompt.qa_rag_boxed:
     input:
       ret_psg: round1_result
 ```
 
-该工具 `qa_rag_boxed` 原本期望的输入是 `ret_psg`，此处我们将上一步的 `round1_result` 显式映射为它的输入，实现数据绑定。
+这样，`qa_rag_boxed` 原本期望的输入 `ret_psg` 就会从上一步的 `round1_result` 中读取，实现数据传递。
+
 
 ### 示例3：同时重写输入输出
 
-```yaml
+```yaml icon="/images/yaml.svg"
 - retriever.retriever_search:
     input:
       q_ls: round1_query
@@ -134,6 +142,6 @@ def qa_rag_boxed(
       ret_psg: round1_result
 ```
 
-这个模式在 loop 中非常常见，每轮检索都用新的变量名。
+这种写法在循环结构中尤为常见——每一轮检索都可使用新的输入与输出变量，避免命名冲突。
 
-有了参数重写机制，你可以在不修改工具源码的前提下，灵活组合与复用任何 Server 提供的 Tool，让 UltraRAG 的 Pipeline 更具扩展性与可控性。
+<Tip>合理使用参数重命名，可以在不修改源码的情况下让你的 RAG 流程在多轮迭代、动态分支等复杂场景下保持整洁与可控。</Tip>
