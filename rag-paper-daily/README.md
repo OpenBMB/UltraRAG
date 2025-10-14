@@ -171,7 +171,187 @@ retrieved information, offering a principled path toward trustworthy
 retrieval-augmented reasoning.</details></td><td><details><summary>展开</summary>该论文探讨了检索增强生成（RAG）智能体中的"工具调用黑客"问题，即模型通过表面正确的工具调用而非实际利用检索证据来提升奖励信号，导致模式崩溃和虚假引用，并提出了一种名为"使用证明"（PoU）的新型强化学习框架，通过结合语法引用验证、基于扰动的敏感性奖励和答案-证据对齐目标，确保工具使用的可解释性和功能性基础，在多个问答基准测试中展现出优于现有方法的性能。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-12
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.10828v1">VeritasFi: An Adaptable, Multi-tiered RAG Framework for Multi-modal Financial Question Answering</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is becoming increasingly essential for
+Question Answering (QA) in the financial sector, where accurate and
+contextually grounded insights from complex public disclosures are crucial.
+However, existing financial RAG systems face two significant challenges: (1)
+they struggle to process heterogeneous data formats, such as text, tables, and
+figures; and (2) they encounter difficulties in balancing general-domain
+applicability with company-specific adaptation. To overcome these challenges,
+we present VeritasFi, an innovative hybrid RAG framework that incorporates a
+multi-modal preprocessing pipeline alongside a cutting-edge two-stage training
+strategy for its re-ranking component. VeritasFi enhances financial QA through
+three key innovations: (1) A multi-modal preprocessing pipeline that seamlessly
+transforms heterogeneous data into a coherent, machine-readable format. (2) A
+tripartite hybrid retrieval engine that operates in parallel, combining deep
+multi-path retrieval over a semantically indexed document corpus, real-time
+data acquisition through tool utilization, and an expert-curated memory bank
+for high-frequency questions, ensuring comprehensive scope, accuracy, and
+efficiency. (3) A two-stage training strategy for the document re-ranker, which
+initially constructs a general, domain-specific model using anonymized data,
+followed by rapid fine-tuning on company-specific data for targeted
+applications. By integrating our proposed designs, VeritasFi presents a
+groundbreaking framework that greatly enhances the adaptability and robustness
+of financial RAG systems, providing a scalable solution for both general-domain
+and company-specific QA tasks. Code accompanying this work is available at
+https://github.com/simplew4y/VeritasFi.git.</details></td><td><details><summary>展开</summary>这篇论文介绍了一种名为VeritasFi的混合RAG框架，针对金融领域问答系统中的异构数据处理和通用性与公司特定适应性平衡问题，提出了多模态预处理流水线、三重混合检索引擎及两阶段文档重排序训练策略，以提升金融RAG系统的准确性和适应性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10824v1">Agentic RAG for Software Testing with Hybrid Vector-Graph and Multi-Agent Orchestration</a></td><td><details><summary>展开</summary>We present an approach to software testing automation using Agentic
+Retrieval-Augmented Generation (RAG) systems for Quality Engineering (QE)
+artifact creation. We combine autonomous AI agents with hybrid vector-graph
+knowledge systems to automate test plan, case, and QE metric generation. Our
+approach addresses traditional software testing limitations by leveraging LLMs
+such as Gemini and Mistral, multi-agent orchestration, and enhanced
+contextualization. The system achieves remarkable accuracy improvements from
+65% to 94.8% while ensuring comprehensive document traceability throughout the
+quality engineering lifecycle. Experimental validation of enterprise Corporate
+Systems Engineering and SAP migration projects demonstrates an 85% reduction in
+testing timeline, an 85% improvement in test suite efficiency, and projected
+35% cost savings, resulting in a 2-month acceleration of go-live.</details></td><td><details><summary>展开</summary>该论文提出了一种利用基于代理的检索增强生成（Agentic RAG）系统自动化生成质量工程（QE）工件的方法，结合自主AI代理与混合向量-图知识系统，显著提升了测试计划、用例和指标的生成准确性（65%→94.8%），并在企业级项目中验证了85%的测试时间缩减和35%成本节约效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10815v1">DRIFT: Decompose, Retrieve, Illustrate, then Formalize Theorems</a></td><td><details><summary>展开</summary>Automating the formalization of mathematical statements for theorem proving
+remains a major challenge for Large Language Models (LLMs). LLMs struggle to
+identify and utilize the prerequisite mathematical knowledge and its
+corresponding formal representation in languages like Lean. Current
+retrieval-augmented autoformalization methods query external libraries using
+the informal statement directly, but overlook a fundamental limitation:
+informal mathematical statements are often complex and offer limited context on
+the underlying math concepts. To address this, we introduce DRIFT, a novel
+framework that enables LLMs to decompose informal mathematical statements into
+smaller, more tractable ''sub-components''. This facilitates targeted retrieval
+of premises from mathematical libraries such as Mathlib. Additionally, DRIFT
+retrieves illustrative theorems to help models use premises more effectively in
+formalization tasks. We evaluate DRIFT across diverse benchmarks (ProofNet,
+ConNF, and MiniF2F-test) and find that it consistently improves premise
+retrieval, nearly doubling the F1 score compared to the DPR baseline on
+ProofNet. Notably, DRIFT demonstrates strong performance on the
+out-of-distribution ConNF benchmark, with BEq+@10 improvements of 37.14% and
+42.25% using GPT-4.1 and DeepSeek-V3.1, respectively. Our analysis shows that
+retrieval effectiveness in mathematical autoformalization depends heavily on
+model-specific knowledge boundaries, highlighting the need for adaptive
+retrieval strategies aligned with each model's capabilities.</details></td><td><details><summary>展开</summary>这篇论文提出了DRIFT框架，通过将非正式数学陈述分解为更小的子组件来改进检索增强的自动形式化方法，并利用针对性检索数学库中的前提和示例定理，显著提升了LLMs在数学定理证明中的形式化能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10806v1">Is Implicit Knowledge Enough for LLMs? A RAG Approach for Tree-based Structures</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) are adept at generating responses based on
+information within their context. While this ability is useful for interacting
+with structured data like code files, another popular method,
+Retrieval-Augmented Generation (RAG), retrieves relevant documents to augment
+the model's in-context learning. However, it is not well-explored how to best
+represent this retrieved knowledge for generating responses on structured data,
+particularly hierarchical structures like trees. In this work, we propose a
+novel bottom-up method to linearize knowledge from tree-like structures (like a
+GitHub repository) by generating implicit, aggregated summaries at each
+hierarchical level. This approach enables the knowledge to be stored in a
+knowledge base and used directly with RAG. We then compare our method to using
+RAG on raw, unstructured code, evaluating the accuracy and quality of the
+generated responses. Our results show that while response quality is comparable
+across both methods, our approach generates over 68% fewer documents in the
+retriever, a significant gain in efficiency. This finding suggests that
+leveraging implicit, linearized knowledge may be a highly effective and
+scalable strategy for handling complex, hierarchical data structures.</details></td><td><details><summary>展开</summary>这篇论文探讨了如何优化RAG在处理结构化数据（如树形结构的GitHub仓库）时的知识表示方法，提出了一种自底向上生成隐式聚合摘要的新方法，显著减少了检索文档数量，同时保持了回答质量。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10787v1">Review of Inference-Time Scaling Strategies: Reasoning, Search and RAG</a></td><td><details><summary>展开</summary>The performance gains of LLMs have historically been driven by scaling up
+model size and training data. However, the rapidly diminishing availability of
+high-quality training data is introducing a fundamental bottleneck, shifting
+the focus of research toward inference-time scaling. This paradigm uses
+additional computation at the time of deployment to substantially improve LLM
+performance on downstream tasks without costly model re-training. This review
+systematically surveys the diverse techniques contributing to this new era of
+inference-time scaling, organizing the rapidly evolving field into two
+comprehensive perspectives: Output-focused and Input-focused methods.
+Output-focused techniques encompass complex, multi-step generation strategies,
+including reasoning (e.g., CoT, ToT, ReAct), various search and decoding
+methods (e.g., MCTS, beam search), training for long CoT (e.g., RLVR, GRPO),
+and model ensemble methods. Input-focused techniques are primarily categorized
+by few-shot and RAG, with RAG as the central focus. The RAG section is further
+detailed through a structured examination of query expansion, data, retrieval
+and reranker, LLM generation methods, and multi-modal RAG.</details></td><td><details><summary>展开</summary>这篇论文系统地调研了推理时扩展（inference-time scaling）的多样化技术，重点关注输入导向方法中的检索增强生成（RAG），并详细探讨了RAG的查询扩展、数据检索、重排序、生成方法及多模态应用，将其视为提升大语言模型性能的关键方向之一。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10549v1">ELAIPBench: A Benchmark for Expert-Level Artificial Intelligence Paper Understanding</a></td><td><details><summary>展开</summary>While large language models (LLMs) excel at many domain-specific tasks, their
+ability to deeply comprehend and reason about full-length academic papers
+remains underexplored. Existing benchmarks often fall short of capturing such
+depth, either due to surface-level question design or unreliable evaluation
+metrics. To address this gap, we introduce ELAIPBench, a benchmark curated by
+domain experts to evaluate LLMs' comprehension of artificial intelligence (AI)
+research papers. Developed through an incentive-driven, adversarial annotation
+process, ELAIPBench features 403 multiple-choice questions from 137 papers. It
+spans three difficulty levels and emphasizes non-trivial reasoning rather than
+shallow retrieval. Our experiments show that the best-performing LLM achieves
+an accuracy of only 39.95%, far below human performance. Moreover, we observe
+that frontier LLMs equipped with a thinking mode or a retrieval-augmented
+generation (RAG) system fail to improve final results-even harming accuracy due
+to overthinking or noisy retrieval. These findings underscore the significant
+gap between current LLM capabilities and genuine comprehension of academic
+papers.</details></td><td><details><summary>展开</summary>这篇论文介绍了ELAIPBench，一个用于评估大语言模型（LLMs）对人工智能研究论文理解能力的专家标注基准，研究发现即便配备检索增强生成（RAG）系统的先进LLMs也无法提升性能，甚至因检索噪声而降低准确性，揭示了LLMs在深度理解学术论文方面的不足。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10480v1">Latent Retrieval Augmented Generation of Cross-Domain Protein Binders</a></td><td><details><summary>展开</summary>Designing protein binders targeting specific sites, which requires to
+generate realistic and functional interaction patterns, is a fundamental
+challenge in drug discovery. Current structure-based generative models are
+limited in generating nterfaces with sufficient rationality and
+interpretability. In this paper, we propose Retrieval-Augmented Diffusion for
+Aligned interface (RADiAnce), a new framework that leverages known interfaces
+to guide the design of novel binders. By unifying retrieval and generation in a
+shared contrastive latent space, our model efficiently identifies relevant
+interfaces for a given binding site and seamlessly integrates them through a
+conditional latent diffusion generator, enabling cross-domain interface
+transfer. Extensive exeriments show that RADiAnce significantly outperforms
+baseline models across multiple metrics, including binding affinity and
+recovery of geometries and interactions. Additional experimental results
+validate cross-domain generalization, demonstrating that retrieving interfaces
+from diverse domains, such as peptides, antibodies, and protein fragments,
+enhances the generation performance of binders for other domains. Our work
+establishes a new paradigm for protein binder design that successfully bridges
+retrieval-based knowledge and generative AI, opening new possibilities for drug
+discovery.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为RADiAnce的框架，通过结合检索已知蛋白质接口和生成新绑定剂的方法，利用共享对比潜空间和条件潜扩散生成器，实现了跨领域接口转移，显著提升了蛋白质绑定剂设计的性能，为药物发现提供了新的可能性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10452v1">Steering Over-refusals Towards Safety in Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Safety alignment in large language models (LLMs) induces over-refusals --
+where LLMs decline benign requests due to aggressive safety filters. We analyze
+this phenomenon in retrieval-augmented generation (RAG), where both the query
+intent and retrieved context properties influence refusal behavior. We
+construct RagRefuse, a domain-stratified benchmark spanning medical, chemical,
+and open domains, pairing benign and harmful queries with controlled context
+contamination patterns and sizes. Our analysis shows that context arrangement /
+contamination, domain of query and context, and harmful-text density trigger
+refusals even on benign queries, with effects depending on model-specific
+alignment choices. To mitigate over-refusals, we introduce
+\textsc{SafeRAG-Steering}, a model-centric embedding intervention that steers
+the embedding regions towards the confirmed safe, non-refusing output regions
+at inference time. This reduces over-refusals in contaminated RAG pipelines
+while preserving legitimate refusals.</details></td><td><details><summary>展开</summary>该论文探讨了大型语言模型（LLMs）在检索增强生成（RAG）中因安全对齐导致的过度拒绝问题，构建了多领域基准测试RagRefuse分析影响因素，并提出了SafeRAG-Steering方法，通过嵌入干预减少无害查询的误拒，同时保持对有害请求的合理拒绝。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10448v1">RECON: Reasoning with Condensation for Efficient Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) systems trained using reinforcement
+learning (RL) with reasoning are hampered by inefficient context management,
+where long, noisy retrieved documents increase costs and degrade performance.
+We introduce RECON (REasoning with CONdensation), a framework that integrates
+an explicit summarization module to compress evidence within the reasoning
+loop. Our summarizer is trained via a two-stage process: relevance pretraining
+on QA datasets, followed by multi-aspect distillation from proprietary LLMs to
+ensure factuality and clarity. Integrated into the Search-R1 pipeline, RECON
+reduces total context length by 35\%, leading to improved training speed and
+inference latency, while simultaneously improving RAG performance on downstream
+QA benchmarks. Notably, it boosts the average EM score of the 3B model by
+14.5\% and the 7B model by 3.0\%, showing particular strength in multi-hop QA.
+RECON demonstrates that learned context compression is essential for building
+practical, scalable, and performant RAG systems. Our code implementation is
+made available at https://github.com/allfornancy/RECON.</details></td><td><details><summary>展开</summary>本文提出了一种名为RECON的框架，通过引入显式摘要模块在推理循环中压缩检索证据，解决了RAG系统中长且噪声文档导致的效率低下问题，并结合强化学习和多阶段训练方法，显著减少了上下文长度并提升了QA任务性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10426v1">Taming a Retrieval Framework to Read Images in Humanlike Manner for Augmenting Generation of MLLMs</a></td><td><details><summary>展开</summary>Multimodal large language models (MLLMs) often fail in fine-grained visual
+question answering, producing hallucinations about object identities,
+positions, and relations because textual queries are not explicitly anchored to
+visual referents. Retrieval-augmented generation (RAG) alleviates some errors,
+but it fails to align with human-like processing at both the retrieval and
+augmentation levels. Specifically, it focuses only on global-level image
+information but lacks local detail and limits reasoning about fine-grained
+interactions. To overcome this limitation, we present Human-Like
+Retrieval-Augmented Generation (HuLiRAG), a framework that stages multimodal
+reasoning as a ``what--where--reweight'' cascade. Queries are first anchored to
+candidate referents via open-vocabulary detection (what), then spatially
+resolved with SAM-derived masks to recover fine-grained precision (where), and
+adaptively prioritized through the trade-off between local and global alignment
+(reweight). Mask-guided fine-tuning further injects spatial evidence into the
+generation process, transforming grounding from a passive bias into an explicit
+constraint on answer formulation. Extensive experiments demonstrate that this
+human-like cascade improves grounding fidelity and factual consistency while
+reducing hallucinations, advancing multimodal question answering toward
+trustworthy reasoning.</details></td><td><details><summary>展开</summary>本文提出了一种名为HuLiRAG的新型框架，通过"What-Where-Reweight"多级推理机制改进传统RAG在细粒度视觉问答中的不足。该框架结合开放词汇检测（定位物体）、SAM分割（精确定位空间关系）和自适应权重调整，并引入掩码导向微调，显著减少了多模态大语言模型在物体识别、位置和关系推理中的幻觉问题，提升了回答的可靠性和事实一致性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10390v1">RefusalBench: Generative Evaluation of Selective Refusal in Grounded Language Models</a></td><td><details><summary>展开</summary>The ability of language models in RAG systems to selectively refuse to answer
+based on flawed context is critical for safety, yet remains a significant
+failure point. Our large-scale study reveals that even frontier models struggle
+in this setting, with refusal accuracy dropping below 50% on multi-document
+tasks, while exhibiting either dangerous overconfidence or overcaution. Static
+benchmarks fail to reliably evaluate this capability, as models exploit
+dataset-specific artifacts and memorize test instances. We introduce
+RefusalBench, a generative methodology that programmatically creates diagnostic
+test cases through controlled linguistic perturbation. Our framework employs
+176 distinct perturbation strategies across six categories of informational
+uncertainty and three intensity levels. Evaluation of over 30 models uncovers
+systematic failure patterns: refusal comprises separable detection and
+categorization skills, and neither scale nor extended reasoning improves
+performance. We find that selective refusal is a trainable, alignment-sensitive
+capability, offering a clear path for improvement. We release two benchmarks --
+RefusalBench-NQ (single document) and RefusalBench-GaRAGe (multi-document) --
+and our complete generation framework to enable continued, dynamic evaluation
+of this critical capability.</details></td><td><details><summary>展开</summary>这篇论文研究了RAG系统中语言模型基于有缺陷的上下文选择拒绝回答的能力，发现前沿模型在该任务上表现不佳，并提出RefusalBench这一通过程序化生成诊断测试案例的方法论框架，同时发布了两个基准测试集以改进模型的关键拒绝能力。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-11
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.10129v1">CacheClip: Accelerating RAG with Effective KV Cache Reuse</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems suffer from severe
