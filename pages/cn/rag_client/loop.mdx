@@ -7,7 +7,7 @@ icon: "rotate-right"
 
 ## 使用示例
 
-```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="16-26"
+```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="16-28"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -33,6 +33,8 @@ pipeline:
     - retriever.retriever_search:
         input:
           query_list: subq_ls
+        output:
+          ret_psg: temp_psg
     - custom.merge_passages
 - prompt.qa_rag_boxed
 - generation.generate

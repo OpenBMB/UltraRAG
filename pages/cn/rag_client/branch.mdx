@@ -17,51 +17,48 @@ icon: "code-branch"
 ## 使用示例
 
 
-```yaml examples/light_deepresearch.yaml icon="/images/yaml.svg" highlight="24-42"
+```yaml examples/rag_branch.yaml icon="/images/yaml.svg" highlight="22-37"
 # MCP Server
 servers:
   benchmark: servers/benchmark
-  generation: servers/generation
   retriever: servers/retriever
   prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
   router: servers/router
 
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
+- retriever.retriever_init
 - generation.generation_init
-- prompt.webnote_gen_plan
-- generation.generate:
-    output:
-      ans_ls: plan_ls
-- prompt.webnote_init_page
-- generation.generate:
-    output:
-      ans_ls: page_ls
+- retriever.retriever_search
 - loop:
     times: 10
     steps:
+    - prompt.check_passages
+    - generation.generate
     - branch:
         router:
-        - router.webnote_check_page
+        - router.check_model_state
         branches:
-          incomplete:
-          - prompt.webnote_gen_subq
+          continue:
+          - prompt.gen_subq
           - generation.generate:
               output:
                 ans_ls: subq_ls
-          - retriever.retriever_tavily_search:
+          - retriever.retriever_search:
               input:
                 query_list: subq_ls
               output:
-                ret_psg: psg_ls
-          - prompt.webnote_fill_page
-          - generation.generate:
-              output:
-                ans_ls: page_ls
-          complete: []
-- prompt.webnote_gen_answer
+                ret_psg: temp_psg
+          - custom.merge_passages
+          stop: []
+- prompt.qa_rag_boxed
 - generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
 ```
 
 在分支结构中，Pipeline 使用以下关键字来定义动态流程的控制逻辑：
