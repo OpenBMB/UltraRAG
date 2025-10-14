@@ -35,6 +35,7 @@
                       "pages/cn/rag_servers/corpus",
                       "pages/cn/rag_servers/benchmark",
                       "pages/cn/rag_servers/retriever",
+                      "pages/cn/rag_servers/reranker",
                       "pages/cn/rag_servers/prompt",
                       "pages/cn/rag_servers/generation",
                       "pages/cn/rag_servers/evaluation",
@@ -51,11 +52,20 @@
                   "pages/cn/rag_client/serial",
                   "pages/cn/rag_client/loop",
                   "pages/cn/rag_client/branch",
-                  "pages/cn/rag_client/data_and_params"
+                  "pages/cn/rag_client/data_and_params",
+                  "pages/cn/rag_client/multi_agents"
                 ]
               },
               {
                 "group": "开发指南",
+                "pages": [
+                  "pages/cn/develop_guide/debug",
+                  "pages/cn/develop_guide/case_study",
+                  "pages/cn/develop_guide/dataset"
+                ]
+              },
+              {
+                "group": "草稿",
                 "pages": [
                   {
                     "group": "数据构建与基线复现",

@@ -67,6 +67,7 @@ ultrarag run examples/load_data.yaml
 此时，可以通过修改 Benchmark Server 的代码，新增需要返回的字段。
 
 <Note>你可以用相同方式扩展其他字段（例如 cot、retrieved_passages 等），只需在装饰器输出与 key_map 中同步添加对应键名即可。</Note>
+<Check>如果你有生成好的结果（如 pred 字段），可以配合 [Evaluation Server](/pages/cn/rag_servers/evaluation) 一同使用，实现快速评估。</Check>
 
 以下示例演示如何在 `get_data` 函数中新增 `id_ls` 字段：
 ```python servers/prompt/src/benchmark.py icon="python"

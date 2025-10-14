@@ -69,6 +69,8 @@ name: UltraRAG 2.0
 
 ### 参数注册机制
 
+<Note>若不同 Prompt Tool 存在参数命名冲突，请参考 [Prompt Server](/pages/cn/rag_servers/prompt) 中的“多 Prompt Tool 调用场景”部分了解解决方案。</Note>
+
 UR-2.0 在 build 阶段会自动读取每个 Server 目录下的 `parameter.yaml` 文件，并据此感知并注册工具函数所需的参数。在使用时需注意以下几点：
 
 - 参数共享机制：当多个 Tool 需要共用同一个参数（如 template、model_name_or_path 等），可在 `parameter.yaml` 中仅声明一次并复用，无需重复定义。

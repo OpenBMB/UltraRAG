@@ -5,22 +5,7 @@ icon: "clipboard-check"
 
 ## 作用
 
-Evaluation Server 提供一套完整的文本评估工具，支持多种常见的评估指标，用于在 pipeline 中对模型输出进行自动化评估。
-
-## 参数说明
-
-```yaml servers/evaluation/parameter.yaml icon="/images/yaml.svg"
-metrics: [ 'acc', 'f1', 'em', 'coverem', 'rouge-l' ]
-save_path: output/asqa.json
-```
-- `metrics`：指定要计算的评估指标，可以同时计算多个
-- `save_path`：结果日志存储地址
-
-## 工具说明
-
-- `evaluate`：对一组模型生成的答案进行评估，并将评估结果保存。
-
-## 评测指标
+Evaluation Server 提供了一套完整的文本评估工具，支持多种主流的自动化评测指标，用于在 Pipeline 中对模型输出进行系统化评估。
 
 | 指标名     | 类型    | 说明                                               |
 |:------------|---------|:----------------------------------------------------|
@@ -32,3 +17,104 @@ save_path: output/asqa.json
 | `Rouge_1`    | float   | 1-gram ROUGE-F1。                                  |
 | `Rouge_2`    | float   | 2-gram ROUGE-F1。                                  |
 | `Rouge_L`    | float   | Longest Common Subsequence (LCS) based ROUGE。     |
+
+## 使用示例
+
+### 基本用法
+
+```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="5,19"
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_embed
+- retriever.retriever_index
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+只需在 Pipeline 的末尾添加 evaluation.evaluate 工具，即可在任务执行完成后自动计算所有指定评测指标，并输出结果到配置文件中设定的路径。
+
+
+### 评估已有结果
+
+如果你已经拥有模型生成的结果文件，并希望直接对其进行评估，可以将结果整理为标准化的 JSONL 格式。文件中应至少包含代表答案标签与生成结果的字段，例如：
+
+```json icon="/images/json.svg"
+{"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "pred_answer": "December 14, 1973"}
+{"id": 1, "question": "who wrote he ain't heavy he's my brother lyrics", "golden_answers": ["Bobby Scott", "Bob Russell"], "pred_answer": "The documents do not provide information about the author of the lyrics to \"He Ain't Heavy, He's My Brother.\""}
+```
+
+
+```yaml examples/evaluate_results.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  evaluation: servers/evaluation
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- evaluation.evaluate
+```
+
+为了让 Benchmark Server 读取生成结果，需要在 get_data 函数中增加 `pred_ls` 字段：
+```python servers/prompt/src/benchmark.py icon="python"
+@app.tool(output="benchmark->q_ls,gt_ls") # [!code --]
+@app.tool(output="benchmark->q_ls,gt_ls,pred_ls") # [!code ++]
+def get_data(
+    benchmark: Dict[str, Any],
+) -> Dict[str, List[Any]]:
+```
+
+然后，运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build examples/evaluate_results.yaml
+```
+
+在生成的参数文件中，新增字段 pred_ls 并指定其在原始数据中的对应键名，同时修改数据路径和名称以指向新的评估文件：
+
+```yaml examples/parameters/evaluate_results_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+      pred_ls: pred_answer  # [!code ++]
+    limit: -1
+    name: nq  # [!code --]
+    path: data/sample_nq_10.jsonl # [!code --]
+    name: evaluate  # [!code ++]
+    path: data/test_evaluate.jsonl # [!code ++]
+    seed: 42
+    shuffle: false
+evaluation:
+  metrics:
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
+```
+
+运行以下命令执行该 Pipeline：
+
+```shell
+ultrarag run examples/evaluate_results.yaml
+```
