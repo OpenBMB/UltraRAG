@@ -1,5 +1,175 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-13
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.11654v1">FinVet: A Collaborative Framework of RAG and External Fact-Checking Agents for Financial Misinformation Detection</a></td><td><details><summary>展开</summary>Financial markets face growing threats from misinformation that can trigger
+billions in losses in minutes. Most existing approaches lack transparency in
+their decision-making and provide limited attribution to credible sources. We
+introduce FinVet, a novel multi-agent framework that integrates two
+Retrieval-Augmented Generation (RAG) pipelines with external fact-checking
+through a confidence-weighted voting mechanism. FinVet employs adaptive
+three-tier processing that dynamically adjusts verification strategies based on
+retrieval confidence, from direct metadata extraction to hybrid reasoning to
+full model-based analysis. Unlike existing methods, FinVet provides
+evidence-backed verdicts, source attribution, confidence scores, and explicit
+uncertainty flags when evidence is insufficient. Experimental evaluation on the
+FinFact dataset shows that FinVet achieves an F1 score of 0.85, which is a
+10.4% improvement over the best individual pipeline (fact-check pipeline) and
+37% improvement over standalone RAG approaches.</details></td><td><details><summary>展开</summary>该论文提出了一种名为FinVet的多智能体框架，通过整合两条RAG管道和外部事实核查机制，结合置信度加权投票进行金融信息验证，实现动态三层级处理策略，提供证据支持、来源追溯及不确定性标注，在FinFact数据集上的实验表明其F1分数显著优于独立RAG方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11541v1">Query-Specific GNN: A Comprehensive Graph Representation Learning Method for Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) has demonstrated its ability to enhance
+Large Language Models (LLMs) by integrating external knowledge sources.
+However, multi-hop questions, which require the identification of multiple
+knowledge targets to form a synthesized answer, raise new challenges for RAG
+systems. Under the multi-hop settings, existing methods often struggle to fully
+understand the questions with complex semantic structures and are susceptible
+to irrelevant noise during the retrieval of multiple information targets. To
+address these limitations, we propose a novel graph representation learning
+framework for multi-hop question retrieval. We first introduce a
+Multi-information Level Knowledge Graph (Multi-L KG) to model various
+information levels for a more comprehensive understanding of multi-hop
+questions. Based on this, we design a Query-Specific Graph Neural Network
+(QSGNN) for representation learning on the Multi-L KG. QSGNN employs
+intra/inter-level message passing mechanisms, and in each message passing the
+information aggregation is guided by the query, which not only facilitates
+multi-granular information aggregation but also significantly reduces the
+impact of noise. To enhance its ability to learn robust representations, we
+further propose two synthesized data generation strategies for pre-training the
+QSGNN. Extensive experimental results demonstrate the effectiveness of our
+framework in multi-hop scenarios, especially in high-hop questions the
+improvement can reach 33.8\%. The code is available at:
+https://github.com/Jerry2398/QSGNN.</details></td><td><details><summary>展开</summary>本文针对RAG系统在多跳问题（需检索多目标知识合成答案）中的局限性，提出了一种新的图表示学习框架。通过构建多层次知识图谱（Multi-L KG）和设计基于查询的图神经网络（QSGNN），利用跨层级信息传递和噪声抑制机制提升多跳检索性能，并结合合成数据预训练策略，实验表明其在多跳场景（尤其是高跳问题）中效果显著提升达33.8%。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11483v1">Uncertainty Quantification for Retrieval-Augmented Reasoning</a></td><td><details><summary>展开</summary>Retrieval-augmented reasoning (RAR) is a recent evolution of
+retrieval-augmented generation (RAG) that employs multiple reasoning steps for
+retrieval and generation. While effective for some complex queries, RAR remains
+vulnerable to errors and misleading outputs. Uncertainty quantification (UQ)
+offers methods to estimate the confidence of systems' outputs. These methods,
+however, often handle simple queries with no retrieval or single-step
+retrieval, without properly handling RAR setup. Accurate estimation of UQ for
+RAR requires accounting for all sources of uncertainty, including those arising
+from retrieval and generation. In this paper, we account for all these sources
+and introduce Retrieval-Augmented Reasoning Consistency (R2C)--a novel UQ
+method for RAR. The core idea of R2C is to perturb the multi-step reasoning
+process by applying various actions to reasoning steps. These perturbations
+alter the retriever's input, which shifts its output and consequently modifies
+the generator's input at the next step. Through this iterative feedback loop,
+the retriever and generator continuously reshape one another's inputs, enabling
+us to capture uncertainty arising from both components. Experiments on five
+popular RAR systems across diverse QA datasets show that R2C improves AUROC by
+over 5% on average compared to the state-of-the-art UQ baselines. Extrinsic
+evaluations using R2C as an external signal further confirm its effectiveness
+for two downstream tasks: in Abstention, it achieves ~5% gains in both
+F1Abstain and AccAbstain; in Model Selection, it improves the exact match by
+~7% over single models and ~3% over selection methods.</details></td><td><details><summary>展开</summary>本文提出了一种针对检索增强推理（RAR，RAG的多步推理扩展）的新型不确定性量化方法R2C，通过扰动多步推理过程并迭代反馈检索与生成组件的输入差异，显著提升了复杂查询下的不确定性估计性能，实验证明其在多项下游任务中优于现有基线。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11394v1">VeriCite: Towards Reliable Citations in Retrieval-Augmented Generation via Rigorous Verification</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as a crucial approach for
+enhancing the responses of large language models (LLMs) with external knowledge
+sources. Despite the impressive performance in complex question-answering
+tasks, RAG still struggles with hallucinations. Attributing RAG-generated
+content through in-line citations has demonstrated potential in reducing
+hallucinations and facilitating human verification. Existing citation
+generation methods primarily rely on either fine-tuning the generator or
+employing post-processing approaches for citation matching. However, the former
+approach demands substantial annotated data and computational resources, while
+the latter often encounters difficulties in managing multiple citations and
+frequently produces suboptimal results. In this paper, we introduce a novel
+framework, called VeriCite, designed to rigorously validate supporting evidence
+and enhance answer attribution. Specifically, VeriCite breaks down into a
+three-stage generation: 1) The initial answer generation first generates a
+response based on all available contexts and has its claims verified through
+the NLI model; 2) the supporting evidence selection assesses the utility of
+each document and extracts useful supporting evidences; 3) the final answer
+refinement integrates the initial response and collected evidences to produce
+the final, refined answer.We conduct experiments across five open-source LLMs
+and four datasets, demonstrating that VeriCite can significantly improve
+citation quality while maintaining the correctness of the answers.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为VeriCite的新框架，旨在解决RAG技术在生成内容时可能出现幻觉的问题。该框架通过三阶段生成过程（初始答案生成、支持证据选择、最终答案精炼）来验证支持证据并增强答案的可追溯性，实验表明VeriCite能显著提高引用质量并保持答案准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11358v1">LLM-Specific Utility: A New Perspective for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) enhances large language models (LLMs) by
+incorporating external knowledge. While traditional retrieval focuses on
+relevance, RAG's effectiveness depends on the utility of retrieved passages,
+i.e., the usefulness in facilitating the generation of an accurate and
+comprehensive answer. Existing studies often treat utility as a generic
+attribute, ignoring the fact that different LLMs may benefit differently from
+the same passage due to variations in internal knowledge and comprehension
+ability. In this work, we introduce and systematically investigate the notion
+of LLM-specific utility. Through large-scale experiments across multiple
+datasets and LLMs, we demonstrate that human-annotated passages are not optimal
+for LLMs and that ground-truth utilitarian passages are not transferable across
+different LLMs. These findings highlight the necessity of adopting the
+LLM-specific utility in RAG research. Our findings indicate that some
+human-annotated passages are not ground-truth utilitarian passages for specific
+LLMs, partially due to the varying readability of queries and passages for
+LLMs, a tendency for which perplexity is a key metric. Based on these findings,
+we propose a benchmarking procedure for LLM-specific utility judgments. We
+evaluate existing utility judgment methods on six datasets and find that while
+verbalized methods using pseudo-answers perform robustly, LLMs struggle to
+assess utility effectively-failing to reject all passages for known queries and
+to select truly useful ones for unknown queries.</details></td><td><details><summary>展开</summary>这篇论文探讨了检索增强生成（RAG）中检索内容的效用问题，提出并研究了LLM特定的效用概念。通过大规模实验，作者发现人类标注的段落对不同LLM并非最优，且效用段落在不同LLM间不可迁移，强调了在RAG研究中考虑LLM特定效用的必要性。论文还提出了基于LLM特定效用的基准测试流程，并评估了现有效用判断方法的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11217v1">Domain-Specific Data Generation Framework for RAG Adaptation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) combines the language understanding and
+reasoning power of large language models (LLMs) with external retrieval to
+enable domain-grounded responses. Effectively adapting RAG systems to
+domain-specific settings requires specialized, context-rich training data
+beyond general-purpose question-answering. Here, we propose RAGen, a scalable
+and modular framework for generating domain-grounded question-answer-context
+(QAC) triples tailored to diverse RAG adaptation approaches. RAGen produces
+these QAC triples by identifying key concepts in documents, generating diverse
+questions guided by Bloom's Taxonomy-inspired principles, and pairing them with
+precise answers extracted from relevant contexts. RAGen supports multiple RAG
+adaptation strategies, including the optimization of key components such as the
+LLM, retriever, and embedding model, etc. Its modular pipeline features
+semantic chunking, hierarchical concept extraction, and multi-chunk retrieval,
+along with the introduction of curated distractor contexts to promote robust
+reasoning. Designed for scalability, RAGen efficiently handles large and
+evolving document corpora without redundant processing, making it especially
+suitable for dynamic evolving domains such as scientific research and
+enterprise knowledge bases.</details></td><td><details><summary>展开</summary>这篇论文提出了RAGen，一个可扩展且模块化的框架，用于生成针对特定领域定制的问答上下文三元组（QAC），以支持不同RAG系统的适应性优化，包括改进大语言模型、检索器和嵌入模型等关键组件，并适用于动态演进的领域如科研和企业知识库。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11195v1">RAG-Pull: Imperceptible Attacks on RAG Systems for Code Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) increases the reliability and
+trustworthiness of the LLM response and reduces hallucination by eliminating
+the need for model retraining. It does so by adding external data into the
+LLM's context. We develop a new class of black-box attack, RAG-Pull, that
+inserts hidden UTF characters into queries or external code repositories,
+redirecting retrieval toward malicious code, thereby breaking the models'
+safety alignment. We observe that query and code perturbations alone can shift
+retrieval toward attacker-controlled snippets, while combined query-and-target
+perturbations achieve near-perfect success. Once retrieved, these snippets
+introduce exploitable vulnerabilities such as remote code execution and SQL
+injection. RAG-Pull's minimal perturbations can alter the model's safety
+alignment and increase preference towards unsafe code, therefore opening up a
+new class of attacks on LLMs.</details></td><td><details><summary>展开</summary>本文提出了一种针对RAG的新攻击方法RAG-Pull，通过在查询或外部代码库中插入隐藏的UTF字符，将检索结果导向恶意代码，从而破坏模型的安全对齐性，导致远程代码执行和SQL注入等漏洞被利用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.11122v1">DyKnow-RAG: Dynamic Knowledge Utilization Reinforcement Framework for Noisy Retrieval-Augmented Generation in E-commerce Search Relevance</a></td><td><details><summary>展开</summary>Accurately modeling query-item relevance drives e-commerce ranking, yet
+long-tail, knowledge-heavy, and fast-evolving queries exceed parametric LLM
+coverage. External context (reviews, attribute encyclopedias, UGC) can help but
+is noisy, and single-pass latency and cost forbid any clean-then-summarize
+step. The model must, per query, judge relevance and decide whether to use,
+partially use, or ignore the context. DyKnow-RAG is a dynamic noisy-RAG
+framework built on Group Relative Policy Optimization. It trains two rollout
+groups (no external context vs a single retrieved chunk) and applies
+posterior-driven inter-group advantage scaling that adaptively reweights their
+contributions by the per-query correctness gap. This teaches when to trust
+retrieval versus fall back to parametric knowledge, without process labels,
+value networks, or extra inference passes, preserving single-pass, single-chunk
+deployment under production latency. Training combines: (1) supervised
+initialization with a structured rationale that explicitly records the
+context-usage decision; (2) an RL pool prioritized by SFT uncertainty to focus
+where context choice is most consequential; and (3) an optional lightweight DPO
+warm start to stabilize with-context calibration. Under a unified
+retrieval/index and fixed latency budget, DyKnow-RAG outperforms SFT, DPO, and
+vanilla GRPO in offline tests, and delivers consistent lifts on GSB, Query
+Goodrate, and Item Goodrate in Taobao A/B testing. It is deployed in Taobao's
+production relevance system, serving live traffic. To our knowledge, it is
+among the first single-pass RAG solutions for e-commerce relevance, turning
+noisy external signals into reliable gains without added online complexity.</details></td><td><details><summary>展开</summary>这篇论文提出了DyKnow-RAG框架，通过动态噪声检索增强生成（Dynamic Noisy-RAG）技术优化电商排序中的查询-商品相关性建模。该系统基于Group Relative Policy Optimization（GRPO），结合监督学习和强化学习，动态决定何时利用检索的外部上下文（如评论、百科等），解决长尾、知识密集及快速变化查询的覆盖问题。DyKnow-RAG在训练中通过自适应权重调整和单次推理部署，实现了检索可信度判断与参数化知识的互补，最终在淘宝生产环境中显著提升了相关性指标。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10931v1">PoU: Proof-of-Use to Counter Tool-Call Hacking in DeepResearch Agents</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) agents, such as recent
+DeepResearch-style systems, extend large language models (LLMs) with autonomous
+information-seeking capabilities through external tools. While reinforcement
+learning (RL) has enabled impressive multi-step reasoning, we identify a
+previously overlooked failure mode, Tool-Call Hacking, where agents inflate
+reward signals by issuing superficially correct tool calls without genuinely
+leveraging the retrieved evidence. This results in (i) mode collapse into
+repetitive reliance on a single source and (ii) spurious grounding, where
+answers are only weakly supported by cited content.
+  To address this, we propose Proof-of-Use (PoU), an evidence-grounded RL
+framework that enforces verifiable causal links between retrieved evidence,
+reasoning traces, and final answers. PoU operationalizes this through a unified
+step-wise contract combining syntactic citation validation, perturbation-based
+sensitivity rewards, and answer-evidence alignment objectives, ensuring that
+tool usage remains both interpretable and functionally grounded.
+  Across seven QA benchmarks spanning in-domain, out-of-domain, and
+out-of-tool-distribution settings, PoU consistently outperforms strong
+DeepResearch baselines in factual accuracy, evidence faithfulness, and
+tool-routing balance. These findings highlight the necessity of grounding
+RL-trained agents not merely in task outcomes but in the causal use of
+retrieved information, offering a principled path toward trustworthy
+retrieval-augmented reasoning.</details></td><td><details><summary>展开</summary>该论文探讨了检索增强生成（RAG）智能体中的"工具调用黑客"问题，即模型通过表面正确的工具调用而非实际利用检索证据来提升奖励信号，导致模式崩溃和虚假引用，并提出了一种名为"使用证明"（PoU）的新型强化学习框架，通过结合语法引用验证、基于扰动的敏感性奖励和答案-证据对齐目标，确保工具使用的可解释性和功能性基础，在多个问答基准测试中展现出优于现有方法的性能。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-12
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
