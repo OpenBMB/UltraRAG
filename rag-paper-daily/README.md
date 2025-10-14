@@ -7,7 +7,185 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-10
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.09355v1">NL2GenSym: Natural Language to Generative Symbolic Rules for SOAR Cognitive Architecture via Large Language Models</a></td><td><details><summary>展开</summary>SOAR, a classic symbol-based cognitive architecture, has been fostering the
+development of general, human-like intelligent agents. Nevertheless, its
+practical adoption is hindered by the laborious manual rule coding. Emerging
+Large Language Models (LLMs) present the immense potential for efficient rules
+generation. However, there is a critical gap that current research
+predominantly focuses on conceptual frameworks and lacks robust experimental
+validation. To bridge this gap, we propose \textit{N}atural \textit{L}anguage
+to \textit{Gen}erative \textit{Sym}bolic Rules (NL2GenSym), a novel framework
+that integrates LLMs with SOAR to autonomously produce generative symbolic
+rules from natural language. Specifically, our framework introduces a novel
+Execution-Grounded Generator-Critic mechanism. The LLM-based Generator, guided
+by a Retrieval-Augmented Generation-accessed self-evolving domain knowledge
+base, proposes rules from natural language. Subsequently, these rules are
+immediately executed within the SOAR environment to rigorously validate their
+correctness. Based on this execution-grounded feedback, a reflective LLM-based
+Critic drives the iterative refinement of these rules. Experiments on our
+specialized Water Jug Problem (WJP) dataset, utilizing both Gemini and Qwen
+series models, validate the efficacy of our framework. It achieves a success
+rate over 86\% in generating rules from natural language. Crucially, the
+framework also generates novel heuristic rules, reducing average decision
+cycles for solving the WJP to 1.98 times the optimal solution and 1/1000 of
+baseline methods. Additionally, our initial experiments show that NL2GenSym
+enables smaller-parameter models to achieve better performance than larger
+counterparts.</details></td><td><details><summary>展开</summary>该论文提出了一种名为NL2GenSym的新框架，将大语言模型（LLMs）与SOAR认知架构结合，通过检索增强生成（RAG）访问自演化的领域知识库，从自然语言中自动生成符号规则，并通过执行验证和迭代优化机制提升规则的正确性和效率。实验验证了该框架在生成规则和启发式规则方面的有效性，显著提升了问题解决性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.09266v1">CFVBench: A Comprehensive Video Benchmark for Fine-grained Multimodal Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Multimodal Retrieval-Augmented Generation (MRAG) enables Multimodal Large
+Language Models (MLLMs) to generate responses with external multimodal
+evidence, and numerous video-based MRAG benchmarks have been proposed to
+evaluate model capabilities across retrieval and generation stages. However,
+existing benchmarks remain limited in modality coverage and format diversity,
+often focusing on single- or limited-modality tasks, or coarse-grained scene
+understanding. To address these gaps, we introduce CFVBench, a large-scale,
+manually verified benchmark constructed from 599 publicly available videos,
+yielding 5,360 open-ended QA pairs. CFVBench spans high-density formats and
+domains such as chart-heavy reports, news broadcasts, and software tutorials,
+requiring models to retrieve and reason over long temporal video spans while
+maintaining fine-grained multimodal information. Using CFVBench, we
+systematically evaluate 7 retrieval methods and 14 widely-used MLLMs, revealing
+a critical bottleneck: current models (even GPT5 or Gemini) struggle to capture
+transient yet essential fine-grained multimodal details. To mitigate this, we
+propose Adaptive Visual Refinement (AVR), a simple yet effective framework that
+adaptively increases frame sampling density and selectively invokes external
+tools when necessary. Experiments show that AVR consistently enhances
+fine-grained multimodal comprehension and improves performance across all
+evaluated MLLMs</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为CFVBench的多模态检索增强生成（MRAG）基准测试，用于评估多模态大语言模型（MLLMs）在检索和生成阶段的能力。该基准基于599个公开视频构建，包含5,360个开放式问答对，覆盖高密度格式和多样领域，要求模型在长时视频中检索并推理细粒度多模态信息。研究发现当前模型在捕捉关键细节方面存在瓶颈，并提出了自适应视觉优化（AVR）框架以增强细粒度多模态理解，实验证明AVR能有效提升模型性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.09156v1">Agentic-KGR: Co-evolutionary Knowledge Graph Construction through Multi-Agent Reinforcement Learning</a></td><td><details><summary>展开</summary>Current knowledge-enhanced large language models (LLMs) rely on static,
+pre-constructed knowledge bases that suffer from coverage gaps and temporal
+obsolescence, limiting their effectiveness in dynamic information environments.
+We present Agentic-KGR, a novel framework enabling co-evolution between LLMs
+and knowledge graphs (KGs) through multi-round reinforcement learning (RL). Our
+approach introduces three key innovations: (1) a dynamic schema expansion
+mechanism that systematically extends graph ontologies beyond pre-defined
+boundaries during training; (2) a retrieval-augmented memory system enabling
+synergistic co-evolution between model parameters and knowledge structures
+through continuous optimization; (3) a learnable multi-scale prompt compression
+approach that preserves critical information while reducing computational
+complexity through adaptive sequence optimization. Experimental results
+demonstrate substantial improvements over supervised baselines and single-round
+RL approaches in knowledge extraction tasks. When integrated with GraphRAG, our
+method achieves superior performance in downstream QA tasks, with significant
+gains in both accuracy and knowledge coverage compared to existing methods.</details></td><td><details><summary>展开</summary>该论文提出了一种名为Agentic-KGR的新框架，通过多轮强化学习实现大语言模型与知识图谱的协同进化，包含动态模式扩展、检索增强记忆系统和可学习的多尺度提示压缩等创新，显著提升了知识提取和问答任务的性能，并与GraphRAG结合展示了优越性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.09106v1">When Retrieval Succeeds and Fails: Rethinking Retrieval-Augmented Generation for LLMs</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have enabled a wide range of applications
+through their powerful capabilities in language understanding and generation.
+However, as LLMs are trained on static corpora, they face difficulties in
+addressing rapidly evolving information or domain-specific queries.
+Retrieval-Augmented Generation (RAG) was developed to overcome this limitation
+by integrating LLMs with external retrieval mechanisms, allowing them to access
+up-to-date and contextually relevant knowledge. However, as LLMs themselves
+continue to advance in scale and capability, the relative advantages of
+traditional RAG frameworks have become less pronounced and necessary. Here, we
+present a comprehensive review of RAG, beginning with its overarching
+objectives and core components. We then analyze the key challenges within RAG,
+highlighting critical weakness that may limit its effectiveness. Finally, we
+showcase applications where LLMs alone perform inadequately, but where RAG,
+when combined with LLMs, can substantially enhance their effectiveness. We hope
+this work will encourage researchers to reconsider the role of RAG and inspire
+the development of next-generation RAG systems.</details></td><td><details><summary>展开</summary>这篇论文是一篇关于检索增强生成（RAG）的综述性文章，探讨了RAG如何通过结合外部检索机制弥补大语言模型（LLMs）在动态信息和领域特定查询上的不足，分析了RAG的核心组件、关键挑战及其局限性，并展示了RAG与LLMs结合的应用场景，旨在推动下一代RAG系统的发展。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.09093v1">Exploiting Web Search Tools of AI Agents for Data Exfiltration</a></td><td><details><summary>展开</summary>Large language models (LLMs) are now routinely used to autonomously execute
+complex tasks, from natural language processing to dynamic workflows like web
+searches. The usage of tool-calling and Retrieval Augmented Generation (RAG)
+allows LLMs to process and retrieve sensitive corporate data, amplifying both
+their functionality and vulnerability to abuse. As LLMs increasingly interact
+with external data sources, indirect prompt injection emerges as a critical and
+evolving attack vector, enabling adversaries to exploit models through
+manipulated inputs. Through a systematic evaluation of indirect prompt
+injection attacks across diverse models, we analyze how susceptible current
+LLMs are to such attacks, which parameters, including model size and
+manufacturer, specific implementations, shape their vulnerability, and which
+attack methods remain most effective. Our results reveal that even well-known
+attack patterns continue to succeed, exposing persistent weaknesses in model
+defenses. To address these vulnerabilities, we emphasize the need for
+strengthened training procedures to enhance inherent resilience, a centralized
+database of known attack vectors to enable proactive defense, and a unified
+testing framework to ensure continuous security validation. These steps are
+essential to push developers toward integrating security into the core design
+of LLMs, as our findings show that current models still fail to mitigate
+long-standing threats.</details></td><td><details><summary>展开</summary>这篇论文探讨了大型语言模型（LLMs）在结合工具调用和检索增强生成（RAG）技术处理敏感数据时面临的间接提示注入攻击风险，通过系统评估不同模型的脆弱性、影响因素及攻击方法，揭示了当前防御的不足，并提出了加强训练、建立攻击向量数据库和统一测试框架等安全改进措施。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08981v1">SEER: Sustainability Enhanced Engineering of Software Requirements</a></td><td><details><summary>展开</summary>The rapid expansion of software development has significant environmental,
+technical, social, and economic impacts. Achieving the United Nations
+Sustainable Development Goals by 2030 compels developers to adopt sustainable
+practices. Existing methods mostly offer high-level guidelines, which are
+time-consuming to implement and rely on team adaptability. Moreover, they focus
+on design or implementation, while sustainability assessment should start at
+the requirements engineering phase. In this paper, we introduce SEER, a
+framework which addresses sustainability concerns in the early software
+development phase. The framework operates in three stages: (i) it identifies
+sustainability requirements (SRs) relevant to a specific software product from
+a general taxonomy; (ii) it evaluates how sustainable system requirements are
+based on the identified SRs; and (iii) it optimizes system requirements that
+fail to satisfy any SR. The framework is implemented using the reasoning
+capabilities of large language models and the agentic RAG (Retrieval Augmented
+Generation) approach. SEER has been experimented on four software projects from
+different domains. Results generated using Gemini 2.5 reasoning model
+demonstrate the effectiveness of the proposed approach in accurately
+identifying a broad range of sustainability concerns across diverse domains.</details></td><td><details><summary>展开</summary>这篇论文介绍了SEER框架，该框架利用大语言模型的推理能力和RAG技术，在软件开发早期阶段识别、评估和优化可持续性需求，以应对不同领域的可持续性问题。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08976v1">Hierarchical Scheduling for Multi-Vector Image Retrieval</a></td><td><details><summary>展开</summary>To effectively leverage user-specific data, retrieval augmented generation
+(RAG) is employed in multimodal large language model (MLLM) applications.
+However, conventional retrieval approaches often suffer from limited retrieval
+accuracy. Recent advances in multi-vector retrieval (MVR) improve accuracy by
+decomposing queries and matching against segmented images. They still suffer
+from sub-optimal accuracy and efficiency, overlooking alignment between the
+query and varying image objects and redundant fine-grained image segments. In
+this work, we present an efficient scheduling framework for image retrieval -
+HiMIR. First, we introduce a novel hierarchical paradigm, employing multiple
+intermediate granularities for varying image objects to enhance alignment.
+Second, we minimize redundancy in retrieval by leveraging cross-hierarchy
+similarity consistency and hierarchy sparsity to minimize unnecessary matching
+computation. Furthermore, we configure parameters for each dataset
+automatically for practicality across diverse scenarios. Our empirical study
+shows that, HiMIR not only achieves substantial accuracy improvements but also
+reduces computation by up to 3.5 times over the existing MVR system.</details></td><td><details><summary>展开</summary>该论文提出了一种名为HiMIR的高效图像检索调度框架，针对多模态大语言模型（MLLM）中检索增强生成（RAG）的局限性进行优化。通过分层多粒度对齐策略减少冗余计算，提升检索准确性和效率，实验显示其性能优于现有多向量检索（MVR）系统。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08958v1">EcphoryRAG: Re-Imagining Knowledge-Graph RAG via Human Associative Memory</a></td><td><details><summary>展开</summary>Cognitive neuroscience research indicates that humans leverage cues to
+activate entity-centered memory traces (engrams) for complex, multi-hop
+recollection. Inspired by this mechanism, we introduce EcphoryRAG, an
+entity-centric knowledge graph RAG framework. During indexing, EcphoryRAG
+extracts and stores only core entities with corresponding metadata, a
+lightweight approach that reduces token consumption by up to 94\% compared to
+other structured RAG systems. For retrieval, the system first extracts cue
+entities from queries, then performs a scalable multi-hop associative search
+across the knowledge graph. Crucially, EcphoryRAG dynamically infers implicit
+relations between entities to populate context, enabling deep reasoning without
+exhaustive pre-enumeration of relationships. Extensive evaluations on the
+2WikiMultiHop, HotpotQA, and MuSiQue benchmarks demonstrate that EcphoryRAG
+sets a new state-of-the-art, improving the average Exact Match (EM) score from
+0.392 to 0.474 over strong KG-RAG methods like HippoRAG. These results validate
+the efficacy of the entity-cue-multi-hop retrieval paradigm for complex
+question answering.</details></td><td><details><summary>展开</summary>这篇论文提出了EcphoryRAG，一种基于实体中心知识图谱的RAG框架，通过提取和存储核心实体及元数据减少token消耗，并利用多跳关联检索和动态关系推理提升复杂问答性能，在多个基准测试中表现优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08945v1">FATHOMS-RAG: A Framework for the Assessment of Thinking and Observation in Multimodal Systems that use Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) has emerged as a promising paradigm for
+improving factual accuracy in large language models (LLMs). We introduce a
+benchmark designed to evaluate RAG pipelines as a whole, evaluating a
+pipeline's ability to ingest, retrieve, and reason about several modalities of
+information, differentiating it from existing benchmarks that focus on
+particular aspects such as retrieval. We present (1) a small, human-created
+dataset of 93 questions designed to evaluate a pipeline's ability to ingest
+textual data, tables, images, and data spread across these modalities in one or
+more documents; (2) a phrase-level recall metric for correctness; (3) a
+nearest-neighbor embedding classifier to identify potential pipeline
+hallucinations; (4) a comparative evaluation of 2 pipelines built with
+open-source retrieval mechanisms and 4 closed-source foundation models; and (5)
+a third-party human evaluation of the alignment of our correctness and
+hallucination metrics. We find that closed-source pipelines significantly
+outperform open-source pipelines in both correctness and hallucination metrics,
+with wider performance gaps in questions relying on multimodal and
+cross-document information. Human evaluation of our metrics showed average
+agreement of 4.62 for correctness and 4.53 for hallucination detection on a 1-5
+Likert scale (5 indicating "strongly agree").</details></td><td><details><summary>展开</summary>这篇论文介绍了一个用于评估多模态RAG（检索增强生成）管道的综合基准测试，包括创建包含文本、表格和图像的多模态数据集、提出新的评估指标（短语级准确率和最近邻嵌入分类器用于检测幻觉），并对开源与闭源RAG管道进行性能比较，结果显示闭源模型在多模态和跨文档任务上表现更优。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.08935v1">Personalize Before Retrieve: LLM-based Personalized Query Expansion for User-Centric Retrieval</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) critically depends on effective query
+expansion to retrieve relevant information. However, existing expansion methods
+adopt uniform strategies that overlook user-specific semantics, ignoring
+individual expression styles, preferences, and historical context. In practice,
+identical queries in text can express vastly different intentions across users.
+This representational rigidity limits the ability of current RAG systems to
+generalize effectively in personalized settings. Specifically, we identify two
+core challenges for personalization: 1) user expression styles are inherently
+diverse, making it difficult for standard expansions to preserve personalized
+intent. 2) user corpora induce heterogeneous semantic structures-varying in
+topical focus and lexical organization-which hinders the effective anchoring of
+expanded queries within the user's corpora space. To address these challenges,
+we propose Personalize Before Retrieve (PBR), a framework that incorporates
+user-specific signals into query expansion prior to retrieval. PBR consists of
+two components: P-PRF, which generates stylistically aligned pseudo feedback
+using user history for simulating user expression style, and P-Anchor, which
+performs graph-based structure alignment over user corpora to capture its
+structure. Together, they produce personalized query representations tailored
+for retrieval. Experiments on two personalized benchmarks show that PBR
+consistently outperforms strong baselines, with up to 10% gains on PersonaBench
+across retrievers. Our findings demonstrate the value of modeling
+personalization before retrieval to close the semantic gap in user-adaptive RAG
+systems. Our code is available at https://github.com/Zhang-Yingyi/PBR-code.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为PBR（Personalize Before Retrieve）的框架，旨在解决RAG系统中查询扩展忽略用户个性化语义（如表达风格、偏好和历史上下文）的问题。PBR通过整合用户特定信号（P-PRF模拟用户表达风格，P-Anchor对齐用户语料结构）生成个性化查询表示，实验表明其在个性化基准测试中性能显著优于基线方法，提升了10%的检索效果。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-09
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.08383v1">QAgent: A modular Search Agent with Interactive Query Understanding</a></td><td><details><summary>展开</summary>Large language models (LLMs) excel at natural language tasks but are limited
