@@ -174,7 +174,66 @@ retrieval-augmented reasoning.</details></td><td><details><summary>展开</summa
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-11
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.10129v1">CacheClip: Accelerating RAG with Effective KV Cache Reuse</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems suffer from severe
+time-to-first-token (TTFT) bottlenecks due to long input sequences. Existing KV
+cache reuse methods face a fundamental trade-off: prefix caching requires
+identical prefixes that rarely occur in RAG scenarios, while direct
+precomputation sacrifices quality due to missing inter-chunk attention and
+repeated attention sinks. Recent methods like APE and CacheBlend partially
+address these issues but remain inadequate for robust RAG applications. This
+paper presents CacheClip, a novel framework that achieves both fast TTFT and
+high generation quality. Our key insight is that small auxiliary LLMs exhibit
+similar last-layer attention distributions to primary LLMs (the target model
+for generation), enabling efficient identification of tokens critical for
+restoring inter-chunk attention, thereby significantly improving response
+quality on cross-chunk reasoning tasks. CacheClip integrates three techniques:
+(1) auxiliary-model-guided token selection for selective KV cache
+recomputation, where the auxiliary model is finetuned to improve selection
+accuracy, (2) shared prefixes to eliminate redundant attention sinks, and (3)
+grouping strategy to maintain local coherence during partial KV cache updates.
+Experiments show CacheClip retains up to 94.8% and 85.0% of full-attention
+performance on NIAH and LongBench, outperforming APE and CacheBlend by 25.2%
+and 35.1% on NIAH (with reomp% = 20%). Meanwhile, CacheClip accelerates LLM
+inference by up to 1.92x in prefill time, providing a practical solution to the
+efficiency-quality trade-off in RAG systems.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为CacheClip的新框架，旨在解决RAG系统中因长输入序列导致的首个令牌生成时间（TTFT）瓶颈问题。通过利用辅助小型LLM识别关键令牌以恢复跨块注意力，并结合选择性KV缓存重计算、共享前缀和分组策略，CacheClip在保证生成质量的同时显著提升了推理效率，实验表明其在多项任务上优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10114v1">LinearRAG: Linear Graph Retrieval Augmented Generation on Large-scale Corpora</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is widely used to mitigate
+hallucinations of Large Language Models (LLMs) by leveraging external
+knowledge. While effective for simple queries, traditional RAG systems struggle
+with large-scale, unstructured corpora where information is fragmented. Recent
+advances incorporate knowledge graphs to capture relational structures,
+enabling more comprehensive retrieval for complex, multi-hop reasoning tasks.
+However, existing graph-based RAG (GraphRAG) methods rely on unstable and
+costly relation extraction for graph construction, often producing noisy graphs
+with incorrect or inconsistent relations that degrade retrieval quality. In
+this paper, we revisit the pipeline of existing GraphRAG systems and propose
+LinearRAG (Linear Graph-based Retrieval-Augmented Generation), an efficient
+framework that enables reliable graph construction and precise passage
+retrieval. Specifically, LinearRAG constructs a relation-free hierarchical
+graph, termed Tri-Graph, using only lightweight entity extraction and semantic
+linking, avoiding unstable relation modeling. This new paradigm of graph
+construction scales linearly with corpus size and incurs no extra token
+consumption, providing an economical and reliable indexing of the original
+passages. For retrieval, LinearRAG adopts a two-stage strategy: (i) relevant
+entity activation via local semantic bridging, followed by (ii) passage
+retrieval through global importance aggregation. Extensive experiments on four
+datasets demonstrate that LinearRAG significantly outperforms baseline models.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为LinearRAG的高效框架，通过构建无层级关系的关系无关层次图（Tri-Graph）来解决传统基于知识图谱的RAG（GraphRAG）方法中关系抽取不稳定和高成本的问题，从而实现可靠的图构建和精确的段落检索，显著提升了大规模非结构化语料库上的检索效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.10008v1">RIPRAG: Hack a Black-box Retrieval-Augmented Generation Question-Answering System with Reinforcement Learning</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems based on Large Language Models
+(LLMs) have become a core technology for tasks such as question-answering (QA)
+and content generation. However, by injecting poisoned documents into the
+database of RAG systems, attackers can manipulate LLMs to generate text that
+aligns with their intended preferences. Existing research has primarily focused
+on white-box attacks against simplified RAG architectures. In this paper, we
+investigate a more complex and realistic scenario: the attacker lacks knowledge
+of the RAG system's internal composition and implementation details, and the
+RAG system comprises components beyond a mere retriever. Specifically, we
+propose the RIPRAG attack framework, an end-to-end attack pipeline that treats
+the target RAG system as a black box, where the only information accessible to
+the attacker is whether the poisoning succeeds. Our method leverages
+Reinforcement Learning (RL) to optimize the generation model for poisoned
+documents, ensuring that the generated poisoned document aligns with the target
+RAG system's preferences. Experimental results demonstrate that this method can
+effectively execute poisoning attacks against most complex RAG systems,
+achieving an attack success rate (ASR) improvement of up to 0.72 compared to
+baseline methods. This highlights prevalent deficiencies in current defensive
+methods and provides critical insights for LLM security research.</details></td><td><details><summary>展开</summary>本文研究了RAG系统在缺乏内部知识情况下的黑盒攻击场景，提出RIPRAG攻击框架，利用强化学习生成优化后的投毒文档以操纵RAG系统输出，实验显示该方法显著提升攻击成功率，揭示了当前防御机制的缺陷。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-10
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.09355v1">NL2GenSym: Natural Language to Generative Symbolic Rules for SOAR Cognitive Architecture via Large Language Models</a></td><td><details><summary>展开</summary>SOAR, a classic symbol-based cognitive architecture, has been fostering the
