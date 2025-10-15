@@ -61,7 +61,8 @@
                 "pages": [
                   "pages/cn/develop_guide/debug",
                   "pages/cn/develop_guide/case_study",
-                  "pages/cn/develop_guide/dataset"
+                  "pages/cn/develop_guide/dataset",
+                  "pages/cn/develop_guide/parallel"
                 ]
               },
               {
@@ -80,11 +81,9 @@
                     "group": "开发进阶与部署指南",
                     "icon": "code",
                     "pages": [
-                      "pages/cn/tutorials/part_4/debug",
                       "pages/cn/tutorials/part_4/deploy_retriever_serve",
                       "pages/cn/tutorials/part_4/multi_agent",
-                      "pages/cn/tutorials/part_4/memory",
-                      "pages/cn/tutorials/part_4/case_study"
+                      "pages/cn/tutorials/part_4/memory"
                     ]
                   },
                   {
