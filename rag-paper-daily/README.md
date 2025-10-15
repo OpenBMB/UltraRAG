@@ -1,5 +1,149 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-14
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.12801v1">DeepMMSearch-R1: Empowering Multimodal LLMs in Multimodal Web Search</a></td><td><details><summary>展开</summary>Multimodal Large Language Models (MLLMs) in real-world applications require
+access to external knowledge sources and must remain responsive to the dynamic
+and ever-changing real-world information in order to address
+information-seeking and knowledge-intensive user queries. Existing approaches,
+such as retrieval augmented generation (RAG) methods, search agents, and search
+equipped MLLMs, often suffer from rigid pipelines, excessive search calls, and
+poorly constructed search queries, which result in inefficiencies and
+suboptimal outcomes. To address these limitations, we present DeepMMSearch-R1,
+the first multimodal LLM capable of performing on-demand, multi-turn web
+searches and dynamically crafting queries for both image and text search tools.
+Specifically, DeepMMSearch-R1 can initiate web searches based on relevant crops
+of the input image making the image search more effective, and can iteratively
+adapt text search queries based on retrieved information, thereby enabling
+self-reflection and self-correction. Our approach relies on a two-stage
+training pipeline: a cold start supervised finetuning phase followed by an
+online reinforcement learning optimization. For training, we introduce
+DeepMMSearchVQA, a novel multimodal VQA dataset created through an automated
+pipeline intermixed with real-world information from web search tools. This
+dataset contains diverse, multi-hop queries that integrate textual and visual
+information, teaching the model when to search, what to search for, which
+search tool to use and how to reason over the retrieved information. We conduct
+extensive experiments across a range of knowledge-intensive benchmarks to
+demonstrate the superiority of our approach. Finally, we analyze the results
+and provide insights that are valuable for advancing multimodal web-search.</details></td><td><details><summary>展开</summary>本文介绍了DeepMMSearch-R1，这是一种多模态大语言模型（MLLM），旨在通过动态生成图像和文本搜索查询、多轮迭代检索及自反思优化，解决现有检索增强生成（RAG）方法在管道僵化、搜索效率低下和查询质量不足等问题。文章提出两阶段训练方法（监督微调与强化学习优化）并构建了新型多模态VQA数据集DeepMMSearchVQA，通过实验验证了其在知识密集型任务中的优越性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12668v1">The Role of Parametric Injection-A Systematic Study of Parametric Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) enhances large language models (LLMs) by
+retrieving external documents. As an emerging form of RAG, parametric
+retrieval-augmented generation (PRAG) encodes documents as model parameters
+(i.e., LoRA modules) and injects these representations into the model during
+inference, enabling interaction between the LLM and documents at parametric
+level. Compared with directly placing documents in the input context, PRAG is
+more efficient and has the potential to offer deeper model-document
+interaction. Despite its growing attention, the mechanism underlying parametric
+injection remains poorly understood. In this work, we present a systematic
+study of PRAG to clarify the role of parametric injection, showing that
+parameterized documents capture only partial semantic information of documents,
+and relying on them alone yields inferior performance compared to interaction
+at text level. However, these parametric representations encode high-level
+document information that can enhance the model's understanding of documents
+within the input context. When combined parameterized documents with textual
+documents, the model can leverage relevant information more effectively and
+become more robust to noisy inputs, achieving better performance than either
+source alone. We recommend jointly using parameterized and textual documents
+and advocate for increasing the information content of parametric
+representations to advance PRAG.</details></td><td><details><summary>展开</summary>这篇论文探讨了一种新兴的RAG形式——参数化检索增强生成（PRAG），它通过将文档编码为模型参数（如LoRA模块）并在推理时注入这些表示，实现了LLM与文档在参数层面的交互。研究指出，PRAG虽比直接将文档放入输入上下文更高效，但单独使用时性能不如文本级别交互；然而，参数化表示能捕获高阶文档信息，若与文本结合可提升模型性能并增强抗噪能力。作者建议联合使用两种表示并提升参数化信息量以优化PRAG。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12460v1">Probing Latent Knowledge Conflict for Faithful Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as a powerful paradigm to
+enhance the factuality of Large Language Models (LLMs). However, existing RAG
+systems often suffer from an unfaithfulness issue, where the model's response
+contradicts evidence from the retrieved context. Existing approaches to
+improving contextual faithfulness largely rely on external interventions, such
+as prompt engineering, decoding constraints, or reward-based fine-tuning. These
+works treat the LLM as a black box and overlook a crucial question: how does
+the LLM internally integrate retrieved evidence with its parametric memory,
+particularly under knowledge conflicts? To address this gap, we conduct a
+probing-based analysis of hidden-state representations in LLMs and observe
+three findings: knowledge integration occurs hierarchically, conflicts manifest
+as latent signals at the sentence level, and irrelevant context is often
+amplified when aligned with parametric knowledge. Building on these findings,
+we propose CLEAR (Conflict-Localized and Enhanced Attention for RAG), a
+framework that (i) decomposes context into fine-grained sentence-level
+knowledge, (ii) employs hidden-state probing to localize conflicting knowledge,
+and (iii) introduces conflict-aware fine-tuning to guide the model to
+accurately integrate retrieved evidence. Extensive experiments across three
+benchmarks demonstrate that CLEAR substantially improves both accuracy and
+contextual faithfulness, consistently outperforming strong baselines under
+diverse conflict conditions. The related resources are available at
+https://github.com/LinfengGao/CLEAR.</details></td><td><details><summary>展开</summary>这篇论文探讨了现有检索增强生成（RAG）系统中存在的“不忠实”问题（模型响应与检索证据矛盾），提出通过分析大语言模型（LLM）内部隐藏状态表示来研究知识整合机制，并开发了CLEAR框架，通过句子级知识分解、冲突定位和冲突感知微调来提高RAG的准确性和上下文忠实性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12434v1">PRoH: Dynamic Planning and Reasoning over Knowledge Hypergraphs for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Knowledge Hypergraphs (KHs) have recently emerged as a knowledge
+representation for retrieval-augmented generation (RAG), offering a paradigm to
+model multi-entity relations into a structured form. However, existing KH-based
+RAG methods suffer from three major limitations: static retrieval planning,
+non-adaptive retrieval execution, and superficial use of KH structure and
+semantics, which constrain their ability to perform effective multi-hop
+question answering. To overcome these limitations, we propose PRoH, a dynamic
+Planning and Reasoning over Knowledge Hypergraphs framework. PRoH incorporates
+three core innovations: (i) a context-aware planning module that sketches the
+local KH neighborhood to guide structurally grounded reasoning plan generation;
+(ii) a structured question decomposition process that organizes subquestions as
+a dynamically evolving Directed Acyclic Graph (DAG) to enable adaptive,
+multi-trajectory exploration; and (iii) an Entity-Weighted Overlap (EWO)-guided
+reasoning path retrieval algorithm that prioritizes semantically coherent
+hyperedge traversals. Experiments across multiple domains demonstrate that PRoH
+achieves state-of-the-art performance, surpassing the prior SOTA model
+HyperGraphRAG by an average of 19.73% in F1 and 8.41% in Generation Evaluation
+(G-E) score, while maintaining strong robustness in long-range multi-hop
+reasoning tasks.</details></td><td><details><summary>展开</summary>本文提出PRoH框架，通过动态规划和知识超图推理改进现有基于知识超图的RAG方法，解决了静态检索规划、非适应性执行及结构语义利用不足三大问题，实验表明其在多跳问答任务中性能显著优于先前最优模型HyperGraphRAG。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12323v1">RAG-Anything: All-in-One RAG Framework</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as a fundamental paradigm
+for expanding Large Language Models beyond their static training limitations.
+However, a critical misalignment exists between current RAG capabilities and
+real-world information environments. Modern knowledge repositories are
+inherently multimodal, containing rich combinations of textual content, visual
+elements, structured tables, and mathematical expressions. Yet existing RAG
+frameworks are limited to textual content, creating fundamental gaps when
+processing multimodal documents. We present RAG-Anything, a unified framework
+that enables comprehensive knowledge retrieval across all modalities. Our
+approach reconceptualizes multimodal content as interconnected knowledge
+entities rather than isolated data types. The framework introduces dual-graph
+construction to capture both cross-modal relationships and textual semantics
+within a unified representation. We develop cross-modal hybrid retrieval that
+combines structural knowledge navigation with semantic matching. This enables
+effective reasoning over heterogeneous content where relevant evidence spans
+multiple modalities. RAG-Anything demonstrates superior performance on
+challenging multimodal benchmarks, achieving significant improvements over
+state-of-the-art methods. Performance gains become particularly pronounced on
+long documents where traditional approaches fail. Our framework establishes a
+new paradigm for multimodal knowledge access, eliminating the architectural
+fragmentation that constrains current systems. Our framework is open-sourced
+at: https://github.com/HKUDS/RAG-Anything.</details></td><td><details><summary>展开</summary>这篇论文提出了名为"RAG-Anything"的统一框架，解决了现有RAG技术局限于文本检索的问题，通过将多模态内容重构为相互关联的知识实体，采用双图结构捕获跨模态关系和文本语义，实现跨模态混合检索，显著提升了多模态长文档的处理性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12316v1">Beating Harmful Stereotypes Through Facts: RAG-based Counter-speech Generation</a></td><td><details><summary>展开</summary>Counter-speech generation is at the core of many expert activities, such as
+fact-checking and hate speech, to counter harmful content. Yet, existing work
+treats counter-speech generation as pure text generation task, mainly based on
+Large Language Models or NGO experts. These approaches show severe drawbacks
+due to the limited reliability and coherence in the generated countering text,
+and in scalability, respectively. To close this gap, we introduce a novel
+framework to model counter-speech generation as knowledge-wise text generation
+process. Our framework integrates advanced Retrieval-Augmented Generation (RAG)
+pipelines to ensure the generation of trustworthy counter-speech for 8 main
+target groups identified in the hate speech literature, including women, people
+of colour, persons with disabilities, migrants, Muslims, Jews, LGBT persons,
+and other. We built a knowledge base over the United Nations Digital Library,
+EUR-Lex and the EU Agency for Fundamental Rights, comprising a total of 32,792
+texts. We use the MultiTarget-CONAN dataset to empirically assess the quality
+of the generated counter-speech, both through standard metrics (i.e., JudgeLM)
+and a human evaluation. Results show that our framework outperforms standard
+LLM baselines and competitive approach, on both assessments. The resulting
+framework and the knowledge base pave the way for studying trustworthy and
+sound counter-speech generation, in hate speech and beyond.</details></td><td><details><summary>展开</summary>这篇文章提出了一种新颖的反仇恨言论生成框架，将其建模为基于知识的文本生成过程，通过集成检索增强生成（RAG）技术，从联合国数字图书馆等构建的知识库中检索信息，以确保生成可信的反仇恨言论。实验结果表明，该框架在标准评估和人工评估中均优于传统大语言模型基准。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.12171v1">MatSciBench: Benchmarking the Reasoning Ability of Large Language Models in Materials Science</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have demonstrated remarkable abilities in
+scientific reasoning, yet their reasoning capabilities in materials science
+remain underexplored. To fill this gap, we introduce MatSciBench, a
+comprehensive college-level benchmark comprising 1,340 problems that span the
+essential subdisciplines of materials science. MatSciBench features a
+structured and fine-grained taxonomy that categorizes materials science
+questions into 6 primary fields and 31 sub-fields, and includes a three-tier
+difficulty classification based on the reasoning length required to solve each
+question. MatSciBench provides detailed reference solutions enabling precise
+error analysis and incorporates multimodal reasoning through visual contexts in
+numerous questions. Evaluations of leading models reveal that even the
+highest-performing model, Gemini-2.5-Pro, achieves under 80% accuracy on
+college-level materials science questions, highlighting the complexity of
+MatSciBench. Our systematic analysis of different reasoning strategie--basic
+chain-of-thought, tool augmentation, and self-correction--demonstrates that no
+single method consistently excels across all scenarios. We further analyze
+performance by difficulty level, examine trade-offs between efficiency and
+accuracy, highlight the challenges inherent in multimodal reasoning tasks,
+analyze failure modes across LLMs and reasoning methods, and evaluate the
+influence of retrieval-augmented generation. MatSciBench thus establishes a
+comprehensive and solid benchmark for assessing and driving improvements in the
+scientific reasoning capabilities of LLMs within the materials science domain.</details></td><td><details><summary>展开</summary>这篇文章介绍了MatSciBench，一个针对材料科学领域的全面大学级基准测试，包含1,340个问题，覆盖多个子领域和难度层级。文章评估了领先大语言模型的性能，分析了不同推理策略（包括检索增强生成）的效果，并指出该基准在提升材料科学推理能力方面的价值。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-13
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.11654v1">FinVet: A Collaborative Framework of RAG and External Fact-Checking Agents for Financial Misinformation Detection</a></td><td><details><summary>展开</summary>Financial markets face growing threats from misinformation that can trigger
 billions in losses in minutes. Most existing approaches lack transparency in
