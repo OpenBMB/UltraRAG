@@ -1,5 +1,178 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-15
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.13799v1">BRIEF-Pro: Universal Context Compression with Short-to-Long Synthesis for Fast and Accurate Multi-Hop Reasoning</a></td><td><details><summary>展开</summary>As retrieval-augmented generation (RAG) tackles complex tasks, increasingly
+expanded contexts offer richer information, but at the cost of higher latency
+and increased cognitive load on the model. To mitigate this bottleneck,
+especially for intricate multi-hop questions, we introduce BRIEF-Pro. It is a
+universal, lightweight compressor that distills relevant evidence for a given
+query from retrieved documents into a concise summary for seamless integration
+into in-context RAG. Using seed data consisting of relatively short contexts
+(fewer than 1k words), BRIEF-Pro is trained to perform abstractive compression
+of extended contexts exceeding 10k words across a wide range of scenarios.
+Furthermore, BRIEF-Pro offers flexible user control over summary length by
+allowing users to specify the desired number of sentences. Experiments on four
+open-domain multi-hop question-answering datasets show that BRIEF-Pro generates
+more concise and relevant summaries, enhancing performance across small, large,
+and proprietary language models. With the 70B reader model, 32x compression by
+BRIEF-Pro improves QA performance by 4.67% on average over LongLLMLingua's 9x,
+while requiring only 23% of its computational overhead.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为BRIEF-Pro的轻量级通用压缩器，旨在解决RAG系统中因检索上下文过长导致的延迟和模型认知负荷问题。BRIEF-Pro通过抽象压缩技术从检索文档中提取关键信息生成简洁摘要，支持用户自定义摘要长度，并在多跳问答任务中显著提升模型性能（如70B参数模型上压缩32倍时QA性能平均提升4.67%），同时降低计算开销。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13750v1">Confidence-Based Response Abstinence: Improving LLM Trustworthiness via Activation-Based Uncertainty Estimation</a></td><td><details><summary>展开</summary>We propose a method for confidence estimation in retrieval-augmented
+generation (RAG) systems that aligns closely with the correctness of large
+language model (LLM) outputs. Confidence estimation is especially critical in
+high-stakes domains such as finance and healthcare, where the cost of an
+incorrect answer outweighs that of not answering the question. Our approach
+extends prior uncertainty quantification methods by leveraging raw feed-forward
+network (FFN) activations as auto-regressive signals, avoiding the information
+loss inherent in token logits and probabilities after projection and softmax
+normalization. We model confidence prediction as a sequence classification
+task, and regularize training with a Huber loss term to improve robustness
+against noisy supervision. Applied in a real-world financial industry
+customer-support setting with complex knowledge bases, our method outperforms
+strong baselines and maintains high accuracy under strict latency constraints.
+Experiments on Llama 3.1 8B model show that using activations from only the
+16th layer preserves accuracy while reducing response latency. Our results
+demonstrate that activation-based confidence modeling offers a scalable,
+architecture-aware path toward trustworthy RAG deployment.</details></td><td><details><summary>展开</summary>该论文提出了一种用于检索增强生成（RAG）系统的置信度估计方法，通过利用前馈网络（FFN）的原始激活信号来更准确地预测模型输出的正确性，适用于金融等高风险领域，并在实际应用中展示了优越性能和低延迟。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13590v1">RAG Meets Temporal Graphs: Time-Sensitive Modeling and Retrieval for Evolving Knowledge</a></td><td><details><summary>展开</summary>Knowledge is inherently time-sensitive and continuously evolves over time.
+Although current Retrieval-Augmented Generation (RAG) systems enrich LLMs with
+external knowledge, they largely ignore this temporal nature. This raises two
+challenges for RAG. First, current RAG methods lack effective time-aware
+representations. Same facts of different time are difficult to distinguish with
+vector embeddings or conventional knowledge graphs. Second, most RAG
+evaluations assume a static corpus, leaving a blind spot regarding update costs
+and retrieval stability as knowledge evolves. To make RAG time-aware, we
+propose Temporal GraphRAG (TG-RAG), which models external corpora as a bi-level
+temporal graph consisting of a temporal knowledge graph with timestamped
+relations and a hierarchical time graph. Multi-granularity temporal summaries
+are generated for each time node to capture both key events and broader trends
+at that time. The design supports incremental updates by extracting new
+temporal facts from the incoming corpus and merging them into the existing
+graph. The temporal graph explicitly represents identical facts at different
+times as distinct edges to avoid ambiguity, and the time hierarchy graph allows
+only generating reports for new leaf time nodes and their ancestors, ensuring
+effective and efficient updates. During inference, TG-RAG dynamically retrieves
+a subgraph within the temporal and semantic scope of the query, enabling
+precise evidence gathering. Moreover, we introduce ECT-QA, a time-sensitive
+question-answering dataset featuring both specific and abstract queries, along
+with a comprehensive evaluation protocol designed to assess incremental update
+capabilities of RAG systems. Extensive experiments show that TG-RAG
+significantly outperforms existing baselines, demonstrating the effectiveness
+of our method in handling temporal knowledge and incremental updates.</details></td><td><details><summary>展开</summary>这篇论文提出了Temporal GraphRAG (TG-RAG)，一种改进的RAG系统，通过构建双层时序图（包含带时间戳的关系图和时间层次图）来显式建模知识的时间敏感性，支持动态查询和增量更新，并引入ECT-QA数据集验证其在处理时序知识和更新效率上的优越性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13366v1">Document Intelligence in the Era of Large Language Models: A Survey</a></td><td><details><summary>展开</summary>Document AI (DAI) has emerged as a vital application area, and is
+significantly transformed by the advent of large language models (LLMs). While
+earlier approaches relied on encoder-decoder architectures, decoder-only LLMs
+have revolutionized DAI, bringing remarkable advancements in understanding and
+generation. This survey provides a comprehensive overview of DAI's evolution,
+highlighting current research attempts and future prospects of LLMs in this
+field. We explore key advancements and challenges in multimodal, multilingual,
+and retrieval-augmented DAI, while also suggesting future research directions,
+including agent-based approaches and document-specific foundation models. This
+paper aims to provide a structured analysis of the state-of-the-art in DAI and
+its implications for both academic and practical applications.</details></td><td><details><summary>展开</summary>这篇论文探讨了大型语言模型（LLMs）对文档人工智能（DAI）的变革性影响，特别关注了包括检索增强生成（RAG）在内的多模态、多语言技术进展，并提出了未来研究方向如基于代理的框架和文档专用基础模型。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13363v1">D-SMART: Enhancing LLM Dialogue Consistency via Dynamic Structured Memory And Reasoning Tree</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) often exhibit factual inconsistencies and
+logical decay in extended, multi-turn dialogues, a challenge stemming from
+their reliance on static, pre-trained knowledge and an inability to reason
+adaptively over the dialogue history. Prevailing mitigation strategies, such as
+Retrieval-Augmented Generation (RAG) and agentic working memories, improve
+information recall but still engage with fundamentally static knowledge sources
+and follow pre-defined single reasoning path. This hinders their ability to
+preserve factual and logical consistency of their responses in multi-turn
+dialogues while the context evolves over time. To address this issue, we
+propose D-SMART, a model-agnostic framework designed to maintain multi-turn
+dialogue consistency by enabling LLMs to build and reason over a dynamic,
+structured representation of the conversational context. This is achieved via
+two synergistic components: (1) a Dynamic Structured Memory (DSM), which
+incrementally constructs and maintains an authoritative, OWL-compliant
+knowledge graph of the conversation; and (2) a Reasoning Tree (RT), which
+executes inferences as an explicit and traceable multi-step search over the
+graph. As the popular-used quality score (judged by GPT-4) can overlook logical
+flaws, we introduce new NLI-based metrics to better measure multi-turn dialogue
+consistency. Comprehensive experiments on the MT-Bench-101 benchmark show that
+D-SMART significantly outperforms state-of-the-art baselines, elevating the
+dialogue consistency score by over 48\% for both proprietary and open-source
+models, and notably improves the quality score of the latter by up to 10.1\%.</details></td><td><details><summary>展开</summary>本文针对大语言模型（LLMs）在多轮对话中存在的逻辑衰减和事实不一致问题，提出了一种名为D-SMART的模型无关框架。该框架通过动态结构化记忆（DSM）和推理树（RT）来增强LLMs对对话上下文的动态理解和推理能力，显著提升了多轮对话的一致性。文章提及了现有方法（如RAG）的局限性，并引入了新的基于NLI的评估指标，实验结果表明D-SMART在一致性方面优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13329v1">Embedding-Based Context-Aware Reranker</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems rely on retrieving relevant
+evidence from a corpus to support downstream generation. The common practice of
+splitting a long document into multiple shorter passages enables finer-grained
+and targeted information retrieval. However, it also introduces challenges when
+a correct retrieval would require inference across passages, such as resolving
+coreference, disambiguating entities, and aggregating evidence scattered across
+multiple sources. Many state-of-the-art (SOTA) reranking methods, despite
+utilizing powerful large pretrained language models with potentially high
+inference costs, still neglect the aforementioned challenges. Therefore, we
+propose Embedding-Based Context-Aware Reranker (EBCAR), a lightweight reranking
+framework operating directly on embeddings of retrieved passages with enhanced
+cross-passage understandings through the structural information of the passages
+and a hybrid attention mechanism, which captures both high-level interactions
+across documents and low-level relationships within each document. We evaluate
+EBCAR against SOTA rerankers on the ConTEB benchmark, demonstrating its
+effectiveness for information retrieval requiring cross-passage inference and
+its advantages in both accuracy and efficiency.</details></td><td><details><summary>展开</summary>本文提出了一种名为EBCAR的轻量级重排序框架，旨在解决RAG系统中跨段落推理的挑战（如共指消解和证据聚合），通过结合嵌入信息和混合注意力机制提升检索性能，并在ConTEB基准测试中验证了其高效性和准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13312v1">ChatR1: Reinforcement Learning for Conversational Reasoning and Retrieval Augmented Question Answering</a></td><td><details><summary>展开</summary>We present ChatR1, a reasoning framework based on reinforcement learning (RL)
+for conversational question answering (CQA). Reasoning plays an important role
+in CQA, where user intent evolves across dialogue turns, and utterances are
+often underspecified, requiring contextual interpretation, query reformulation,
+and dynamic coordination between retrieval and generation. Unlike static
+`rewrite, retrieve, and generate' pipelines, ChatR1 interleaves search and
+reasoning across turns, enabling exploratory and adaptive behaviors learned
+through RL. To address the challenge of sparse and delayed rewards in RL, we
+propose an intent-aware reward that provides turn-level feedback by aligning
+retrieval and reasoning with evolving user goals. Our proposed ChatR1
+demonstrates strong performance on both 3B and 7B model backbones,
+outperforming competitive models on five CQA datasets, measured by different
+metrics (F1, BERTScore, and LLM-as-judge). We include a diverse set of CQA
+datasets to cover topic shifts, evolving intents, mixed-initiative dialogues,
+and multi-document grounding, testing ChatR1's performance from various
+aspects. Ablation studies confirm the effectiveness of the intent-aware reward.
+Our analyses further reveal diverse reasoning trajectories and effective use of
+the search tool. ChatR1 also generalizes robustly across domains, demonstrating
+that RL-based reasoning enables more flexible and context-sensitive behavior
+than static CQA pipelines.</details></td><td><details><summary>展开</summary>这篇论文提出了ChatR1，一个基于强化学习（RL）的对话式问答（CQA）推理框架，通过动态交织搜索和推理来适应用户意图的演变，利用意图感知奖励优化检索与生成的协同，显著提升了多任务场景下的性能表现。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13272v1">Beyond Correctness: Rewarding Faithful Reasoning in Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Inspired by the success of reinforcement learning (RL) in Large Language
+Model (LLM) training for domains like math and code, recent works have begun
+exploring how to train LLMs to use search engines more effectively as tools for
+retrieval-augmented generation. Although these methods achieve performance
+improvement across QA benchmarks, many prioritize final answer correctness
+while overlooking the quality of intermediate reasoning steps, which may lead
+to chain-of-thought unfaithfulness. In this paper, we first introduce a
+comprehensive evaluation framework for evaluating RL-based search agents,
+covering three distinct faithfulness metrics: information-think faithfulness,
+think-answer faithfulness, and think-search faithfulness. Our evaluations
+reveal that a prototypical RL-based search agent, Search-R1, has significant
+room for improvement in this regard. To foster faithful reasoning, we introduce
+VERITAS (Verifying Entailed Reasoning through Intermediate Traceability in
+Agentic Search), a novel framework that integrates fine-grained faithfulness
+rewards into the reinforcement learning process. Our experiments show that
+models trained with VERITAS not only significantly improve reasoning
+faithfulness, but also achieve comparable task performance across seven QA
+benchmarks.</details></td><td><details><summary>展开</summary>这篇论文探讨如何通过强化学习（RL）改进大语言模型（LLM）使用搜索引擎进行检索增强生成（RAG）时的推理忠实性问题，提出评估框架和VERITAS方法以提升中间推理步骤的质量，最终在多个QA基准测试中实现更高忠实性和任务性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13193v1">ReMindRAG: Low-Cost LLM-Guided Knowledge Graph Traversal for Efficient RAG</a></td><td><details><summary>展开</summary>Knowledge graphs (KGs), with their structured representation capabilities,
+offer promising avenue for enhancing Retrieval Augmented Generation (RAG)
+systems, leading to the development of KG-RAG systems. Nevertheless, existing
+methods often struggle to achieve effective synergy between system
+effectiveness and cost efficiency, leading to neither unsatisfying performance
+nor excessive LLM prompt tokens and inference time. To this end, this paper
+proposes REMINDRAG, which employs an LLM-guided graph traversal featuring node
+exploration, node exploitation, and, most notably, memory replay, to improve
+both system effectiveness and cost efficiency. Specifically, REMINDRAG
+memorizes traversal experience within KG edge embeddings, mirroring the way
+LLMs "memorize" world knowledge within their parameters, but in a train-free
+manner. We theoretically and experimentally confirm the effectiveness of
+REMINDRAG, demonstrating its superiority over existing baselines across various
+benchmark datasets and LLM backbones. Our code is available at
+https://github.com/kilgrims/ReMindRAG.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为REMINDRAG的KG-RAG系统，通过LLM引导的图遍历（包含节点探索、节点利用和记忆回放）来提升知识图谱（KG）与RAG系统的协同效果，同时优化系统性能和成本效率。其核心创新是将遍历经验嵌入KG边表示中（无需训练），实验证明该方法在多个基准数据集和LLM主干模型上优于现有基线。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.13191v1">Grounding Long-Context Reasoning with Contextual Normalization for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has become an essential approach for
+extending the reasoning and knowledge capacity of large language models (LLMs).
+While prior research has primarily focused on retrieval quality and prompting
+strategies, the influence of how the retrieved documents are framed, i.e.,
+context format, remains underexplored. We show that seemingly superficial
+choices, such as delimiters or structural markers in key-value extraction, can
+induce substantial shifts in accuracy and stability, even when semantic content
+is identical. To systematically investigate this effect, we design controlled
+experiments that vary context density, delimiter styles, and positional
+placement, revealing the underlying factors that govern performance
+differences. Building on these insights, we introduce Contextual Normalization,
+a lightweight strategy that adaptively standardizes context representations
+before generation. Extensive experiments on both controlled and real-world RAG
+benchmarks across diverse settings demonstrate that the proposed strategy
+consistently improves robustness to order variation and strengthens
+long-context utilization. These findings underscore that reliable RAG depends
+not only on retrieving the right content, but also on how that content is
+presented, offering both new empirical evidence and a practical technique for
+better long-context reasoning.</details></td><td><details><summary>展开</summary>这篇论文探讨了检索增强生成（RAG）中上下文格式（如分隔符和结构标记）对模型性能和稳定性的影响，提出了一种称为“上下文归一化”的轻量级策略来标准化上下文表示，实验证明该策略可提升模型对顺序变化的鲁棒性和长上下文利用能力。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-14
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.12801v1">DeepMMSearch-R1: Empowering Multimodal LLMs in Multimodal Web Search</a></td><td><details><summary>展开</summary>Multimodal Large Language Models (MLLMs) in real-world applications require
 access to external knowledge sources and must remain responsive to the dynamic
