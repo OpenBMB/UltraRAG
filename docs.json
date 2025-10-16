@@ -103,6 +103,17 @@
             ]
           },
           {
+            "tab": "Demo",
+            "groups": [
+              {
+                "group": "Pipeline",
+                "pages": [
+                  "pages/cn/pipeline/visrag"
+                ]
+              }
+            ]
+          },
+          {
             "tab": "API Reference",
             "groups": [
               {
