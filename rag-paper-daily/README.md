@@ -1,5 +1,207 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-16
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.14944v1">MetaBench: A Multi-task Benchmark for Assessing LLMs in Metabolomics</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have demonstrated remarkable capabilities on
+general text; however, their proficiency in specialized scientific domains that
+require deep, interconnected knowledge remains largely uncharacterized.
+Metabolomics presents unique challenges with its complex biochemical pathways,
+heterogeneous identifier systems, and fragmented databases. To systematically
+evaluate LLM capabilities in this domain, we introduce MetaBench, the first
+benchmark for metabolomics assessment. Curated from authoritative public
+resources, MetaBench evaluates five capabilities essential for metabolomics
+research: knowledge, understanding, grounding, reasoning, and research. Our
+evaluation of 25 open- and closed-source LLMs reveals distinct performance
+patterns across metabolomics tasks: while models perform well on text
+generation tasks, cross-database identifier grounding remains challenging even
+with retrieval augmentation. Model performance also decreases on long-tail
+metabolites with sparse annotations. With MetaBench, we provide essential
+infrastructure for developing and evaluating metabolomics AI systems, enabling
+systematic progress toward reliable computational tools for metabolomics
+research.</details></td><td><details><summary>展开</summary>这篇论文提出了MetaBench，首个用于评估大型语言模型（LLMs）在代谢组学领域能力的基准测试。研究发现，尽管模型在文本生成任务上表现良好，但即使使用了检索增强技术（RAG），跨数据库标识符的匹配仍具挑战性，尤其对注释稀疏的长尾代谢物性能下降，强调了RAG在专业科学领域的局限性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14915v1">Harmonizing Diverse Models: A Layer-wise Merging Strategy for Consistent Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems leverage Large Language Models
+(LLMs) to generate accurate and reliable responses that are grounded in
+retrieved context. However, LLMs often generate inconsistent outputs for
+semantically equivalent inputs, a problem compounded by the scarcity of
+consistency-focused training data and the limitations of current fine-tuning
+techniques in enhancing output consistency. We propose a new approach combining
+systematic synthetic data generation, triplet loss for better embeddings, and a
+novel layer-wise model merging approach. Using consistency-aware weights
+derived from intermediate layer activations, our method effectively integrates
+knowledge from specialized models. Experimental results how that our merged
+model significantly enhances output consistency, achieving a ~47.5\%
+improvement in response similarity over the baseline, thus offering a practical
+solution for increasing the reliability of an industrial RAG system.</details></td><td><details><summary>展开</summary>本文针对RAG系统中大语言模型（LLM）对语义相同输入产生不一致输出的问题，提出了一种结合合成数据生成、三元组损失改进嵌入及分层模型融合的新方法，通过一致性感知权重整合专业模型知识，实验显示合并后的模型使响应相似性提升约47.5%，显著增强了工业级RAG系统的可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14900v1">Mapping Smarter, Not Harder: A Test-Time Reinforcement Learning Agent That Improves Without Labels or Model Updates</a></td><td><details><summary>展开</summary>The Enterprise Intelligence Platform must integrate logs from numerous
+third-party vendors in order to perform various downstream tasks. However,
+vendor documentation is often unavailable at test time. It is either misplaced,
+mismatched, poorly formatted, or incomplete, which makes schema mapping
+challenging. We introduce a reinforcement learning agent that can self-improve
+without labeled examples or model weight updates. During inference, the agent:
+1) Identifies ambiguous field-mapping attempts. 2) Generates targeted
+web-search queries to gather external evidence. 3) Applies a confidence-based
+reward to iteratively refine its mappings. To demonstrate this concept, we
+converted Microsoft Defender for Endpoint logs into a common schema. Our method
+increased mapping accuracy from 56.4\%(LLM-only) to 72.73\%(RAG) to 93.94\%
+over 100 iterations using GPT-4o. At the same time, it reduced the number of
+low-confidence mappings requiring expert review by 85\%. This new approach
+provides an evidence-driven, transparent method for solving future industry
+problems, paving the way for more robust, accountable, scalable, efficient,
+flexible, adaptable, and collaborative solutions.</details></td><td><details><summary>展开</summary>该论文提出了一种基于强化学习的智能代理，通过实时检索外部证据（如网络搜索）解决企业日志模式映射中的模糊性问题，并迭代优化映射结果。实验表明，结合检索增强生成（RAG）方法显著提升了GPT-4o的映射准确率（从56.4%提升至93.94%），同时减少了85%需专家审核的低置信度映射，凸显了RAG在提升模型证据驱动决策和透明度方面的价值。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14629v1">MR.Rec: Synergizing Memory and Reasoning for Personalized Recommendation Assistant with LLMs</a></td><td><details><summary>展开</summary>The application of Large Language Models (LLMs) in recommender systems faces
+key challenges in delivering deep personalization and intelligent reasoning,
+especially for interactive scenarios. Current methods are often constrained by
+limited context windows and single-turn reasoning, hindering their ability to
+capture dynamic user preferences and proactively reason over recommendation
+contexts. To address these limitations, we propose MR.Rec, a novel framework
+that synergizes memory and reasoning for LLM-based recommendations. To achieve
+personalization, we develop a comprehensive Retrieval-Augmented Generation
+(RAG) system that efficiently indexes and retrieves relevant external memory to
+enhance LLM personalization capabilities. Furthermore, to enable the synergy
+between memory and reasoning, our RAG system goes beyond conventional
+query-based retrieval by integrating reasoning enhanced memory retrieval.
+Finally, we design a reinforcement learning framework that trains the LLM to
+autonomously learn effective strategies for both memory utilization and
+reasoning refinement. By combining dynamic memory retrieval with adaptive
+reasoning, this approach ensures more accurate, context-aware, and highly
+personalized recommendations. Extensive experiments demonstrate that MR.Rec
+significantly outperforms state-of-the-art baselines across multiple metrics,
+validating its efficacy in delivering intelligent and personalized
+recommendations. We will release code and data upon paper notification.</details></td><td><details><summary>展开</summary>该论文提出了MR.Rec框架，通过结合检索增强生成（RAG）系统和强化学习，增强大语言模型（LLMs）在推荐系统中的记忆检索与推理能力，以实现更精准、个性化的推荐。RAG用于高效索引和检索外部记忆数据，同时引入推理增强的检索机制，最终通过实验验证其优于现有基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14605v1">Knowledge-based Visual Question Answer with Multimodal Processing, Retrieval and Filtering</a></td><td><details><summary>展开</summary>Knowledge-based visual question answering (KB-VQA) requires visual language
+models (VLMs) to integrate visual understanding with external knowledge
+retrieval. Although retrieval-augmented generation (RAG) achieves significant
+advances in this task by combining knowledge-base querying, it still struggles
+with the quality of multimodal queries and the relevance of retrieved results.
+To overcome these challenges, we propose a novel three-stage method, termed
+Wiki-PRF, including Processing, Retrieval and Filtering stages. The processing
+stage dynamically invokes visual tools to extract precise multimodal
+information for retrieval. The retrieval stage integrates visual and text
+features to achieve multimodal knowledge retrieval. The filtering stage
+performs relevance filtering and concentration on retrieval results. To this
+end, we introduce a visual language model trained with answer accuracy and
+format consistency as reward signals via a reinforcement learning manner. This
+enhances the model's reasoning, tool invocation for accurate queries, and
+filtering of irrelevant content. Experiments on benchmark datasets (E-VQA and
+InfoSeek) show significant improvements~(36.0 and 42.8) in answer quality,
+achieving state-of-the-art performance. Code is available at
+https://github.com/cqu-student/Wiki-PRF</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Wiki-PRF的三阶段方法（处理、检索、过滤），通过动态调用视觉工具提取多模态信息，增强知识检索与过滤能力，结合强化学习训练视觉语言模型，显著提升了基于知识的视觉问答（KB-VQA）任务中的答案质量，在E-VQA和InfoSeek数据集上达到最优性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14592v1">Multimodal RAG for Unstructured Data:Leveraging Modality-Aware Knowledge Graphs with Hybrid Retrieval</a></td><td><details><summary>展开</summary>Current Retrieval-Augmented Generation (RAG) systems primarily operate on
+unimodal textual data, limiting their effectiveness on unstructured multimodal
+documents. Such documents often combine text, images, tables, equations, and
+graphs, each contributing unique information. In this work, we present a
+Modality-Aware Hybrid retrieval Architecture (MAHA), designed specifically for
+multimodal question answering with reasoning through a modality-aware knowledge
+graph. MAHA integrates dense vector retrieval with structured graph traversal,
+where the knowledge graph encodes cross-modal semantics and relationships. This
+design enables both semantically rich and context-aware retrieval across
+diverse modalities. Evaluations on multiple benchmark datasets demonstrate that
+MAHA substantially outperforms baseline methods, achieving a ROUGE-L score of
+0.486, providing complete modality coverage. These results highlight MAHA's
+ability to combine embeddings with explicit document structure, enabling
+effective multimodal retrieval. Our work establishes a scalable and
+interpretable retrieval framework that advances RAG systems by enabling
+modality-aware reasoning over unstructured multimodal data.</details></td><td><details><summary>展开</summary>本文提出了一种名为MAHA的模态感知混合检索架构，旨在解决当前RAG系统在处理多模态文档（如文本、图像、表格等）时的局限性。通过结合密集向量检索和结构化知识图谱遍历，MAHA能够实现跨模态的语义丰富和上下文感知检索，显著提升了多模态问答任务中的性能，并在多个基准测试中优于基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14400v1">MedTrust-RAG: Evidence Verification and Trust Alignment for Biomedical Question Answering</a></td><td><details><summary>展开</summary>Biomedical question answering (QA) requires accurate interpretation of
+complex medical knowledge. Large language models (LLMs) have shown promising
+capabilities in this domain, with retrieval-augmented generation (RAG) systems
+enhancing performance by incorporating external medical literature. However,
+RAG-based approaches in biomedical QA suffer from hallucinations due to
+post-retrieval noise and insufficient verification of retrieved evidence,
+undermining response reliability. We propose MedTrust-Guided Iterative RAG, a
+framework designed to enhance factual consistency and mitigate hallucinations
+in medical QA. Our method introduces three key innovations. First, it enforces
+citation-aware reasoning by requiring all generated content to be explicitly
+grounded in retrieved medical documents, with structured Negative Knowledge
+Assertions used when evidence is insufficient. Second, it employs an iterative
+retrieval-verification process, where a verification agent assesses evidence
+adequacy and refines queries through Medical Gap Analysis until reliable
+information is obtained. Third, it integrates the MedTrust-Align Module (MTAM)
+that combines verified positive examples with hallucination-aware negative
+samples, leveraging Direct Preference Optimization to reinforce
+citation-grounded reasoning while penalizing hallucination-prone response
+patterns. Experiments on MedMCQA, MedQA, and MMLU-Med demonstrate that our
+approach consistently outperforms competitive baselines across multiple model
+architectures, achieving the best average accuracy with gains of 2.7% for
+LLaMA3.1-8B-Instruct and 2.4% for Qwen3-8B.</details></td><td><details><summary>展开</summary>该论文提出了一种名为MedTrust-Guided Iterative RAG的框架，旨在通过引用感知推理、迭代检索验证和MedTrust-Align模块来减少医学问答中的幻觉问题，提高事实一致性，并在多个数据集上验证了其优于现有基线方法的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14377v1">PluriHop: Exhaustive, Recall-Sensitive QA over Distractor-Rich Corpora</a></td><td><details><summary>展开</summary>Recent advances in large language models (LLMs) and retrieval-augmented
+generation (RAG) have enabled progress on question answering (QA) when relevant
+evidence is in one (single-hop) or multiple (multi-hop) passages. Yet many
+realistic questions about recurring report data - medical records, compliance
+filings, maintenance logs - require aggregation across all documents, with no
+clear stopping point for retrieval and high sensitivity to even one missed
+passage. We term these pluri-hop questions and formalize them by three
+criteria: recall sensitivity, exhaustiveness, and exactness. To study this
+setting, we introduce PluriHopWIND, a diagnostic multilingual dataset of 48
+pluri-hop questions built from 191 real-world wind industry reports in German
+and English. We show that PluriHopWIND is 8-40% more repetitive than other
+common datasets and thus has higher density of distractor documents, better
+reflecting practical challenges of recurring report corpora. We test a
+traditional RAG pipeline as well as graph-based and multimodal variants, and
+find that none of the tested approaches exceed 40% in statement-wise F1 score.
+Motivated by this, we propose PluriHopRAG, a RAG architecture that follows a
+"check all documents individually, filter cheaply" approach: it (i) decomposes
+queries into document-level subquestions and (ii) uses a cross-encoder filter
+to discard irrelevant documents before costly LLM reasoning. We find that
+PluriHopRAG achieves relative F1 score improvements of 18-52% depending on base
+LLM. Despite its modest size, PluriHopWIND exposes the limitations of current
+QA systems on repetitive, distractor-rich corpora. PluriHopRAG's performance
+highlights the value of exhaustive retrieval and early filtering as a powerful
+alternative to top-k methods.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为"pluri-hop"的新型问答任务，其特点是需要在大量重复性文档中进行全面检索和精确聚合。作者构建了一个多语言诊断数据集PluriHopWIND，并测试了多种RAG方法，发现现有方法表现不佳。为此，他们提出了PluriHopRAG架构，通过查询分解和交叉编码器过滤策略显著提升了性能，论证了全面检索和早期过滤在重复性文档问答中的优势。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14337v1">Stop-RAG: Value-Based Retrieval Control for Iterative RAG</a></td><td><details><summary>展开</summary>Iterative retrieval-augmented generation (RAG) enables large language models
+to answer complex multi-hop questions, but each additional loop increases
+latency, costs, and the risk of introducing distracting evidence, motivating
+the need for an efficient stopping strategy. Existing methods either use a
+predetermined number of iterations or rely on confidence proxies that poorly
+reflect whether more retrieval will actually help. We cast iterative RAG as a
+finite-horizon Markov decision process and introduce Stop-RAG, a value-based
+controller that adaptively decides when to stop retrieving. Trained with
+full-width forward-view Q($\lambda$) targets from complete trajectories,
+Stop-RAG learns effective stopping policies while remaining compatible with
+black-box APIs and existing pipelines. On multi-hop question-answering
+benchmarks, Stop-RAG consistently outperforms both fixed-iteration baselines
+and prompting-based stopping with LLMs. These results highlight adaptive
+stopping as a key missing component in current agentic systems, and demonstrate
+that value-based control can improve the accuracy of RAG systems.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Stop-RAG的自适应停止策略，用于优化迭代式检索增强生成（RAG）的效率。通过将迭代RAG建模为有限范围马尔可夫决策过程，Stop-RAG基于价值控制动态决定何时停止检索，从而减少延迟、成本和无关证据的干扰。实验表明，该方法在多跳问答任务中优于固定迭代次数和基于提示的停止策略，验证了自适应控制在提升RAG系统准确性中的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14271v1">Less is More: Denoising Knowledge Graphs For Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems enable large language models
+(LLMs) instant access to relevant information for the generative process,
+demonstrating their superior performance in addressing common LLM challenges
+such as hallucination, factual inaccuracy, and the knowledge cutoff.
+Graph-based RAG further extends this paradigm by incorporating knowledge graphs
+(KGs) to leverage rich, structured connections for more precise and inferential
+responses. A critical challenge, however, is that most Graph-based RAG systems
+rely on LLMs for automated KG construction, often yielding noisy KGs with
+redundant entities and unreliable relationships. This noise degrades retrieval
+and generation performance while also increasing computational cost. Crucially,
+current research does not comprehensively address the denoising problem for
+LLM-generated KGs. In this paper, we introduce DEnoised knowledge Graphs for
+Retrieval Augmented Generation (DEG-RAG), a framework that addresses these
+challenges through: (1) entity resolution, which eliminates redundant entities,
+and (2) triple reflection, which removes erroneous relations. Together, these
+techniques yield more compact, higher-quality KGs that significantly outperform
+their unprocessed counterparts. Beyond the methods, we conduct a systematic
+evaluation of entity resolution for LLM-generated KGs, examining different
+blocking strategies, embedding choices, similarity metrics, and entity merging
+techniques. To the best of our knowledge, this is the first comprehensive
+exploration of entity resolution in LLM-generated KGs. Our experiments
+demonstrate that this straightforward approach not only drastically reduces
+graph size but also consistently improves question answering performance across
+diverse popular Graph-based RAG variants.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为DEG-RAG的框架，通过实体解析和三元组反射技术解决基于知识图谱的RAG系统中因大语言模型自动构建知识图谱而产生的噪声问题，从而提高知识图谱的质量和检索生成性能，并在实验中验证了其有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.14252v1">MoM: Mixtures of Scenario-Aware Document Memories for Retrieval-Augmented Generation Systems</a></td><td><details><summary>展开</summary>The traditional RAG paradigm, which typically engages in the comprehension of
+relevant text chunks in response to received queries, inherently restricts both
+the depth of knowledge internalization and reasoning capabilities. To address
+this limitation, our research transforms the text processing in RAG from
+passive chunking to proactive understanding, defining this process as document
+memory extraction with the objective of simulating human cognitive processes
+during reading. Building upon this, we propose the Mixtures of scenario-aware
+document Memories (MoM) framework, engineered to efficiently handle documents
+from multiple domains and train small language models (SLMs) to acquire the
+ability to proactively explore and construct document memories. The MoM
+initially instructs large language models (LLMs) to simulate domain experts in
+generating document logical outlines, thereby directing structured chunking and
+core content extraction. It employs a multi-path sampling and multi-perspective
+evaluation mechanism, specifically designing comprehensive metrics that
+represent chunk clarity and extraction completeness to select the optimal
+document memories. Additionally, to infuse deeper human-like reading abilities
+during the training of SLMs, we incorporate a reverse reasoning strategy, which
+deduces refined expert thinking paths from high-quality outcomes. Finally,
+leveraging diverse forms of content generated by MoM, we develop a three-layer
+document memory retrieval mechanism, which is grounded in our theoretical proof
+from the perspective of probabilistic modeling. Extensive experimental results
+across three distinct domains demonstrate that the MoM framework not only
+resolves text chunking challenges in existing RAG systems, providing LLMs with
+semantically complete document memories, but also paves the way for SLMs to
+achieve human-centric intelligent text processing.</details></td><td><details><summary>展开</summary>该论文提出了一种改进传统RAG框架的方法——MoM（Mixtures of scenario-aware document Memories），通过主动理解文档（模拟人类认知）替代被动分块处理，利用LLM生成逻辑大纲指导结构化分块和核心内容提取，并结合多路径采样、多视角评估及反向推理策略，提升小型语言模型（SLMs）的主动探索与记忆构建能力。实验证明MoM能解决现有RAG的文本分块问题，提供语义完整的文档记忆，并推动SLMs实现更人性化的文本处理。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-15
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.13799v1">BRIEF-Pro: Universal Context Compression with Short-to-Long Synthesis for Fast and Accurate Multi-Hop Reasoning</a></td><td><details><summary>展开</summary>As retrieval-augmented generation (RAG) tackles complex tasks, increasingly
 expanded contexts offer richer information, but at the cost of higher latency
