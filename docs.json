@@ -2,6 +2,10 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "UltraRAG 2.0",
+  "banner": {
+    "content": "📣 Tutorials have been updated to sync with **UltraRAG 2.1**.",
+    "dismissible": true
+  },
   "colors": {
     "primary": "#722EA5",
     "dark": "#9B5BB7",
@@ -63,41 +67,6 @@
                   "pages/cn/develop_guide/case_study",
                   "pages/cn/develop_guide/dataset",
                   "pages/cn/develop_guide/parallel"
-                ]
-              },
-              {
-                "group": "草稿",
-                "pages": [
-                  {
-                    "group": "数据构建与基线复现",
-                    "icon": "database",
-                    "pages": [
-                      "pages/cn/tutorials/part_3/prepare_dataset",
-                      "pages/cn/tutorials/part_3/emb_and_index",
-                      "pages/cn/tutorials/part_3/reproduction"
-                    ]
-                  },
-                  {
-                    "group": "开发进阶与部署指南",
-                    "icon": "code",
-                    "pages": [
-                      "pages/cn/tutorials/part_4/deploy_retriever_serve",
-                      "pages/cn/tutorials/part_4/multi_agent",
-                      "pages/cn/tutorials/part_4/memory"
-                    ]
-                  },
-                  {
-                    "group": "UltraRAG 开发实战",
-                    "icon": "screwdriver-wrench",
-                    "pages": [
-                      "pages/cn/tutorials/part_5/series",
-                      "pages/cn/tutorials/part_5/loop",
-                      "pages/cn/tutorials/part_5/branch",
-                      "pages/cn/tutorials/part_5/memory",
-                      "pages/cn/tutorials/part_5/alias",
-                      "pages/cn/tutorials/part_5/deep_research"
-                    ]
-                  }
                 ]
               }
             ]
