@@ -1,0 +1,102 @@
+---
+title: "Reranker"
+icon: "ranking-star"
+---
+
+## `reranker_init`
+
+**签名**  
+```python
+async def reranker_init(
+    model_name_or_path: str,
+    backend_configs: Dict[str, Any],
+    batch_size: int,
+    gpu_ids: Optional[object] = None,
+    backend: str = "infinity",
+) -> None
+```
+
+**功能**  
+- 初始化重排后端与模型
+
+---
+
+## `reranker_rerank`
+
+**签名**  
+```python
+async def reranker_rerank(
+    query_list: List[str],
+    passages_list: List[List[str]],
+    top_k: int = 5,
+    query_instruction: str = "",
+) -> Dict[str, List[Any]]
+```
+
+**功能**  
+- 对候选段落进行**重排**：
+
+**输出格式（JSON）**  
+```json
+{
+  "rerank_psg": [
+    ["best passage for q0", "..."],
+    ["best passage for q1", "..."]
+  ]
+}
+```
+
+---
+
+## 参数配置
+
+```yaml servers/reranker/parameter.yaml icon="/images/yaml.svg"
+model_name_or_path: openbmb/MiniCPM-Reranker-Light
+backend: sentence_transformers # options: infinity, sentence_transformers, openai
+backend_configs:
+  infinity:
+    bettertransformer: false
+    pooling_method: auto
+    device: cuda
+    model_warmup: false
+    trust_remote_code: true
+  sentence_transformers:
+    device: cuda
+    trust_remote_code: true
+  openai:
+    model_name: text-embedding-3-small
+    base_url: "https://api.openai.com/v1"
+    api_key: ""
+
+gpu_ids: 0
+top_k: 5
+batch_size: 16
+query_instruction: ""
+```
+
+参数说明：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `model_name_or_path` | str | 模型路径或名称（本地或 HuggingFace 仓库） |
+| `backend` | str | 选择后端类型：`infinity`、`sentence_transformers` 或 `openai` |
+| `backend_configs` | dict | 各后端的专属参数设置 |
+| `gpu_ids` | str/int | 指定 GPU ID（可多卡，如 `"0,1"`） |
+| `top_k` | int | 返回的重排结果数 |
+| `batch_size` | int | 每批处理的样本数量 |
+| `query_instruction` | str | 查询前缀提示，用于 prompt 工程或 query 修饰 |
+
+`backend_configs` 详细说明：
+
+| 后端 | 参数 | 说明 |
+|------|------|------|
+| **infinity** | `device` | 设备类型（cuda / cpu） |
+|  | `bettertransformer` | 是否启用加速推理 |
+|  | `pooling_method` | 向量池化策略 |
+|  | `model_warmup` | 是否预热模型 |
+|  | `trust_remote_code` | 是否信任远程代码（HuggingFace 模型必需） |
+| **sentence_transformers** | `device` | 设备类型（cuda / cpu） |
+|  | `trust_remote_code` | 是否信任远程代码 |
+| **openai** | `model_name` | API 模型名称 |
+|  | `base_url` | API 访问地址 |
+|  | `api_key` | OpenAI API 密钥 |

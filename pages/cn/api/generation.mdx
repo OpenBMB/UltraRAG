@@ -1,49 +1,136 @@
 ---
-title: "Generation Server"
+title: "Generation"
 icon: "pen-nib"
 ---
 
-## 配置参数说明
+## `generation_init`
 
-- **model_name** (`str`): vLLM 加载的模型名称，用于 `--served-model-name`  
-- **model_path** (`str`): vLLM 加载的模型传入路径  
-- **base_url** (`str`): 通过 vLLM 部署的 LLM 服务地址  
-- **port** (`int`): vLLM 服务监听端口  
-- **gpu_ids** (`str | int`): 可见 GPU，例如 `"0,1"`  
-- **api_key** (`str`): 若提供，将通过 `--api-key` 启用 vLLM 接口鉴权  
-- **sampling_params** (`Dict[str, Any]`): LLMs 采样参数，详见 [vLLM SamplingParams 文档](https://docs.vllm.ai/en/latest/api/vllm/sampling_params.html#vllm.sampling_params.SamplingParams)  
+**签名**  
+```python
+def generation_init(
+    backend_configs: Dict[str, Any],
+    sampling_params: Dict[str, Any],
+    backend: str = "vllm",
+) -> None
+```
+
+**功能**  
+- 初始化推理后端与采样参数。
+---
+
+## `generate`
+
+**签名**  
+```python
+async def generate(
+    prompt_ls: List[Union[str, Dict[str, Any]]],
+    system_prompt: str = "",
+) -> Dict[str, List[str]]
+```
+
+- 纯文本对话生成。
+
+**输出格式（JSON）**  
+```json
+{"ans_ls": ["answer for prompt_0", "answer for prompt_1", "..."]}
+```
+---
+
+## `multimodal_generate`
+
+**签名**  
+```python
+async def multimodal_generate(
+    multimodal_path: List[List[str]],
+    prompt_ls: List[Union[str, Dict[str, Any]]],
+    system_prompt: str = "",
+) -> Dict[str, List[str]]
+```
+
+**功能**  
+- 文图多模态对话生成。
+
+**输出格式（JSON）**  
+```json
+{"ans_ls": ["answer with images for prompt_0", "..."]}
+```
+
 
 ---
 
-## API 说明
 
-### `initialize_local_vllm`
+## 参数配置
 
-#### 功能
-启动 vLLM 服务，部署 LLMs，返回兼容 OpenAI API 的 `base_url`（形如 `http://localhost:{port}/v1`）。
+```yaml servers/generation/parameter.yaml icon="/images/yaml.svg"
+backend: vllm # options: vllm, openai
+backend_configs:
+  vllm:
+    model_name_or_path: openbmb/MiniCPM4-8B
+    gpu_ids: "2,3"
+    gpu_memory_utilization: 0.9
+    dtype: auto
+    trust_remote_code: true
+  openai:
+    model_name: MiniCPM4-8B
+    base_url: http://localhost:8000/v1
+    api_key: ""
+    concurrency: 8
+    retries: 3
+    base_delay: 1.0
+  hf:
+    model_name_or_path: openbmb/MiniCPM4-8B
+    gpu_ids: '2,3'
+    trust_remote_code: true
+    batch_size: 8
 
-#### 输入参数
-- **model_path** (`str`): vLLM 加载的模型传入路径  
-- **model_name** (`str`): vLLM 加载的模型名称，用于 `--served-model-name`  
-- **port** (`int`): vLLM 服务监听端口  
-- **gpu_ids** (`str | int`): 可见 GPU，例如 `"0,1"`  
-- **api_key** (`str`): 若提供，将通过 `--api-key` 启用 vLLM 接口鉴权  
+sampling_params:
+  temperature: 0.7
+  top_p: 0.8
+  max_tokens: 2048
+  chat_template_kwargs:
+    enable_thinking: false
 
-#### 返回参数
-- **base_url** (`Dict[str, str]`): 返回 vLLM 服务地址，例如 `"http://localhost:<port>/v1"`  
+system_prompt: ""
+```
 
----
+参数说明：
 
-### `generate`
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `backend` | str | 指定生成后端，可选 `vllm`、`openai` 或 `hf`（Transformers） |
+| `backend_configs` | dict | 各后端模型及运行环境配置 |
+| `sampling_params` | dict | 采样参数，用于控制生成多样性与长度 |
+| `system_prompt` | str | 全局系统提示，将作为 `system` 消息加入上下文 |
 
-#### 功能
-并发调用兼容 OpenAI Chat Completions 的接口进行文本生成。
+`backend_configs` 详细说明：
 
-#### 输入参数
-- **prompt_ls** (`List[Union[str, Dict[str, Any]]]`): 大模型输入  
-- **model_name** (`str`): `chat.completions.create` 的 `model` 字段；需与 vLLM `--served-model-name` 一致  
-- **base_url** (`str`): OpenAI 兼容服务的基址（如 `http://localhost:8000/v1`）  
-- **sampling_params** (`Dict[str, Any]`): 传给 `chat.completions.create` 的采样参数，例如 `temperature`、`max_tokens`、`top_p`、`n`、`stop` 等  
+| 后端 | 参数 | 说明 |
+|------|------|------|
+| **vllm** | `model_name_or_path` | 模型名称或路径 |
+|  | `gpu_ids` | 使用的 GPU ID（如 `"0,1"`） |
+|  | `gpu_memory_utilization` | GPU 显存占用比例（0–1） |
+|  | `dtype` | 数据类型（如 `auto`、`bfloat16`） |
+|  | `trust_remote_code` | 是否信任远程代码 |
+| **openai** | `model_name` | OpenAI 模型名称或自建兼容模型 |
+|  | `base_url` | API 接口地址 |
+|  | `api_key` | API 密钥 |
+|  | `concurrency` | 最大并发请求数 |
+|  | `retries` | API 重试次数 |
+|  | `base_delay` | 每次重试基础等待时间（秒） |
+| **hf** | `model_name_or_path` | Transformers 模型路径 |
+|  | `gpu_ids` | GPU ID（同上） |
+|  | `trust_remote_code` | 是否信任远程代码 |
+|  | `batch_size` | 每次推理批量大小 |
 
-#### 返回参数
-- **ans_ls** (`Dict[str, List[str]]`): 模型生成结果  
+`sampling_params` 详细说明：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `temperature` | float | 控制随机性，越高生成越多样 |
+| `top_p` | float | nucleus sampling 阈值 |
+| `max_tokens` | int | 生成最大词元数 |
+| `chat_template_kwargs` | dict | 聊天模板额外参数 |
+| `enable_thinking` | bool | 是否启用思维链输出（如模型支持） |
+
+
+

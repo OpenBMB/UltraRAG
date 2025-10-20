@@ -1,27 +1,110 @@
 ---
-title: "Evaluation Server"
+title: "Evaluation"
 icon: "clipboard-check"
 ---
 
-## 配置参数说明
+## `evaluate`
 
-- **metrics** (`List[str] | None`): 评价指标名称列表  
-- **save_path** (`str`): 保存路径（文件名会自动加时间戳）  
+**签名**  
+```python
+@app.tool(output="pred_ls,gt_ls,metrics,save_path->eval_res")
+def evaluate(
+    pred_ls: List[str],
+    gt_ls: List[List[str]],
+    metrics: List[str] | None,
+    save_path: str,
+) -> Dict[str, Any]
+```
+
+**功能**  
+- 执行问答/生成类任务的自动指标评估。  
+- 支持指标：`acc`、`em`、`coverem`、`stringem`、`f1`、`rouge-1`、`rouge-2`、`rouge-l`。  
+- 结果自动保存为 `.json` 文件，并以 Markdown 表格形式打印。
+
 
 ---
 
-## API 说明
+## `evaluate_trec`
 
-### `evaluate`
+**签名**  
+```python
+@app.tool(output="run_path,qrels_path,ir_metrics,ks,save_path->eval_res")
+def evaluate_trec(
+    run_path: str,
+    qrels_path: str,
+    metrics: List[str] | None,
+    ks: List[int] | None,
+    save_path: str,
+)
+```
 
-#### 功能
-计算指定指标，返回评测结果，同时支持存储评测结果。
+**功能**  
+- 基于 `pytrec_eval` 进行 IR 检索指标评估。  
+- 读取标准 TREC 格式：
+  - **qrels**：`<qid> <iter> <docid> <rel>`
+  - **run**：`<qid> Q0 <docid> <rank> <score> <tag>`
+- 支持指标：`mrr`、`map`、`recall@k`、`precision@k`、`ndcg@k`。  
+- 自动统计聚合结果并以表格输出。
 
-#### 输入参数
-- **pred_ls** (`List[str]`): 预测答案列表  
-- **gt_ls** (`List[List[str]]`): 参考答案列表，可能为 1 个或多个  
-- **metrics** (`List[str] | None`): 评价指标名称列表  
-- **save_path** (`str`): 保存路径（文件名会自动加时间戳）  
+---
 
-#### 返回参数
-- **eval_res** (`Dict[str, Any]`): 评估结果  
+## `evaluate_trec_pvalue`
+
+**签名**  
+```python
+@app.tool(
+    output="run_new_path,run_old_path,qrels_path,ir_metrics,ks,n_resamples,save_path->eval_res"
+)
+def evaluate_trec_pvalue(
+    run_new_path: str,
+    run_old_path: str,
+    qrels_path: str,
+    metrics: List[str] | None,
+    ks: List[int] | None,
+    n_resamples: int | None,
+    save_path: str,
+)
+```
+
+**功能**  
+- 对两个 TREC 结果文件进行显著性比较，采用**双尾置换检验**计算 p-value。  
+- 默认重采样次数 `n_resamples=10000`。  
+- 输出均值、差异、p 值及显著性标识。  
+
+
+---
+
+## 参数配置
+
+```yaml servers/evaluation/parameter.yaml icon="/images/yaml.svg"
+save_path: output/evaluate_results.json
+
+# QA task
+metrics: [ 'acc', 'f1', 'em', 'coverem', 'stringem', 'rouge-1', 'rouge-2', 'rouge-l' ]
+
+# Retrieval task
+qrels_path: data/qrels.txt
+run_path: data/run_a.txt
+ks: [ 1, 5, 10, 20, 50, 100 ]
+ir_metrics: [ "mrr", "map", "recall", "ndcg", "precision" ]
+
+# significant
+run_new_path: data/run_a.txt
+run_old_path: data/run_b.txt
+n_resamples: 10000
+```
+
+参数说明：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `save_path` | str | 评估结果保存路径（将自动附带时间戳） |
+| `metrics` | list[str] | QA / 生成任务使用的指标集合 |
+| `qrels_path` | str | TREC 格式真值文件路径 |
+| `run_path` | str | 检索任务的结果文件 |
+| `ks` | list[int] | 截断层级，用于计算 NDCG@K、P@K、Recall@K 等 |
+| `ir_metrics` | list[str] | 检索任务指标名称，支持 `mrr`, `map`, `recall`, `ndcg`, `precision` |
+| `run_new_path` | str | 新模型生成的 run 文件路径（显著性分析） |
+| `run_old_path` | str | 旧模型的 run 文件路径（显著性分析） |
+| `n_resamples` | int | 置换检验（Permutation Test）重采样次数 |
+
