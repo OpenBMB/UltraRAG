@@ -3,7 +3,7 @@
   "theme": "mint",
   "name": "UltraRAG 2.0",
   "banner": {
-    "content": "📣 Tutorials have been updated to sync with **UltraRAG 2.1**.",
+    "content": "📣 Tutorials have been updated and are now fully aligned with UltraRAG 2.1 — check out [what’s new](/pages/cn/getting_started/update).",
     "dismissible": true
   },
   "colors": {
@@ -25,7 +25,8 @@
                 "pages": [
                   "pages/cn/getting_started/introduction",
                   "pages/cn/getting_started/installation",
-                  "pages/cn/getting_started/quick_start"
+                  "pages/cn/getting_started/quick_start",
+                  "pages/cn/getting_started/update"
                 ]
               },
               {
