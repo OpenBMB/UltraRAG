@@ -7,7 +7,230 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-17
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.15828v1">GENESIS: A Generative Model of Episodic-Semantic Interaction</a></td><td><details><summary>展开</summary>A central challenge in cognitive neuroscience is to explain how semantic and
+episodic memory, two major forms of declarative memory, typically associated
+with cortical and hippocampal processing, interact to support learning, recall,
+and imagination. Despite significant advances, we still lack a unified
+computational framework that jointly accounts for core empirical phenomena
+across both semantic and episodic processing domains. Here, we introduce the
+Generative Episodic-Semantic Integration System (GENESIS), a computational
+model that formalizes memory as the interaction between two limited-capacity
+generative systems: a Cortical-VAE, supporting semantic learning and
+generalization, and a Hippocampal-VAE, supporting episodic encoding and
+retrieval within a retrieval-augmented generation (RAG) architecture. GENESIS
+reproduces hallmark behavioral findings, including generalization in semantic
+memory, recognition, serial recall effects and gist-based distortions in
+episodic memory, and constructive episodic simulation, while capturing their
+dynamic interactions. The model elucidates how capacity constraints shape the
+fidelity and memorability of experiences, how semantic processing introduces
+systematic distortions in episodic recall, and how episodic replay can
+recombine previous experiences. Together, these results provide a principled
+account of memory as an active, constructive, and resource-bounded process.
+GENESIS thus advances a unified theoretical framework that bridges semantic and
+episodic memory, offering new insights into the generative foundations of human
+cognition.</details></td><td><details><summary>展开</summary>这篇文章介绍了GENESIS模型，该模型通过结合语义记忆（Cortical-VAE）和情景记忆（Hippocampal-VAE）的计算框架，利用检索增强生成（RAG）架构支持记忆的编码、检索和想象，揭示了记忆的生成性、主动性和资源限制特性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15782v1">Demo: Guide-RAG: Evidence-Driven Corpus Curation for Retrieval-Augmented Generation in Long COVID</a></td><td><details><summary>展开</summary>As AI chatbots gain adoption in clinical medicine, developing effective
+frameworks for complex, emerging diseases presents significant challenges. We
+developed and evaluated six Retrieval-Augmented Generation (RAG) corpus
+configurations for Long COVID (LC) clinical question answering, ranging from
+expert-curated sources to large-scale literature databases. Our evaluation
+employed an LLM-as-a-judge framework across faithfulness, relevance, and
+comprehensiveness metrics using LongCOVID-CQ, a novel dataset of
+expert-generated clinical questions. Our RAG corpus configuration combining
+clinical guidelines with high-quality systematic reviews consistently
+outperformed both narrow single-guideline approaches and large-scale literature
+databases. Our findings suggest that for emerging diseases, retrieval grounded
+in curated secondary reviews provides an optimal balance between narrow
+consensus documents and unfiltered primary literature, supporting clinical
+decision-making while avoiding information overload and oversimplified
+guidance. We propose Guide-RAG, a chatbot system and accompanying evaluation
+framework that integrates both curated expert knowledge and comprehensive
+literature databases to effectively answer LC clinical questions.</details></td><td><details><summary>展开</summary>该论文研究和评估了六种针对长期新冠肺炎（Long COVID）临床问答的RAG语料库配置，提出结合临床指南与高质量系统评价的配置效果最佳，并开发了名为Guide-RAG的聊天机器人系统，整合专家知识库与文献数据库以优化临床决策支持。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15722v1">The 3rd Place Solution of CCIR CUP 2025: A Framework for Retrieval-Augmented Generation in Multi-Turn Legal Conversation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation has made significant progress in the field of
+natural language processing. By combining the advantages of information
+retrieval and large language models, RAG can generate relevant and contextually
+appropriate responses based on items retrieved from reliable sources. This
+technology has demonstrated outstanding performance across multiple domains,
+but its application in the legal field remains in its exploratory phase. In
+this paper, we introduce our approach for "Legal Knowledge Retrieval and
+Generation" in CCIR CUP 2025, which leverages large language models and
+information retrieval systems to provide responses based on laws in response to
+user questions.</details></td><td><details><summary>展开</summary>本文探讨了RAG技术在法律领域的应用，提出了一种结合大语言模型和信息检索系统的方法，用于基于法律条文生成回答用户问题的响应，并介绍了在CCIR CUP 2025中的“Legal Knowledge Retrieval and Generation”方案。目前该技术在法律领域的应用仍处于探索阶段。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15719v1">Cost-Aware Retrieval-Augmentation Reasoning Models with Adaptive Retrieval Depth</a></td><td><details><summary>展开</summary>Reasoning models have gained significant attention due to their strong
+performance, particularly when enhanced with retrieval augmentation. However,
+these models often incur high computational costs, as both retrieval and
+reasoning tokens contribute substantially to the overall resource usage. In
+this work, we make the following contributions: (1) we propose a
+retrieval-augmented reasoning model that dynamically adjusts the length of the
+retrieved document list based on the query and retrieval results; (2) we
+develop a cost-aware advantage function for training of efficient
+retrieval-augmented reasoning models through reinforcement learning; and (3) we
+explore both memory- and latency-bound implementations of the proposed
+cost-aware framework for both proximal and group relative policy optimization
+algorithms. We evaluate our approach on seven public question answering
+datasets and demonstrate significant efficiency gains, without compromising
+effectiveness. In fact, we observed that the model latency decreases by ~16-20%
+across datasets, while its effectiveness increases by ~5% on average, in terms
+of exact match.</details></td><td><details><summary>展开</summary>这篇论文提出了一种动态调整检索文档长度的检索增强推理模型，通过强化学习训练成本感知优势函数以提高效率，并在多个问答数据集上验证了其在降低延迟16-20%的同时提升准确率约5%的效果，未牺牲模型性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15682v1">SQuAI: Scientific Question-Answering with Multi-Agent Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>We present SQuAI (https://squai.scads.ai/), a scalable and trustworthy
+multi-agent retrieval-augmented generation (RAG) framework for scientific
+question answering (QA) with large language models (LLMs). SQuAI addresses key
+limitations of existing RAG systems in the scholarly domain, where complex,
+open-domain questions demand accurate answers, explicit claims with citations,
+and retrieval across millions of scientific documents. Built on over 2.3
+million full-text papers from arXiv.org, SQuAI employs four collaborative
+agents to decompose complex questions into sub-questions, retrieve targeted
+evidence via hybrid sparse-dense retrieval, and adaptively filter documents to
+improve contextual relevance. To ensure faithfulness and traceability, SQuAI
+integrates in-line citations for each generated claim and provides supporting
+sentences from the source documents. Our system improves faithfulness, answer
+relevance, and contextual relevance by up to +0.088 (12%) over a strong RAG
+baseline. We further release a benchmark of 1,000 scientific
+question-answer-evidence triplets to support reproducibility. With transparent
+reasoning, verifiable citations, and domain-wide scalability, SQuAI
+demonstrates how multi-agent RAG enables more trustworthy scientific QA with
+LLMs.</details></td><td><details><summary>展开</summary>本文介绍了一种名为SQuAI的可扩展且可信的多智能体检索增强生成（RAG）框架，用于基于大语言模型（LLMs）的科学问答（QA）。SQuAI针对学术领域现有RAG系统的局限性，通过分解复杂问题、混合稀疏-密集检索、自适应过滤文档等技术提高回答的准确性和相关性，并为每个生成的主张提供内联引用和来源支持。实验表明，SQuAI在忠实性、答案相关性和上下文相关性上比基线RAG系统提升了12%，同时发布了包含1000个科学问答证据三元组的基准数据集以支持可复现性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15681v1">ProofBridge: Auto-Formalization of Natural Language Proofs in Lean via Joint Embeddings</a></td><td><details><summary>展开</summary>Translating human-written mathematical theorems and proofs from natural
+language (NL) into formal languages (FLs) like Lean 4 has long been a
+significant challenge for AI. Most state-of-the-art methods address this
+separately, first translating theorems and then generating proofs, creating a
+fundamental disconnect vis-a-vis true proof auto-formalization. This two-step
+process and its limitations were evident even in AlphaProof's silver-medal
+performance at the 2024 IMO, where problem statements needed manual translation
+before automated proof synthesis.
+  We present ProofBridge, a unified framework for automatically translating
+entire NL theorems and proofs into Lean 4. At its core is a joint embedding
+model that aligns NL and FL (NL-FL) theorem-proof pairs in a shared semantic
+space, enabling cross-modal retrieval of semantically relevant FL examples to
+guide translation. Our training ensures that NL-FL theorems (and their proofs)
+are mapped close together in this space if and only if the NL-FL pairs are
+semantically equivalent. ProofBridge integrates retrieval-augmented fine-tuning
+with iterative proof repair, leveraging Lean's type checker and semantic
+equivalence feedback to ensure both syntactic correctness and semantic
+fidelity. Experiments show substantial improvements in proof auto-formalization
+over strong baselines (including GPT-5, Gemini-2.5, Kimina-Prover,
+DeepSeek-Prover), with our retrieval-augmented approach yielding significant
+gains in semantic correctness (SC, via proving bi-directional equivalence) and
+type correctness (TC, via type-checking theorem+proof) across pass@k metrics on
+miniF2F-Test-PF, a dataset we curated. In particular, ProofBridge improves
+cross-modal retrieval quality by up to 3.28x Recall@1 over all-MiniLM-L6-v2,
+and achieves +31.14% SC and +1.64% TC (pass@32) compared to the baseline
+Kimina-Prover-RL-1.7B.</details></td><td><details><summary>展开</summary>这篇论文介绍了ProofBridge，一个将自然语言数学定理和证明自动翻译为Lean 4的统一框架。它通过联合嵌入模型对齐自然语言和形式语言的语义空间，利用检索增强的微调和迭代证明修复来提高翻译的准确性和语义保真度，实验显示在多个指标上显著优于现有基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15620v1">GRATING: Low-Latency and Memory-Efficient Semantic Selection on Device</a></td><td><details><summary>展开</summary>Semantic top-K selection with cross-encoder rerankers underpins of on-device
+AI services, such as retrieval-augmented generation, agent memory, and
+personalized recommendation. However, its latency and memory demands dominate
+end-to-end budgets on edge hardware. Revisiting the objective of top-K
+selection, we reveal that only relative rankings matter, not exact
+per-candidate scores. We further observe sequence-level sparsity: relative
+rankings stabilize early in intermediate layers, allowing pruning opportunities
+prior to completing full inference.
+  Building on this insight, we propose monolithic forwarding and develop a
+training-free inference system, GRATING. By maintaining a global view of all
+candidates, it reduces latency through progressive cluster pruning. It also
+bounds peak memory usage by strategically overlapping I/O with computation via
+dual-layer sliding window and chunked execution. We evaluate GRATING against
+state-of-the-art baselines on rerankers from 0.6B to 8B parameters across Apple
+M2 and RTX 5070. GRATING consistently reduces latency by up to 89.0% and peak
+memory by up to 94.9% in microbenchmarks, without any loss in precision. Across
+three real-world on-device AI applications, GRATING lowers latency by
+11.6%-51.0% and peak memory by 18.6%-77.8%, demonstrating substantial
+improvements in efficiency and deployability.</details></td><td><details><summary>展开</summary>本文提出了一种名为GRATING的高效推理系统，专注于优化交叉编码器重排序器（cross-encoder rerankers）在语义Top-K选择中的计算效率，特别是在边缘设备上的延迟和内存占用问题。该方法通过利用序列级稀疏性和相对排名的早期稳定性，实现了无需训练即可显著降低延迟（高达89.0%）和峰值内存（高达94.9%）的技术，并直接应用于检索增强生成（RAG）等设备端AI服务场景。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15552v1">Think Parallax: Solving Multi-Hop Problems via Multi-View Knowledge-Graph-Based Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Large language models (LLMs) excel at language understanding but often
+hallucinate and struggle with multi-hop reasoning. Knowledge-graph-based
+retrieval-augmented generation (KG-RAG) offers grounding, yet most methods rely
+on flat embeddings and noisy path exploration. We propose ParallaxRAG, a
+framework that symmetrically decouples queries and graph triples into
+multi-view spaces, enabling a robust retrieval architecture that explicitly
+enforces head diversity while constraining weakly related paths. Central to our
+approach is the observation that different attention heads specialize in
+semantic relations at distinct reasoning stages, contributing to different hops
+of the reasoning chain. This specialization allows ParallaxRAG to construct
+cleaner subgraphs and guide LLMs through grounded, step-wise reasoning.
+Experiments on WebQSP and CWQ, under our unified, reproducible setup (BGE-M3 +
+Llama3.1-8B), demonstrate competitive retrieval and QA performance, alongside
+reduced hallucination and good generalization. Our results highlight multi-view
+head specialization as a principled direction for knowledge-grounded multi-hop
+reasoning. Our implementation will be released as soon as the paper is
+accepted.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为ParallaxRAG的框架，它通过多视角空间对称解耦查询和知识图谱三元组，增强了基于知识图谱的检索增强生成（KG-RAG）。该方法利用不同注意力头在推理链不同阶段的语义关系 specialization，构建更清晰的子图并指导大语言模型（LLM）进行逐步推理，从而减少幻觉并提升多跳推理性能。实验在WebQSP和CWQ数据集上验证了其在检索和问答任务中的竞争力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15428v1">Fault Cause Identification across Manufacturing Lines through Ontology-Guided and Process-Aware FMEA Graph Learning with LLMs</a></td><td><details><summary>展开</summary>Fault cause identification in automated manufacturing lines is challenging
+due to the system's complexity, frequent reconfigurations, and the limited
+reusability of existing Failure Mode and Effects Analysis (FMEA) knowledge.
+Although FMEA worksheets contain valuable expert insights, their reuse across
+heterogeneous lines is hindered by natural language variability, inconsistent
+terminology, and process differences. To address these limitations, this study
+proposes a process-aware framework that enhances FMEA reusability by combining
+manufacturing-domain conceptualization with graph neural network (GNN)
+reasoning. First, FMEA worksheets from multiple manufacturing lines are
+transformed into a unified knowledge graph through ontology-guided large
+language model (LLM) extraction, capturing domain concepts such as actions,
+states, components, and parameters. Second, a Relational Graph Convolutional
+Network (RGCN) with the process-aware scoring function learns embeddings that
+respect both semantic relationships and sequential process flows. Finally, link
+prediction is employed to infer and rank candidate fault causes consistent with
+the target line's process flow.
+  A case study on automotive pressure sensor assembly lines demonstrates that
+the proposed method outperforms a state-of-the-art retrieval-augmented
+generation (RAG) baseline (F1@20 = 0.267) and an RGCN approach (0.400),
+achieving the best performance (0.523) in fault cause identification. Ablation
+studies confirm the contributions of both LLM-driven domain conceptualization
+and process-aware learning. These results indicate that the proposed framework
+significantly improves the transferability of FMEA knowledge across
+heterogeneous lines, thereby supporting operators in diagnosing failures more
+reliably and paving the way for future domain-adaptive LLM applications in
+smart manufacturing.</details></td><td><details><summary>展开</summary>这篇文章提出了一种结合制造业领域概念化和图神经网络（GNN）推理的流程感知框架，用于提升故障模式与效应分析（FMEA）知识的可重用性，并通过知识图谱构建和链接预测实现故障原因识别。研究显示该方法优于检索增强生成（RAG）基线和其他模型，显著提升了FMEA知识在异构生产线间的迁移能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15418v1">Fine-Tuning MedGemma for Clinical Captioning to Enhance Multimodal RAG over Malaysia CPGs</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation systems are essential for providing fact-based
+guidance from Malaysian Clinical Practice Guidelines. However, their
+effectiveness with image-based queries is limited, as general Vision-Language
+Model captions often lack clinical specificity and factual grounding. This
+study proposes and validates a framework to specialize the MedGemma model for
+generating high-fidelity captions that serve as superior queries. To overcome
+data scarcity, we employ a knowledge distillation pipeline to create a
+synthetic dataset across dermatology, fundus, and chest radiography domains,
+and fine-tune MedGemma using the parameter-efficient QLoRA method. Performance
+was rigorously assessed through a dual framework measuring both classification
+accuracy and, via a novel application of the RAGAS framework, caption
+faithfulness, relevancy, and correctness. The fine-tuned model demonstrated
+substantial improvements in classification performance, while RAGAS evaluation
+confirmed significant gains in caption faithfulness and correctness, validating
+the models ability to produce reliable, factually grounded descriptions. This
+work establishes a robust pipeline for specializing medical VLMs and validates
+the resulting model as a high-quality query generator, laying the groundwork
+for enhancing multimodal RAG systems in evidence-based clinical decision
+support.</details></td><td><details><summary>展开</summary>这篇论文提出并验证了一个专为医学图像生成高保真字幕的框架，旨在提升基于图像查询的多模态RAG系统性能。通过知识蒸馏创建合成数据集并微调MedGemma模型，研究显著改进了字幕的准确性和临床相关性，为循证临床决策支持中的RAG系统增强奠定了基础。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15339v1">AutoGraph-R1: End-to-End Reinforcement Learning for Knowledge Graph Construction</a></td><td><details><summary>展开</summary>Building effective knowledge graphs (KGs) for Retrieval-Augmented Generation
+(RAG) is pivotal for advancing question answering (QA) systems. However, its
+effectiveness is hindered by a fundamental disconnect: the knowledge graph (KG)
+construction process is decoupled from its downstream application, yielding
+suboptimal graph structures. To bridge this gap, we introduce AutoGraph-R1, the
+first framework to directly optimize KG construction for task performance using
+Reinforcement Learning (RL). AutoGraph-R1 trains an LLM constructor by framing
+graph generation as a policy learning problem, where the reward is derived from
+the graph's functional utility in a RAG pipeline. We design two novel,
+task-aware reward functions, one for graphs as knowledge carriers and another
+as knowledge indices. Across multiple QA benchmarks, AutoGraph-R1 consistently
+enables graph RAG methods to achieve significant performance gains over using
+task-agnostic baseline graphs. Our work shows it is possible to close the loop
+between construction and application, shifting the paradigm from building
+intrinsically ``good'' graphs to building demonstrably ``useful'' ones.</details></td><td><details><summary>展开</summary>该论文提出了AutoGraph-R1框架，通过强化学习优化知识图谱（KG）构建过程，使其在RAG流程中更有效地支持问答系统，设计了两种任务感知的奖励函数以提升图谱作为知识载体和索引的性能，并在多个问答基准测试中验证了其优越性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15261v1">AUGUSTUS: An LLM-Driven Multimodal Agent System with Contextualized User Memory</a></td><td><details><summary>展开</summary>Riding on the success of LLMs with retrieval-augmented generation (RAG),
+there has been a growing interest in augmenting agent systems with external
+memory databases. However, the existing systems focus on storing text
+information in their memory, ignoring the importance of multimodal signals.
+Motivated by the multimodal nature of human memory, we present AUGUSTUS, a
+multimodal agent system aligned with the ideas of human memory in cognitive
+science. Technically, our system consists of 4 stages connected in a loop: (i)
+encode: understanding the inputs; (ii) store in memory: saving important
+information; (iii) retrieve: searching for relevant context from memory; and
+(iv) act: perform the task. Unlike existing systems that use vector databases,
+we propose conceptualizing information into semantic tags and associating the
+tags with their context to store them in a graph-structured multimodal
+contextual memory for efficient concept-driven retrieval. Our system
+outperforms the traditional multimodal RAG approach while being 3.5 times
+faster for ImageNet classification and outperforming MemGPT on the MSC
+benchmark.</details></td><td><details><summary>展开</summary>这篇论文介绍了AUGUSTUS，一种多模态代理系统，受到人类记忆启发，提出了一个包含编码、存储、检索和执行四个阶段的循环框架。与传统的基于向量数据库的系统不同，它采用图结构的多模态上下文记忆进行概念驱动检索，在ImageNet分类和MSC基准上表现优于传统多模态RAG方法和MemGPT。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.15253v1">Scaling Beyond Context: A Survey of Multimodal Retrieval-Augmented Generation for Document Understanding</a></td><td><details><summary>展开</summary>Document understanding is critical for applications from financial analysis
+to scientific discovery. Current approaches, whether OCR-based pipelines
+feeding Large Language Models (LLMs) or native Multimodal LLMs (MLLMs), face
+key limitations: the former loses structural detail, while the latter struggles
+with context modeling. Retrieval-Augmented Generation (RAG) helps ground models
+in external data, but documents' multimodal nature, i.e., combining text,
+tables, charts, and layout, demands a more advanced paradigm: Multimodal RAG.
+This approach enables holistic retrieval and reasoning across all modalities,
+unlocking comprehensive document intelligence. Recognizing its importance, this
+paper presents a systematic survey of Multimodal RAG for document
+understanding. We propose a taxonomy based on domain, retrieval modality, and
+granularity, and review advances involving graph structures and agentic
+frameworks. We also summarize key datasets, benchmarks, and applications, and
+highlight open challenges in efficiency, fine-grained representation, and
+robustness, providing a roadmap for future progress in document AI.</details></td><td><details><summary>展开</summary>这篇论文是关于多模态RAG（检索增强生成）在文档理解中的应用，系统性地综述了该领域的进展、提出分类法，总结了关键数据集和应用，并指出未来研究方向如效率和细粒度表示等挑战。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-16
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.14944v1">MetaBench: A Multi-task Benchmark for Assessing LLMs in Metabolomics</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have demonstrated remarkable capabilities on
