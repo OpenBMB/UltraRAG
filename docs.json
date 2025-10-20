@@ -78,6 +78,8 @@
               {
                 "group": "Pipeline",
                 "pages": [
+                  "pages/cn/pipeline/rag",
+                  "pages/cn/pipeline/light_deepresearch",
                   "pages/cn/pipeline/visrag"
                 ]
               }

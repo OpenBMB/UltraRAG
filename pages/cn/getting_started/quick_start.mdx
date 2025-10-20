@@ -63,7 +63,7 @@ ultrarag build examples/rag_full.yaml
 
 系统会在`examples/parameters/`文件夹下生成对应的参数配置文件。打开文件后，可根据实际情况修改相关参数，例如：
 
-```yaml examples/parameters/sayhello_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/parameters/rag_full_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     # key_map：定义数据字段的映射关系，将数据集中字段名映射为标准字段
@@ -111,7 +111,7 @@ generation:
       gpu_ids: 2,3            # 指定 GPU ID
       gpu_memory_utilization: 0.9  # GPU 显存利用率上限
       model_name_or_path: openbmb/MiniCPM4-8B  # [!code --]
-      model_name_or_path: your generation model path # [!code ++]
+      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
       trust_remote_code: true
   sampling_params:             # 采样参数（影响生成多样性）
     chat_template_kwargs:
@@ -157,7 +157,7 @@ retriever:
   index_path: index/index.index         # 索引文件保存路径
   is_multimodal: false                  # 是否为多模态检索（图文混合）
   model_name_or_path: openbmb/MiniCPM-Embedding-Light  # [!code --]
-  model_name_or_path: your retriever model path  # 向量化模型路径 [!code ++]
+  model_name_or_path: Qwen/Qwen3-Embedding-0.6B  # 向量化模型路径 [!code ++]
   overwrite: false                      # 是否覆盖已有 embedding / index
   query_instruction: ''                 # query 前置指令（可为空）
   top_k: 5                              # 检索返回的 Top-K 文档数
