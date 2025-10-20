@@ -91,10 +91,18 @@
               {
                 "group": "RAG Servers",
                 "pages": [
+                  "pages/cn/api/corpus",
                   "pages/cn/api/benchmark",
                   "pages/cn/api/retriever",
+                  "pages/cn/api/reranker",
                   "pages/cn/api/generation",
                   "pages/cn/api/evaluation"
+                ]
+              },
+              {
+                "group": "CLI",
+                "pages": [
+                  "pages/cn/api/cli"
                 ]
               }
             ]
