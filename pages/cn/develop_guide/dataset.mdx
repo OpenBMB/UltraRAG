@@ -1,73 +1,102 @@
 ---
-title: "数据集与格式说明"
+title: "评测数据"
 icon: "table"
 ---
 
-## 已有数据
+我们整理并预处理了当前 RAG 研究中最常用的公开评测数据集和语料库，并已在 [ModelScope]() 和 [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) 上同步发布。
+用户可直接下载使用，无需额外清洗或转换，即可与 UltraRAG 的评测管线无缝对接。
 
-我们整理并预处理了当前 RAG 研究中最常用的公开评估数据集，并将其发布在 [Huggingface datasets](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark)。用户可直接下载使用，无需进一步处理。
 
-下表列出了已支持的任务类型与数据集统计信息：
+## Benchmark
 
-| 任务类型             | 数据集名称           | 原始数据数量                   | Leaderboard 采样数量           |
-|----------------------|----------------------|-------------------------------|-------------------------------|
-| qa                   | nq                   | 3,610                         | 1,000                         |
-| qa                   | TriviaQA             | 11,313                        | 1,000                         |
-| qa                   | popqa                | 14,267                        | 1,000                         |
-| qa                   | AmbigQA              | 2,002                         | 1,000                         |
-| qa                   | MarcoQA              | 101,093 ; 55,636（过滤无答案版本） | 1,000（基于过滤后的）   |
-| qa                   | WebQuestions         | 2,032                         | 1,000                         |
-| Multi-hop qa         | hotpotqa             | 7,405                         | 1,000                         |
-| Multi-hop qa         | 2WikiMultiHopQA      | 12,576                        | 1,000                         |
-| Multi-hop qa         | Musique              | 2,417                         | 1,000                         |
-| Multi-hop qa         | bamboogle            | 125                           | 125（未处理）                  |
-| Multi-hop qa         | strategy-qa          | 2,290                         | 1,000                         |
-| Multiple-choice      | ARC                  | 3,548 ;（选项为大写字母A-E，其中E选项为1条） | 1,000         |
-| Multiple-choice      | mmlu                 | 14,042 ;（选项为大写字母A-D）      | 1,000                |
-| Long-form QA         | ASQA                 | 948                           | 948（未处理）                  |
-| fact-verification    | FEVER                | 13,332 ;（只保留support和refuse标签） | 1,000        |
-| dialogue             | WoW                  | 3,054                         | 1,000                         |
-| slot-filling         | T-REx                | 5,000                         | 1,000                         |
+下表汇总了当前已支持的任务类型及对应数据集的统计信息：
 
-语料库统计：
+| 任务类型         | 数据集名称           | 原始数据数量                               | 评测采样数量       |
+|:------------------|:----------------------|:--------------------------------------------|:--------------------|
+| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open)                   | 3,610                                      | 1,000              |
+| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/)             | 11,313                                     | 1,000              |
+| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA)                | 14,267                                     | 1,000              |
+| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa)              | 2,002                                      | 1,000              |
+| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation)              | 55,636         | 1,000|
+| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions)         | 2,032                                      | 1,000              |
+| VQA         | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA)               | 591                        | 591                        |
+| VQA         | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA)               | 63                        | 63                         |
+| VQA         | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA)                | 718                         | 718                        |
+| VQA         | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA)                | 863                         | 863                         |
+| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa)             | 7,405                                      | 1,000              |
+| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju)      | 12,576                                     | 1,000              |
+| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view)              | 2,417                                      | 1,000              |
+| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle)            | 125                                        | 125                |
+| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa)          | 2,290                                      | 1,000              |
+| Multi-hop VQA         | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA)          | 556                        | 556                       |
+| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc)                  | 3,548    | 1,000              |
+| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu)                 | 14,042                      | 1,000              |
+| Multiple-choice VQA    | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA)                 | 816      | 816                |
+| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa)                 | 948                                        | 948                |
+| Fact-verification| [FEVER](https://fever.ai/dataset/fever.html)                | 13,332    | 1,000              |
+| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks)                  | 3,054                                      | 1,000              |
+| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks)                | 5,000                                      | 1,000              |
 
-| 语料库名称   | 文档数量     |
-|--------------|--------------|
-| wiki2018     | 21,015,324   |
-| wiki2024     | 即将上线     |
+**数据格式规范**
 
-## 数据格式说明
-
-我们建议用户将所有测试数据处理为 .jsonl 格式，并遵循以下结构规范，以保证与 UltraRAG 的各模块兼容：
+为了确保与 UltraRAG 各模块完全兼容，建议用户将测试数据统一存储为 .jsonl 文件，并遵循以下格式规范。
 
 非选择题数据格式：
 
-```json
+```json icon="/images/json.svg"
 {
-  "id": 0,  // 整数编号
-  "question": "xxxx",  // 问题文本
-  "golden_answers": ["xxx", "xxx"],  // 标准答案列表，可包含多个
-  "metadata": { ... }  // 其他信息字段，可选
+  "id": 0, 
+  "question": "where does the karate kid 2010 take place", 
+  "golden_answers": ["China", "Beijing", "Beijing, China"], 
+  "meta_data": {} 
 }
 ```
 
 选择题数据格式：
 
-```json
+```json icon="/images/json.svg"
 {
-  "id": 0,
-  "question": "xxxx",
-  "golden_answers": ["A"],  // 标准答案为选项字母（如 A–D）
-  "choices": ["xxx", "xxx", "xxx", "xxx"],  // 选项文本列表
-  "metadata": { ... }
+  "id": 0, 
+  "question": "Mast Co. converted from the FIFO method for inventory valuation to the LIFO method for financial statement and tax purposes. During a period of inflation would Mast's ending inventory and income tax payable using LIFO be higher or lower than FIFO? Ending inventory Income tax payable", 
+  "golden_answers": ["A"], 
+  "choices": ["Lower Lower", "Higher Higher", "Lower Higher", "Higher Lower"], 
+  "meta_data": {"subject": "professional_accounting"}
 }
 ```
 
-语料库数据格式：
+## Corpus
 
-```
+UltraRAG 提供了多源、高质量的标准化语料库，涵盖文本与图像两种模态，便于构建多场景 RAG 系统。
+以下为当前已收录语料的统计信息：
+
+| 语料库名称   | 文档数量     |
+|:--------------|:--------------|
+| Wiki-2018     | 21,015,324   |
+| Wiki-2024     | 30,463,973     |
+| MP-DocVQA    | 741   |
+| ChartQA     | 500  |
+| InfoVQA     | 459   |
+| PlotQA     | 9,593   |
+| SlideVQA     | 1,284  |
+| ArXivQA     | 8,066   |
+
+**数据格式规范**
+
+文本语料格式：
+
+```json icon="/images/json.svg"
 {
-  "id": "0",
-  "contents": "xxxxx"  // 语料分块后的文本片段
+  "id": "15106858", 
+  "contents": "Arrowhead Stadium 1970s practice would eventually spread to the other NFL stadiums as the 1970s progressed, finally becoming mandatory league-wide in the 1978 season (after being used in Super Bowl XII), and become almost near-universal at the lower levels of football. On January 20, 1974, Arrowhead Stadium hosted the Pro Bowl. Due to an ice storm and brutally cold temperatures the week leading up to the game, the game's participants worked out at the facilities of the San Diego Chargers. On game day, the temperature soared to 41 F, melting most of the ice and snow that accumulated during the week. The AFC defeated the NFC, 15–13."
+}
+```
+
+图像语料格式：
+
+```json icon="/images/json.svg"
+{
+  "id": 0, 
+  "image_id": "37313.jpeg", 
+  "image_path": "image/37313.jpg"
 }
 ```
