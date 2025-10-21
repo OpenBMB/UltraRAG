@@ -30,11 +30,18 @@
 
 *更新日志* 🔥
 
+- [2025.10.22] 🎉 UltraRAG 2.1 正式发布：全面重构 Server 架构，释放多模态与多后端潜能
 - [2025.09.23] 新增每日 RAG 论文分享，每日更新最新前沿 RAG 工作 👉 |[📖 论文](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+
+<details>
+<summary>历史更新</summary>
+
 - [2025.09.09] 发布轻量级 DeepResearch Pipeline 本地搭建教程 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/01_build_light_deepresearch.md)|
 - [2025.09.01] 发布 UltraRAG 安装与完整 RAG 跑通视频 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 发布 UltraRAG 2.0！UltraRAG 2.0 全新升级：几十行代码实现高性能 RAG，让科研专注思想创新！
 - [2025.01.23] 发布 UltraRAG！让大模型读懂善用知识库！我们保留了UltraRAG 1.0的代码，可以点击 [v1](https://github.com/OpenBMB/UltraRAG/tree/v1) 查看。
+
+</details>
 
 ---
 
@@ -182,18 +189,6 @@ ultrarag run examples/sayhello.yaml
 
 阅读[快速上手](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解 UltraRAG 的使用流程。整体分为三步：**① 编译 Pipeline 文件生成参数配置；② 修改参数文件；③ 运行 Pipeline 文件**。
 
-此外，我们整理了一份科研中常用功能的目录，您可以直接点击跳转到所需模块：
-
-- [使用检索器对语料库编码与索引](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_3/emb_and_index)
-- [部署检索器](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_4/deploy_retriever_serve)
-- [部署LLM](https://github.com/OpenBMB/UltraRAG/blob/main/script/vllm_serve.sh)
-- [基线复现](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_3/reproduction)
-- [实验结果Case分析](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_4/case_study)
-- [Debug调试教程](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_4/debug)
-
-
-
-
 ## 支持
 
 UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开评测数据集**、**大规模语料库** 以及 **典型基线方法**，方便科研人员快速复现与扩展实验。你也可以参考[数据格式说明](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_3/prepare_dataset)，灵活地自定义并添加任意数据集或语料库。完整的[数据集](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark)可通过该链接访问与下载。
@@ -201,20 +196,26 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 ### 1. 支持的数据集
 
 | 任务类型         | 数据集名称           | 原始数据数量                               | 评测采样数量       |
-|------------------|----------------------|--------------------------------------------|--------------------|
+|:------------------|:----------------------|:--------------------------------------------|:--------------------|
 | QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open)                   | 3,610                                      | 1,000              |
 | QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/)             | 11,313                                     | 1,000              |
 | QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA)                | 14,267                                     | 1,000              |
 | QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa)              | 2,002                                      | 1,000              |
 | QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation)              | 55,636         | 1,000|
 | QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions)         | 2,032                                      | 1,000              |
+| VQA         | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA)               | 591                        | 591                        |
+| VQA         | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA)               | 63                        | 63                         |
+| VQA         | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA)                | 718                         | 718                        |
+| VQA         | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA)                | 863                         | 863                         |
 | Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa)             | 7,405                                      | 1,000              |
 | Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju)      | 12,576                                     | 1,000              |
 | Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view)              | 2,417                                      | 1,000              |
 | Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle)            | 125                                        | 125                |
 | Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa)          | 2,290                                      | 1,000              |
+| Multi-hop VQA         | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA)          | 556                        | 556                       |
 | Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc)                  | 3,548    | 1,000              |
 | Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu)                 | 14,042                      | 1,000              |
+| Multiple-choice VQA    | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA)                 | 816      | 816                |
 | Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa)                 | 948                                        | 948                |
 | Fact-verification| [FEVER](https://fever.ai/dataset/fever.html)                | 13,332    | 1,000              |
 | Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks)                  | 3,054                                      | 1,000              |
@@ -225,16 +226,22 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 ### 2. 支持的语料库
 
 | 语料库名称 | 文档数量     |
-|------------|--------------|
-| [wiki-2018](https://huggingface.co/datasets/RUC-NLPIR/FlashRAG_datasets/tree/main/retrieval-corpus)   | 21,015,324   |
-| wiki-2024   | 整理中，即将上线 |
+|:--------------|:--------------|
+| Wiki-2018     | 21,015,324   |
+| Wiki-2024     | 30,463,973     |
+| MP-DocVQA    | 741   |
+| ChartQA     | 500  |
+| InfoVQA     | 459   |
+| PlotQA     | 9,593   |
+| SlideVQA     | 1,284  |
+| ArXivQA     | 8,066   |
 
 ---
 
 ### 3. 支持的基线方法（持续更新）
 
 | 基线名称 | 脚本     |
-|------------|--------------|
+|:------------|:--------------|
 | Vanilla LLM   | examples/vanilla.yaml   |
 | Vanilla RAG   | examples/rag.yaml     |
 | [IRCoT](https://arxiv.org/abs/2212.10509)   | examples/IRCoT.yaml   |
@@ -243,7 +250,6 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 | [R1-searcher](https://arxiv.org/abs/2503.05592)   | examples/r1_searcher.yaml     |
 | [Search-o1](https://arxiv.org/abs/2501.05366)   | examples/search_o1.yaml   |
 | [Search-r1](https://arxiv.org/abs/2503.09516)   | examples/search_r1.yaml     |
-| WebNote   | examples/webnote.yaml    |
 
 ## 贡献
 
@@ -270,17 +276,13 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 ## 联系我们
 
 - 关于技术问题及功能请求，请使用 [GitHub Issues](https://github.com/OpenBMB/UltraRAG/issues) 功能。
-- 关于使用上的问题、意见以及任何关于 RAG 技术的讨论，欢迎加入我们的[微信群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png)，[飞书群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/feishu_qr.png)和[discord](https://discord.gg/yRFFjjJnnS)，与我们共同交流。
+- 关于使用上的问题、意见以及任何关于 RAG 技术的讨论，欢迎加入我们的[微信群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png)和[discord](https://discord.gg/yRFFjjJnnS)，与我们共同交流。
 
 <table>
   <tr>
     <td align="center">
       <img src="docs/wechat_qr.png" alt="WeChat Group QR Code" width="220"/><br/>
       <b>微信群组</b>
-    </td>
-    <td align="center">
-      <img src="docs/feishu_qr.png" alt="Feishu Group QR Code" width="220"/><br/>
-      <b>飞书群组</b>
     </td>
     <td align="center">
       <a href="https://discord.gg/yRFFjjJnnS">
