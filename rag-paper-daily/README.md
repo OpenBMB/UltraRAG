@@ -157,7 +157,66 @@ neurologically meaningful descriptions. Hence, we create a valuable resource to
 support community-driven cell type annotation.</details></td><td><details><summary>展开</summary>这篇文章介绍了BRAINCELL-AID，一个整合自由文本描述和本体标签的多智能体AI系统，利用检索增强生成（RAG）技术从PubMed文献中检索相关信息，以提高基因集注释的准确性和可解释性，并将其应用于小鼠大脑细胞图谱的注释。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-19
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.16980v1">Towards Interpretable and Trustworthy Time Series Reasoning: A BlueSky Vision</a></td><td><details><summary>展开</summary>Time series reasoning is emerging as the next frontier in temporal analysis,
+aiming to move beyond pattern recognition towards explicit, interpretable, and
+trustworthy inference. This paper presents a BlueSky vision built on two
+complementary directions. One builds robust foundations for time series
+reasoning, centered on comprehensive temporal understanding, structured
+multi-step reasoning, and faithful evaluation frameworks. The other advances
+system-level reasoning, moving beyond language-only explanations by
+incorporating multi-agent collaboration, multi-modal context, and
+retrieval-augmented approaches. Together, these directions outline a flexible
+and extensible framework for advancing time series reasoning, aiming to deliver
+interpretable and trustworthy temporal intelligence across diverse domains.</details></td><td><details><summary>展开</summary>这篇论文提出了一个关于时间序列推理的蓝图，结合了稳健的基础构建和系统级推理两大方向，其中特别提到了通过多智能体协作、多模态上下文和检索增强方法（retrieval-augmented approaches）来增强推理能力。这表明该研究在一定程度上涉及了RAG技术。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16724v1">A Comprehensive Survey on Reinforcement Learning-based Agentic Search: Foundations, Roles, Optimizations, Evaluations, and Applications</a></td><td><details><summary>展开</summary>The advent of large language models (LLMs) has transformed information access
+and reasoning through open-ended natural language interaction. However, LLMs
+remain limited by static knowledge, factual hallucinations, and the inability
+to retrieve real-time or domain-specific information. Retrieval-Augmented
+Generation (RAG) mitigates these issues by grounding model outputs in external
+evidence, but traditional RAG pipelines are often single turn and heuristic,
+lacking adaptive control over retrieval and reasoning. Recent advances in
+agentic search address these limitations by enabling LLMs to plan, retrieve,
+and reflect through multi-step interaction with search environments. Within
+this paradigm, reinforcement learning (RL) offers a powerful mechanism for
+adaptive and self-improving search behavior. This survey provides the first
+comprehensive overview of \emph{RL-based agentic search}, organizing the
+emerging field along three complementary dimensions: (i) What RL is for
+(functional roles), (ii) How RL is used (optimization strategies), and (iii)
+Where RL is applied (scope of optimization). We summarize representative
+methods, evaluation protocols, and applications, and discuss open challenges
+and future directions toward building reliable and scalable RL driven agentic
+search systems. We hope this survey will inspire future research on the
+integration of RL and agentic search. Our repository is available at
+https://github.com/ventr1c/Awesome-RL-based-Agentic-Search-Papers.</details></td><td><details><summary>展开</summary>这篇论文探讨了基于强化学习的自主搜索（RL-based agentic search）如何优化传统的RAG框架，通过多步交互和自适应控制解决单一检索回合和启发式方法的不足，旨在提升检索与推理的动态性和可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16715v1">Right Answer at the Right Time - Temporal Retrieval-Augmented Generation via Graph Summarization</a></td><td><details><summary>展开</summary>Question answering in temporal knowledge graphs requires retrieval that is
+both time-consistent and efficient. Existing RAG methods are largely semantic
+and typically neglect explicit temporal constraints, which leads to
+time-inconsistent answers and inflated token usage. We propose STAR-RAG, a
+temporal GraphRAG framework that relies on two key ideas: building a
+time-aligned rule graph and conducting propagation on this graph to narrow the
+search space and prioritize semantically relevant, time-consistent evidence.
+This design enforces temporal proximity during retrieval, reduces the candidate
+set of retrieval results, and lowers token consumption without sacrificing
+accuracy. Compared with existing temporal RAG approaches, STAR-RAG eliminates
+the need for heavy model training and fine-tuning, thereby reducing
+computational cost and significantly simplifying deployment.Extensive
+experiments on real-world temporal KG datasets show that our method achieves
+improved answer accuracy while consuming fewer tokens than strong GraphRAG
+baselines.</details></td><td><details><summary>展开</summary>这篇论文提出了STAR-RAG，一种针对时序知识图谱的检索增强生成框架，通过构建时间对齐的规则图谱和在其上进行传播来优化检索过程，确保时间一致性和高效性，同时减少令牌消耗，无需复杂模型训练即可提升答案准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16695v1">Resolution-Aware Retrieval Augmented Zero-Shot Forecasting</a></td><td><details><summary>展开</summary>Zero-shot forecasting aims to predict outcomes for previously unseen
+conditions without direct historical data, posing a significant challenge for
+traditional forecasting methods. We introduce a Resolution-Aware
+Retrieval-Augmented Forecasting model that enhances predictive accuracy by
+leveraging spatial correlations and temporal frequency characteristics. By
+decomposing signals into different frequency components, our model employs
+resolution-aware retrieval, where lower-frequency components rely on broader
+spatial context, while higher-frequency components focus on local influences.
+This allows the model to dynamically retrieve relevant data and adapt to new
+locations with minimal historical context.
+  Applied to microclimate forecasting, our model significantly outperforms
+traditional forecasting methods, numerical weather prediction models, and
+modern foundation time series models, achieving 71% lower MSE than HRRR and 34%
+lower MSE than Chronos on the ERA5 dataset.
+  Our results highlight the effectiveness of retrieval-augmented and
+resolution-aware strategies, offering a scalable and data-efficient solution
+for zero-shot forecasting in microclimate modeling and beyond.</details></td><td><details><summary>展开</summary>本文提出了一种基于分辨率感知的检索增强预测模型，通过分解信号频率并结合空间相关性进行动态数据检索，显著提升了零样本微气候预测的准确性，在ERA5数据集上优于传统方法和现代时序模型。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-18
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.16643v1">Structured Interfaces for Automated Reasoning with 3D Scene Graphs</a></td><td><details><summary>展开</summary>In order to provide a robot with the ability to understand and react to a
