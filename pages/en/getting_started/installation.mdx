@@ -1,80 +1,80 @@
 ---
-title: "Installation"
+title: "环境部署"
 icon: "download"
 ---
 
-UR-2.0 provides a user-friendly installation method, allowing users to complete the basic environment setup with just a few commands. At the same time, UR-2.0 supports a modular dependency system with on-demand loading, facilitating flexible expansion of required functional components and avoiding redundant installations.
+UR-2.0 提供了用户友好的安装方式，用户仅需几条命令即可完成基础环境的搭建。同时，UR-2.0 支持按需加载的模块化依赖体系，便于灵活扩展所需功能组件，避免冗余安装。
 
-## Step 1: Preparation before installation
+## Step 1：安装前准备
 
-Create a virtual environment using Conda:
+使用 Conda 创建虚拟环境：
 
 ```shell
 conda create -n ultrarag python=3.11
 conda activate ultrarag
 ```
 
-<Tip>Don't have Conda installed? Go to [Install Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install).</Tip>
+<Tip>没有安装 Conda ？前往 [安装 Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install)。</Tip>
 
-We recommend using [uv](https://github.com/astral-sh/uv) for package management, which provides a faster and more reliable Python dependency management experience:
+我们推荐使用 [uv](https://github.com/astral-sh/uv) 来进行包管理，提供更快、更可靠的 Python 依赖管理体验：
 
 ```shell
 pip install uv
 ```
 
-## Step 2: Install the basic environment
+## Step2：安装基础环境
 
-<Note>We will gradually support PyPI and Conda distributions</Note>
+<Note>我们将逐步支持 PyPI 与 Conda 发行</Note>
 
-Clone the project to your local machine or server via git:
+通过 git 克隆项目到本地或服务器：
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git
 cd UltraRAG
 ```
 
-Create a virtual environment with Conda and install basic dependencies:
+使用 Conda 创建虚拟环境并安装基础依赖：
 
 ```shell
 uv pip install -e .
 ```
 
-## Step 3: Verify the installation
+## Step3：验证安装
 
-Run the following command to test if the installation was successful:
+运行以下命令测试是否安装成功：
 
 ```shell
 ultrarag run examples/sayhello.yaml
 ```
 
-If the environment is correct, the terminal will output a welcome message:
+若环境无误，终端将输出欢迎信息：
 
 ![](/images/getting_started/sayhello_run.png)
 
-## Step 4: Install optional extension components as needed
+## Step4：按需安装扩展组件
 
-UR-2.0 supports rich Server components, allowing developers to flexibly install required dependencies according to actual tasks:
+UR-2.0支持丰富的Server组件，开发者可根据实际任务灵活安装所需依赖：
 
 ```shell
-# If you want to use faiss for vector indexing:
-# You need to manually compile and install different versions of FAISS according to your hardware environment
-# Install faiss-cpu
+# 如需使用faiss进行向量索引：
+# 需要根据自己的硬件环境，手动编译安装不同版本的 FAISS
+# 安装 faiss-cpu
 conda install -c pytorch faiss-cpu
-# Install faiss-gpu
+# 安装 faiss-gpu
 conda install -c pytorch faiss-gpu
 
-# If you want to use infinity_emb for corpus encoding and indexing:
+# 如需使用infinity_emb进行语料库编码和索引：
 uv pip install -e ".[infinity_emb]"
 
-# If you want to use lancedb vector database:
+# 如需使用lancedb向量数据库：
 uv pip install -e ".[lancedb]"
 
-# If you want to deploy models with vLLM service:
+# 如需使用vLLM服务部署模型：
 uv pip install -e ".[vllm]"
 
-# If you want to use corpus document parsing features:
+# 如需使用语料库文档解析功能：
 uv pip install -e ".[corpus]"
 
-# Install all dependencies (except faiss)
+# 安装所有依赖（除faiss）
 uv pip install -e ".[all]"
 ```

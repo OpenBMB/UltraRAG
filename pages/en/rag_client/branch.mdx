@@ -1,0 +1,69 @@
+---
+title: "分支结构"
+icon: "code-branch"
+---
+
+在复杂的推理任务中，往往需要根据模型的中间输出或当前状态来决定后续流程是否继续执行。例如对模型的生成内容进行判断：
+
+- 若模型生成的是新的查询，则进入下一轮检索；
+- 若模型已输出最终答案，则终止流程。
+
+为实现上述能力，UR-2.0 提供了分支结构，用于构建具备条件跳转逻辑的可控推理流程。
+
+<Check>Router Server 是分支结构的搭档，它负责对当前状态进行判断并返回状态标签，驱动流程走向。</Check>
+
+<Note>若你尚未了解如何实现 Router Tool，请参考 [Router Server](/pages/cn/rag_servers/router)。</Note>
+
+## 使用示例
+
+
+```yaml examples/rag_branch.yaml icon="/images/yaml.svg" highlight="22-37"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+  router: servers/router
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- loop:
+    times: 10
+    steps:
+    - prompt.check_passages
+    - generation.generate
+    - branch:
+        router:
+        - router.check_model_state
+        branches:
+          continue:
+          - prompt.gen_subq
+          - generation.generate:
+              output:
+                ans_ls: subq_ls
+          - retriever.retriever_search:
+              input:
+                query_list: subq_ls
+              output:
+                ret_psg: temp_psg
+          - custom.merge_passages
+          stop: []
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+在分支结构中，Pipeline 使用以下关键字来定义动态流程的控制逻辑：
+
+- `branch`：声明一个分支结构的起点；
+- `router`：指定用于判断分支逻辑的 Router Tool，该工具需返回一个状态标签（如 incomplete / complete）；
+- `branches`：定义每个状态对应的执行步骤序列。键为状态标签，必须与 Router Tool 返回的 state 值一致；值为该状态下需要执行的步骤列表（可为空，表示流程终止）。
+

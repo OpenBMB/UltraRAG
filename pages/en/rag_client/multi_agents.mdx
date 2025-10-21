@@ -1,0 +1,75 @@
+---
+title: "模块复用"
+icon: "book-copy"
+---
+
+在许多实际场景中，你可能希望在同一个 Pipeline 中使用多个不同的 Retriever 或 Generation 模块，以执行不同的逻辑任务，例如混合检索或多智能体系统。
+实际上，这只需要为相同的模块设置不同的参数即可完成。
+
+为此，UR-2.0 提供了一种简单灵活的机制 ——
+通过为同一个 Server 模块配置不同的别名，即可实现模块的复用与独立调用。
+
+## 使用示例
+
+### Step 1：配置别名 Server
+
+在 `pipeline.yaml` 中，你可以在 `servers` 字段下为同一个路径定义多个别名：
+
+```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="4,5"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  dense: servers/retriever
+  bm25: servers/retriever
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- dense.retriever_init
+- bm25.retriever_init
+- dense.retriever_search:
+    output:
+      ret_psg: dense_psg
+- bm25.bm25_search:
+    output:
+      ret_psg: sparse_psg
+- custom.merge_passages:
+    input:
+      ret_psg: dense_psg
+      temp_psg: sparse_psg
+```
+
+在该示例中，dense 和 bm25 都指向同一个模块路径 servers/retriever，但会作为两个独立的 Server 实例被构建与调用。
+
+### Step 2：在 Pipeline 中分别调用
+
+在 Pipeline 定义部分，你可以像调用不同模块一样使用它们的别名：
+
+```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="11-18"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  dense: servers/retriever
+  bm25: servers/retriever
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- dense.retriever_init
+- bm25.retriever_init
+- dense.retriever_search:
+    output:
+      ret_psg: dense_psg
+- bm25.bm25_search:
+    output:
+      ret_psg: sparse_psg
+- custom.merge_passages:
+    input:
+      ret_psg: dense_psg
+      temp_psg: sparse_psg
+```
+
+这样，UltraRAG 会在运行时自动区分这两个实例：
+每个别名都对应独立的参数文件、运行上下文和缓存空间，从而实现多模块并行、互不干扰的调用。

@@ -1,0 +1,229 @@
+---
+title: "Corpus"
+icon: "file"
+---
+
+## 作用
+
+Corpus Server 是 UR-2.0 中用于处理原始语料文档的核心组件。它支持从多种数据源中解析、提取并标准化文本或图像内容，并提供多种切块策略，将原始文档转换为可直接用于后续检索与生成的格式。
+
+Corpus Server 的主要功能包括：
+
+- 文档解析：支持多种文件类型（如 .pdf、.txt、.md、.json、.jsonl）的内容提取。
+- 语料构建：将解析后的内容保存为标准化的 .jsonl 结构，每行对应一个独立文档。
+- 图像转换：支持将 PDF 页面转换为图像语料，保留版面与视觉结构信息。
+- 文本切块：提供 Token、Sentence、Recursive等多种切分策略。
+
+示例数据：
+
+文本模态：
+
+```json data/corpus_example.jsonl icon="/images/json.svg"
+{"id": "2066692", "contents": "Truman Sports Complex The Harry S. Truman Sports...."}
+{"id": "15106858", "contents": "Arrowhead Stadium 1970s...."}
+```
+
+图像模态：
+```json icon="/images/json.svg"
+{"id": 0, "image_id": "UltraRAG/page_0.jpg", "image_path": "image/UltraRAG/page_0.jpg"}
+{"id": 1, "image_id": "UltraRAG/page_1.jpg", "image_path": "image/UltraRAG/page_1.jpg"}
+{"id": 2, "image_id": "UltraRAG/page_2.jpg", "image_path": "image/UltraRAG/page_2.jpg"}
+```
+
+
+
+## 文档解析示例
+
+### 文本解析
+
+Corpus Server 支持多种文本解析格式，包括 `.pdf、.txt、.md、.json、.jsonl` 等。
+
+```yaml examples/build_text_corpus.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.build_text_corpus
+```
+
+编译 Pipeline：
+
+```shell
+ultrarag build examples/build_text_corpus.yaml
+```
+
+根据实际情况修改相应字段：
+
+```yaml examples/parameters/build_text_corpus_parameter.yaml icon="/images/yaml.svg"
+corpus:
+  parse_file_path: data/UltraRAG.pdf
+  text_corpus_save_path: corpora/text.jsonl
+```
+
+其中`parse_file_path` 可以是单个文件，也可以是文件夹路径——当指定为文件夹时，系统会自动遍历其中所有可解析文件并批量读取。
+
+运行 Pipeline：
+
+```shell
+ultrarag run examples/build_text_corpus.yaml
+```
+
+执行成功后，系统会自动解析文本并输出标准化语料文件，示例如下：
+```json icon="/images/json.svg"
+{"id": "UltraRAG", "title": "UltraRAG", "contents": "xxxxx"}
+```
+
+### PDF转图像
+
+在多模态 RAG 场景中，[一类方法](https://arxiv.org/abs/2410.10594)是将文档页面直接转换为图像，并以完整图像形式进行检索与生成。
+这种方式的优势在于能够保留文档的排版、格式与视觉结构，从而使检索和理解更贴近真实阅读场景。
+
+```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.build_image_corpus
+```
+
+编译 Pipeline：
+
+```shell
+ultrarag build examples/build_image_corpus.yaml
+```
+
+根据实际情况修改相应字段：
+
+```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+corpus:
+  image_corpus_save_path: corpora/image.jsonl
+  parse_file_path: data/UltraRAG.pdf
+```
+同样地，`parse_file_path` 参数既可指定为单个文件，也可为文件夹路径。当设置为文件夹时，系统会自动遍历并处理其中的所有文件。
+
+运行 Pipeline：
+
+```shell
+ultrarag run examples/build_image_corpus.yaml
+```
+
+执行成功后，系统将保存生成的图像语料文件，每条记录包含图像标识符与相对路径，生成的 .jsonl 文件可直接作为多模态检索或生成任务的输入。输出示例如下：
+
+```json icon="/images/json.svg"
+{"id": 0, "image_id": "UltraRAG/page_0.jpg", "image_path": "image/UltraRAG/page_0.jpg"}
+{"id": 1, "image_id": "UltraRAG/page_1.jpg", "image_path": "image/UltraRAG/page_1.jpg"}
+{"id": 2, "image_id": "UltraRAG/page_2.jpg", "image_path": "image/UltraRAG/page_2.jpg"}
+```
+
+### MinerU解析
+
+[MinerU](https://github.com/opendatalab/MinerU) 是业界广受好评的 PDF 解析框架，支持高精度的文本与版面结构提取。
+UR-2.0 将 MinerU 无缝集成为内置工具，可直接在 Pipeline 中调用，实现一站式的 PDF → 文本 + 图像 语料构建。
+
+```yaml examples/build_mineru_corpus.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.mineru_parse
+- corpus.build_mineru_corpus
+```
+
+编译 Pipeline：
+
+```shell
+ultrarag build examples/build_mineru_corpus.yaml
+```
+
+根据实际情况修改相应字段：
+
+```yaml examples/parameters/build_mineru_corpus_parameter.yaml icon="/images/yaml.svg"
+corpus:
+  image_corpus_save_path: corpora/image.jsonl    # 图像语料保存路径
+  mineru_dir: corpora/                           # MinerU 解析结果保存目录
+  mineru_extra_params:
+    source: modelscope                           # 模型下载源（默认为 Hugging Face，可选 modelscope）
+  parse_file_path: data/UltraRAG.pdf             # 要解析的文件或文件夹路径
+  text_corpus_save_path: corpora/text.jsonl      # 文本语料保存路径
+```
+
+同样地，`parse_file_path` 参数既可为单个文件，也可为文件夹路径。
+
+运行 Pipeline（首次执行时需下载 MinerU 模型，速度较慢）：
+
+```shell
+ultrarag run examples/build_mineru_corpus.yaml
+```
+
+执行成功后，系统将自动输出对应的 文本语料 与 图像语料 文件，其格式与 `build_text_corpus` 和 `build_image_corpus` 一致，可直接用于多模态检索与生成任务。
+
+## 文档切块示例
+
+UR-2.0 集成了 [chonkie](https://docs.chonkie.ai/common/welcome) 文档切块库，并内置三种主流切块策略：`Token Chunker`，`Sentence Chunker`以及`Recursive Chunker`，可灵活应对不同类型的文本结构。
+
+- `Token Chunker`：按分词器、单词或字符进行分块，适用于一般文本。
+- `Sentence Chunker`：按句子边界切分，保证语义完整性。
+- `Recursive Chunker`：适用于结构良好的长文档（如书籍、论文），能自动按层级划分内容。
+
+```yaml examples/corpus_chunk.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.chunk_documents
+```
+
+编译 Pipeline：
+
+```shell
+ultrarag build examples/corpus_chunk.yaml
+```
+
+根据实际情况修改相应字段：
+
+```yaml examples/parameters/corpus_chunk_parameter.yaml icon="/images/yaml.svg"
+corpus:
+  chunk_backend: token                     # 切块策略，可选 token / sentence / recursive
+  chunk_backend_configs:
+    recursive:
+      chunk_size: 256                      # 每个切块最大字符/词元数
+      min_characters_per_chunk: 12         # 每块最小长度，防止过短
+      tokenizer_or_token_counter: character
+    sentence:
+      chunk_overlap: 50                    # 相邻块重叠字符数
+      chunk_size: 256                      # 每块最大长度
+      delim: '[''.'', ''!'', ''?'', ''\n'']'  # 句子分隔符
+      min_sentences_per_chunk: 1           # 每块最少句子数
+      tokenizer_or_token_counter: character
+    token:
+      chunk_overlap: 50                    # 相邻块重叠 token 数
+      chunk_size: 256                      # 每块最大 token 数
+      tokenizer_or_token_counter: gpt2     # 使用的分词器
+  chunk_path: corpora/chunks.jsonl         # 输出切块后语料的保存路径
+  raw_chunk_path: corpora/text.jsonl       # 原始文本语料路径
+  use_title: false                         # 是否将标题附加到每个 chunk 开头
+```
+
+运行 Pipeline：
+
+```shell
+ultrarag run examples/corpus_chunk.yaml
+```
+
+执行完成后，系统将输出标准化的切块语料文件，可直接用于后续检索与生成模块。
+输出示例如下：
+```json icon="/images/json.svg"
+{"id": 0, "doc_id": "UltraRAG", "title": "UltraRAG", "contents": "xxxxx"}
+{"id": 1, "doc_id": "UltraRAG", "title": "UltraRAG", "contents": "xxxxx"}
+{"id": 2, "doc_id": "UltraRAG", "title": "UltraRAG", "contents": "xxxxx"}
+```
+
+<Note>你可以在同一 Pipeline 中同时调用解析工具与切块工具，以构建属于你自己的个性化知识库。</Note>

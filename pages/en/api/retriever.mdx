@@ -1,118 +1,298 @@
 ---
-title: "Retriever Server"
+title: "Retriever"
 icon: "magnifying-glass"
 ---
 
-## Configuration Parameters
+## `retriever_init`
 
-- **retriever_path** (`str`): Path or name of the embedding model  
-- **corpus_path** (`str`): Path to the corpus file (JSONL format)  
-- **embedding_path** (`str`): Path to the `.npy` file storing generated embedding vectors  
-- **index_path** (`str`): Path to the `.index` file storing the Faiss index  
-- **infinity_kwargs** (`dict`): Model configuration passed to `infinity_emb.EngineArgs`  
-  - **bettertransformer** (`bool`): Whether to enable BetterTransformer acceleration (default `false`)  
-  - **pooling_method** (`str`): Vector pooling method (`auto`, `cls`, `mean`)  
-  - **device** (`str`): Device to load the model on (e.g., `cuda`, `cpu`)  
-  - **batch_size** (`int`): Batch size when embedding in batches  
-- **cuda_devices** (`str`): Visible GPU settings, e.g., `"0,1"` means using GPU 0 and GPU 1  
-- **query_instruction** (`str`): Prefix prompt for queries  
-- **faiss_use_gpu** (`bool`): Whether to enable GPU Faiss (fallback to CPU if failed)  
-- **top_k** (`int`): Number of retrieved documents to return  
-- **overwrite** (`bool`): Whether to overwrite if the target exists  
-- **retriever_url** (`str`): Service address (can be `host:port` or full `http://host:port`, default port `8080` if not specified)  
-- **index_chunk_size** (`int`): Batch size for `add_with_ids` in chunks  
+**签名**  
+```python
+def retriever_init(
+    model_name_or_path: str,
+    backend_configs: Dict[str, Any],
+    batch_size: int,
+    corpus_path: str,
+    index_path: Optional[str] = None,
+    faiss_use_gpu: bool = False,
+    gpu_ids: Optional[object] = None,
+    is_multimodal: bool = False,
+    backend: str = "infinity",
+) -> None
+```
 
----
+**功能**  
+- 初始化检索后端与语料索引
 
-## API Description
-
-### `retriever_init`
-
-#### Function
-Initialize the retriever model based on the Infinity Embedding library and load the corpus file; if `index_path` is provided and exists, load the Faiss index (GPU/CPU).
-
-#### Input Parameters
-- **retriever_path** (`str`): Infinity model path or name (passed to `EngineArgs`)  
-- **corpus_path** (`str`): Corpus file (JSONL), each line must contain the key `"contents"`  
-- **index_path** (`Optional[str]`): Existing `.index` file path of the built index, load if exists  
-- **faiss_use_gpu** (`bool`): Whether to enable GPU Faiss (fallback to CPU if failed)  
-- **infinity_kwargs** (`Optional[Dict[str, Any]]`): Other parameters passed to `EngineArgs` (e.g., `dtype`, `batch_size`, etc.)  
-- **cuda_devices** (`Optional[str]`): Visible GPUs, e.g., `"0,1"`; will be set to `CUDA_VISIBLE_DEVICES`  
-
-#### Return Parameters
-- None  
 
 ---
 
-### `retriever_embed`
+## `retriever_embed`
 
-#### Function
-Encode the corpus using the retriever model into embeddings and save as `.npy`.
+**签名**  
+```python
+async def retriever_embed(
+    embedding_path: Optional[str] = None,
+    overwrite: bool = False,
+    is_multimodal: bool = False,
+) -> None
+```
 
-#### Input Parameters
-- **embedding_path** (`Optional[str]`): Output `.npy` file path; if not provided, defaults to `<project_root>/output/embedding/embedding.npy`  
-- **overwrite** (`bool`): Whether to overwrite if the target exists  
+**功能**  
+- 编码语料向量并保存到 `*.npy`：
 
-#### Return Parameters
-- None  
-
----
-
-### `retriever_index`
-
-#### Function
-Build Faiss Index (`IndexIDMap2(FlatIP)`) based on `.npy` embeddings, supports chunked insertion and GPU construction.
-
-#### Input Parameters
-- **embedding_path** (`str`): File storing the encoded embeddings, `.npy` file  
-- **index_path** (`Optional[str]`): Output `.index` file path; defaults to `<project_root>/output/index/index.index` if not provided  
-- **overwrite** (`bool`): Whether to overwrite if exists  
-- **index_chunk_size** (`int`): Batch size for `add_with_ids` in chunks  
-
-#### Return Parameters
-- None  
 
 ---
 
-### `retriever_search`
+## `retriever_index`
 
-#### Function
-Perform vector retrieval on the Faiss index.
+**签名**  
+```python
+def retriever_index(
+    embedding_path: str,
+    index_path: Optional[str] = None,
+    overwrite: bool = False,
+    index_chunk_size: int = 50000,
+) -> None
+```
 
-#### Input Parameters
-- **query_list** (`List[str]`): List of queries or a single string (automatically wrapped into a list)  
-- **top_k** (`int`): Number of results to return  
-- **query_instruction** (`str`): Prefix prompt added to each query (instruction-based query)  
-- **use_openai** (`bool`): Whether to use OpenAI to generate query vectors; otherwise use the Infinity model by default  
-
-#### Return Parameters
-- **ret_psg** (`Dict[str, List[List[str]]]`): Retrieved passages  
-
----
-
-### `retriever_deploy_service`
-
-#### Function
-Start a lightweight Flask service to deploy the retriever model.
-
-#### Input Parameters
-- **retriever_url** (`str`): Service address (can be `host:port` or full `http://host:port`, default port `8080` if not specified)  
-
-#### Return Parameters
-- None  
+**功能**  
+- 使用 FAISS 为向量嵌入构建倒排
 
 ---
 
-### `retriever_deploy_search`
+## `bm25_index`
 
-#### Function
-Call the remote `/search` endpoint of the `retriever_deploy_service` as a client and return remote retrieval results.
+**签名**  
+```python
+def bm25_index(
+    index_path: Optional[str] = None,
+    overwrite: bool = False,
+) -> None
+```
 
-#### Input Parameters
-- **retriever_url** (`str`): Remote base address  
-- **query_list** (`List[str]`): List of queries or a single string (automatically wrapped into a list)  
-- **top_k** (`int`): Number of results to return  
-- **query_instruction** (`str`): Prefix prompt added to each query (instruction-based query)  
+**功能**  
+- 建立 BM25 索引，保存停用词与词表。
 
-#### Return Parameters
-- **ret_psg** (`Dict[str, List[List[str]]]`): Retrieved passages  
+---
+
+## `retriever_search`
+
+**签名**  
+```python
+async def retriever_search(
+    query_list: List[str],
+    top_k: int = 5,
+    query_instruction: str = "",
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 基于 **FAISS 向量索引** 的标准语义检索：`infinity` / `sentence_transformers` / `openai`。  
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_search_colbert_maxsim`
+
+**签名**  
+```python
+async def retriever_search_colbert_maxsim(
+    query_list: List[str],
+    embedding_path: str,
+    top_k: int = 5,
+    query_instruction: str = "",
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 适配 **ColBERT/ColPali** 多向量检索（仅 `infinity` 后端）。
+- 读取 `embedding_path`（形状 `(N, Kd, D)` 或 `dtype=object` 的变长多向量），通过 **MaxSim** 聚合打分，返回 top-k。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+```
+
+---
+
+## `bm25_search`
+
+**签名**  
+```python
+async def bm25_search(
+    query_list: List[str],
+    top_k: int = 5,
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 使用 BM25 倒排检索，返回每个查询的 top-k 文本列表。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_exa_search`
+
+**签名**  
+```python
+async def retriever_exa_search(
+    query_list: List[str],
+    top_k: Optional[int] | None = 5,
+    retrieve_thread_num: Optional[int] | None = 1,
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 调用 **Exa** Web 检索（需要 `EXA_API_KEY`）。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_tavily_search`
+
+**签名**  
+```python
+async def retriever_tavily_search(
+    query_list: List[str],
+    top_k: Optional[int] | None = 5,
+    retrieve_thread_num: Optional[int] | None = 1,
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 调用 **Tavily** Web 检索（需要 `TAVILY_API_KEY`）。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_zhipuai_search`
+
+**签名**  
+```python
+async def retriever_zhipuai_search(
+    query_list: List[str],
+    top_k: Optional[int] | None = 5,
+    retrieve_thread_num: Optional[int] | None = 1,
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 调用 **智谱AI** `web_search`（需要 `ZHIPUAI_API_KEY`）。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
+```
+
+
+---
+
+## 参数配置
+
+```yaml servers/retriever/parameter.yaml icon="/images/yaml.svg"
+model_name_or_path: openbmb/MiniCPM-Embedding-Light
+corpus_path: data/corpus_example.jsonl
+embedding_path: embedding/embedding.npy
+index_path: index/index.index
+
+backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
+backend_configs:
+  infinity:
+    bettertransformer: false
+    pooling_method: auto
+    device: cuda
+    model_warmup: false
+    trust_remote_code: true
+  sentence_transformers:
+    device: cuda
+    trust_remote_code: true
+    sentence_transformers_encode:
+      normalize_embeddings: false
+      encode_chunk_size: 10000
+      q_prompt_name: query
+      psg_prompt_name: document
+      psg_task: null
+      q_task: null
+  openai:
+    model_name: text-embedding-3-small
+    base_url: "https://api.openai.com/v1"
+    api_key: ""
+  bm25:
+    lang: en
+
+batch_size: 16
+top_k: 5
+gpu_ids: "0,1"
+query_instruction: ""
+is_multimodal: false
+faiss_use_gpu: True
+overwrite: false
+index_chunk_size: 50000
+retrieve_thread_num: 1
+```
+
+参数说明：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `model_name_or_path` | str | 检索模型路径或名称（如 HuggingFace 模型 ID） |
+| `corpus_path` | str | 输入语料 JSONL 文件路径 |
+| `embedding_path` | str | 向量文件保存路径（`.npy`） |
+| `index_path` | str | FAISS/BM25 索引保存路径（`.index`） |
+| `backend` | str | 选择检索后端：`infinity`、`sentence_transformers`、`openai`、`bm25` |
+| `backend_configs` | dict | 各后端的参数配置（见下） |
+| `batch_size` | int | 向量生成或检索的批大小 |
+| `top_k` | int | 返回的候选段落数量 |
+| `gpu_ids` | str | 指定可见 GPU 设备，如 `"0,1"` |
+| `query_instruction` | str | 查询前缀（instruction-tuning 模型使用） |
+| `is_multimodal` | bool | 是否启用多模态嵌入（如图像） |
+| `faiss_use_gpu` | bool | 是否使用 GPU 加速 FAISS 检索 |
+| `overwrite` | bool | 若已存在嵌入或索引文件是否覆盖 |
+| `index_chunk_size` | int | 构建索引时每批加入向量数 |
+| `retrieve_thread_num` | int | 外部 Web 检索（Exa/Tavily/Zhipu）并发线程数 |
+
+`backend_configs` 子项：
+
+| 后端 | 参数 | 说明 |
+|-------|------|------|
+| **infinity** | `bettertransformer` | 是否启用高效推理优化 |
+|  | `pooling_method` | 池化方式（如 `auto`, `mean`） |
+|  | `device` | 运行设备（`cuda` 或 `cpu`） |
+|  | `model_warmup` | 是否预加载模型到显存 |
+|  | `trust_remote_code` | 是否信任远程代码（适用于自定义模型） |
+| **sentence_transformers** | `device` | 设备（`cuda` 或 `cpu`） |
+|  | `trust_remote_code` | 是否允许自定义模型代码 |
+|  | `sentence_transformers_encode` | 嵌入时的高级参数（如下） |
+| **openai** | `model_name` | OpenAI 模型名称（如 `text-embedding-3-small`） |
+|  | `base_url` | API 基地址 |
+|  | `api_key` | OpenAI API 密钥 |
+| **bm25** | `lang` | 语言（决定停用词与分词器） |
+
+`sentence_transformers_encode` 参数：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `normalize_embeddings` | bool | 是否归一化向量 |
+| `encode_chunk_size` | int | 编码块大小（避免显存溢出） |
+| `q_prompt_name` | str | 查询模板名 |
+| `psg_prompt_name` | str | 段落模板名 |
+| `q_task` / `psg_task` | str/null | 任务标签（如需要 prompt 适配） |
+
+
+

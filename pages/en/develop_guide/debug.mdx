@@ -1,0 +1,43 @@
+---
+title: "代码调试"
+icon: "bug"
+---
+
+为了更高效地开发与调试 UltraRAG，你可以使用 VSCode 的内置调试功能运行指定的 Pipeline 配置文件，并对执行过程进行断点调试。
+
+## 步骤一：编译并配置参数
+
+以 examples/rag_full.yaml 为例，首先执行 Pipeline 编译 并完成参数配置。该过程与[快速开始](/pages/cn/getting_started/quick_start)一致，唯一区别是此处无需执行运行命令。
+
+## 步骤二：创建调试配置文件
+
+在项目根目录下创建 `.vscode/launch.json` 文件，并写入以下内容：
+
+```json .vscode/launch.json icon="/images/json.svg" highlight="11"
+{
+    "configurations": [
+        {
+            "name": "UltraRAG Debug",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/ultrarag/client.py",
+            "console": "integratedTerminal",
+            "args": [
+                "run",
+                "${workspaceFolder}/examples/rag_full.yaml" 
+            ],
+            "cwd": "${workspaceFolder}",
+        }
+    ]
+}
+```
+
+<Note>如果你想调试其他 Pipeline，只需将 args 中的路径替换为对应的 YAML 文件路径。</Note>
+
+## 步骤三：启动调试
+
+1. 打开 VSCode 左侧的调试面板（快捷键 Ctrl+Shift+D）。
+2. 在调试配置中选择 UltraRAG Debug。
+3. 点击绿色 ▶ 启动按钮，即可在 VSCode 内集成终端中运行并调试。
+
+你可以在任意 Python 文件中设置断点，以逐步观察执行流程和变量状态。

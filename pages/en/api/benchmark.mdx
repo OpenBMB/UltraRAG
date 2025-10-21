@@ -1,28 +1,56 @@
 ---
-title: "Benchmark Server"
+title: "Benchmark"
 icon: "chart-line"
 ---
 
-## Configuration Parameters
+## `get_data`
 
-- **name** (`str`): Benchmark dataset name, e.g.: `nq`  
-- **path** (`str`): Path to the dataset file  
-- **key_map** (`Dict[str, str]`): Field mapping rules, where `key` represents the name used in the returned result, and `value` represents the field name in the original dataset  
-- **shuffle** (`bool`): Whether to shuffle the dataset after loading  
-- **seed** (`int`): Random seed to ensure reproducible `shuffle` results  
-- **limit** (`int`): Number of dataset entries to load, default `-1` loads all  
+**签名**  
+```python
+@app.tool(output="benchmark->q_ls,gt_ls")
+def get_data(benchmark: Dict[str, Any]) -> Dict[str, List[Any]]
+```
+
+**功能**  
+- 从本地文件加载评测样本，支持 **.jsonl / .json / .parquet**。
+- 按 `key_map` 将原始字段映射为统一输出键（如 `q_ls`, `gt_ls`）。
+- 支持样本打乱（`shuffle`）与采样上限（`limit`）。
+
+**输出格式（JSON）**  
+```json
+{
+  "q_ls": ["Question 1", "Question 2"],
+  "gt_ls": [["Answer A1", "Answer A2"], ["Answer B"]]
+}
+```
+
 
 ---
 
-## API Description
+## 参数配置
 
-### `get_data`
+```yaml servers/benchmark/parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  name: nq
+  path: data/sample_nq_10.jsonl
+  key_map:
+    q_ls: question
+    gt_ls: golden_answers
+  shuffle: false
+  seed: 42
+  limit: -1
+```
 
-#### Function
-Loads the benchmark dataset from a local file and returns results according to the field mapping.
+参数说明：
 
-#### Input Parameters
-- **benchmark** (`Dict[str, Any]`): Configuration parameter dictionary  
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `name` | str | 评测集名称，仅用于日志与标识（示例：`nq`） |
+| `path` | str | 数据文件路径，支持 `.jsonl`、`.json`、`.parquet` |
+| `key_map` | dict | 字段映射表，将原始字段映射为工具输出键 |
+| `key_map.q_ls` | str | 问题字段名（如 `question`） |
+| `key_map.gt_ls` | str | 标准答案字段名（如 `golden_answers`，允许列表） |
+| `shuffle` | bool | 是否打乱样本顺序（默认 `false`） |
+| `seed` | int | 随机种子（`shuffle=true` 时生效） |
+| `limit` | int | 采样上限，`-1` 表示全部，正整数表示前 `limit` 条 |
 
-#### Return Parameters
-- **data** (`Dict[str, List[Any]]`): Data dictionary containing the mapped content  

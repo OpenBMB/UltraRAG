@@ -1,0 +1,196 @@
+---
+title: "Prompt"
+icon: "terminal"
+---
+
+## 作用
+
+Prompt Tool 是用于构建语言模型输入（Prompt）的核心组件。
+每个 Prompt Tool 由 `@app.prompt` 装饰器定义，其主要职责是：
+根据输入内容（如问题、检索到的段落等），加载对应的模板文件，并生成标准化的 PromptMessage，
+以便直接传递给大语言模型（LLM）进行生成或推理。
+
+
+## 实现示例
+
+### Step 1：准备 Prompt 模板
+
+请将你的 prompt 模板保存为 `.jinja` 结尾的文件，例如：
+
+```jinja prompt/qa_rag_boxed.jinja icon="/images/jinja.svg"
+Please answer the following question based on the given documents.
+Think step by step.
+Provide your final answer in the format \boxed{YOUR_ANSWER}.
+
+Documents:
+{{documents}}
+
+Question: {{question}}
+```
+
+### Step 2：在 Prompt Server 中实现 Tool
+
+调用 `load_prompt_template` 方法加载模板，并在 Prompt Server 中实现一个工具函数用于组装 prompt：
+
+```python servers/prompt/src/prompt.py icon="python"
+@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed(
+    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+) -> list[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q, psg in zip(q_ls, ret_psg):
+        passage_text = "\n".join(psg)
+        p = template.render(question=q, documents=passage_text)
+        ret.append(p)
+    return ret
+```
+
+## 调用示例
+
+在调用模型生成工具前，需要先通过对应的 Prompt Tool 构建输入提示。
+
+```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_embed
+- retriever.retriever_index
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+## 多 Prompt Tool 调用场景
+
+在一些复杂的 Pipeline 中，模型往往需要在不同阶段执行不同任务——例如，先生成子问题，再根据新的检索结果生成最终答案。
+此时，就需要在同一 Pipeline 中配置多个 Prompt Tool，分别负责不同的提示构建逻辑。
+
+```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- loop:
+    times: 3
+    steps:
+    - prompt.gen_subq
+    - generation.generate:
+        output:
+          ans_ls: subq_ls
+    - retriever.retriever_search:
+        input:
+          query_list: subq_ls
+        output:
+          ret_psg: temp_psg
+    - custom.merge_passages
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+若希望为不同任务加载不同模板，需在注册时为每个 Prompt Tool 指定独立的模板字段名：
+
+```python servers/prompt/src/prompt.py icon="python" highlight="1,13"
+@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed(
+    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+) -> list[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q, psg in zip(q_ls, ret_psg):
+        passage_text = "\n".join(psg)
+        p = template.render(question=q, documents=passage_text)
+        ret.append(p)
+    return ret
+
+@app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")
+def gen_subq(
+    q_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    all_prompts = []
+    for q, psg in zip(q_ls, ret_psg):
+        passage_text = "\n".join(psg)
+        p = template.render(question=q, documents=passage_text)
+        all_prompts.append(p)
+    return all_prompts
+```
+
+随后，在 `servers/prompt/parameter.yaml` 中添加对应模板字段：
+
+
+<Note>请确保在执行 build 命令前完成此修改。</Note>
+
+```yaml servers/prompt/parameter.yaml icon="/images/yaml.svg" 
+# servers/prompt/parameter.yaml
+
+# QA
+template: prompt/qa_boxed.jinja
+
+# RankCoT
+kr_template: prompt/RankCoT_knowledge_refinement.jinja
+qa_template: prompt/RankCoT_question_answering.jinja
+
+# Search-R1
+search_r1_gen_template: prompt/search_r1_append.jinja
+
+# R1-Searcher
+r1_searcher_gen_template: prompt/r1_searcher_append.jinja
+
+# For other prompts, please add parameters here as needed
+
+# Take webnote as an example:
+webnote_gen_plan_template: prompt/webnote_gen_plan.jinja
+webnote_init_page_template: prompt/webnote_init_page.jinja
+webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
+webnote_fill_page_template: prompt/webnote_fill_page.jinja
+webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
+
+gen_subq_template: prompt/gen_subq.jinja  # [!code ++]
+```
+
+运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build rag_loop.yaml
+```
+
+系统会自动在生成的参数文件中注册新字段：
+
+```yaml examples/rag_loop_parameter.yaml icon="/images/yaml.svg" highlight="3"
+...
+prompt:
+  gen_subq_template: prompt/gen_subq.jinja
+  template: prompt/qa_boxed.jinja
+retriever:
+  backend: sentence_transformers
+...
+```
+
+随后即可正常执行该 Pipeline。

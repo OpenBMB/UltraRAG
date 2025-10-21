@@ -1,0 +1,106 @@
+---
+title: "模块概述"
+icon: "books"
+---
+
+## Sever 简介
+
+在典型的 RAG 系统中，整体流程通常由多个功能模块组成，例如检索器（Retriever）、生成器（Generator）等。这些模块分别承担不同的任务，并通过流程编排协同工作，从而完成复杂的问答与推理过程。
+
+在 UR-2.0 中，我们基于 MCP（Model Context Protocol） 架构，对这些功能模块进行了统一封装，提出了更加标准化的实现方式——Server。
+
+<Note>Server 本质上就是一个具备独立功能的 RAG 模块组件。</Note>
+
+每个 Server 封装一类核心任务逻辑（如检索、生成、评测等），并通过函数级别的 Tool 对外提供标准化接口。借助这一机制，Server 可以在完整的 Pipeline 中被灵活组合、调用与复用，从而实现模块化、可扩展的系统构建方式。
+
+## Server开发
+
+为了帮助你更好地理解 Server 的使用方式，本节将通过一个简易示例，演示从零构建一个自定义 Server 的完整开发流程。
+
+### Step1：创建Server文件
+
+首先，在`servers`文件夹下新建名为`sayhello`的文件夹，并在其中创建源码目录`sayhello/src`。然后，在 `src` 目录下新建文件 `sayhello.py`，作为 Server 的主程序入口。
+
+在 UR-2.0 中，所有 Server 都通过基类 `UltraRAG_MCP_Server` 完成实例化。示例如下：
+
+```python servers/sayhello/src/sayhello.py icon="python"
+from ultrarag.server import UltraRAG_MCP_Server
+
+app = UltraRAG_MCP_Server("sayhello")
+
+if __name__ == "__main__":
+    # Start the sayhello server using stdio transport
+    app.run(transport="stdio")
+```
+
+### Step2：实现工具函数（Tool）
+
+使用 `@app.tool` 装饰器即可注册工具函数（Tool）。这些函数将在 Pipeline 执行过程中被调用，用于实现具体的功能逻辑。
+
+例如，下面的示例定义了一个最简单的问候函数 `greet`，输入一个名字，返回相应的问候语：
+
+```python servers/sayhello/src/sayhello.py icon="python"
+from typing import Dict
+from ultrarag.server import UltraRAG_MCP_Server
+
+app = UltraRAG_MCP_Server("sayhello")
+
+@app.tool(output="name->msg")
+def greet(name: str) -> Dict[str, str]:
+    ret = f"Hello, {name}!"
+    app.logger.info(ret)
+    return {"msg": ret}
+
+if __name__ == "__main__":
+    # Start the sayhello server using stdio transport
+    app.run(transport="stdio")
+
+```
+
+### Step3：配置参数文件
+
+接下来，在 `sayhello` 文件夹下创建参数配置文件 `parameter.yaml`。该文件用于声明工具（Tool）所需的输入参数及其默认值，方便在 Pipeline 运行时自动加载与传递。
+
+示例如下：
+```yaml servers/sayhello/parameter.yaml icon="/images/yaml.svg"
+name: UltraRAG 2.0
+```
+此处定义了参数 name，其默认值为 "UltraRAG 2.0"。
+
+### 参数注册机制
+
+<Note>若不同 Prompt Tool 存在参数命名冲突，请参考 [Prompt Server](/pages/cn/rag_servers/prompt) 中的“多 Prompt Tool 调用场景”部分了解解决方案。</Note>
+
+UR-2.0 在 build 阶段会自动读取每个 Server 目录下的 `parameter.yaml` 文件，并据此感知并注册工具函数所需的参数。在使用时需注意以下几点：
+
+- 参数共享机制：当多个 Tool 需要共用同一个参数（如 template、model_name_or_path 等），可在 `parameter.yaml` 中仅声明一次并复用，无需重复定义。
+- 字段覆盖风险：若多个 Tool 所需参数的名称相同但含义或默认值不同，应显式区分字段名，使用不同的名称，以避免在自动生成的配置文件中被覆盖。
+- 上下文自动推断机制：若工具函数中的某些输入参数未出现在 ·parameter.yaml· 中，UR-2.0 会默认尝试从运行时上下文中推断（即从上游 Tool 的输出中获取）。因此，仅需在参数无法通过上下文自动传递时，才需要在 `parameter.yaml` 中显式定义。
+
+### 基于类封装共享变量
+
+在某些场景下，我们可能希望在同一个 Server 内部维护共享状态或变量，例如模型实例、缓存对象、配置等。此时，可以将 Server 封装为一个类，并在类的初始化阶段完成共享变量的定义与 Tool 的注册。
+
+以下示例展示了如何将 sayhello Server 封装为类，以实现内部变量共享：
+```python servers/sayhello/src/sayhello.py icon="python" highlight="9"
+from typing import Dict
+from ultrarag.server import UltraRAG_MCP_Server
+
+app = UltraRAG_MCP_Server("sayhello")
+
+class Sayhello:
+    def __init__(self, mcp_inst: UltraRAG_MCP_Server):
+        mcp_inst.tool(self.greet, output="name->msg")
+        self.sen = "Nice to meet you"
+
+    def greet(self, name: str) -> Dict[str, str]:
+        ret = f"Hello, {name}! {self.sen}!"
+        app.logger.info(ret)
+        return {"msg": ret}
+
+if __name__ == "__main__":
+    Sayhello(app)
+    app.run(transport="stdio")
+```
+在此示例中，`self.sen` 用于模拟需要在不同 `Tool` 之间共享的变量。这种方式特别适用于需要加载模型、重复配置参数的场景。
+

@@ -1,0 +1,51 @@
+---
+title: "循环结构"
+icon: "rotate-right"
+---
+
+在多轮推理、多跳问答或多轮检索等任务中，单次执行流程往往无法获得理想的最终答案。此时可以使用循环结构，对特定模块进行重复执行，从而实现信息的逐步迭代与结果的持续优化。
+
+## 使用示例
+
+```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="16-28"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- loop:
+    times: 3
+    steps:
+    - prompt.gen_subq
+    - generation.generate:
+        output:
+          ans_ls: subq_ls
+    - retriever.retriever_search:
+        input:
+          query_list: subq_ls
+        output:
+          ret_psg: temp_psg
+    - custom.merge_passages
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+在循环结构中，Pipeline 使用以下关键字来定义需要重复执行的工具模块：
+
+- `loop`：声明一个循环块，表示其内部的步骤将被重复执行；
+- `times`：指定循环的最大迭代次数；
+- `steps`：定义每一轮循环中需要执行的工具调用序列。
+
+<Note>如果希望动态控制循环终止条件，可结合 分支结构（branch） 与 Router Server 使用，详见[分支结构](/pages/cn/rag_client/branch)。</Note>

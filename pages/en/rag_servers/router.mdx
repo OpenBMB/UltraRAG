@@ -1,0 +1,95 @@
+---
+title: "Router"
+icon: "code-branch"
+---
+
+<Note>本小节建议结合教程 [分支型结构](/pages/cn/rag_client/branch) 一起学习。</Note>
+
+## 作用
+
+在复杂的 RAG 推理任务 中，常常需要根据中间结果（例如模型当前的生成内容或检索结果）动态决定后续执行路径。
+Router Server 正是为此而设计的关键组件——它根据输入信息对当前状态进行判断，并返回一个自定义的分支标签（状态标识），用于驱动 Pipeline 中的分支跳转与动态控制。
+
+## 实现示例
+
+下面通过一个简单示例，展示如何实现 Router Tool。
+
+假设当前的 RAG 流程中，需要模型判断当前检索到的文档是否已包含足够信息回答问题：若信息充足则结束流程，否则继续执行检索。
+
+可以这样实现一个 Router Tool：
+
+```python servers/router/src/router.py icon="python"
+@app.tool(output="ans_ls->ans_ls")
+def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
+    def check_state(text):
+        if "<search>" in text:
+            return True
+        else:
+            return False
+    ans_ls = [
+        {
+            "data": answer,
+            "state": "continue" if check_state(answer) else "stop",
+        }
+        for answer in ans_ls
+    ]
+    return {"ans_ls": ans_ls}
+```
+    
+该 Tool 会为每条回答打上状态标签，用于引导后续流程执行：
+
+- `continue`：信息不足，需继续检索；
+- `stop`：信息已足够，可终止流程。
+
+## 调用示例
+
+定义好的 `Router Tool` 需要与分支结构 `branch:` 和 `router:` 搭配使用，共同实现基于状态标签的动态跳转。
+
+
+```yaml examples/rag_branch.yaml icon="/images/yaml.svg" highlight="9,24,26,37"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+  router: servers/router
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- loop:
+    times: 10
+    steps:
+    - prompt.check_passages
+    - generation.generate
+    - branch:
+        router:
+        - router.check_model_state
+        branches:
+          continue:
+          - prompt.gen_subq
+          - generation.generate:
+              output:
+                ans_ls: subq_ls
+          - retriever.retriever_search:
+              input:
+                query_list: subq_ls
+              output:
+                ret_psg: temp_psg
+          - custom.merge_passages
+          stop: []
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+该示例展示了一个典型的循环推理流程：
+当 `router.check_model_state` 判断模型输出包含 `<search>` 标识时，进入 `continue` 分支继续检索；
+否则进入 `stop` 分支直接结束循环。

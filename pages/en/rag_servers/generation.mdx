@@ -1,0 +1,319 @@
+---
+title: "Generation"
+icon: "pen-nib"
+---
+
+## 作用
+
+Generation Server 是 UR-2.0 中负责 调用和部署大语言模型（LLM） 的核心模块。
+它接收来自 Prompt Server 构建的输入提示（Prompt），并生成相应的输出结果。
+该模块支持 文本生成 与 图像-文本多模态生成 两种模式，可灵活适配不同任务场景（如问答、推理、总结、视觉问答等）。
+
+Generation Server 原生兼容以下主流后端：[vLLM](https://github.com/vllm-project/vllm)、[HuggingFace](https://github.com/huggingface/transformers) 
+以及 [OpenAI](https://platform.openai.com/docs/quickstart)。
+
+## 使用示例
+
+### 文本生成
+
+以下示例展示了如何使用 Generation Server 执行一个基础的文本生成任务。该流程通过 Prompt Server 构建输入提示后，调用 LLM 生成回答，并最终完成结果提取与评估。
+
+```yaml examples/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- generation.generation_init
+- prompt.qa_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build examples/vanilla_llm.yaml
+```
+
+修改参数：
+```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom: {}
+evaluation:
+  metrics:
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
+generation:
+  backend: vllm
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1
+      concurrency: 8
+      model_name: MiniCPM4-8B
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
+      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
+      trust_remote_code: true
+  sampling_params:
+    chat_template_kwargs:
+      enable_thinking: false
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: ''
+prompt:
+  template: prompt/qa_boxed.jinja
+```
+
+运行 Pipeline：
+```shell
+ultrarag run examples/vanilla_llm.yaml
+```
+
+### 多模态推理
+
+在多模态场景下，Generation Server 不仅可以处理文本输入，还能结合图像等视觉信息完成更复杂的推理任务。下面通过一个示例展示如何实现。
+
+我们先准备一个示例数据集（包含图像路径）：
+
+```json data/test.jsonl icon="/images/json.svg"
+{"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "image":["image/page_0.jpg"],"meta_data": {}}
+```
+
+在进行多模态生成前，需要在 Benchmark Server 的 `get_data` 函数中新增字段 `multimodal_path`，
+用于指定图像输入路径。
+<Note>如何新增字段请参考[新增加载数据集字段](/pages/cn/rag_servers/benchmark)。</Note>
+
+```yaml examples/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- generation.generation_init
+- prompt.qa_boxed
+- generation.multimodal_generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build examples/vanilla_vlm.yaml
+```
+
+修改参数：
+```yaml examples/parameters/vanilla_vlm_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+      multimodal_path: image # [!code ++]
+    limit: -1
+    name: nq # [!code --]
+    path: data/sample_nq_10.jsonl # [!code --]
+    name: test # [!code ++]
+    path: data/test.jsonl # [!code ++]
+    seed: 42
+    shuffle: false
+custom: {}
+evaluation:
+  metrics:
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
+generation:
+  backend: vllm
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B 
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1
+      concurrency: 8
+      model_name: MiniCPM4-8B
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
+      model_name_or_path: openbmb/MiniCPM-V-4 # [!code ++]
+      trust_remote_code: true
+  sampling_params:
+    chat_template_kwargs:
+      enable_thinking: false
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: ''
+prompt:
+  template: prompt/qa_boxed.jinja
+```
+
+运行：
+```shell
+ultrarag run examples/vanilla_vlm.yaml
+```
+
+
+### 部署模型
+
+UR-2.0 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的模型都可以直接接入，无需额外适配或修改代码。
+以下示例展示如何使用 [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) 部署本地模型。
+
+**step1: 后台部署模型**
+
+推荐使用 Screen 方式后台运行，以便实时查看日志和状态。
+
+进入一个新的 Screen 会话：
+
+```shell
+screen -S llm
+```
+
+执行以下命令部署模型（以 Qwen3-8B 为例）：
+
+```shell script/vllm_serve_emb.sh
+CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
+    --served-model-name qwen3-8b \
+    --model Qwen/Qwen3-8B \
+    --trust-remote-code \
+    --host 127.0.0.1 \
+    --port 65501 \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.9 \
+    --tensor-parallel-size 2 \
+    --enforce-eager
+```
+
+出现类似以下输出，表示模型服务启动成功：
+
+```
+(APIServer pid=2811812) INFO:     Started server process [2811812]
+(APIServer pid=2811812) INFO:     Waiting for application startup.
+(APIServer pid=2811812) INFO:     Application startup complete.
+```
+
+按下 Ctrl + A + D 可退出并保持服务在后台运行。
+如需重新进入该会话，可执行：
+
+```shell
+screen -r llm
+```
+
+**Step 2：修改 Pipeline 参数**
+
+修改参数：
+```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom: {}
+evaluation:
+  metrics:
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
+generation:
+  backend: vllm # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: http://127.0.0.1:65501/v1 # [!code ++]
+      concurrency: 8
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: qwen3-8b # [!code ++]
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B 
+      trust_remote_code: true
+  sampling_params:
+    chat_template_kwargs:
+      enable_thinking: false
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: ''
+prompt:
+  template: prompt/qa_boxed.jinja
+```
+
+完成配置后，即可正常运行.

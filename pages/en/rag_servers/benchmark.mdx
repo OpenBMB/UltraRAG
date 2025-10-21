@@ -1,0 +1,104 @@
+---
+title: "Benchmark"
+icon: "chart-line"
+---
+
+## 作用
+
+Benchmark Server 用于加载评测数据集，常用于基准测试、问答任务或生成任务中的数据配置阶段。
+
+<Info>我们强烈推荐将数据预处理为`.jsonl`格式。</Info>
+
+示例数据：
+
+```json data/sample_nq_10.jsonl icon="/images/json.svg"
+{"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "meta_data": {}}
+{"id": 1, "question": "who wrote he ain't heavy he's my brother lyrics", "golden_answers": ["Bobby Scott", "Bob Russell"], "meta_data": {}}
+{"id": 2, "question": "how many seasons of the bastard executioner are there", "golden_answers": ["one", "one season"], "meta_data": {}}
+{"id": 3, "question": "when did the eagles win last super bowl", "golden_answers": ["2017"], "meta_data": {}}
+{"id": 4, "question": "who won last year's ncaa women's basketball", "golden_answers": ["South Carolina"], "meta_data": {}}
+```
+
+## 使用示例
+
+### 基本用法
+
+```yaml examples/load_data.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+```
+
+运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build examples/load_data.yaml
+```
+
+根据实际情况修改相应字段：
+
+```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+```
+运行以下命令执行该 Pipeline：
+
+```shell
+ultrarag run examples/load_data.yaml
+```
+
+运行完成后，系统将自动加载并输出数据样本信息，为后续的检索与生成任务提供输入支持。
+
+### 新增加载数据集字段
+
+在某些情况下，我们可能不仅需要加载 `query` 与 `ground_truth` 字段，还希望使用数据集中的其他信息，如已检索的 `passage`。
+此时，可以通过修改 Benchmark Server 的代码，新增需要返回的字段。
+
+<Note>你可以用相同方式扩展其他字段（例如 cot、retrieved_passages 等），只需在装饰器输出与 key_map 中同步添加对应键名即可。</Note>
+<Check>如果你有生成好的结果（如 pred 字段），可以配合 [Evaluation Server](/pages/cn/rag_servers/evaluation) 一同使用，实现快速评估。</Check>
+
+以下示例演示如何在 `get_data` 函数中新增 `id_ls` 字段：
+```python servers/prompt/src/benchmark.py icon="python"
+@app.tool(output="benchmark->q_ls,gt_ls") # [!code --]
+@app.tool(output="benchmark->q_ls,gt_ls,id_ls") # [!code ++]
+def get_data(
+    benchmark: Dict[str, Any],
+) -> Dict[str, List[Any]]:
+```
+
+然后，运行以下命令重新编译 Pipeline：
+
+```shell
+ultrarag build examples/load_data.yaml
+```
+
+在生成的参数文件中，添加字段 `id_ls` 并指定其在原始数据中的对应键名：
+
+```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+      id_ls: id  # [!code ++]
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+```
+
+完成修改后，重新运行 Pipeline 即可加载包含 id 的数据样本。
+

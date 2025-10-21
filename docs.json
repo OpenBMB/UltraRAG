@@ -116,73 +116,66 @@
             "tab": "Documentation",
             "groups": [
               {
-                "group": "Getting Started",
+                "group": "Get Started",
                 "pages": [
                   "pages/en/getting_started/introduction",
                   "pages/en/getting_started/installation",
-                  "pages/en/getting_started/quick_start"
+                  "pages/en/getting_started/quick_start",
+                  "pages/en/getting_started/update"
                 ]
               },
               {
-                "group": "Developer Guide",
+                "group": "RAG Servers",
                 "pages": [
+                  "pages/en/rag_servers/overview",
                   {
-                    "group": "RAG Component Development Guide",
-                    "icon": "compass",
+                    "group": "核心模块",
+                    "icon": "gears",
                     "pages": [
-                      "pages/en/tutorials/part_1/server_index",
-                      "pages/en/tutorials/part_1/benchmark",
-                      "pages/en/tutorials/part_1/retriever",
-                      "pages/en/tutorials/part_1/prompt",
-                      "pages/en/tutorials/part_1/generation",
-                      "pages/en/tutorials/part_1/evaluation",
-                      "pages/en/tutorials/part_1/router",
-                      "pages/en/tutorials/part_1/custom"
-                    ]
-                  },
-                  {
-                    "group": "Mastering RAG Inference Flow",
-                    "icon": "share-nodes",
-                    "pages": [
-                      "pages/en/tutorials/part_2/pipeline",
-                      "pages/en/tutorials/part_2/serial",
-                      "pages/en/tutorials/part_2/loop",
-                      "pages/en/tutorials/part_2/branch",
-                      "pages/en/tutorials/part_2/data_and_params"
-                    ]
-                  },
-                  {
-                    "group": "Data Construction and Baseline Reproduction",
-                    "icon": "database",
-                    "pages": [
-                      "pages/en/tutorials/part_3/prepare_dataset",
-                      "pages/en/tutorials/part_3/emb_and_index",
-                      "pages/en/tutorials/part_3/reproduction"
-                    ]
-                  },
-                  {
-                    "group": "Advanced Development and Deployment Guide",
-                    "icon": "code",
-                    "pages": [
-                      "pages/en/tutorials/part_4/debug",
-                      "pages/en/tutorials/part_4/deploy_retriever_serve",
-                      "pages/en/tutorials/part_4/multi_agent",
-                      "pages/en/tutorials/part_4/memory",
-                      "pages/en/tutorials/part_4/case_study"
-                    ]
-                  },
-                  {
-                    "group": "UltraRAG Development Practice",
-                    "icon": "screwdriver-wrench",
-                    "pages": [
-                      "pages/en/tutorials/part_5/series",
-                      "pages/en/tutorials/part_5/loop",
-                      "pages/en/tutorials/part_5/branch",
-                      "pages/en/tutorials/part_5/memory",
-                      "pages/en/tutorials/part_5/alias",
-                      "pages/en/tutorials/part_5/deep_research"
+                      "pages/en/rag_servers/corpus",
+                      "pages/en/rag_servers/benchmark",
+                      "pages/en/rag_servers/retriever",
+                      "pages/en/rag_servers/reranker",
+                      "pages/en/rag_servers/prompt",
+                      "pages/en/rag_servers/generation",
+                      "pages/en/rag_servers/evaluation",
+                      "pages/en/rag_servers/router",
+                      "pages/en/rag_servers/custom"
                     ]
                   }
+                ]
+              },
+              {
+                "group": "RAG Client",
+                "pages": [
+                  "pages/en/rag_client/pipeline",
+                  "pages/en/rag_client/serial",
+                  "pages/en/rag_client/loop",
+                  "pages/en/rag_client/branch",
+                  "pages/en/rag_client/data_and_params",
+                  "pages/en/rag_client/multi_agents"
+                ]
+              },
+              {
+                "group": "Develop Guide",
+                "pages": [
+                  "pages/en/develop_guide/debug",
+                  "pages/en/develop_guide/case_study",
+                  "pages/en/develop_guide/dataset",
+                  "pages/en/develop_guide/parallel"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "Demo",
+            "groups": [
+              {
+                "group": "Pipeline",
+                "pages": [
+                  "pages/en/pipeline/rag",
+                  "pages/en/pipeline/light_deepresearch",
+                  "pages/en/pipeline/visrag"
                 ]
               }
             ]
@@ -193,10 +186,18 @@
               {
                 "group": "RAG Servers",
                 "pages": [
+                  "pages/en/api/corpus",
                   "pages/en/api/benchmark",
                   "pages/en/api/retriever",
+                  "pages/en/api/reranker",
                   "pages/en/api/generation",
                   "pages/en/api/evaluation"
+                ]
+              },
+              {
+                "group": "CLI",
+                "pages": [
+                  "pages/en/api/cli"
                 ]
               }
             ]
@@ -210,10 +211,6 @@
       {
         "label": "Project",
         "href": "https://openbmb.github.io/UltraRAG/"
-      },
-      {
-        "label": "Datasets",
-        "href": "https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark"
       }
     ],
     "primary": {

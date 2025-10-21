@@ -1,0 +1,309 @@
+---
+title: "VisRAG"
+icon: "eyes"
+---
+
+## 简介 
+在日常使用中，我们常常遇到这样的场景：购买了新设备，却不清楚某些功能如何设置，
+而翻阅说明书既耗时又低效。此时，如果有一个智能助手能直接回答问题，将极大提升体验。
+
+
+例如，某位用户购买了 尼康 Z7 相机，想了解其“电子减震功能在哪些场景不可用”。
+直接询问 LLM 得到的回答如下：
+
+```
+尼康Z7的电子减震功能主要用于在拍摄静物、人像等需要稳定画面的场景中提供帮助。然而，在某些特定场景下，电子减震功能是不可用的。根
+
+据尼康官方文档和常见使用场景，电子减震功能在以下情况下不可用：
+
+1. 拍摄运动物体：由于电子减震功能会根据相机的移动调整快门速度，因此当拍摄运动物体时，电子减震功能会变得不稳定，无法正常工作。
+
+2. 使用长时间曝光：在长时间曝光拍摄时，相机的抖动会变得明显，电子减震功能无法有效补偿这种抖动。
+
+3. 使用低光环境下的长曝光：在低光环境下拍摄长曝光时，相机的抖动会更加明显，电子减震功能无法有效补偿这种抖动。
+
+因此，尼康Z7的电子减震功能在拍摄运动物体、使用长时间曝光、使用低光环境下的长曝光等场景下是不可用的。
+```
+可以看到，模型虽然能生成语义流畅的回答，但由于缺乏真实文档支撑，往往会出现“似是而非”的结果。
+
+为了解决这一问题，UR-2.0 基于 [VisRAG](https://arxiv.org/abs/2410.10594) 实现了一种多模态检索增强 Pipeline。
+它不再依赖繁琐的文本解析，而是直接将“相关文档的截图”输入给视觉语言模型，从而实现基于视觉语义的真实文档问答。
+
+## 构建个人知识库
+
+以“尼康使用说明书”为例。你可以 [点击此处下载](https://download.nikonimglib.com/archive4/ywJ4K00fa2Lr05vv5OS00pV5Hg36/Z7Z6UM_TH(Sc)07.pdf) PDF 文件。
+
+我们使用 UR-2.0 的 Corpus Server 将该 PDF 直接转换为图像语料库：
+
+```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.build_image_corpus
+```
+
+执行以下命令：
+
+```shell
+ultrarag build examples/build_image_corpus.yaml
+```
+
+修改参数如下：
+
+```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+corpus:
+  image_corpus_save_path: corpora/image.jsonl
+  parse_file_path: data/UltraRAG.pdf # [!code --]
+  parse_file_path: data/nikon.pdf # [!code ++]
+```
+
+运行 Pipeline：
+```shell
+ultrarag run examples/build_image_corpus.yaml
+```
+
+执行完成后，将自动生成图像语料文件：
+```json corpora/image.jsonl icon="/images/json.svg"
+{"id": 0, "image_id": "nikon/page_0.jpg", "image_path": "image/nikon/page_0.jpg"}
+{"id": 1, "image_id": "nikon/page_1.jpg", "image_path": "image/nikon/page_1.jpg"}
+{"id": 2, "image_id": "nikon/page_2.jpg", "image_path": "image/nikon/page_2.jpg"}
+{"id": 3, "image_id": "nikon/page_3.jpg", "image_path": "image/nikon/page_3.jpg"}
+...
+```
+
+接下来，使用 Retriever Server 对图像语料进行向量化编码与索引：
+
+```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  retriever: servers/retriever
+
+# MCP Client Pipeline
+pipeline:
+- retriever.retriever_init
+- retriever.retriever_embed
+- retriever.retriever_index
+```
+
+执行以下命令：
+
+```shell
+ultrarag build examples/corpus_index.yaml
+```
+
+修改参数：
+
+```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
+retriever:
+  backend: sentence_transformers
+  backend_configs:
+    bm25:
+      lang: en
+    infinity:
+      bettertransformer: false
+      device: cuda
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_url: https://api.openai.com/v1
+      model_name: text-embedding-3-small
+    sentence_transformers:
+      device: cuda
+      sentence_transformers_encode:
+        encode_chunk_size: 10000
+        normalize_embeddings: false
+        psg_prompt_name: document # [!code --]
+        psg_task: null # [!code --]
+        q_prompt_name: query # [!code --]
+        q_task: null # [!code --]
+        psg_prompt_name: null # [!code ++]
+        psg_task: retrieval # [!code ++]
+        q_prompt_name: query # [!code ++]
+        q_task: retrieval # [!code ++]
+      trust_remote_code: true
+  batch_size: 16
+  corpus_path: data/corpus_example.jsonl # [!code --]
+  corpus_path: corpora/image.jsonl # [!code ++]
+  embedding_path: embedding/embedding.npy
+  faiss_use_gpu: true
+  gpu_ids: 0,1 # [!code --]
+  gpu_ids: 1 # [!code ++]
+  index_chunk_size: 50000
+  index_path: index/index.index
+  is_multimodal: false # [!code --]
+  is_multimodal: true # [!code ++]
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
+  model_name_or_path: jinaai/jina-embeddings-v4 # [!code ++]
+  overwrite: false
+```
+
+运行索引构建：
+```shell
+ultrarag run examples/corpus_index.yaml
+```
+
+## VisRAG
+
+准备用户查询文件：
+
+```json data/test.jsonl icon="/images/json.svg"
+{"id": 0, "question": "尼康Z7的电子减震功能在哪些场景不可用？", "golden_answers": [], "meta_data": {}}
+```
+
+定义 VisRAG Pipeline：
+```yaml examples/visrag.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_boxed
+- generation.multimodal_generate:
+    input:
+      multimodal_path: ret_psg
+```
+
+执行以下命令：
+
+```shell
+ultrarag build examples/visrag.yaml
+```
+
+修改参数：
+
+```yaml examples/parameters/visrag_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq # [!code --]
+    path: data/sample_nq_10.jsonl # [!code --]
+    name: test # [!code ++]
+    path: data/test.jsonl # [!code ++]
+    seed: 42
+    shuffle: false
+generation:
+  backend: vllm
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1
+      concurrency: 8
+      model_name: MiniCPM4-8B
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
+      model_name_or_path: /mnt1/haidong1/model/MiniCPM-V-4/ # [!code ++]
+      trust_remote_code: true
+  sampling_params:
+    chat_template_kwargs:
+      enable_thinking: false
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: ''
+prompt:
+  template: prompt/qa_boxed.jinja # [!code --]
+  template: prompt/visrag.jinja # [!code ++]
+retriever:
+  backend: sentence_transformers
+  backend_configs:
+    bm25:
+      lang: en
+    infinity:
+      bettertransformer: false
+      device: cuda
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_url: https://api.openai.com/v1
+      model_name: text-embedding-3-small
+    sentence_transformers:
+      device: cuda
+      sentence_transformers_encode:
+        encode_chunk_size: 10000
+        normalize_embeddings: false
+        psg_prompt_name: document # [!code --]
+        psg_task: null # [!code --]
+        q_prompt_name: query # [!code --]
+        q_task: null # [!code --]
+        psg_prompt_name: null # [!code ++]
+        psg_task: retrieval # [!code ++]
+        q_prompt_name: query # [!code ++]
+        q_task: retrieval # [!code ++]
+      trust_remote_code: true
+  batch_size: 16 
+  corpus_path: data/corpus_example.jsonl # [!code --]
+  corpus_path: corpora/image.jsonl # [!code ++]
+  faiss_use_gpu: true
+  gpu_ids: 0,1 # [!code --]
+  gpu_ids: 1 # [!code ++]
+  index_path: index/index.index
+  is_multimodal: false # [!code --]
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
+  is_multimodal: true # [!code ++]
+  model_name_or_path: /mnt1/haidong1/model/jina-embeddings-v4/ # [!code ++]
+  query_instruction: ''
+  top_k: 5
+
+```
+
+运行该Pipeline：
+```shell
+ultrarag run examples/visrag.yaml
+```
+
+执行以下命令启动 Case Study Viewer：
+
+```shell
+python ./script/case_study.py \
+  --data output/memory_test_visrag_20251015_163425.json \
+  --host 127.0.0.1 \
+  --port 8070 \
+  --title "Case Study Viewer"
+```
+
+系统会自动展示检索到的说明书页面截图：
+![](/images/pipeline/visrag_result.png)
+
+模型生成的回答将基于真实图像内容，示例如下：
+
+```
+尼康Z7的电子减震功能在以下场景不可用：
+
+1. 画面尺寸为1920×1080时。
+
+2. 120p、1920×1080、100p或1920×1080（慢动作）时。
+
+这些信息可以从图像中的文字部分找到，具体位于描述尼康Z7电子减震功能的段落中。
+```
+
+通过视觉语义增强，系统能更准确地回答用户问题，尤其适用于说明书、教材、报表等多模态场景。

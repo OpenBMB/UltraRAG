@@ -1,0 +1,41 @@
+---
+title: "串型结构"
+icon: "arrow-right-arrow-left"
+---
+
+串型结构 是 Pipeline 中最基础、也最常用的执行方式。多个步骤按顺序依次执行，前一步的输出（若有）可以作为下一步的输入，也可以独立执行。构建一个标准的 RAG 工作流通常仅依靠串型结构即可完成，从数据加载到结果评估都能清晰衔接。
+
+## 使用示例
+
+```yaml examples/rag.yaml icon="/images/yaml.svg"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+在串型结构中，Pipeline 的每一行都表示一次对某个 Tool 的调用，其基本语法为：
+
+```yaml
+- server_name.tool_name
+```
+
+- `server_name`：调用的模块名称，必须在 servers 部分中提前声明；
+- `tool_name`：该模块中通过 @tool(...) 或 @prompt(...) 装饰器注册的函数名称。
+
+这种结构适用于大多数单轮问答或推理任务，也是理解更复杂流程（如循环、分支）前的基础。

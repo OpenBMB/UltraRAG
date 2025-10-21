@@ -1,0 +1,168 @@
+---
+title: "Corpus"
+icon: "file"
+---
+
+
+## `build_text_corpus`
+
+**签名**  
+```python
+@app.tool(output="parse_file_path,text_corpus_save_path->None")
+async def build_text_corpus(parse_file_path: str, text_corpus_save_path: str) -> None
+```
+
+**功能**  
+- 支持 **.txt / .md**；以及 **.pdf / .xps / .oxps / .epub / .mobi / .fb2**（经 `pymupdf` 纯文本抽取）。
+- 目录模式下会递归处理。
+
+**输出格式（JSONL）**  
+```json
+{"id": "<stem>", "title": "<stem>", "contents": "<全文文本>"}
+```
+---
+
+## `build_image_corpus`
+
+**签名**  
+```python
+@app.tool(output="parse_file_path,image_corpus_save_path->None")
+async def build_image_corpus(parse_file_path: str, image_corpus_save_path: str) -> None
+```
+
+**功能**  
+- **仅支持 PDF**：以 144DPI 渲染每页为 JPG（RGB），并校验文件有效性。  
+- 目录模式下会递归处理。
+
+**输出索引（JSONL）**  
+```json
+{"id": 0, "image_id": "paper/page_0.jpg", "image_path": "image/paper/page_0.jpg"}
+```
+---
+
+## `mineru_parse`
+
+**签名**  
+```python
+@app.tool(output="parse_file_path,mineru_dir,mineru_extra_params->None")
+async def mineru_parse(parse_file_path: str, mineru_dir: str, mineru_extra_params: Optional[Dict[str, Any]] = None) -> None
+```
+
+**功能**  
+- 调用 CLI `mineru` 对 PDF/目录进行结构化解析，输出到 `mineru_dir`。  
+
+---
+
+## `build_mineru_corpus`
+
+**签名**  
+```python
+@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
+async def build_mineru_corpus(mineru_dir: str, parse_file_path: str, text_corpus_save_path: str, image_corpus_save_path: str) -> None
+```
+
+**功能**  
+- 汇总 MinerU 解析产物为 **文本语料 JSONL** 与 **图片索引 JSONL**。  
+
+
+**输出格式（JSONL）**  
+- 文本：
+```json
+{"id": "<stem>", "title": "<stem>", "contents": "<markdown全文>"}
+```
+- 图片：
+```json
+{"id": 0, "image_id": "paper/page_0.jpg", "image_path": "images/paper/page_0.jpg"}
+```
+---
+
+## `chunk_documents`
+
+**签名**  
+```python
+@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
+async def chunk_documents(
+  raw_chunk_path: str,
+  chunk_backend_configs: Dict[str, Any],
+  chunk_backend: str = "token",
+  chunk_path: Optional[str] = None,
+  use_title: bool = True,
+) -> None
+```
+
+**功能**  
+- 将输入文本语料（JSONL，含 `id/title/contents`）按所选后端切分为段落块：支持 `token` / `sentence` / `recursive`。  
+- 可选在每个块首部附加文档标题（`use_title`）。  
+
+**输出格式（JSONL）**  
+```json
+{"id": 0, "doc_id": "paper", "title": "paper", "contents": "切块后的文本"}
+```
+
+---
+
+## 参数配置
+
+```yaml servers/corpus/parameter.yaml icon="/images/yaml.svg"
+parse_file_path: data/UltraRAG.pdf
+text_corpus_save_path: corpora/text.jsonl
+image_corpus_save_path: corpora/image.jsonl
+
+# mineru
+mineru_dir: corpora/
+mineru_extra_params:
+  source: modelscope
+
+# chunking parameters
+raw_chunk_path: corpora/text.jsonl
+chunk_path: corpora/chunks.jsonl
+use_title: false
+chunk_backend: token # choices=["token", "sentence", "recursive"]
+chunk_backend_configs:
+  token:
+    tokenizer_or_token_counter: gpt2
+    chunk_size: 256
+    chunk_overlap: 50
+  sentence:
+    tokenizer_or_token_counter: character
+    chunk_size: 256
+    chunk_overlap: 50
+    min_sentences_per_chunk: 1
+    delim: "['.', '!', '?', '\\n']"
+  recursive:
+    tokenizer_or_token_counter: character
+    chunk_size: 256
+    min_characters_per_chunk: 12
+```
+
+参数说明：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `parse_file_path` | str | 输入文件或目录路径，支持文本或 PDF |
+| `text_corpus_save_path` | str | 文本语料输出路径（JSONL） |
+| `image_corpus_save_path` | str | 图片语料索引输出路径（JSONL） |
+| `mineru_dir` | str | MinerU 输出根目录 |
+| `mineru_extra_params` | dict | MinerU 额外参数，如 `source`、`layout` 等 |
+| `raw_chunk_path` | str | 切块输入文件路径 |
+| `chunk_path` | str | 切块输出路径 |
+| `use_title` | bool | 是否在每个切块开头附加文档标题 |
+| `chunk_backend` | str | 选择切块方式：`token`、`sentence`、`recursive` |
+| `chunk_backend_configs` | dict | 各切块方法的配置项（见下） |
+
+`chunk_backend_configs` 详细参数：
+
+| 后端类型 | 参数 | 说明 |
+|-----------|------|------|
+| **token** | `tokenizer_or_token_counter` | tiktoken 名称或 “word”“character” |
+|  | `chunk_size` | 每个块的最大 token 数 |
+|  | `chunk_overlap` | 块间重叠 token 数 |
+| **sentence** | `tokenizer_or_token_counter` | 同上 |
+|  | `chunk_size` | 每块最大 token 数 |
+|  | `chunk_overlap` | 块间重叠 |
+|  | `min_sentences_per_chunk` | 每块最少句子数 |
+|  | `delim` | 句子分隔符（支持中英文标点） |
+| **recursive** | `tokenizer_or_token_counter` | 同上 |
+|  | `chunk_size` | 每块最大 token 数 |
+|  | `min_characters_per_chunk` | 每块最少字符数 |
+

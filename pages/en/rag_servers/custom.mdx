@@ -1,0 +1,81 @@
+---
+title: "Custom"
+icon: "puzzle-piece"
+---
+
+## 作用
+
+Custom Server 用于存放那些无法归入标准模块（如 Retriever、Generation、Evaluation 等）的自定义工具函数。
+它为开发者提供了一个灵活的扩展空间，可用于实现各种与核心 RAG 模块配合的逻辑组件，例如：
+- 数据清洗与预处理
+- 关键词提取或特征构造
+- 特定任务逻辑（如答案抽取、格式化、过滤等）
+
+<Note>Custom Server 是你的自由工具箱——任何不属于核心 Server 的功能逻辑，都可以在这里定义与复用。</Note>
+
+## 实现示例
+
+下面以一个常见示例 output_extract_from_boxed 为例，展示如何自定义并注册一个 Tool。
+
+```python servers/custom/src/custom.py icon="python"
+@app.tool(output="ans_ls->pred_ls")
+def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]:
+    def extract(ans: str) -> str:
+        start = ans.rfind(r"\boxed{")
+        if start == -1:
+            content = ans.strip()
+        else:
+            i = start + len(r"\boxed{")
+            brace_level = 1
+            end = i
+            while end < len(ans) and brace_level > 0:
+                if ans[end] == "{":
+                    brace_level += 1
+                elif ans[end] == "}":
+                    brace_level -= 1
+                end += 1
+            content = ans[i : end - 1].strip()
+            content = re.sub(r"^\$+|\$+$", "", content).strip()
+            content = re.sub(r"^\\\(|\\\)$", "", content).strip()
+            if content.startswith(r"\text{") and content.endswith("}"):
+                content = content[len(r"\text{") : -1].strip()
+            content = content.strip("()").strip()
+
+        content = content.replace("\\", " ")
+        content = content.replace("  ", " ")
+        return content
+
+    return {"pred_ls": [extract(ans) for ans in ans_ls]}
+```
+
+该工具的功能是从模型输出字符串中提取 `\boxed{...}` 格式的最终答案文本，
+输出结果会映射到变量 `pred_ls`，供下游评测或后处理模块使用。
+
+## 调用示例
+定义好自定义工具后，只需在 Pipeline 中注册 custom 模块并调用对应的 Tool 即可：
+
+```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="8,20"
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_embed
+- retriever.retriever_index
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+在此示例中，custom.output_extract_from_boxed 被用于从模型输出中提取标准化答案，
+随后交由 evaluation.evaluate 进行评测。
