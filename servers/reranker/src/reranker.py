@@ -3,10 +3,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 import aiohttp
-import requests
 from tqdm import tqdm
-from infinity_emb import AsyncEngineArray, EngineArgs
-from infinity_emb.log_handler import LOG_LEVELS, logger
 
 from ultrarag.server import UltraRAG_MCP_Server
 

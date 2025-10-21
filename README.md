@@ -116,28 +116,53 @@ pip install -e .
 【可选】UR-2.0支持丰富的Server组件，开发者可根据实际任务灵活安装所需依赖：
 
 ```shell
-# 如需使用faiss进行向量索引：
-# 需要根据自己的硬件环境，手动编译安装 CPU 或 GPU 版本的 FAISS：
+# Retriever/Reranker Server依赖：
+# infinity
+uv pip install infinity_emb
+# sentence_transformers
+uv pip install sentence_transformers
+# openai
+uv pip install openai
+# bm25
+uv pip install bm25s
+# faiss（需要根据自己的硬件环境，手动编译安装 CPU 或 GPU 版本的 FAISS）
 # CPU版本：
 uv pip install faiss-cpu
 # GPU 版本（示例：CUDA 12.x）
 uv pip install faiss-gpu-cu12
 # 其他 CUDA 版本请安装对应的包（例如：CUDA 11.x 使用 faiss-gpu-cu11）
+# websearch
+# exa
+uv pip install exa_py
+# tavily
+uv pip install tavily-python
+# 一键安装：
+uv pip install -e ".[retriever]"
 
-# 如需使用infinity_emb进行语料库编码和索引：
-uv pip install -e ".[infinity_emb]"
+# Generation Server依赖：
+# vllm
+uv pip install vllm
+# openai
+uv pip install openai
+# hf
+uv pip install transformers
+# 一键安装：
+uv pip install -e ".[generation]"
 
-# 如需使用lancedb向量数据库：
-uv pip install -e ".[lancedb]"
-
-# 如需使用vLLM服务部署模型：
-uv pip install -e ".[vllm]"
-
-# 如需使用语料库文档解析功能：
+# Corpus Server依赖：
+# chonkie
+uv pip install chonkie
+# pymupdf
+uv pip install pymupdf
+# mineru
+uv pip install "mineru[core]"
+# 一键安装：
 uv pip install -e ".[corpus]"
 
-# ====== 安装所有依赖（除faiss） ======
+# 安装所有依赖：
 uv pip install -e ".[all]"
+# 或使用conda导入环境：
+conda env create -f environment.yml
 ```
 
 运行以下命令验证安装是否成功：
@@ -159,13 +184,13 @@ cd UltraRAG
 构建镜像：
 
 ```shell
-docker build -t ultrarag:v2.0.0-beta .
+docker build -t ultrarag:v0.2.1 .
 ```
 
 运行交互环境：
 
 ```shell
-docker run -it --rm --gpus all ultrarag:v2.0.0-beta bash
+docker run -it --rm --gpus all ultrarag:v0.2.1 bash
 ```
 
 运行以下命令验证安装是否成功：
