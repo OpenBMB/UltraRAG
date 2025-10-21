@@ -1,5 +1,161 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-20
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.17795v1">Executable Knowledge Graphs for Replicating AI Research</a></td><td><details><summary>展开</summary>Replicating AI research is a crucial yet challenging task for large language
+model (LLM) agents. Existing approaches often struggle to generate executable
+code, primarily due to insufficient background knowledge and the limitations of
+retrieval-augmented generation (RAG) methods, which fail to capture latent
+technical details hidden in referenced papers. Furthermore, previous approaches
+tend to overlook valuable implementation-level code signals and lack structured
+knowledge representations that support multi-granular retrieval and reuse. To
+overcome these challenges, we propose Executable Knowledge Graphs (xKG), a
+modular and pluggable knowledge base that automatically integrates technical
+insights, code snippets, and domain-specific knowledge extracted from
+scientific literature. When integrated into three agent frameworks with two
+different LLMs, xKG shows substantial performance gains (10.9% with o3-mini) on
+PaperBench, demonstrating its effectiveness as a general and extensible
+solution for automated AI research replication. Code will released at
+https://github.com/zjunlp/xKG.</details></td><td><details><summary>展开</summary>本文提出了一种名为Executable Knowledge Graphs（xKG）的可插拔知识库，用于解决现有检索增强生成（RAG）方法在复制AI研究时难以生成可执行代码的问题。xKG通过整合科学文献中的技术细节、代码片段和领域知识，显著提升了大型语言模型代理在自动化AI研究复现中的性能表现。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17733v1">Train for Truth, Keep the Skills: Binary Retrieval-Augmented Reward Mitigates Hallucinations</a></td><td><details><summary>展开</summary>Language models often generate factually incorrect information unsupported by
+their training data, a phenomenon known as extrinsic hallucination. Existing
+mitigation approaches often degrade performance on open-ended generation and
+downstream tasks, limiting their practical utility. We propose an online
+reinforcement learning method using a novel binary retrieval-augmented reward
+(RAR) to address this tradeoff. Unlike continuous reward schemes, our approach
+assigns a reward of one only when the model's output is entirely factually
+correct, and zero otherwise. We evaluate our method on Qwen3 reasoning models
+across diverse tasks. For open-ended generation, binary RAR achieves a 39.3%
+reduction in hallucination rates, substantially outperforming both supervised
+training and continuous-reward RL baselines. In short-form question answering,
+the model learns calibrated abstention, strategically outputting "I don't know"
+when faced with insufficient parametric knowledge. This yields 44.4% and 21.7%
+fewer incorrect answers on PopQA and GPQA, respectively. Crucially, these
+factuality gains come without performance degradation on instruction following,
+math, or code, whereas continuous-reward RL, despite improving factuality,
+induces quality regressions.</details></td><td><details><summary>展开</summary>该论文提出了一种基于强化学习的检索增强奖励（RAR）方法，通过二元奖励机制（输出完全正确时奖励为1，否则为0）减少语言模型的外源性幻觉问题。实验表明，该方法在开放生成任务中显著降低幻觉率，并能在问答任务中实现策略性“未知”回答，同时保持指令遵循、数学和代码等任务的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17590v1">MIRAGE: Agentic Framework for Multimodal Misinformation Detection with Web-Grounded Reasoning</a></td><td><details><summary>展开</summary>Misinformation spreads across web platforms through billions of daily
+multimodal posts that combine text and images, overwhelming manual
+fact-checking capacity. Supervised detection models require domain-specific
+training data and fail to generalize across diverse manipulation tactics. We
+present MIRAGE, an inference-time, model-pluggable agentic framework that
+decomposes multimodal verification into four sequential modules: visual
+veracity assessment detects AI-generated images, cross-modal consistency
+analysis identifies out-of-context repurposing, retrieval-augmented factual
+checking grounds claims in web evidence through iterative question generation,
+and a calibrated judgment module integrates all signals. MIRAGE orchestrates
+vision-language model reasoning with targeted web retrieval, outputs structured
+and citation-linked rationales. On MMFakeBench validation set (1,000 samples),
+MIRAGE with GPT-4o-mini achieves 81.65% F1 and 75.1% accuracy, outperforming
+the strongest zero-shot baseline (GPT-4V with MMD-Agent at 74.0% F1) by 7.65
+points while maintaining 34.3% false positive rate versus 97.3% for a
+judge-only baseline. Test set results (5,000 samples) confirm generalization
+with 81.44% F1 and 75.08% accuracy. Ablation studies show visual verification
+contributes 5.18 F1 points and retrieval-augmented reasoning contributes 2.97
+points. Our results demonstrate that decomposed agentic reasoning with web
+retrieval can match supervised detector performance without domain-specific
+training, enabling misinformation detection across modalities where labeled
+data remains scarce.</details></td><td><details><summary>展开</summary>这篇文章提出了MIRAGE框架，通过多模态验证和检索增强的事实核查（retrieval-augmented factual checking）来检测网络上的错误信息，利用检索到的网络证据增强生成模型（如GPT-4o-mini）的推理能力，显著提升了检测准确性并生成结构化解释。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17476v1">Disparities in Multilingual LLM-Based Healthcare Q&A</a></td><td><details><summary>展开</summary>Equitable access to reliable health information is vital when integrating AI
+into healthcare. Yet, information quality varies across languages, raising
+concerns about the reliability and consistency of multilingual Large Language
+Models (LLMs). We systematically examine cross-lingual disparities in
+pre-training source and factuality alignment in LLM answers for multilingual
+healthcare Q&A across English, German, Turkish, Chinese (Mandarin), and
+Italian. We (i) constructed Multilingual Wiki Health Care
+(MultiWikiHealthCare), a multilingual dataset from Wikipedia; (ii) analyzed
+cross-lingual healthcare coverage; (iii) assessed LLM response alignment with
+these references; and (iv) conducted a case study on factual alignment through
+the use of contextual information and Retrieval-Augmented Generation (RAG). Our
+findings reveal substantial cross-lingual disparities in both Wikipedia
+coverage and LLM factual alignment. Across LLMs, responses align more with
+English Wikipedia, even when the prompts are non-English. Providing contextual
+excerpts from non-English Wikipedia at inference time effectively shifts
+factual alignment toward culturally relevant knowledge. These results highlight
+practical pathways for building more equitable, multilingual AI systems for
+healthcare.</details></td><td><details><summary>展开</summary>这篇论文研究了多语言大语言模型（LLMs）在医疗问答中的事实准确性及其与维基百科预训练数据的跨语言差异，并通过构建多语言数据集（MultiWikiHealthCare）和引入检索增强生成（RAG）技术，验证了上下文信息能有效提升非英语回答的文化相关性与事实对齐，从而推动更公平的多语言医疗AI系统发展。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17354v1">Towards Mixed-Modal Retrieval for Universal Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as a powerful paradigm for
+enhancing large language models (LLMs) by retrieving relevant documents from an
+external corpus. However, existing RAG systems primarily focus on unimodal text
+documents, and often fall short in real-world scenarios where both queries and
+documents may contain mixed modalities (such as text and images). In this
+paper, we address the challenge of Universal Retrieval-Augmented Generation
+(URAG), which involves retrieving and reasoning over mixed-modal information to
+improve vision-language generation. To this end, we propose Nyx, a unified
+mixed-modal to mixed-modal retriever tailored for URAG scenarios. To mitigate
+the scarcity of realistic mixed-modal data, we introduce a four-stage automated
+pipeline for generation and filtering, leveraging web documents to construct
+NyxQA, a dataset comprising diverse mixed-modal question-answer pairs that
+better reflect real-world information needs. Building on this high-quality
+dataset, we adopt a two-stage training framework for Nyx: we first perform
+pre-training on NyxQA along with a variety of open-source retrieval datasets,
+followed by supervised fine-tuning using feedback from downstream
+vision-language models (VLMs) to align retrieval outputs with generative
+preferences. Experimental results demonstrate that Nyx not only performs
+competitively on standard text-only RAG benchmarks, but also excels in the more
+general and realistic URAG setting, significantly improving generation quality
+in vision-language tasks.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Nyx的统一混合模态检索器，用于解决通用检索增强生成（URAG）中多模态（如文本和图像）信息的检索与推理问题，并通过自动构建数据集和改进训练框架，显著提升了视觉语言任务的生成质量。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17309v1">RubiSCoT: A Framework for AI-Supported Academic Assessment</a></td><td><details><summary>展开</summary>The evaluation of academic theses is a cornerstone of higher education,
+ensuring rigor and integrity. Traditional methods, though effective, are
+time-consuming and subject to evaluator variability. This paper presents
+RubiSCoT, an AI-supported framework designed to enhance thesis evaluation from
+proposal to final submission. Using advanced natural language processing
+techniques, including large language models, retrieval-augmented generation,
+and structured chain-of-thought prompting, RubiSCoT offers a consistent,
+scalable solution. The framework includes preliminary assessments,
+multidimensional assessments, content extraction, rubric-based scoring, and
+detailed reporting. We present the design and implementation of RubiSCoT,
+discussing its potential to optimize academic assessment processes through
+consistent, scalable, and transparent evaluation.</details></td><td><details><summary>展开</summary>该论文介绍了RubiSCoT框架，利用大语言模型、检索增强生成（RAG）和思维链提示等技术，通过自然语言处理提升学术论文评估的效率和一致性，涵盖从提案到终稿的全流程自动化评分与报告功能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17301v1">Comprehending Spatio-temporal Data via Cinematic Storytelling using Large Language Models</a></td><td><details><summary>展开</summary>Spatio-temporal data captures complex dynamics across both space and time,
+yet traditional visualizations are complex, require domain expertise and often
+fail to resonate with broader audiences. Here, we propose MapMuse, a
+storytelling-based framework for interpreting spatio-temporal datasets,
+transforming them into compelling, narrative-driven experiences. We utilize
+large language models and employ retrieval augmented generation (RAG) and
+agent-based techniques to generate comprehensive stories. Drawing on principles
+common in cinematic storytelling, we emphasize clarity, emotional connection,
+and audience-centric design. As a case study, we analyze a dataset of taxi
+trajectories. Two perspectives are presented: a captivating story based on a
+heat map that visualizes millions of taxi trip endpoints to uncover urban
+mobility patterns; and a detailed narrative following a single long taxi
+journey, enriched with city landmarks and temporal shifts. By portraying
+locations as characters and movement as plot, we argue that data storytelling
+drives insight, engagement, and action from spatio-temporal information. The
+case study illustrates how MapMuse can bridge the gap between data complexity
+and human understanding. The aim of this short paper is to provide a glimpse to
+the potential of the cinematic storytelling technique as an effective
+communication tool for spatio-temporal data, as well as to describe open
+problems and opportunities for future research.</details></td><td><details><summary>展开</summary>这篇论文介绍了MapMuse，一个基于叙事的数据可视化框架，通过结合大型语言模型、检索增强生成（RAG）和智能体技术，将复杂的时空数据（如出租车轨迹）转化为引人入胜的故事，强调情感连接和观众理解，旨在解决传统可视化方法的局限性并提升数据传播效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17098v1">Can Transformer Memory Be Corrupted? Investigating Cache-Side Vulnerabilities in Large Language Models</a></td><td><details><summary>展开</summary>Even when prompts and parameters are secured, transformer language models
+remain vulnerable because their key-value (KV) cache during inference
+constitutes an overlooked attack surface. This paper introduces Malicious Token
+Injection (MTI), a modular framework that systematically perturbs cached key
+vectors at selected layers and timesteps through controlled magnitude and
+frequency, using additive Gaussian noise, zeroing, and orthogonal rotations. A
+theoretical analysis quantifies how these perturbations propagate through
+attention, linking logit deviations to the Frobenius norm of corruption and
+softmax Lipschitz dynamics. Empirical results show that MTI significantly
+alters next-token distributions and downstream task performance across GPT-2
+and LLaMA-2/7B, as well as destabilizes retrieval-augmented and agentic
+reasoning pipelines. These findings identify cache integrity as a critical yet
+underexplored vulnerability in current LLM deployments, positioning cache
+corruption as a reproducible and theoretically grounded threat model for future
+robustness and security research.</details></td><td><details><summary>展开</summary>这篇论文提出了名为“恶意令牌注入”（MTI）的攻击框架，通过干扰Transformer语言模型推理过程中的键值缓存（KV cache），利用高斯噪声、归零和正交旋转等方法系统性破坏缓存数据。研究表明，MTI不仅能显著改变模型的next-token分布和任务性能，还会影响检索增强生成（RAG）和智能代理推理流程的稳定性，揭示了KV缓存完整性在当前LLM部署中的潜在安全漏洞。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.17064v1">A Brain Cell Type Resource Created by Large Language Models and a Multi-Agent AI System for Collaborative Community Annotation</a></td><td><details><summary>展开</summary>Single-cell RNA sequencing has transformed our ability to identify diverse
+cell types and their transcriptomic signatures. However, annotating these
+signatures-especially those involving poorly characterized genes-remains a
+major challenge. Traditional methods, such as Gene Set Enrichment Analysis
+(GSEA), depend on well-curated annotations and often perform poorly in these
+contexts. Large Language Models (LLMs) offer a promising alternative but
+struggle to represent complex biological knowledge within structured
+ontologies. To address this, we present BRAINCELL-AID (BRAINCELL-AID:
+https://biodataai.uth.edu/BRAINCELL-AID), a novel multi-agent AI system that
+integrates free-text descriptions with ontology labels to enable more accurate
+and robust gene set annotation. By incorporating retrieval-augmented generation
+(RAG), we developed a robust agentic workflow that refines predictions using
+relevant PubMed literature, reducing hallucinations and enhancing
+interpretability. Using this workflow, we achieved correct annotations for 77%
+of mouse gene sets among their top predictions. Applying this approach, we
+annotated 5,322 brain cell clusters from the comprehensive mouse brain cell
+atlas generated by the BRAIN Initiative Cell Census Network, enabling novel
+insights into brain cell function by identifying region-specific gene
+co-expression patterns and inferring functional roles of gene ensembles.
+BRAINCELL-AID also identifies Basal Ganglia-related cell types with
+neurologically meaningful descriptions. Hence, we create a valuable resource to
+support community-driven cell type annotation.</details></td><td><details><summary>展开</summary>这篇文章介绍了BRAINCELL-AID，一个整合自由文本描述和本体标签的多智能体AI系统，利用检索增强生成（RAG）技术从PubMed文献中检索相关信息，以提高基因集注释的准确性和可解释性，并将其应用于小鼠大脑细胞图谱的注释。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-19
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
