@@ -4,7 +4,98 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-18
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.16643v1">Structured Interfaces for Automated Reasoning with 3D Scene Graphs</a></td><td><details><summary>展开</summary>In order to provide a robot with the ability to understand and react to a
+user's natural language inputs, the natural language must be connected to the
+robot's underlying representations of the world. Recently, large language
+models (LLMs) and 3D scene graphs (3DSGs) have become a popular choice for
+grounding natural language and representing the world. In this work, we address
+the challenge of using LLMs with 3DSGs to ground natural language. Existing
+methods encode the scene graph as serialized text within the LLM's context
+window, but this encoding does not scale to large or rich 3DSGs. Instead, we
+propose to use a form of Retrieval Augmented Generation to select a subset of
+the 3DSG relevant to the task. We encode a 3DSG in a graph database and provide
+a query language interface (Cypher) as a tool to the LLM with which it can
+retrieve relevant data for language grounding. We evaluate our approach on
+instruction following and scene question-answering tasks and compare against
+baseline context window and code generation methods. Our results show that
+using Cypher as an interface to 3D scene graphs scales significantly better to
+large, rich graphs on both local and cloud-based models. This leads to large
+performance improvements in grounded language tasks while also substantially
+reducing the token count of the scene graph content. A video supplement is
+available at https://www.youtube.com/watch?v=zY_YI9giZSA.</details></td><td><details><summary>展开</summary>该论文提出了一种基于RAG的方法，利用图数据库（Cypher查询语言）检索3D场景图中与任务相关的子集，替代传统的大语言模型上下文窗口编码方式，以提高自然语言在机器人任务中的理解能力，并在指令跟随和场景问答任务中验证了其扩展性和性能优势。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16609v1">Prior Makes It Possible: From Sublinear Graph Algorithms to LLM Test-Time Methods</a></td><td><details><summary>展开</summary>Test-time augmentation, such as Retrieval-Augmented Generation (RAG) or tool
+use, critically depends on an interplay between a model's parametric knowledge
+and externally retrieved information. However, the theoretical underpinnings of
+this relationship remain poorly understood. Specifically, it is not clear how
+much pre-training knowledge is required to answer queries with a small number
+of augmentation steps, which is a desirable property in practice. To address
+this question, we formulate multi-step reasoning as an $s$-$t$ connectivity
+problem on a knowledge graph. We represent a model's pre-training parametric
+knowledge as a partial, potentially noisy subgraph. We view augmentation as
+querying an oracle for true edges that augment the model's knowledge. Then, we
+characterize the necessary and sufficient number of augmentation steps for the
+model to generate an accurate answer given partial prior knowledge. One key
+result shows a phase transition: if the prior knowledge graph over $n$ vertices
+is disconnected into small components, then finding a path via augmentation is
+inefficient and requires $\Omega(\sqrt{n})$ queries. On the other hand, once
+the density of correct knowledge surpasses a threshold, forming a giant
+component, we can find paths with an expected constant number of queries.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG等技术中模型预训练知识与外部检索信息之间的理论关系，将多步推理建模为知识图上的连通性问题，分析了先验知识密度和增强步骤数量对答案准确性的影响，并揭示了知识图连接性对查询效率的临界相变现象。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16582v1">Can Knowledge-Graph-based Retrieval Augmented Generation Really Retrieve What You Need?</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) based on knowledge graphs (KGs) enhances
+large language models (LLMs) by providing structured and interpretable external
+knowledge. However, existing KG-based RAG methods struggle to retrieve accurate
+and diverse information from text-rich KGs for complex real-world queries.
+Process Reward Models (PRMs) offer a way to align the retrieval process of
+KG-based RAG with query-specific knowledge requirements, but they heavily rely
+on process-level supervision signals that are expensive and hard to obtain on
+KGs. To address this challenge, we propose GraphFlow, a framework that
+efficiently retrieves accurate and diverse knowledge required for real-world
+queries from text-rich KGs. GraphFlow employs a transition-based flow matching
+objective to jointly optimize a retrieval policy and a flow estimator. The flow
+estimator factorizes the reward of the retrieval outcome into the intermediate
+retrieval states. Such reward factorization guides the retrieval policy to
+retrieve candidates from KGs in proportion to their reward. This allows
+GraphFlow to explore high-quality regions of KGs that yield diverse and
+relevant results. We evaluate GraphFlow on the STaRK benchmark, which includes
+real-world queries from multiple domains over text-rich KGs. GraphFlow
+outperforms strong KG-RAG baselines, including GPT-4o, by 10% on average in hit
+rate and recall. It also shows strong generalization to unseen KGs,
+demonstrating its effectiveness and robustness.</details></td><td><details><summary>展开</summary>这篇文章提出了一种名为GraphFlow的框架，通过基于知识图谱（KG）的检索增强生成（RAG）方法，优化了从文本丰富的KG中检索准确且多样化知识的过程。GraphFlow利用转移流匹配目标联合优化检索策略和流估计器，将检索结果的奖励分解到中间状态，从而在STaRK基准测试中优于现有KG-RAG基线（包括GPT-4o），并在命中率和召回率上平均提升10%，同时展现出对未见KG的强泛化能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16392v1">RGMem: Renormalization Group-based Memory Evolution for Language Agent User Profile</a></td><td><details><summary>展开</summary>Personalized and continuous interactions are the key to enhancing user
+experience in today's large language model (LLM)-based conversational systems,
+however, the finite context windows and static parametric memory make it
+difficult to model the cross-session long-term user states and behavioral
+consistency. Currently, the existing solutions to this predicament, such as
+retrieval-augmented generation (RAG) and explicit memory systems, primarily
+focus on fact-level storage and retrieval, lacking the capability to distill
+latent preferences and deep traits from the multi-turn dialogues, which limits
+the long-term and effective user modeling, directly leading to the personalized
+interactions remaining shallow, and hindering the cross-session continuity. To
+realize the long-term memory and behavioral consistency for Language Agents in
+LLM era, we propose a self-evolving memory framework RGMem, inspired by the
+ideology of classic renormalization group (RG) in physics, this framework
+enables to organize the dialogue history in multiple scales: it first extracts
+semantics and user insights from episodic fragments, then through hierarchical
+coarse-graining and rescaling operations, progressively forms a
+dynamically-evolved user profile. The core innovation of our work lies in
+modeling memory evolution as a multi-scale process of information compression
+and emergence, which accomplishes the high-level and accurate user profiles
+from noisy and microscopic-level interactions.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为RGMem的自我进化记忆框架，旨在解决基于大语言模型的对话系统中长期用户状态和行为一致性的建模问题。虽然现有方法（如RAG和显式记忆系统）主要关注事实级别的存储和检索，但RGMem通过多尺度对话历史组织和分层粗粒度化操作，能够从多轮对话中提炼潜在偏好和深层特征，从而实现更高层次和准确的用户画像，提升个性化交互的深度和跨会话连续性。因此，RGMem对RAG技术进行了扩展和改进，属于RAG相关的研究。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.16302v1">DTKG: Dual-Track Knowledge Graph-Verified Reasoning Framework for Multi-Hop QA</a></td><td><details><summary>展开</summary>Multi-hop reasoning for question answering (QA) plays a critical role in
+retrieval-augmented generation (RAG) for modern large language models (LLMs).
+The accurate answer can be obtained through retrieving relational structure of
+entities from knowledge graph (KG). Regarding the inherent relation-dependency
+and reasoning pattern, multi-hop reasoning can be in general classified into
+two categories: i) parallel fact-verification multi-hop reasoning question,
+i.e., requiring simultaneous verifications of multiple independent
+sub-questions; and ii) chained multi-hop reasoning questions, i.e., demanding
+sequential multi-step inference with intermediate conclusions serving as
+essential premises for subsequent reasoning. Currently, the multi-hop reasoning
+approaches singly employ one of two techniques: LLM response-based fact
+verification and KG path-based chain construction. Nevertheless, the former
+excels at parallel fact-verification but underperforms on chained reasoning
+tasks, while the latter demonstrates proficiency in chained multi-hop reasoning
+but suffers from redundant path retrieval when handling parallel
+fact-verification reasoning. These limitations deteriorate the efficiency and
+accuracy for multi-hop QA tasks. To address this challenge, we propose a novel
+dual-track KG verification and reasoning framework DTKG, which is inspired by
+the Dual Process Theory in cognitive science. Specifically, DTKG comprises two
+main stages: the Classification Stage and the Branch Processing Stage.</details></td><td><details><summary>展开</summary>这篇论文探讨了在多跳推理问答（QA）任务中如何通过知识图谱（KG）提升检索增强生成（RAG）的效果，提出了一种双轨框架DTKG，结合了LLM的事实验证和KG路径构建，以优化并行事实验证和链式多跳推理的效率与准确性。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-17
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.15828v1">GENESIS: A Generative Model of Episodic-Semantic Interaction</a></td><td><details><summary>展开</summary>A central challenge in cognitive neuroscience is to explain how semantic and
