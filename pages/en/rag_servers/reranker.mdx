@@ -3,15 +3,13 @@ title: "Reranker"
 icon: "ranking-star"
 ---
 
-## 作用
+## Overview
 
-Reranker Server 是 UR-2.0 中用于 对检索结果进行精排的模块。
-它接收来自 Retriever Server 的初步检索结果，并基于语义相关性对候选文档进行重新排序，
-从而提升检索阶段的精度与最终生成结果的质量。
-该模块原生支持多种主流后端包括 [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)、
-[Infinity](https://github.com/michaelfeil/infinity) 以及 [OpenAI](https://platform.openai.com/docs/guides/embeddings)。
+The **Reranker Server** in UR-2.0 is responsible for fine-ranking retrieved results.  
+It takes the initial retrieval outputs from the **Retriever Server** and reorders the candidate documents based on semantic relevance, thereby improving retrieval precision and enhancing the quality of final generation results.  
+This module natively supports several mainstream backends, including [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings).
 
-## 使用示例
+## Usage Example
 
 ```yaml examples/corpus_rerank.yaml icon="/images/yaml.svg" highlight="5,14,15"
 # MCP Server
@@ -31,13 +29,13 @@ pipeline:
 - reranker.reranker_rerank
 ```
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/corpus_rerank.yaml
 ```
 
-修改参数：
+Modify the parameters:
 ```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -113,7 +111,7 @@ retriever:
 
 ```
 
-运行 Pipeline：
+Run the Pipeline:
 ```shell
 ultrarag run examples/corpus_rerank.yaml
 ```

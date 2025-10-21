@@ -1,25 +1,25 @@
 ---
-title: "快速开始"
+title: "Quick Start"
 icon: "rocket-launch"
 ---
 
-本节将帮助你快速了解如何基于 UR-2.0 运行一个完整的 RAG Pipeline。UR-2.0 的使用流程主要包括以下三个阶段：
+This section will help you quickly understand how to run a complete RAG Pipeline using UR-2.0. The workflow in UR-2.0 mainly includes the following three stages:
 
-- 编写 Pipeline 配置文件
-- 编译 Pipeline 并调整参数
-- 运行 Pipeline
+- Writing the Pipeline configuration file  
+- Building the Pipeline and adjusting parameters  
+- Running the Pipeline  
 
-此外，你还可以通过可视化工具对运行结果进行分析与评估。
+Additionally, you can analyze and evaluate the execution results using built-in visualization tools.
 
-<Tip>如果尚未安装 UR-2.0，请先参考 [环境部署](/pages/cn/getting_started/installation)。</Tip>
+<Tip>If UR-2.0 is not yet installed, please refer to [Installation](/pages/en/getting_started/installation).</Tip>
 
-<Tip>如需了解更完整的 RAG 开发实践，请查看完整文档。</Tip>
+<Tip>For a more comprehensive RAG development guide, please refer to the full documentation.</Tip>
 
-## Step 1：编写 Pipeline 配置文件
+## Step 1: Write the Pipeline Configuration File
 
-<Info>请确保当前工作目录位于 UltraRAG 根目录下</Info>
+<Info>Please ensure that your current working directory is set to the UltraRAG root directory.</Info>
 
-在`examples`文件夹中创建并编写你的 Pipeline 配置文件，例如：
+Create and write your Pipeline configuration file in the `examples` folder, for example:
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg"
 servers:
@@ -43,149 +43,149 @@ pipeline:
 - evaluation.evaluate
 ```
 
-UR-2.0 的 Pipeline 配置文件需要包含以下两个部分：
- 
-- `servers`：声明当前流程所依赖的各个模块（Server）。例如，检索阶段需要使用 `retriever` Server。
-- `pipeline`：定义各 Server 中功能函数（Tool）的调用顺序。本示例展示了从数据加载、检索编码与索引构建，到生成与评测的完整流程。
+A UR-2.0 Pipeline configuration file contains two essential sections:
 
-## Step 2：编译 Pipeline 并调整参数
+- `servers`: Declares the modules (Servers) required for the workflow. For example, the retrieval stage requires the `retriever` Server.
+- `pipeline`: Defines the execution order of functional methods (Tools) within each Server.  
+  The above example demonstrates a complete process covering data loading, retrieval embedding and indexing, generation, and evaluation.
 
-在运行代码前，首先需要配置运行所需的参数。UR-2.0 提供了快捷的 build 指令，可自动生成当前 Pipeline 所依赖的完整参数文件。
-系统会读取各个 Server 的 parameter.yaml 文件，解析本次流程中涉及的全部参数项，并统一汇总生成到一个独立的配置文件中。执行以下命令：
+## Step 2: Build the Pipeline and Adjust Parameters
+
+Before running the code, you need to configure the required parameters. UR-2.0 provides a convenient **build** command that automatically generates a complete parameter file for the current Pipeline.  
+The system reads the `parameter.yaml` file from each Server, parses all involved parameter items, and consolidates them into a single unified configuration file.  
+Execute the following command:
 
 ```shell
 ultrarag build examples/rag_full.yaml
 ```
 
-执行后，终端将输出如下内容：
+After execution, the terminal will display the following output:
 
 ![](/images/getting_started/rag_build.png)
 
-系统会在`examples/parameters/`文件夹下生成对应的参数配置文件。打开文件后，可根据实际情况修改相关参数，例如：
+The system will generate a parameter configuration file in the `examples/parameters/` folder.  
+Open the file and modify parameters as needed, for example:
 
 ```yaml examples/parameters/rag_full_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
-    # key_map：定义数据字段的映射关系，将数据集中字段名映射为标准字段
     key_map:
-      gt_ls: golden_answers   # 答案字段名
-      q_ls: question          # 问题字段名
-    limit: -1                 # 限制加载样本数量，-1 表示加载全部
-    name: nq                  # 数据集名称（如 Natural Questions）
-    path: data/sample_nq_10.jsonl  # 数据文件路径
-    seed: 42                  # 随机种子，保证实验可复现
-    shuffle: false            # 是否打乱样本顺序，false 表示按原顺序加载
+      gt_ls: golden_answers   # Ground-truth answers field name
+      q_ls: question          # Question field name
+    limit: -1                 # Limit the number of samples loaded (-1 = all)
+    name: nq                  # Dataset name (e.g., Natural Questions)
+    path: data/sample_nq_10.jsonl  # Path to the data file
+    seed: 42                  # Random seed for reproducibility
+    shuffle: false            # Whether to shuffle samples; false = preserve order
 
-custom: {}                    # 自定义 Server，此处为空（当前函数无参数）
+custom: {}                    # Custom Server (empty in this example)
 
 evaluation:
-  # metrics：指定评测指标，可按需增删
   metrics:
-  - acc                       # 准确率（Accuracy）
-  - f1                        # F1 值
-  - em                        # Exact Match
-  - coverem                   # 覆盖率式 Exact Match
-  - stringem                  # 字符串级匹配
-  - rouge-1                   # Rouge-1 指标
-  - rouge-2                   # Rouge-2 指标
-  - rouge-l                   # Rouge-L 指标
-  save_path: output/evaluate_results.json  # 评测结果保存路径
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
 
 generation:
-  backend: vllm               # 推理后端，可选 vllm / openai / hf
+  backend: vllm
   backend_configs:
-    hf:                       # HuggingFace 本地推理配置
+    hf:
       batch_size: 8
       gpu_ids: 2,3
       model_name_or_path: openbmb/MiniCPM4-8B
-      trust_remote_code: true # 允许加载带自定义代码的模型
-    openai:                   # OpenAI API 推理配置
-      api_key: ''             # OpenAI API 密钥
-      base_delay: 1.0         # 重试间隔时间（秒）
-      base_url: http://localhost:8000/v1
-      concurrency: 8          # 并发请求数
-      model_name: MiniCPM4-8B
-      retries: 3              # 最大重试次数
-    vllm:                     # vLLM 推理引擎配置
-      dtype: auto             # 自动选择精度（如 fp16/bf16）
-      gpu_ids: 2,3            # 指定 GPU ID
-      gpu_memory_utilization: 0.9  # GPU 显存利用率上限
-      model_name_or_path: openbmb/MiniCPM4-8B  # [!code --]
-      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
       trust_remote_code: true
-  sampling_params:             # 采样参数（影响生成多样性）
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1
+      concurrency: 8
+      model_name: MiniCPM4-8B
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: Qwen/Qwen3-8B
+      trust_remote_code: true
+  sampling_params:
     chat_template_kwargs:
-      enable_thinking: false   # 是否启用思维链模式
-    max_tokens: 2048           # 最大生成长度
-    temperature: 0.7           # 温度系数（越高越随机）
-    top_p: 0.8                 # nucleus sampling 阈值
-  system_prompt: ''            # 系统提示词（可留空）
+      enable_thinking: false
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: ''
 
 prompt:
-  template: prompt/qa_boxed.jinja # [!code --]
-  template: prompt/qa_rag_boxed.jinja  # 使用的 Prompt 模板路径（Jinja 格式） [!code ++]
+  template: prompt/qa_rag_boxed.jinja
 
 retriever:
-  backend: sentence_transformers       # 向量化后端，可选 sentence_transformers / infinity / openai
+  backend: sentence_transformers
   backend_configs:
-    infinity:                          # Infinity-Emb 推理配置
+    infinity:
       bettertransformer: false
       device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
-    openai:                            # OpenAI Embedding API 配置
+    openai:
       api_key: ''
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
-    sentence_transformers:              # SentenceTransformers 本地配置
+    sentence_transformers:
       device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000        # 每批编码文本数量
-        normalize_embeddings: false     # 是否归一化嵌入向量
-        psg_prompt_name: document       # passage 编码提示词名称
-        psg_task: null                  # passage 任务类型
-        q_prompt_name: query            # query 编码提示词名称
-        q_task: null                    # query 任务类型
+        encode_chunk_size: 10000
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
       trust_remote_code: true
-  batch_size: 16                        # 向量化批大小
-  corpus_path: data/corpus_example.jsonl  # 语料库路径
-  embedding_path: embedding/embedding.npy # 向量保存路径
-  faiss_use_gpu: true                   # 是否启用 GPU 加速的 Faiss
-  gpu_ids: 0,1                          # 指定 GPU 设备
-  index_chunk_size: 50000               # 每批构建索引的文档数
-  index_path: index/index.index         # 索引文件保存路径
-  is_multimodal: false                  # 是否为多模态检索（图文混合）
-  model_name_or_path: openbmb/MiniCPM-Embedding-Light  # [!code --]
-  model_name_or_path: Qwen/Qwen3-Embedding-0.6B  # 向量化模型路径 [!code ++]
-  overwrite: false                      # 是否覆盖已有 embedding / index
-  query_instruction: ''                 # query 前置指令（可为空）
-  top_k: 5                              # 检索返回的 Top-K 文档数
+  batch_size: 16
+  corpus_path: data/corpus_example.jsonl
+  embedding_path: embedding/embedding.npy
+  faiss_use_gpu: true
+  gpu_ids: 0,1
+  index_chunk_size: 50000
+  index_path: index/index.index
+  is_multimodal: false
+  model_name_or_path: Qwen/Qwen3-Embedding-0.6B
+  overwrite: false
+  query_instruction: ''
+  top_k: 5
 ```
 
-你可以根据实际情况修改参数，例如：
+You can modify parameters as needed, for example:
 
-- 将 template 调整为RAG模版 prompt/qa_rag_boxed.jinja；
-- 替换检索器与生成器的 model_name_or_path 为本地下载的模型路径；
-- 若在多 GPU 环境下运行，可修改 gpu_ids 以匹配可用设备。
+- Set the template to `prompt/qa_rag_boxed.jinja` for RAG-style prompting.  
+- Replace `model_name_or_path` for both retriever and generator with local model paths.  
+- Adjust `gpu_ids` to match your available devices in a multi-GPU environment.
 
-## Step 3：运行 Pipeline
+## Step 3: Run the Pipeline
 
-当参数配置完成后，即可一键运行完整流程。执行以下命令：
+Once parameters are configured, you can execute the entire workflow with a single command:
 
 ```shell
 ultrarag run examples/rag_full.yaml
 ```
 
-系统将依次执行配置文件中定义的各个 Server 与 Tool，并在终端中实时输出运行日志与进度信息：
+The system will sequentially execute all Servers and Tools defined in the configuration file, displaying real-time logs and progress in the terminal:
 
 ![](/images/getting_started/rag_run.png)
 
-运行结束后，结果（如生成内容、评测报告等）将自动保存在对应的输出路径中，如本例中`output/memory_nq_rag_full_20251010_145420.json`可直接用于后续分析与可视化展示。
+Upon completion, results (such as generated outputs and evaluation reports) will be automatically saved in the specified output path.  
+For example, the file `output/memory_nq_rag_full_20251010_145420.json` can be used directly for further analysis and visualization.
 
-## Step 4：可视化分析 Case Study
+## Step 4: Visualize and Analyze Case Studies
 
-完成流程运行后，可通过内置的可视化工具快速分析生成结果。执行以下命令启动 Case Study Viewer：
+After completing the workflow, you can use the built-in visualization tool to quickly analyze generation results.  
+Run the following command to start the Case Study Viewer:
 
 ```shell
 python ./script/case_study.py \
@@ -195,19 +195,20 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-运行成功后，终端会显示访问地址。打开浏览器并输入该地址，即可进入 Case Study Viewer 界面，对结果进行交互式浏览与分析。
-界面示例如下所示：
+Once launched, the terminal will display an access address.  
+Open it in your browser to explore the Case Study Viewer, where you can interactively browse and analyze results.  
+Example interface:
 
 ![](/images/getting_started/case1.png)
 ![](/images/getting_started/case2.png)
 
-## 小结
+## Summary
 
-至此，你已完成从 Pipeline 配置、参数编译 到 流程运行与可视化分析 的完整 RAG 实践流程。
-UR-2.0 通过模块化的 MCP 架构与统一的评测体系，使得 RAG 系统的构建、运行与分析更加高效、直观、可复现。
+You have now completed the full RAG workflow—from Pipeline configuration and parameter compilation to execution and visualization analysis.  
+UR-2.0, with its modular MCP architecture and unified evaluation system, makes RAG system construction, execution, and analysis more efficient, intuitive, and reproducible.
 
-你可以在此基础上：
+You can further:
 
-- 替换不同的模型或检索器，探索多种组合效果；
-- 自定义新的 Server 与 Tool，扩展系统功能；
-- 利用评测模块快速对比实验结果，开展系统性研究。
+- Swap out models or retrievers to explore different combinations.  
+- Create custom Servers and Tools to extend system functionality.  
+- Use the evaluation module to compare results and conduct systematic research.

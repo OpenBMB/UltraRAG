@@ -4,7 +4,7 @@ icon: "command"
 ---
 
 
-## help — 命令概览
+## help — Command Overview
 
 ```bash
 ultrarag --help
@@ -19,7 +19,7 @@ positional arguments:
   {build,run,show}
     build           Build the configuration
     run             Run the pipeline with the given configuration
-    show            Show ui interfaces
+    show            Show UI interfaces
 
 options:
   -h, --help        show this help message and exit
@@ -27,53 +27,53 @@ options:
 
 ---
 
-## build — 构建配置
+## build — Build Configuration
 
-**用途**：基于 `pipeline.yaml` 自动生成统一的参数配置文件。
+**Purpose**: Automatically generate a unified parameter configuration file based on `pipeline.yaml`.
 
 ```bash
 ultrarag build <CONFIG> [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| 参数 | 描述 |
-|------|------|
-| `<CONFIG>` | Pipeline 配置文件路径，如 `examples/pipeline.yaml` |
-| `--log_level` | 日志级别，默认 `INFO` |
+| Argument | Description |
+|-----------|--------------|
+| `<CONFIG>` | Path to the Pipeline configuration file, e.g., `examples/pipeline.yaml` |
+| `--log_level` | Logging level, default is `INFO` |
 
 
 
 ---
 
-## run — 执行 Pipeline
+## run — Execute Pipeline
 
-**用途**：启动 Pipeline 执行。
+**Purpose**: Start executing the Pipeline.
 
 ```bash
 ultrarag run <CONFIG> [--param <PARAM_FILE>] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| 参数 | 描述 |
-|------|------|
-| `<CONFIG>` | 待执行的 `pipeline.yaml` 路径 |
-| `--param <PARAM_FILE>` | 自定义参数文件路径，覆盖默认 `parameter/` 下文件 |
-| `--log_level` | 日志级别，默认 `INFO` |
+| Argument | Description |
+|-----------|--------------|
+| `<CONFIG>` | Path to the `pipeline.yaml` to execute |
+| `--param <PARAM_FILE>` | Custom parameter file path, overriding the default file in the `parameter/` directory |
+| `--log_level` | Logging level, default is `INFO` |
 
 ---
 
-## show ui — 启动 Web 控制界面
+## show ui — Launch Web Control Interface
 
-**用途**： 启动UI界面。
+**Purpose**: Start the web-based UI.
 
 ```bash
 ultrarag show ui [--host 127.0.0.1] [--port 5050] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| 参数 | 描述 |
-|------|------|
-| `--host` | 网页服务绑定 IP（默认 `127.0.0.1`） |
-| `--port` | 网页服务端口（默认 `5050`） |
-| `--log_level` | 日志级别，默认 `INFO` |
+| Argument | Description |
+|-----------|--------------|
+| `--host` | Host IP address for the web service (default: `127.0.0.1`) |
+| `--port` | Port for the web service (default: `5050`) |
+| `--log_level` | Logging level, default is `INFO` |
 
-启动后访问 `http://<host>:<port>` 即可使用 UI。  
+After startup, open `http://<host>:<port>` in your browser to access the UI.  
 
 

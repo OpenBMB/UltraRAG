@@ -1,12 +1,12 @@
 ---
-title: "案例分析"
+title: "Case Study"
 icon: "chart-line"
 ---
 
-UR-2.0 提供了便捷的 Case Study 可视化机制，帮助科研人员快速检查与分析所构建的 Pipeline 是否按预期工作。
+UR-2.0 provides a convenient **Case Study visualization mechanism** that helps researchers quickly inspect and analyze whether a constructed Pipeline is functioning as expected.
 
-在运行完 Pipeline 后，系统会在 output 文件夹下自动生成一份 memory 日志文件。
-只需执行以下命令，即可启动 Case Study 可视化网页：
+After executing the Pipeline, the system automatically generates a **memory log file** in the `output` folder.  
+Simply run the following command to launch the Case Study visualization web page:
 
 ```shell
 python ./script/case_study.py \
@@ -16,10 +16,11 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-<Note>请根据实际情况调整文件路径、端口号等参数。</Note>
+<Note>Please adjust the file path, port number, and other parameters as needed.</Note>
 
-启动成功后，可通过浏览器访问对应地址，进入 Case Study Viewer 界面。该界面以直观的可视化方式展示 Pipeline 各阶段的输入与输出，便于逐步审查推理链条与中间状态。
+Once started, you can open the corresponding address in your browser to access the **Case Study Viewer** interface.  
+This interface presents the inputs and outputs of each stage of the Pipeline through intuitive visualizations, making it easier to review reasoning chains and intermediate states step by step.
 
 ![](/images/develop_guide/case_study.png)
 
-在页面中，可逐条切换不同的 Case，直观对比 `输入问题、检索结果与模型输出` 的对应关系，从而更高效地定位潜在问题、优化 Pipeline 设计，并验证整个推理流程是否符合预期。
+On this page, you can navigate between different cases to visually compare the relationships among the **input question**, **retrieval results**, and **model outputs**, allowing you to efficiently identify potential issues, optimize Pipeline design, and verify whether the overall reasoning process behaves as intended.

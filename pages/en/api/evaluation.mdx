@@ -5,7 +5,7 @@ icon: "clipboard-check"
 
 ## `evaluate`
 
-**签名**  
+**Signature**  
 ```python
 @app.tool(output="pred_ls,gt_ls,metrics,save_path->eval_res")
 def evaluate(
@@ -16,17 +16,17 @@ def evaluate(
 ) -> Dict[str, Any]
 ```
 
-**功能**  
-- 执行问答/生成类任务的自动指标评估。  
-- 支持指标：`acc`、`em`、`coverem`、`stringem`、`f1`、`rouge-1`、`rouge-2`、`rouge-l`。  
-- 结果自动保存为 `.json` 文件，并以 Markdown 表格形式打印。
+**Function**  
+- Performs automatic metric evaluation for QA or generation tasks.  
+- Supported metrics: `acc`, `em`, `coverem`, `stringem`, `f1`, `rouge-1`, `rouge-2`, `rouge-l`.  
+- Automatically saves results as a `.json` file and prints them in Markdown table format.
 
 
 ---
 
 ## `evaluate_trec`
 
-**签名**  
+**Signature**  
 ```python
 @app.tool(output="run_path,qrels_path,ir_metrics,ks,save_path->eval_res")
 def evaluate_trec(
@@ -38,19 +38,19 @@ def evaluate_trec(
 )
 ```
 
-**功能**  
-- 基于 `pytrec_eval` 进行 IR 检索指标评估。  
-- 读取标准 TREC 格式：
-  - **qrels**：`<qid> <iter> <docid> <rel>`
-  - **run**：`<qid> Q0 <docid> <rank> <score> <tag>`
-- 支持指标：`mrr`、`map`、`recall@k`、`precision@k`、`ndcg@k`。  
-- 自动统计聚合结果并以表格输出。
+**Function**  
+- Evaluates IR retrieval metrics based on `pytrec_eval`.  
+- Reads standard TREC-formatted files:  
+  - **qrels**: `<qid> <iter> <docid> <rel>`  
+  - **run**: `<qid> Q0 <docid> <rank> <score> <tag>`  
+- Supported metrics: `mrr`, `map`, `recall@k`, `precision@k`, `ndcg@k`.  
+- Automatically computes and outputs aggregated results in a table.
 
 ---
 
 ## `evaluate_trec_pvalue`
 
-**签名**  
+**Signature**  
 ```python
 @app.tool(
     output="run_new_path,run_old_path,qrels_path,ir_metrics,ks,n_resamples,save_path->eval_res"
@@ -66,15 +66,15 @@ def evaluate_trec_pvalue(
 )
 ```
 
-**功能**  
-- 对两个 TREC 结果文件进行显著性比较，采用**双尾置换检验**计算 p-value。  
-- 默认重采样次数 `n_resamples=10000`。  
-- 输出均值、差异、p 值及显著性标识。  
+**Function**  
+- Performs a significance comparison between two TREC result files using a **two-tailed permutation test** to compute p-values.  
+- Default resampling count: `n_resamples=10000`.  
+- Outputs mean, difference, p-value, and significance markers.  
 
 
 ---
 
-## 参数配置
+## Parameter Configuration
 
 ```yaml servers/evaluation/parameter.yaml icon="/images/yaml.svg"
 save_path: output/evaluate_results.json
@@ -94,17 +94,16 @@ run_old_path: data/run_b.txt
 n_resamples: 10000
 ```
 
-参数说明：
+Parameter Description:
 
-| 参数 | 类型 | 说明 |
+| Parameter | Type | Description |
 |------|------|------|
-| `save_path` | str | 评估结果保存路径（将自动附带时间戳） |
-| `metrics` | list[str] | QA / 生成任务使用的指标集合 |
-| `qrels_path` | str | TREC 格式真值文件路径 |
-| `run_path` | str | 检索任务的结果文件 |
-| `ks` | list[int] | 截断层级，用于计算 NDCG@K、P@K、Recall@K 等 |
-| `ir_metrics` | list[str] | 检索任务指标名称，支持 `mrr`, `map`, `recall`, `ndcg`, `precision` |
-| `run_new_path` | str | 新模型生成的 run 文件路径（显著性分析） |
-| `run_old_path` | str | 旧模型的 run 文件路径（显著性分析） |
-| `n_resamples` | int | 置换检验（Permutation Test）重采样次数 |
-
+| `save_path` | str | Path to save evaluation results (automatically timestamped) |
+| `metrics` | list[str] | Metric set used for QA / generation tasks |
+| `qrels_path` | str | Path to TREC-format ground truth file |
+| `run_path` | str | Path to the retrieval task result file |
+| `ks` | list[int] | Cutoff levels for computing NDCG@K, P@K, Recall@K, etc. |
+| `ir_metrics` | list[str] | IR metric names, supporting `mrr`, `map`, `recall`, `ndcg`, `precision` |
+| `run_new_path` | str | Path to the new model’s run file (for significance testing) |
+| `run_old_path` | str | Path to the old model’s run file (for significance testing) |
+| `n_resamples` | int | Number of resampling iterations for the permutation test |

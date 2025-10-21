@@ -3,17 +3,15 @@ title: "Retriever"
 icon: "magnifying-glass"
 ---
 
-## 作用
+## Overview
 
-Retriever Server 是 UR-2.0 中的核心检索模块，集成了 模型加载、文本编码、索引构建与检索查询 等一体化功能。
-它原生支持 [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)、[Infinity](https://github.com/michaelfeil/infinity) 以及 [OpenAI](https://platform.openai.com/docs/guides/embeddings) 等多种后端接口，
-可灵活适配不同规模与类型的语料库，满足 大规模向量化 与 高效文档召回 的需求。
+The **Retriever Server** is the core retrieval module in UR-2.0. It integrates **model loading**, **text/image encoding**, **index construction**, and **search** into a single component. It natively supports multiple backends—[Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings)—so it can flexibly adapt to corpora of various sizes and types, meeting the needs of **large-scale embedding** and **efficient document recall**.
 
-## 使用示例
+## Usage Example
 
-### 语料库编码与索引
+### Corpus Encoding & Indexing
 
-以下示例展示如何使用 Retriever Server 对语料库进行编码与索引构建。
+The following example shows how to use the Retriever Server to encode a corpus and build an index.
 ```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
@@ -26,20 +24,20 @@ pipeline:
 - retriever.retriever_index
 ```
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/corpus_index.yaml
 ```
 
-根据实际情况修改参数文件。下面分别展示两种典型场景：文本语料编码 与 图像语料编码。
+Modify the parameter file as needed. Below are two common scenarios: **text corpus encoding** and **image corpus encoding**.
 
-1. 文本语料编码
+1. Text corpus encoding
 
-示例：使用 `Qwen3-Embedding-0.6B` 对文本语料进行向量化。
+Example: use `Qwen3-Embedding-0.6B` to vectorize a text corpus.
 ```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
 retriever:
-  backend: sentence_transformers # 我们这里以st为例
+  backend: sentence_transformers # Using ST as the example backend
   backend_configs:
     bm25:
       lang: en
@@ -75,9 +73,9 @@ retriever:
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
   overwrite: false
 ```
-2. 图像语料编码
+2. Image corpus encoding
 
-示例：使用 `jinaai/jina-embeddings-v4` 对图像语料进行向量化。
+Example: use `jinaai/jina-embeddings-v4` to vectorize an image corpus.
 ```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
@@ -124,21 +122,21 @@ retriever:
   overwrite: false
 ```
 
-运行以下命令执行该 Pipeline：
+Run the Pipeline:
 
 ```shell
 ultrarag run examples/corpus_index.yaml
 ```
 
-编码与索引阶段通常涉及大规模语料处理，耗时较长。建议使用 `screen` 或 `nohup` 将任务挂载至后台运行，例如：
+Encoding and indexing often involve large corpora and can be time-consuming. It’s recommended to run the task in the background using `screen` or `nohup`, for example:
 
 ```shell
 nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
 ```
 
-### 向量检索
+### Vector Search
 
-以下示例展示如何使用 Retriever Server 在已构建的索引上执行向量检索任务。
+The following example shows how to use the Retriever Server to perform vector search on an existing index.
 ```yaml examples/corpus_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
@@ -153,13 +151,13 @@ pipeline:
 
 ```
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/corpus_search.yaml
 ```
 
-修改参数：
+Modify parameters:
 ```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -208,20 +206,19 @@ retriever:
   top_k: 5
 ```
 
-运行 Pipeline：
+Run the Pipeline:
 
 ```shell
 ultrarag run examples/corpus_search.yaml
 ```
 
-### BM25检索
+### BM25 Retrieval
 
-除了向量检索外，UR-2.0 还内置了经典的 BM25 文本检索算法。BM25 是一种基于 词频–逆文档频率（TF-IDF） 改进的 稀疏检索方法，
-常用于快速、轻量的文本语义匹配任务。在实际应用中，BM25 可与向量检索（Dense Retrieval）互补，共同提升检索的覆盖率与召回多样性。
+In addition to dense retrieval, UR-2.0 includes the classic **BM25** sparse text retrieval algorithm. BM25 is an improvement over TF–IDF and is commonly used for fast, lightweight keyword-based matching. In practice, BM25 and dense retrieval are complementary: combining them often improves both coverage and recall diversity.
 
-Step 1：构建 BM25 索引
+**Step 1: Build the BM25 index**
 
-使用 BM25 进行检索前，需要先对文档进行分词并构建稀疏索引。
+Before searching with BM25, you need to tokenize documents and build a sparse index.
 
 ```yaml examples/bm25_index.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -234,13 +231,13 @@ pipeline:
 - retriever.bm25_index
 ```
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/bm25_index.yaml
 ```
 
-修改参数：
+Modify parameters:
 ```yaml examples/parameters/bm25_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers # [!code --]
@@ -277,14 +274,14 @@ retriever:
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   overwrite: false
 ```
-运行：
+Run:
 ```shell
 ultrarag run examples/bm25_index.yaml
 ```
 
-Step 2：执行 BM25 检索
+**Step 2: Execute BM25 search**
 
-索引构建完成后，即可进行基于 BM25 的文档检索。
+Once the index is built, you can perform BM25-based document retrieval.
 
 ```yaml examples/bm25_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -299,13 +296,13 @@ pipeline:
 - retriever.bm25_search
 ```
 
-编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/bm25_search.yaml
 ```
 
-修改参数：
+Modify parameters:
 ```yaml examples/parameters/bm25_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -353,22 +350,18 @@ retriever:
   top_k: 5
 ```
 
-运行检索流程：
+Run the search flow:
 ```shell
 ultrarag run examples/bm25_search.yaml
 ```
 
-### 混合检索
+### Hybrid Retrieval
 
-在实际应用中，单一的检索方式往往难以兼顾 召回率 与 精准度。
-例如，BM25 在关键词匹配上表现出色，而向量检索则在语义理解上更具优势。
-因此，UR-2.0 支持将稀疏检索（BM25）与稠密检索（Dense Retrieval）进行融合，
-通过混合策略（Hybrid Retrieval）综合两者的优点，进一步提升检索的多样性与鲁棒性。
+In real applications, a single retrieval method often struggles to balance **recall** and **precision**. For instance, BM25 excels at keyword matching, while dense retrieval is stronger in semantic understanding. UR-2.0 supports **Hybrid Retrieval** that combines sparse (BM25) and dense methods to leverage both, improving diversity and robustness.
 
+The example below shows how to run BM25 and dense retrieval in the same Pipeline and merge results via a custom module.
 
-以下示例展示了如何在同一个 Pipeline 中同时运行 BM25 与向量检索，并通过自定义模块进行结果合并。
-
-<Note>你可以参考本示例，将检索方式灵活扩展为任意组合，例如结合本地知识库与在线 Web 检索，或融合文本与图像等多模态检索结果，以构建更强大的混合检索 Pipeline。</Note>
+<Note>You can extend this example to arbitrarily combine retrieval methods—for instance, mixing local knowledge bases with online web search, or fusing text and image multimodal retrieval—to build a more powerful hybrid retrieval Pipeline.</Note>
 
 ```yaml examples/hybrid_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -395,15 +388,15 @@ pipeline:
       temp_psg: sparse_psg
 ```
 
-<Note>该 Pipeline 涉及 [参数重命名](/pages/cn/rag_client/data_and_params) 与 [模块复用](/pages/cn/rag_client/multi_agents) 机制，可点击链接查看详细说明。</Note>
+<Note>This Pipeline involves **[parameter renaming](/pages/en/rag_client/data_and_params)** and **[module reuse](/pages/en/rag_client/multi_agents)**. See the linked docs for details.</Note>
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/hybrid_search.yaml
 ```
 
-修改参数：
+Modify parameters:
 ```yaml examples/parameters/hybrid_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -488,27 +481,26 @@ dense:
   top_k: 5
 ```
 
-运行混合检索 Pipeline：
+Run the hybrid retrieval Pipeline:
 ```shell
 ultrarag run examples/hybrid_search.yaml
 ```
 
-### 部署检索模型
+### Deploy Retrieval Models
 
-UR-2.0 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的Embedding 模型都可以直接接入，无需额外适配或修改代码。
-以下示例展示如何使用 [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) 部署本地检索模型。
+UR-2.0 is fully compatible with the **OpenAI API** interface specification, so any embedding model that conforms to this API can be integrated without extra adapters or code changes. The example below shows how to deploy a local embedding model with **vLLM**.
 
-**step1: 后台部署模型**
+**Step 1: Serve the model in the background**
 
-推荐使用 Screen 方式后台运行，以便实时查看日志和状态。
+We recommend using **screen** to run in the background, so you can easily view logs and status.
 
-进入一个新的 Screen 会话：
+Start a new screen session:
 
 ```shell
 screen -S retriever
 ```
 
-执行以下命令部署模型（以 Qwen3-Embedding-0.6B 为例）：
+Launch the model (using Qwen3-Embedding-0.6B as an example):
 
 ```shell script/vllm_serve_emb.sh
 CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
@@ -521,7 +513,7 @@ CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
     --gpu-memory-utilization 0.9
 ```
 
-出现类似以下输出，表示模型服务启动成功：
+If you see output similar to the following, the service started successfully:
 
 ```
 (APIServer pid=2270761) INFO:     Started server process [2270761]
@@ -529,17 +521,16 @@ CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
 (APIServer pid=2270761) INFO:     Application startup complete.
 ```
 
-按下 Ctrl + A + D 可退出并保持服务在后台运行。
-如需重新进入该会话，可执行：
+Press Ctrl + A + D to exit and keep the service running in the background.
+To re-enter the session, run:
 
 ```shell
 screen -r retriever
 ```
 
-**Step 2：修改 Pipeline 参数**
+**Step 2: Modify Pipeline Parameters**
 
-以 corpus_search Pipeline 为例，只需将检索后端切换为 openai，
-并将 base_url 指向本地 vLLM 服务即可：
+Taking the corpus_search Pipeline as an example, simply switch the retriever backend to openai and set base_url to your local vLLM service:
 ```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -565,10 +556,10 @@ retriever:
       trust_remote_code: true
     openai:
       api_key: ''
-      base_url: https://api.openai.com/v1 # [!code --]
-      base_url: http://127.0.0.1:65502/v1 # [!code ++]
-      model_name: text-embedding-3-small # [!code --]
-      model_name: qwen-embedding # [!code ++]
+  base_url: https://api.openai.com/v1 # [!code --]
+  base_url: http://127.0.0.1:65502/v1 # [!code ++]
+  model_name: text-embedding-3-small # [!code --]
+  model_name: qwen-embedding # [!code ++]
     sentence_transformers:
       device: cuda
       sentence_transformers_encode:
@@ -590,24 +581,21 @@ retriever:
   top_k: 5
 ```
 
-完成配置后，即可像使用普通向量检索一样运行.
+Once configured, you can run it just like regular vector retrieval.
 
-### Web Serach API
+### Web Search API
 
-UR-2.0 原生集成了三种主流 Web 检索 API：[Tavily](https://www.tavily.com/)、[Exa](https://exa.ai/) 以及 [GLM](https://docs.z.ai/guides/tools/web-search)。
-这些 API 可直接作为 Retriever Server 的检索后端使用，实现在线信息检索与实时知识增强。
+UR-2.0 natively integrates three mainstream Web search APIs: [Tavily](https://www.tavily.com/), [Exa](https://exa.ai/), and [GLM](https://docs.z.ai/guides/tools/web-search). These APIs can be directly used as Retriever Server backends to enable online information retrieval and real-time knowledge augmentation.
 
-**Step 1：配置 API Key**
+**Step 1: Configure API Keys**
 
-使用前需设置对应服务的 API Key。你可以在运行 Pipeline 前手动导出环境变量：
+Before use, set the corresponding service's API key. You can manually export environment variables before running the Pipeline:
 
 ```shell
 export TAVILY_API_KEY="your retriever key"
 ```
 
-更推荐使用 .env 配置文件 进行统一管理：
-在 UR-2.0 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
-并填写你的密钥信息，例如：
+It is recommended to manage keys centrally using a `.env` configuration file. In the UR-2.0 root directory, rename the template file `.env.dev` to `.env` and fill in your key information, for example:
 
 ```
 LLM_API_KEY=
@@ -616,11 +604,11 @@ TAVILY_API_KEY=tvly-dev-yourapikeyhere
 EXA_API_KEY=
 ZHIPUAI_API_KEY=
 ```
-UR-2.0 会在启动时自动读取该文件并加载相关配置。
+UR-2.0 will automatically read this file and load the configuration at startup.
 
-**Step 2：Web Search**
+**Step 2: Web Search**
 
-以下示例演示如何使用 Tavily API 进行 Web 检索：
+The following example demonstrates how to use the Tavily API for Web search:
 
 ```yaml examples/web_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -634,13 +622,13 @@ pipeline:
 - retriever.retriever_tavily_search
 ```
 
-编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build examples/web_search.yaml
 ```
 
-在自动生成的参数文件中，填写数据路径与检索参数：
+In the generated parameter file, fill in the data path and retrieval parameters:
 ```yaml examples/parameters/web_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -657,9 +645,9 @@ retriever:
   top_k: 5
 ```
 
-执行以下命令即可启动 Web 检索流程：
+Run the following command to start the Web search flow:
 ```shell
 ultrarag run examples/web_search.yaml
 ```
 
-<Note>你可以将 retriever_tavily_search 替换为 retriever_exa_search 或 retriever_zhipuai_search Web 检索源。</Note>
+<Note>You can replace `retriever_tavily_search` with `retriever_exa_search` or `retriever_zhipuai_search` as the Web search source.</Note>

@@ -129,7 +129,7 @@
                 "pages": [
                   "pages/en/rag_servers/overview",
                   {
-                    "group": "核心模块",
+                    "group": "Core Modules",
                     "icon": "gears",
                     "pages": [
                       "pages/en/rag_servers/corpus",

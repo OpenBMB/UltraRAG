@@ -3,59 +3,59 @@ title: "Evaluation"
 icon: "clipboard-check"
 ---
 
-## 作用
+## Overview
 
-Evaluation Server 提供了一套完善的自动化评估工具，
-用于对检索与生成任务的模型输出进行系统化、可复现的性能评测。
-它支持多种主流指标，包括排序类、匹配类与摘要类评估，可直接嵌入 Pipeline 末尾，实现评估结果的自动计算与保存。
+The **Evaluation Server** provides a comprehensive automated evaluation toolkit for systematically and reproducibly assessing model performance in both retrieval and generation tasks.  
+It supports multiple mainstream metrics, including ranking-based, matching-based, and summarization-based evaluations.  
+This module can be directly embedded at the end of a Pipeline to automatically calculate and save evaluation results.
 
-### 检索
+### Retrieval
 
-| 指标名    | 类型   | 说明                                                                 |
-|:---------|:------|:--------------------------------------------------------------------|
-| `MRR`    | float | Mean Reciprocal Rank（平均倒数排名），衡量首个相关文档的平均排名位置。     |
-| `MAP`    | float | Mean Average Precision（平均精确率），综合考虑检索的精确性与召回率。       |
-| `Recall` | float | 召回率，衡量检索系统能找回多少相关文档。                                |
-| `Precision` | float | 精确率，衡量检索结果中有多少是相关文档。                            |
-| `NDCG`   | float | Normalized Discounted Cumulative Gain（标准化折损累计增益），评估检索结果与理想排序的一致性。 |
+| Metric Name | Type | Description |
+|:-------------|:------|:------------|
+| `MRR` | float | Mean Reciprocal Rank — measures the average position of the first relevant document. |
+| `MAP` | float | Mean Average Precision — considers both precision and recall across ranked results. |
+| `Recall` | float | Recall — measures how many relevant documents were retrieved. |
+| `Precision` | float | Precision — measures how many retrieved documents are actually relevant. |
+| `NDCG` | float | Normalized Discounted Cumulative Gain — evaluates the similarity between the ranked list and the ideal ranking. |
 
+### Generation
 
-### 生成
-| 指标名     | 类型    | 说明                                               |
-|:------------|---------|:----------------------------------------------------|
-| `EM`         | float   | Exact Match，预测与任一参考完全相同。              |
-| `Acc`        | float   | Answer 包含参考答案中的任一形式（宽松匹配）。      |
-| `StringEM`   | float   | 针对多组答案的软匹配比例（常用于多选/嵌套 QA）。   |
-| `CoverEM`    | float   | 参考答案是否完全被预测文本覆盖。                   |
-| `F1`         | float   | Token 级别 F1 得分。                               |
-| `Rouge_1`    | float   | 1-gram ROUGE-F1。                                  |
-| `Rouge_2`    | float   | 2-gram ROUGE-F1。                                  |
-| `Rouge_L`    | float   | Longest Common Subsequence (LCS) based ROUGE。     |
+| Metric Name | Type | Description |
+|:-------------|:------|:------------|
+| `EM` | float | Exact Match — prediction exactly matches any of the references. |
+| `Acc` | float | Accuracy — prediction contains any form of the reference answer (loose matching). |
+| `StringEM` | float | Soft match ratio for multiple answers (commonly used in multi-choice or nested QA). |
+| `CoverEM` | float | Whether the reference answer is fully covered by the predicted text. |
+| `F1` | float | Token-level F1 score. |
+| `Rouge_1` | float | 1-gram ROUGE-F1 score. |
+| `Rouge_2` | float | 2-gram ROUGE-F1 score. |
+| `Rouge_L` | float | ROUGE based on the Longest Common Subsequence (LCS). |
 
-## 使用示例
+## Usage Example
 
-### 检索
+### Retrieval
 
-#### Trec文件评估
+#### TREC File Evaluation
 
-在信息检索中，TREC 格式文件 是标准化的评测接口，用于衡量模型在排序、召回等方面的性能。
-TREC 评估通常由两类文件组成：qrel（人工标注的真实相关性）与 run（系统检索输出结果）。
+In information retrieval, the **TREC format** is the standard evaluation interface used to assess system performance in ranking and recall.  
+TREC evaluation typically involves two files: **qrel** (manually annotated ground truth) and **run** (system output results).
 
-**一、qrel 文件（“ground truth”，人工标注的相关性）**
+**1. qrel file (ground truth, human relevance judgments)**
 
-qrel 文件用于存储“哪些文档与哪个查询是相关的”这类人工标注的真实相关性判断。  
-在评测时，系统输出的检索结果会与 qrel 文件进行对比，用来计算指标（如 MAP、NDCG、Recall、Precision 等）。
+The qrel file stores human-labeled relevance information — which documents are relevant to which queries.  
+During evaluation, system outputs are compared with qrel data to compute metrics such as MAP, NDCG, Recall, and Precision.
 
-格式（4列，空格分隔）：
+Format (4 columns, space-separated):
 ```
 <query_id>  <iter>  <doc_id>  <relevance>
 ```
-- `query_id`：查询编号  
-- `iter`：通常写 `0`（历史遗留字段，可忽略）  
-- `doc_id`：文档编号  
-- `relevance`：相关性标注（通常 0 表示不相关，1 或更高表示相关）
+- `query_id`: query identifier  
+- `iter`: typically `0` (legacy field, can be ignored)  
+- `doc_id`: document identifier  
+- `relevance`: relevance label (0 = irrelevant, 1 or higher = relevant)
 
-示例：
+Example:
 ```
 1 0 DOC123 1
 1 0 DOC456 0
@@ -63,23 +63,23 @@ qrel 文件用于存储“哪些文档与哪个查询是相关的”这类人工
 2 0 DOC654 1
 ```
 
-**二、run 文件（系统输出的检索结果）**
+**2. run file (system output results)**
 
-run 文件保存检索系统的输出结果，用于与 qrel 文件对比评估性能。  
-每行表示一个查询返回的文档及其得分信息。
+The run file stores the retrieval system’s output, used to compare against qrels for evaluation.  
+Each line represents one document retrieved for a query along with its ranking information.
 
-格式（6列，空格分隔）：
+Format (6 columns, space-separated):
 ```
 <query_id>  Q0  <doc_id>  <rank>  <score>  <run_name>
 ```
-- `query_id`：查询编号  
-- `Q0`：固定写 `Q0`（TREC 标准要求）  
-- `doc_id`：文档编号  
-- `rank`：排序名次（1 表示最相关）  
-- `score`：系统打分  
-- `run_name`：系统名称（例如 bm25、dense_retriever）
+- `query_id`: query identifier  
+- `Q0`: constant string “Q0” (required by TREC)  
+- `doc_id`: document identifier  
+- `rank`: rank position (1 = most relevant)  
+- `score`: system-assigned score  
+- `run_name`: system name (e.g., bm25, dense_retriever)
 
-示例：
+Example:
 ```
 1 Q0 DOC123 1 12.34 bm25
 1 Q0 DOC456 2 11.21 bm25
@@ -87,7 +87,7 @@ run 文件保存检索系统的输出结果，用于与 qrel 文件对比评估�
 2 Q0 DOC321 2 12.01 bm25
 ```
 
-<Note>你可以点击以下链接下载示例文件：[qrels.test](https://github.com/usnistgov/trec_eval/blob/main/test/qrels.test) 和 [results.test](https://github.com/usnistgov/trec_eval/blob/main/test/results.test)</Note>
+<Note>You can download example files here: [qrels.test](https://github.com/usnistgov/trec_eval/blob/main/test/qrels.test) and [results.test](https://github.com/usnistgov/trec_eval/blob/main/test/results.test)</Note>
 
 ```yaml examples/eval_trec.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -99,7 +99,7 @@ pipeline:
 - evaluation.evaluate_trec
 ```
 
-运行以下命令编译 Pipeline：
+Run the following command to build the Pipeline:
 
 ```shell
 ultrarag build examples/eval_trec.yaml
@@ -125,35 +125,34 @@ evaluation:
   qrels_path: data/qrels.test # [!code ++]
   run_path: data/results.test # [!code ++]
   save_path: output/evaluate_results.json
-
 ```
 
-运行以下命令执行该 Pipeline：
+Run the following command to execute the Pipeline:
 
 ```shell
 ultrarag run examples/eval_trec.yaml
 ```
 
-#### 显著性分析
+#### Significance Testing
 
-显著性分析（Significance Testing）用于判断两个检索系统之间的性能差异是否“真实存在”，而不是由随机波动造成。  
-它回答的核心问题是：系统 A 的提升是否具有统计学意义？
+**Significance testing** determines whether performance differences between two retrieval systems are statistically meaningful or due to random variation.  
+It answers the question: *Is the improvement of system A over system B statistically significant?*
 
-在检索任务中，系统的性能通常通过多个查询的平均指标（如 MAP、NDCG、Recall 等）衡量。  
-然而，平均值的提升并不一定可靠，因为不同查询间存在随机性。  
-显著性分析通过统计检验方法，评估系统改进是否稳定且可复现。
+Retrieval performance is usually measured as an average over multiple queries (e.g., MAP, NDCG, Recall).  
+However, such averages may not always be reliable due to query variability.  
+Significance testing uses statistical tests to verify whether improvements are consistent and reproducible.
 
-常见的显著性分析方法包括：
+Common approaches include:
 
-- **置换检验（Permutation Test）**：通过随机交换系统 A 和系统 B 的查询结果多次（如 10000 次），构建差异的随机分布。若实际差异超过 95% 的随机情况（p < 0.05），则认为提升显著。
-- **t 检验（Paired t-test）**：假设两个系统的查询得分服从正态分布，计算两者均值差异的显著性。
+- **Permutation Test** — randomly swaps results between systems A and B many times (e.g., 10,000 iterations) to build a random difference distribution. If the observed improvement exceeds 95% of random outcomes (p < 0.05), it is considered significant.  
+- **Paired t-test** — assumes per-query scores follow a normal distribution and evaluates whether the difference in means is significant.
 
-UR-2.0 内置 双侧置换检验（Two-sided Permutation Test），在自动评估过程中输出以下关键统计信息：
+UR-2.0 implements a **two-sided permutation test** by default, outputting the following statistics automatically:
 
-- **A_mean / B_mean** 表示新旧系统的平均指标；
-- **Diff(A-B)** 表示改进幅度；
-- **p_value** 为显著性检验的概率；
-- **significant** 为显著性判断（p < 0.05 时为 True）。
+- **A_mean / B_mean** — average metrics of the new and old systems  
+- **Diff(A-B)** — performance difference  
+- **p_value** — probability from the significance test  
+- **significant** — True if p < 0.05
 
 ```yaml examples/eval_trec_pvalue.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -165,7 +164,7 @@ pipeline:
 - evaluation.evaluate_trec_pvalue
 ```
 
-运行以下命令编译 Pipeline：
+Run the following command to build the Pipeline:
 
 ```shell
 ultrarag build examples/eval_trec_pvalue.yaml
@@ -193,14 +192,15 @@ evaluation:
   save_path: output/evaluate_results.json
 ```
 
-运行以下命令执行该 Pipeline：
+Run the following command to execute the Pipeline:
 
 ```shell
 ultrarag run examples/eval_trec_pvalue.yaml
 ```
 
-### 生成
-#### 基本用法
+### Generation
+
+#### Basic Usage
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="5,19"
 servers:
@@ -224,18 +224,18 @@ pipeline:
 - evaluation.evaluate
 ```
 
-只需在 Pipeline 的末尾添加 evaluation.evaluate 工具，即可在任务执行完成后自动计算所有指定评测指标，并输出结果到配置文件中设定的路径。
+Simply add the `evaluation.evaluate` tool at the end of the Pipeline.  
+It will automatically compute all specified evaluation metrics after the task completes and save the results to the configured output path.
 
+#### Evaluate Existing Results
 
-#### 评估已有结果
-
-如果你已经拥有模型生成的结果文件，并希望直接对其进行评估，可以将结果整理为标准化的 JSONL 格式。文件中应至少包含代表答案标签与生成结果的字段，例如：
+If you already have generated model results and want to evaluate them directly, organize them in standard JSONL format.  
+The file should include at least fields representing reference answers and model predictions, for example:
 
 ```json icon="/images/json.svg"
 {"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "pred_answer": "December 14, 1973"}
 {"id": 1, "question": "who wrote he ain't heavy he's my brother lyrics", "golden_answers": ["Bobby Scott", "Bob Russell"], "pred_answer": "The documents do not provide information about the author of the lyrics to \"He Ain't Heavy, He's My Brother.\""}
 ```
-
 
 ```yaml examples/evaluate_results.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -249,7 +249,8 @@ pipeline:
 - evaluation.evaluate
 ```
 
-为了让 Benchmark Server 读取生成结果，需要在 get_data 函数中增加 `pred_ls` 字段：
+To enable the Benchmark Server to read generated results, add the `pred_ls` field in the `get_data` function:
+
 ```python servers/prompt/src/benchmark.py icon="python"
 @app.tool(output="benchmark->q_ls,gt_ls") # [!code --]
 @app.tool(output="benchmark->q_ls,gt_ls,pred_ls") # [!code ++]
@@ -258,13 +259,13 @@ def get_data(
 ) -> Dict[str, List[Any]]:
 ```
 
-然后，运行以下命令编译 Pipeline：
+Then run the following command to build the Pipeline:
 
 ```shell
 ultrarag build examples/evaluate_results.yaml
 ```
 
-在生成的参数文件中，新增字段 pred_ls 并指定其在原始数据中的对应键名，同时修改数据路径和名称以指向新的评估文件：
+In the generated parameter file, add the new field `pred_ls` and specify its corresponding key in the original data, while updating dataset name and path to point to the evaluation file:
 
 ```yaml examples/parameters/evaluate_results_parameter.yaml icon="/images/yaml.svg"
 benchmark:
@@ -293,7 +294,7 @@ evaluation:
   save_path: output/evaluate_results.json
 ```
 
-运行以下命令执行该 Pipeline：
+Run the following command to execute the Pipeline:
 
 ```shell
 ultrarag run examples/evaluate_results.yaml

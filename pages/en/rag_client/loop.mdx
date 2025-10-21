@@ -1,11 +1,12 @@
 ---
-title: "循环结构"
+title: "Loop Structure"
 icon: "rotate-right"
 ---
 
-在多轮推理、多跳问答或多轮检索等任务中，单次执行流程往往无法获得理想的最终答案。此时可以使用循环结构，对特定模块进行重复执行，从而实现信息的逐步迭代与结果的持续优化。
+In tasks such as multi-turn reasoning, multi-hop question answering, or iterative retrieval, a single execution often fails to produce an ideal final answer.  
+In such cases, a **loop structure** can be used to repeatedly execute specific modules, enabling gradual information refinement and continuous optimization of results.
 
-## 使用示例
+## Usage Example
 
 ```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="16-28"
 # MCP Server
@@ -42,10 +43,10 @@ pipeline:
 - evaluation.evaluate
 ```
 
-在循环结构中，Pipeline 使用以下关键字来定义需要重复执行的工具模块：
+In a loop structure, the Pipeline uses the following keywords to define the tools that should be executed repeatedly:
 
-- `loop`：声明一个循环块，表示其内部的步骤将被重复执行；
-- `times`：指定循环的最大迭代次数；
-- `steps`：定义每一轮循环中需要执行的工具调用序列。
+- `loop`: Declares a loop block, indicating that the enclosed steps will be executed multiple times.  
+- `times`: Specifies the maximum number of iterations.  
+- `steps`: Defines the sequence of tool invocations within each iteration.
 
-<Note>如果希望动态控制循环终止条件，可结合 分支结构（branch） 与 Router Server 使用，详见[分支结构](/pages/cn/rag_client/branch)。</Note>
+<Note>If you wish to dynamically control loop termination conditions, you can combine the **Branch Structure (branch)** with the **Router Server**. See [Branch Structure](/pages/en/rag_client/branch) for details.</Note>

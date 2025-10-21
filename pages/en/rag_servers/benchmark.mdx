@@ -3,13 +3,13 @@ title: "Benchmark"
 icon: "chart-line"
 ---
 
-## 作用
+## Overview
 
-Benchmark Server 用于加载评测数据集，常用于基准测试、问答任务或生成任务中的数据配置阶段。
+The **Benchmark Server** is used to load evaluation datasets. It is commonly employed during the data configuration stage of benchmark testing, question answering (QA), or generation tasks.
 
-<Info>我们强烈推荐将数据预处理为`.jsonl`格式。</Info>
+<Info>We strongly recommend preprocessing your dataset into the `.jsonl` format.</Info>
 
-示例数据：
+Example data:
 
 ```json data/sample_nq_10.jsonl icon="/images/json.svg"
 {"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "meta_data": {}}
@@ -19,9 +19,9 @@ Benchmark Server 用于加载评测数据集，常用于基准测试、问答任
 {"id": 4, "question": "who won last year's ncaa women's basketball", "golden_answers": ["South Carolina"], "meta_data": {}}
 ```
 
-## 使用示例
+## Usage Example
 
-### 基本用法
+### Basic Usage
 
 ```yaml examples/load_data.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -33,13 +33,13 @@ pipeline:
 - benchmark.get_data
 ```
 
-运行以下命令编译 Pipeline：
+Run the following command to build the Pipeline:
 
 ```shell
 ultrarag build examples/load_data.yaml
 ```
 
-根据实际情况修改相应字段：
+Then modify parameters as needed:
 
 ```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
@@ -53,23 +53,25 @@ benchmark:
     seed: 42
     shuffle: false
 ```
-运行以下命令执行该 Pipeline：
+
+Run the following command to execute the Pipeline:
 
 ```shell
 ultrarag run examples/load_data.yaml
 ```
 
-运行完成后，系统将自动加载并输出数据样本信息，为后续的检索与生成任务提供输入支持。
+After execution, the system automatically loads and outputs dataset sample information, providing input support for subsequent retrieval and generation tasks.
 
-### 新增加载数据集字段
+### Adding Additional Dataset Fields
 
-在某些情况下，我们可能不仅需要加载 `query` 与 `ground_truth` 字段，还希望使用数据集中的其他信息，如已检索的 `passage`。
-此时，可以通过修改 Benchmark Server 的代码，新增需要返回的字段。
+In some cases, you may want to load not only the `query` and `ground_truth` fields, but also other information from the dataset — for example, pre-retrieved `passage` data.  
+In such scenarios, you can modify the Benchmark Server code to include additional fields in the output.
 
-<Note>你可以用相同方式扩展其他字段（例如 cot、retrieved_passages 等），只需在装饰器输出与 key_map 中同步添加对应键名即可。</Note>
-<Check>如果你有生成好的结果（如 pred 字段），可以配合 [Evaluation Server](/pages/cn/rag_servers/evaluation) 一同使用，实现快速评估。</Check>
+<Note>You can extend other fields (such as `cot`, `retrieved_passages`, etc.) in the same way — simply add the corresponding key names both in the decorator’s output and in `key_map`.</Note>
+<Check>If you already have generated results (such as a `pred` field), you can use them with the [Evaluation Server](/pages/en/rag_servers/evaluation) to perform quick evaluation.</Check>
 
-以下示例演示如何在 `get_data` 函数中新增 `id_ls` 字段：
+The following example demonstrates how to add an `id_ls` field in the `get_data` function:
+
 ```python servers/prompt/src/benchmark.py icon="python"
 @app.tool(output="benchmark->q_ls,gt_ls") # [!code --]
 @app.tool(output="benchmark->q_ls,gt_ls,id_ls") # [!code ++]
@@ -78,13 +80,13 @@ def get_data(
 ) -> Dict[str, List[Any]]:
 ```
 
-然后，运行以下命令重新编译 Pipeline：
+Then, run the following command again to rebuild the Pipeline:
 
 ```shell
 ultrarag build examples/load_data.yaml
 ```
 
-在生成的参数文件中，添加字段 `id_ls` 并指定其在原始数据中的对应键名：
+In the generated parameter file, add the `id_ls` field and specify the corresponding key name from the raw data:
 
 ```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
@@ -100,5 +102,4 @@ benchmark:
     shuffle: false
 ```
 
-完成修改后，重新运行 Pipeline 即可加载包含 id 的数据样本。
-
+After completing the modification, rerun the Pipeline to load data samples that include the `id` field.

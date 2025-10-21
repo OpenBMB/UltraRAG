@@ -3,19 +3,18 @@ title: "Prompt"
 icon: "terminal"
 ---
 
-## 作用
+## Overview
 
-Prompt Tool 是用于构建语言模型输入（Prompt）的核心组件。
-每个 Prompt Tool 由 `@app.prompt` 装饰器定义，其主要职责是：
-根据输入内容（如问题、检索到的段落等），加载对应的模板文件，并生成标准化的 PromptMessage，
-以便直接传递给大语言模型（LLM）进行生成或推理。
+The **Prompt Tool** is the core component used to construct inputs (prompts) for language models.  
+Each Prompt Tool is defined using the `@app.prompt` decorator.  
+Its main responsibility is to load the corresponding template file based on the input content (e.g., question, retrieved passages) and generate standardized `PromptMessage` objects that can be directly passed to the Large Language Model (LLM) for generation or inference.
 
 
-## 实现示例
+## Implementation Example
 
-### Step 1：准备 Prompt 模板
+### Step 1: Prepare the Prompt Template
 
-请将你的 prompt 模板保存为 `.jinja` 结尾的文件，例如：
+Save your prompt template as a file ending with `.jinja`, for example:
 
 ```jinja prompt/qa_rag_boxed.jinja icon="/images/jinja.svg"
 Please answer the following question based on the given documents.
@@ -28,9 +27,9 @@ Documents:
 Question: {{question}}
 ```
 
-### Step 2：在 Prompt Server 中实现 Tool
+### Step 2: Implement the Tool in the Prompt Server
 
-调用 `load_prompt_template` 方法加载模板，并在 Prompt Server 中实现一个工具函数用于组装 prompt：
+Call the `load_prompt_template` method to load the template and implement a tool function in the Prompt Server to assemble the prompt:
 
 ```python servers/prompt/src/prompt.py icon="python"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -46,9 +45,9 @@ def qa_rag_boxed(
     return ret
 ```
 
-## 调用示例
+## Usage Example
 
-在调用模型生成工具前，需要先通过对应的 Prompt Tool 构建输入提示。
+Before calling the generation tool, you must first construct the input prompt using the corresponding Prompt Tool.
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
 servers:
@@ -72,10 +71,10 @@ pipeline:
 - evaluation.evaluate
 ```
 
-## 多 Prompt Tool 调用场景
+## Multiple Prompt Tool Usage Scenarios
 
-在一些复杂的 Pipeline 中，模型往往需要在不同阶段执行不同任务——例如，先生成子问题，再根据新的检索结果生成最终答案。
-此时，就需要在同一 Pipeline 中配置多个 Prompt Tool，分别负责不同的提示构建逻辑。
+In complex Pipelines, the model may need to perform different tasks at different stages—for example, generating sub-questions first, and then producing the final answer based on new retrieval results.  
+In such cases, multiple Prompt Tools can be configured within the same Pipeline, each responsible for constructing prompts for a specific task.
 
 ```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
 # MCP Server
@@ -112,7 +111,7 @@ pipeline:
 - evaluation.evaluate
 ```
 
-若希望为不同任务加载不同模板，需在注册时为每个 Prompt Tool 指定独立的模板字段名：
+If you want to load different templates for different tasks, specify distinct template field names when registering each Prompt Tool:
 
 ```python servers/prompt/src/prompt.py icon="python" highlight="1,13"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -142,10 +141,9 @@ def gen_subq(
     return all_prompts
 ```
 
-随后，在 `servers/prompt/parameter.yaml` 中添加对应模板字段：
+Then, add the corresponding template fields in `servers/prompt/parameter.yaml`:
 
-
-<Note>请确保在执行 build 命令前完成此修改。</Note>
+<Note>Ensure you complete this modification before running the `build` command.</Note>
 
 ```yaml servers/prompt/parameter.yaml icon="/images/yaml.svg" 
 # servers/prompt/parameter.yaml
@@ -175,13 +173,13 @@ webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
 gen_subq_template: prompt/gen_subq.jinja  # [!code ++]
 ```
 
-运行以下命令编译 Pipeline：
+Build the Pipeline:
 
 ```shell
 ultrarag build rag_loop.yaml
 ```
 
-系统会自动在生成的参数文件中注册新字段：
+The system will automatically register the new field in the generated parameter file:
 
 ```yaml examples/rag_loop_parameter.yaml icon="/images/yaml.svg" highlight="3"
 ...
@@ -193,4 +191,4 @@ retriever:
 ...
 ```
 
-随后即可正常执行该 Pipeline。
+You can then execute the Pipeline normally.

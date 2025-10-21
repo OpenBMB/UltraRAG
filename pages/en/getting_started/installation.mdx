@@ -1,80 +1,80 @@
 ---
-title: "环境部署"
+title: "Installation"
 icon: "download"
 ---
 
-UR-2.0 提供了用户友好的安装方式，用户仅需几条命令即可完成基础环境的搭建。同时，UR-2.0 支持按需加载的模块化依赖体系，便于灵活扩展所需功能组件，避免冗余安装。
+UR-2.0 provides a user-friendly installation process, allowing you to set up the base environment with just a few commands. It also supports a modular dependency system that enables flexible extension of components while avoiding unnecessary installations.
 
-## Step 1：安装前准备
+## Step 1: Preparation
 
-使用 Conda 创建虚拟环境：
+Create a virtual environment using Conda:
 
 ```shell
 conda create -n ultrarag python=3.11
 conda activate ultrarag
 ```
 
-<Tip>没有安装 Conda ？前往 [安装 Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install)。</Tip>
+<Tip>Don’t have Conda? Visit [Install Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install).</Tip>
 
-我们推荐使用 [uv](https://github.com/astral-sh/uv) 来进行包管理，提供更快、更可靠的 Python 依赖管理体验：
+We recommend using [uv](https://github.com/astral-sh/uv) for package management, which provides a faster and more reliable Python dependency management experience:
 
 ```shell
 pip install uv
 ```
 
-## Step2：安装基础环境
+## Step 2: Install the Basic Environment
 
-<Note>我们将逐步支持 PyPI 与 Conda 发行</Note>
+<Note>PyPI and Conda releases will be supported gradually.</Note>
 
-通过 git 克隆项目到本地或服务器：
+Clone the project from GitHub to your local machine or server:
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git
 cd UltraRAG
 ```
 
-使用 Conda 创建虚拟环境并安装基础依赖：
+Install the base dependencies using Conda and uv:
 
 ```shell
 uv pip install -e .
 ```
 
-## Step3：验证安装
+## Step 3: Verify Installation
 
-运行以下命令测试是否安装成功：
+Run the following command to test whether the installation was successful:
 
 ```shell
 ultrarag run examples/sayhello.yaml
 ```
 
-若环境无误，终端将输出欢迎信息：
+If everything is configured correctly, the terminal will display a welcome message:
 
 ![](/images/getting_started/sayhello_run.png)
 
-## Step4：按需安装扩展组件
+## Step 4: Install Optional Components
 
-UR-2.0支持丰富的Server组件，开发者可根据实际任务灵活安装所需依赖：
+UR-2.0 supports a wide range of server components. Developers can flexibly install additional dependencies as needed for their specific tasks:
 
 ```shell
-# 如需使用faiss进行向量索引：
-# 需要根据自己的硬件环境，手动编译安装不同版本的 FAISS
-# 安装 faiss-cpu
+# To use faiss for vector indexing:
+# Depending on your hardware environment, compile and install the appropriate FAISS version manually.
+# Install faiss-cpu
 conda install -c pytorch faiss-cpu
-# 安装 faiss-gpu
+# Install faiss-gpu
 conda install -c pytorch faiss-gpu
 
-# 如需使用infinity_emb进行语料库编码和索引：
+# To use infinity_emb for corpus encoding and indexing:
 uv pip install -e ".[infinity_emb]"
 
-# 如需使用lancedb向量数据库：
+# To use the lancedb vector database:
 uv pip install -e ".[lancedb]"
 
-# 如需使用vLLM服务部署模型：
+# To deploy models using vLLM:
 uv pip install -e ".[vllm]"
 
-# 如需使用语料库文档解析功能：
+# To enable corpus document parsing:
 uv pip install -e ".[corpus]"
 
-# 安装所有依赖（除faiss）
+# To install all dependencies (excluding FAISS):
 uv pip install -e ".[all]"
 ```

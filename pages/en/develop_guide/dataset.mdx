@@ -1,47 +1,48 @@
 ---
-title: "评测数据"
+title: "Evaluation Data"
 icon: "table"
 ---
 
-我们整理并预处理了当前 RAG 研究中最常用的公开评测数据集和语料库，并已在 [ModelScope]() 和 [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) 上同步发布。
-用户可直接下载使用，无需额外清洗或转换，即可与 UltraRAG 的评测管线无缝对接。
+We have curated and preprocessed the most commonly used public benchmark datasets and corpora in current RAG research.  
+All datasets have been released on [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) and [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark).  
+Users can directly download and use them without additional cleaning or conversion — they are fully compatible with UltraRAG’s evaluation pipelines.
 
 
 ## Benchmark
 
-下表汇总了当前已支持的任务类型及对应数据集的统计信息：
+The following table summarizes the supported task types and their corresponding dataset statistics:
 
-| 任务类型         | 数据集名称           | 原始数据数量                               | 评测采样数量       |
-|:------------------|:----------------------|:--------------------------------------------|:--------------------|
-| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open)                   | 3,610                                      | 1,000              |
-| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/)             | 11,313                                     | 1,000              |
-| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA)                | 14,267                                     | 1,000              |
-| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa)              | 2,002                                      | 1,000              |
-| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation)              | 55,636         | 1,000|
-| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions)         | 2,032                                      | 1,000              |
-| VQA         | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA)               | 591                        | 591                        |
-| VQA         | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA)               | 63                        | 63                         |
-| VQA         | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA)                | 718                         | 718                        |
-| VQA         | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA)                | 863                         | 863                         |
-| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa)             | 7,405                                      | 1,000              |
-| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju)      | 12,576                                     | 1,000              |
-| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view)              | 2,417                                      | 1,000              |
-| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle)            | 125                                        | 125                |
-| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa)          | 2,290                                      | 1,000              |
-| Multi-hop VQA         | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA)          | 556                        | 556                       |
-| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc)                  | 3,548    | 1,000              |
-| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu)                 | 14,042                      | 1,000              |
-| Multiple-choice VQA    | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA)                 | 816      | 816                |
-| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa)                 | 948                                        | 948                |
-| Fact-verification| [FEVER](https://fever.ai/dataset/fever.html)                | 13,332    | 1,000              |
-| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks)                  | 3,054                                      | 1,000              |
-| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks)                | 5,000                                      | 1,000              |
+| Task Type        | Dataset Name            | Original Data Volume                        | Evaluation Samples |
+|:------------------|:------------------------|:--------------------------------------------|:-------------------|
+| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open) | 3,610 | 1,000 |
+| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/) | 11,313 | 1,000 |
+| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA) | 14,267 | 1,000 |
+| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa) | 2,002 | 1,000 |
+| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation) | 55,636 | 1,000 |
+| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions) | 2,032 | 1,000 |
+| VQA              | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA) | 591 | 591 |
+| VQA              | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA) | 63 | 63 |
+| VQA              | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA) | 718 | 718 |
+| VQA              | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA) | 863 | 863 |
+| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa) | 7,405 | 1,000 |
+| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju) | 12,576 | 1,000 |
+| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view) | 2,417 | 1,000 |
+| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle) | 125 | 125 |
+| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa) | 2,290 | 1,000 |
+| Multi-hop VQA    | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA) | 556 | 556 |
+| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc) | 3,548 | 1,000 |
+| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu) | 14,042 | 1,000 |
+| Multiple-choice VQA | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA) | 816 | 816 |
+| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa) | 948 | 948 |
+| Fact Verification | [FEVER](https://fever.ai/dataset/fever.html) | 13,332 | 1,000 |
+| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks) | 3,054 | 1,000 |
+| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks) | 5,000 | 1,000 |
 
-**数据格式规范**
+**Data Format Specification**
 
-为了确保与 UltraRAG 各模块完全兼容，建议用户将测试数据统一存储为 .jsonl 文件，并遵循以下格式规范。
+To ensure full compatibility with UltraRAG modules, users are advised to store test data uniformly in `.jsonl` format following the specifications below.
 
-非选择题数据格式：
+Non-multiple-choice data format:
 
 ```json icon="/images/json.svg"
 {
@@ -52,7 +53,7 @@ icon: "table"
 }
 ```
 
-选择题数据格式：
+Multiple-choice data format:
 
 ```json icon="/images/json.svg"
 {
@@ -66,23 +67,23 @@ icon: "table"
 
 ## Corpus
 
-UltraRAG 提供了多源、高质量的标准化语料库，涵盖文本与图像两种模态，便于构建多场景 RAG 系统。
-以下为当前已收录语料的统计信息：
+UltraRAG provides multi-source, high-quality standardized corpora covering both text and image modalities, facilitating the construction of diverse RAG systems.  
+The following table summarizes the current corpus statistics:
 
-| 语料库名称   | 文档数量     |
-|:--------------|:--------------|
-| Wiki-2018     | 21,015,324   |
-| Wiki-2024     | 30,463,973     |
-| MP-DocVQA    | 741   |
-| ChartQA     | 500  |
-| InfoVQA     | 459   |
-| PlotQA     | 9,593   |
-| SlideVQA     | 1,284  |
-| ArXivQA     | 8,066   |
+| Corpus Name  | Number of Documents |
+|:--------------|:-------------------|
+| Wiki-2018     | 21,015,324 |
+| Wiki-2024     | 30,463,973 |
+| MP-DocVQA     | 741 |
+| ChartQA       | 500 |
+| InfoVQA       | 459 |
+| PlotQA        | 9,593 |
+| SlideVQA      | 1,284 |
+| ArXivQA       | 8,066 |
 
-**数据格式规范**
+**Data Format Specification**
 
-文本语料格式：
+Text corpus format:
 
 ```json icon="/images/json.svg"
 {
@@ -91,7 +92,7 @@ UltraRAG 提供了多源、高质量的标准化语料库，涵盖文本与图�
 }
 ```
 
-图像语料格式：
+Image corpus format:
 
 ```json icon="/images/json.svg"
 {

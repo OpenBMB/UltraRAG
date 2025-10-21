@@ -1,16 +1,18 @@
 ---
-title: "数据流动"
+title: "Data Flow"
 icon: "arrows-split-up-and-left"
 ---
 
-在 UR-2.0 中，Pipeline 通过变量名实现数据绑定：每个工具在注册时都会声明自身的输入参数与输出变量，而 Pipeline 在执行时，会依靠这些变量名在各步骤之间传递与共享数据。
+In UR-2.0, the Pipeline achieves **data binding through variable names**. Each Tool declares its input parameters and output variables during registration.  
+At runtime, the Pipeline uses these variable names to transfer and share data between different steps.
 
-这种机制简单直观，便于构建顺序化的数据流。但在多轮调用或复杂控制结构中，可能会出现变量名冲突或数据覆盖的问题。为此，UR-2.0 提供了参数重写机制，允许开发者在 Pipeline 灵活重命名变量而无需修改源码。
+This mechanism is simple and intuitive, making it easy to build sequential data flows.  
+However, in multi-round calls or complex control structures, variable name conflicts or data overwriting may occur.  
+To address this, UR-2.0 provides a **parameter renaming mechanism**, allowing developers to flexibly rename variables in the Pipeline without modifying any source code.
 
+## How Does Data Flow?
 
-## 数据如何流动？
-
-每个工具在注册时都会声明自身的输入与输出变量名，从而确定数据流的入口与出口。例如：
+Each Tool declares its own input and output variable names during registration, defining the entry and exit points of the data flow. For example:
 
 <CodeGroup>
 
@@ -37,36 +39,35 @@ def retriever_search(q_ls, top_k) -> ...
 
 </CodeGroup>
 
-这里的定义表示：
+This definition means:
 
-- 工具接收两个输入变量：`q_ls` 和 `top_k`
-- 工具返回一个输出变量：`ret_psg`
+- The Tool receives two input variables: `q_ls` and `top_k`
+- The Tool returns one output variable: `ret_psg`
 
-如果你多次调用同一个工具（如 retriever_search），并希望传入不同的数据变量（例如第一次为 q_ls，第二次为 subq_ls），
-就需要一种方式告诉 Pipeline：这些变量其实是 **“同义词”**。
+If you call the same Tool multiple times (e.g., `retriever_search`) but want to pass different input variables (such as `q_ls` for the first call and `subq_ls` for the second),  
+you need a way to tell the Pipeline that these variables are **“aliases”** of the same parameter.
 
-## 参数重命名机制
+## Parameter Renaming Mechanism
 
-为了解决变量名冲突与绑定歧义问题，UR-2.0 提供了灵活的 参数重命名机制。
-你可以直接在 pipeline.yaml 中使用 `input:` 与 `output:` 字段，
-显式指定参数与变量的映射关系——无需修改 Server 内部代码，即可完成数据绑定重定向。
+To resolve variable name conflicts and binding ambiguities, UR-2.0 provides a flexible **parameter renaming mechanism**.  
+You can directly use the `input:` and `output:` fields in the Pipeline YAML file to explicitly specify parameter-variable mappings—without modifying any Server code.
 
 ```yaml  icon="/images/yaml.svg"
 - module.tool:
     input:
-      函数形参名: Pipeline里的变量名
+      function_parameter_name: pipeline_variable_name
     output:
-      Tool输出键: Pipeline里的变量名
+      tool_output_key: pipeline_variable_name
 ```
 
-这套机制遵循“按名称显式绑定”原则：
-`input:` 映射函数的入参名，`output:` 映射工具注册时定义的输出键。
+This mechanism follows the principle of *explicit name-based binding*:  
+`input:` maps to the function’s parameter names, while `output:` maps to the output keys defined during Tool registration.
 
-<Note>最简单的方式：在函数定义与工具注册时保持输入、输出参数名一致，可直接避免区分上述两种绑定规则。</Note>
+<Note>The simplest practice: keep input and output names consistent between function definitions and Tool registration to avoid confusion and unnecessary remapping.</Note>
 
-### 示例1：输入变量重命名
+### Example 1: Input Variable Renaming
 
-假设工具函数声明如下：
+Suppose the Tool function is defined as follows:
 
 ```python icon="python"
 async def retriever_search(
@@ -78,7 +79,7 @@ async def retriever_search(
     ) -> Dict[str, List[List[str]]]:
 ```
 
-可以在 Pipeline 中显式重命名输入变量：
+You can explicitly rename the input variable in the Pipeline:
 
 ```yaml  icon="/images/yaml.svg"
 - retriever.retriever_search:
@@ -86,13 +87,13 @@ async def retriever_search(
       query_list: sub_q_ls
 ```
 
-这里，工具原本期望接收名为 `query_list` 的输入参数，但我们通过 `input:` 将其映射为 Pipeline 中的变量 `sub_q_ls`，从而实现无缝绑定。
+Here, the Tool originally expects a parameter named `query_list`, but we map it to the Pipeline variable `sub_q_ls`, achieving seamless data binding.
 
-<Tip>输入参数映射是根据函数声明中的参数名进行的。</Tip>
+<Tip>Input mapping is based on the function’s parameter names.</Tip>
 
-### 示例2：输出变量重命名
+### Example 2: Output Variable Renaming
 
-假设该工具在注册时定义如下：
+Suppose the Tool is registered as follows:
 
 ```python icon="python"
 mcp_inst.tool(
@@ -101,7 +102,7 @@ mcp_inst.tool(
 )
 ```
 
-可以在 Pipeline 中重写输出变量名：
+You can override the output variable name in the Pipeline:
 
 ```yaml  icon="/images/yaml.svg"
 - retriever.retriever_search:
@@ -109,12 +110,12 @@ mcp_inst.tool(
       ret_psg: round1_result
 ```
 
-此时，无论函数内部返回变量名为何，只要注册时指定了输出键为 `ret_psg`，
-该结果都会被映射为 `round1_result`，供后续步骤使用。
+In this case, regardless of what the internal function returns, as long as the registered output key is `ret_psg`,  
+the result will be mapped to the variable `round1_result`, which can be accessed by subsequent steps.
 
-<Tip>输出变量映射是根据工具注册时指定的输出键进行的。</Tip>
+<Tip>Output mapping is based on the output keys defined during Tool registration.</Tip>
 
-如果下游模块依赖该输出结果：
+If a downstream module depends on this output:
 
 ```python icon="python"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -123,7 +124,7 @@ def qa_rag_boxed(
 ) -> list[PromptMessage]:
 ```
 
-则可以在 Pipeline 中显式完成输入重定向：
+You can explicitly redirect the input in the Pipeline:
 
 ```yaml  icon="/images/yaml.svg"
 - prompt.qa_rag_boxed:
@@ -131,10 +132,9 @@ def qa_rag_boxed(
       ret_psg: round1_result
 ```
 
-这样，`qa_rag_boxed` 原本期望的输入 `ret_psg` 就会从上一步的 `round1_result` 中读取，实现数据传递。
+Now, the `qa_rag_boxed` Tool will read `ret_psg` from the variable `round1_result`, successfully achieving data transfer between steps.
 
-
-### 示例3：同时重写输入输出
+### Example 3: Renaming Both Input and Output
 
 ```yaml icon="/images/yaml.svg"
 - retriever.retriever_search:
@@ -144,6 +144,6 @@ def qa_rag_boxed(
       ret_psg: round1_result
 ```
 
-这种写法在循环结构中尤为常见——每一轮检索都可使用新的输入与输出变量，避免命名冲突。
+This approach is especially common in loop structures—each iteration can use unique input and output variable names, avoiding naming conflicts.
 
-<Tip>合理使用参数重命名，可以在不修改源码的情况下让你的 RAG 流程在多轮迭代、动态分支等复杂场景下保持整洁与可控。</Tip>
+<Tip>By using parameter renaming effectively, you can keep your RAG workflow clean and manageable even in complex scenarios involving multi-round iterations and dynamic branching—all without modifying any source code.</Tip>

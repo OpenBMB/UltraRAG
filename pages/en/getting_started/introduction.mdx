@@ -1,45 +1,45 @@
 ---
-title: "项目简介"
+title: "Introduction"
 icon: "hand-wave"
 ---
 
 ## UltraRAG 2.0
 
-UltraRAG 2.0 （UR-2.0）是首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 系统构建框架，
-旨在为科研探索场景提供高效的建模支持。它将 RAG 中的核心组件（如 [Retriever](/pages/cn/rag_servers/retriever)、[Generation](/pages/cn/rag_servers/generation) 等）标准化封装为独立的 MCP Server，并通过函数级 Tool 接口实现灵活调用与功能扩展。借助 MCP Client 作为流程调度器，开发者仅需编写简洁的 YAML 文件，便可高效构建支持串行、循环与条件分支等复杂控制结构的推理流程，显著降低搭建与调试复杂 RAG 系统的技术门槛与学习成本。
+**UltraRAG 2.0 (UR-2.0)** is the first lightweight framework for building Retrieval-Augmented Generation (RAG) systems based on the [**Model Context Protocol (MCP)**](https://modelcontextprotocol.io/docs/getting-started/intro) architecture. It is designed to provide efficient modeling support for scientific research and exploration. UR-2.0 standardizes core RAG components—such as [**Retriever**](/pages/en/rag_servers/retriever) and [**Generation**](/pages/en/rag_servers/generation)—into independent MCP Servers, and enables flexible integration and extension through function-level **Tool** interfaces. With the MCP Client serving as a process scheduler, developers can build complex reasoning pipelines featuring **sequential**, **loop**, and **conditional branching** structures simply by writing concise **YAML** files. This approach significantly lowers the technical barriers and learning curve for developing and debugging sophisticated RAG systems.
 
 <p align="center">
   <img src="/images/getting_started/intro.png" width="70%" />
 </p>
+
 <Columns cols={3}>
 
   <Card title="📑 Pipeline">
-    是用户以 YAML 编写的流程定义文件，用于描述各组件与工具的调用顺序与执行逻辑
+    A YAML-based process definition file used to describe the execution order and logic of component and tool calls.
   </Card>
   <Card title="🕹️ Client">
-    是流程的调度中枢，负责解析 Pipeline，统一协调各 Server 中 Tool 的执行与调用顺序
+    The central controller of the workflow that parses the Pipeline and coordinates the execution order of Tools across different Servers.
   </Card>
   <Card title="🔧 Server">
-    包含所有可独立调用的功能模块，开发者可通过标准化接口便捷添加新功能或模块，实现系统的灵活扩展与高效组合
+    A collection of independently callable functional modules. Developers can easily add new features or modules via standardized interfaces for flexible extension and efficient composition.
   </Card>
 </Columns>
 
-此外，UR-2.0 提供由浅入深的完整教学示例，集成多项主流 benchmark 任务与高质量 baseline，配合统一的评测体系与知识库支持，能够显著提升系统开发效率并确保实验的可复现性。
+In addition, UR-2.0 provides step-by-step tutorials, integrates multiple mainstream benchmark tasks and high-quality baselines, and offers a unified evaluation system and knowledge base to greatly improve development efficiency and ensure experimental reproducibility.
 
 ## Why UltraRAG 2.0?
 
-RAG 系统正从早期模块串联的简单模式，演进为依赖模型主动推理、动态检索与条件判断的复杂体系。传统框架在灵活性与可扩展性方面已难以满足此类系统多轮交互与信息更新的需求。同时，现有的开源实现普遍缺乏统一范式，不同 baseline 模块之间耦合严重、结构松散，给理解、复现与对比研究带来极大挑战。
+RAG systems are evolving from simple, modular pipelines into complex architectures that rely on **model-driven reasoning**, **dynamic retrieval**, and **conditional decision-making**. Traditional frameworks often lack the flexibility and scalability required for multi-turn interactions and adaptive information updates. Furthermore, existing open-source implementations typically lack a unified paradigm, leading to tightly coupled and inconsistent baseline modules that hinder understanding, reproducibility, and comparative research.
 
-为应对这些挑战，UltraRAG 2.0 致力于提供：
+To address these challenges, **UltraRAG 2.0** is designed to offer:
 
-<Card title="🚀 低代码构建复杂 Pipeline">
-  原生支持串行、循环、条件分支等推理控制结构，开发者只需编写 YAML 文件，自定义几十行代码即可实现复杂迭代式 RAG 流程等）。
+<Card title="🚀 Low-code construction of complex pipelines">
+  Natively supports sequential, looping, and conditional reasoning structures. Developers can implement iterative RAG workflows by writing simple YAML files with just a few dozen lines of code.
 </Card>
 
-<Card title="⚡ 快速复现与功能扩展">
-  基于 MCP 架构，所有模块均封装为独立、可复用的 Server，支持用户按需自定义或复用现有模块。每个 Server 的功能均以函数级别的 Tool 形式注册，新功能只需添加一个函数即可无缝接入整体流程。
+<Card title="⚡ Rapid reproduction and extensibility">
+  Built on the MCP architecture, all modules are encapsulated as independent and reusable Servers. Each function is registered as a Tool, allowing new functionalities to be seamlessly integrated into the overall pipeline with minimal effort.
 </Card>
 
-<Card title="📊 统一评测与对比">
-  内置标准化的评测流程与指标管理，支持多个主流科研 [Benchmark](/pages/cn/develop_guide/dataset) 的开箱即用与扩展，并通过持续集成最新基线，提升研究复现性与优化效率。
+<Card title="📊 Unified evaluation and benchmarking">
+  Provides standardized evaluation workflows and metric management, supports multiple mainstream [**Benchmark**](/pages/en/develop_guide/dataset) datasets out of the box, and continuously integrates new baselines to enhance research reproducibility and optimization efficiency.
 </Card>

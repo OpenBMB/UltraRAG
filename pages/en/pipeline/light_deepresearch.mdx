@@ -3,64 +3,68 @@ title: "Light DeepResearch"
 icon: "lightbulb"
 ---
 
-<Note>我们为该 Demo 录制了一期讲解视频：[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)。</Note>
+<Note>We have recorded a tutorial video for this demo: [📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click).</Note>
 
-## 什么是DeepResearch
+## What is DeepResearch
 
-Deep Research（也称为 Agentic Deep Research）是指大语言模型（LLM）协同工具（如搜索、浏览器、代码执行、记忆存储等），以“多轮推理→检索→验证→融合”的闭环方式，完成复杂任务的研究型智能代理。
+**Deep Research (also known as Agentic Deep Research)** refers to the process in which large language models (LLMs) collaborate with tools such as search engines, browsers, code executors, and memory storage systems to perform complex tasks through a closed-loop of **multi-round reasoning → retrieval → verification → synthesis**.
 
-不同于单次检索的 RAG（Retrieval-Augmented Generation），Deep Research 更像人的专家思路——先制定计划，再不断探索、调整方向、核实信息，最终输出结构完整、有出处的报告。
+Unlike single-round retrieval in traditional RAG (Retrieval-Augmented Generation), Deep Research operates more like an expert’s workflow — first formulating a plan, then continuously exploring, adjusting direction, verifying information, and finally producing a complete, well-cited report.
 
-## 前置准备 
+## Preparation
 
-在本次开发中，我们将基于 UltraRAG 框架 完成示例。考虑到大多数小伙伴可能没有算力服务器，我们全程在一台 MacBook Air (M2) 上实现，确保环境轻量、易于复现。
+In this tutorial, we will implement a lightweight Deep Research pipeline based on the UltraRAG framework.  
+Considering that most users may not have access to high-end servers, we demonstrate the entire process on a **MacBook Air (M2)**, ensuring a lightweight and reproducible setup.
 
-### API准备
+### API Setup
 
-- 检索 API：我们采用 [Tavily Web Search](https://www.tavily.com/)，初次注册即可免费获得 1000 次调用额度。
-- LLM API：你可以根据自己的习惯选择任意大模型服务。本教程中，我们使用 gpt-5-nano 作为示例
+- **Retrieval API:** We use [Tavily Web Search](https://www.tavily.com/), which provides 1,000 free API calls upon registration.  
+- **LLM API:** You can use any large model API of your choice. In this tutorial, we use **gpt-5-nano** as an example.
 
-### API设置
+### API Configuration
 
-我们提供了两种方式传入 API Key：环境变量和显式参数。其中推荐使用 环境变量，更安全，也能避免 API Key 在日志中泄漏。
+You can provide API keys in two ways: environment variables or explicit parameters.  
+We recommend using **environment variables** for better security and to avoid leaking keys in logs.
 
-在 UR-2.0 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
-并填写你的密钥信息，例如：
+In the root directory of UR-2.0, rename the template file `.env.dev` to `.env`,  
+and fill in your API keys, for example:
 
 ```
 LLM_API_KEY="your llm key"
 TAVILY_API_KEY="your retriever key"
 ```
-UR-2.0 会在启动时自动读取该文件并加载相关配置。
 
-## Pipeline介绍
+UR-2.0 will automatically load these configurations at startup.
 
-在本示例中，我们将实现一个轻量级的 Deep Research Pipeline。它具备以下基本功能：
+## Pipeline Overview
 
-- Plan 制定：模型先根据用户问题制定解决方案的计划；
-- 子问题生成与检索：将大问题分解为可检索的子问题，并调用 Web 搜索工具获取相关资料；
-- 报告整理与填充：逐步完善研究报告的内容；
-- 推理与最终生成：在报告完成后，模型给出最终答案。
+In this example, we will implement a lightweight Deep Research pipeline with the following core components:
 
-流程图如下所示：
+- **Planning:** The model first creates a step-by-step plan based on the user’s question.  
+- **Sub-question generation and retrieval:** The main question is broken into smaller sub-questions, which are used for web retrieval via external tools.  
+- **Report organization and filling:** The model iteratively refines and completes a structured research report.  
+- **Reasoning and final generation:** Once the report is completed, the model generates the final answer.
+
+Workflow diagram:
 
 ![](/images/pipeline/light_deep/pipe.png)
 
-该 pipeline 主要分为两个阶段：
+The pipeline consists of two main stages:
 
-1. **初始化阶段:** 模型会根据用户问题生成一份 plan，并据此构造出初始的报告 page。
+1. **Initialization stage:**  
+   The model generates a research plan based on the user question and initializes the report page.
 
-2. **迭代填充阶段:**
-   
-- 系统会检查当前报告 page 是否已填充完整。
-- 判断标准为：page 中是否仍存在 "to be filled" 字符串。
-- 如果报告尚未完成，模型会结合用户问题、plan 与当前 page，生成一个新的子问题并触发 Web 检索。
-- 检索到的文档会被用于更新 page，然后进入下一轮检查。
-- 这个过程会持续迭代，直到 page 被填满。
-  
-最后，模型会基于用户问题与最终报告 page，生成完整的答案。
+2. **Iterative filling stage:**  
+   - The system checks whether the report page is complete.  
+   - The completion criterion: whether the string `"to be filled"` still exists in the page.  
+   - If the report is incomplete, the model generates a sub-question based on the user query, plan, and current page, then triggers web retrieval.  
+   - Retrieved documents are used to update the page, after which the process repeats.  
+   - The iteration continues until the report is fully filled.
 
-这个示例的代码实现非常简洁，主要依赖 router 与 prompt tool 的自定义扩展。感兴趣的小伙伴可以直接查看源码。以下是完整的 pipeline 定义：
+Finally, the model uses the user query and the completed report page to produce the final answer.
+
+The implementation is concise, mainly relying on customized **router** and **prompt** tools.  
+Here is the full pipeline definition:
 
 ```yaml examples/light_deepresearch.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -109,25 +113,25 @@ pipeline:
 - generation.generate
 ```
 
-## 运行
+## Running the Pipeline
 
-### 构建问题数据
+### Create Sample Question Data
 
-首先，在 data 文件夹下新建一个名为 sample_light_ds.jsonl 的文件，并写入你要研究的问题。例如：
+Create a new file `sample_light_ds.jsonl` in the `data` folder and add your question, for example:
 
 ```json data/sample_light_ds.jsonl icon="/images/json.svg"
-{"id": 0, "question": "介绍一下提瓦特大陆", "golden_answers": [], "meta_data": {}}
+{"id": 0, "question": "Introduce the continent of Teyvat", "golden_answers": [], "meta_data": {}}
 ```
 
-### 构建参数配置文件
+### Generate Parameter Configuration File
 
-执行以下命令生成 pipeline 对应的参数文件：
+Run the following command to generate a parameter file corresponding to the pipeline:
 
 ```shell
 ultrarag build examples/light_deepresearch.yaml
 ```
 
-根据实际情况对参数进行修改，例如：
+Modify the parameters as needed, for example:
 
 ```yaml
 benchmark:
@@ -136,42 +140,26 @@ benchmark:
       gt_ls: golden_answers
       q_ls: question
     limit: -1
-    name: nq # [!code --]
-    path: data/sample_nq_10.jsonl # [!code --]
-    name: ds # [!code ++]
-    path: data/sample_light_ds.jsonl # [!code ++]
+    name: ds
+    path: data/sample_light_ds.jsonl
     seed: 42
     shuffle: false
 generation:
-  backend: vllm # [!code --]
-  backend: openai # [!code ++]
+  backend: openai
   backend_configs:
-    hf:
-      batch_size: 8
-      gpu_ids: 2,3
-      model_name_or_path: openbmb/MiniCPM4-8B
-      trust_remote_code: true
     openai:
       api_key: ''
       base_delay: 1.0
-      base_url: http://localhost:8000/v1 # [!code --]
-      base_url: https://api.openai.com/v1 # [!code ++]
+      base_url: https://api.openai.com/v1
       concurrency: 8
-      model_name: MiniCPM4-8B # [!code --]
-      model_name: gpt-5-nano # [!code ++]
+      model_name: gpt-5-nano
       retries: 3
-    vllm:
-      dtype: auto
-      gpu_ids: 2,3
-      gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B
-      trust_remote_code: true
   sampling_params:
     chat_template_kwargs:
       enable_thinking: false
     max_tokens: 2048
     temperature: 0.7
-    top_p: 0.8 # [!code --]
+    top_p: 0.8
   system_prompt: ''
 prompt:
   webnote_fill_page_template: prompt/webnote_fill_page.jinja
@@ -184,15 +172,15 @@ retriever:
   top_k: 5
 ```
 
+### Run the Pipeline
 
-### 启动
+Before running, make sure your API keys are properly set:
 
-在运行前，不要忘记设置你的 API Key：
 ```shell
 ultrarag run examples/light_deepresearch.yaml
 ```
 
-运行完成后，你可以通过 Case Study Viewer 可视化地查看生成内容：
+After the run is complete, you can visualize the generated content using the **Case Study Viewer**:
 
 ```shell
 python ./script/case_study.py \
@@ -202,6 +190,6 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-这样即可在浏览器中打开结果页面，直观地分析 pipeline 的执行过程与生成内容。
+You can now open the results in your browser to visually analyze the pipeline execution process and generated content.
 
 ![](/images/pipeline/light_deep/result.png)

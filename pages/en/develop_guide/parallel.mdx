@@ -1,32 +1,37 @@
 ---
-title: "并行实验"
+title: "Parallel Experiments"
 icon: "chart-waterfall"
 ---
 
-在实验过程中，我们常常需要对同一个 Pipeline 使用不同的超参数配置进行并行或批量试验。UltraRAG 提供了灵活的参数文件机制，支持在不修改主 Pipeline 的情况下快速切换配置。
+During experiments, it is often necessary to run multiple trials of the same Pipeline with different hyperparameter configurations, either in parallel or in batches.  
+UltraRAG provides a flexible parameter file mechanism that allows quick switching between configurations **without modifying the main Pipeline**.
 
-## 步骤一：编译 Pipeline
+## Step 1: Build the Pipeline
 
-与常规运行流程一致，首先编译 Pipeline：
+As in the standard workflow, first compile the Pipeline:
 
 ```shell
 ultrarag build examples/rag_full.yaml
 ```
-步骤二：运行
 
-在生成的参数文件中修改相应字段后，直接运行以下命令即可执行：
+## Step 2: Run
+
+After modifying the relevant fields in the generated parameter file, execute the following command to run the experiment:
 
 ```shell
 ultrarag run examples/rag_full.yaml
 ```
 
-步骤三：创建新的参数文件
+## Step 3: Create a New Parameter File
 
-若你希望在同一个 Pipeline 上测试不同参数组合，可以新建一份参数文件，例如`examples/parameter/rag_full_parameter_new.yaml`（文件名可自定义）。
+If you want to test different parameter combinations on the same Pipeline, simply create a new parameter file,  
+for example: `examples/parameter/rag_full_parameter_new.yaml` (you may choose any name).
 
-随后运行命令时，通过 `--param` 参数指定使用该配置文件：
+Then, when running the command, specify the parameter file using the `--param` option:
+
 ```shell
 ultrarag run examples/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
 ```
 
-这样，系统将使用新的参数文件执行相同的 Pipeline，从而轻松实现多组实验的并行与批量对比。
+This way, the system will execute the same Pipeline using the new parameter configuration,  
+making it easy to conduct multiple experiments in parallel or perform batch comparisons efficiently.

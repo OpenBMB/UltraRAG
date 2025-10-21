@@ -1,11 +1,13 @@
 ---
-title: "串型结构"
+title: "Sequential Structure"
 icon: "arrow-right-arrow-left"
 ---
 
-串型结构 是 Pipeline 中最基础、也最常用的执行方式。多个步骤按顺序依次执行，前一步的输出（若有）可以作为下一步的输入，也可以独立执行。构建一个标准的 RAG 工作流通常仅依靠串型结构即可完成，从数据加载到结果评估都能清晰衔接。
+The **sequential structure** is the most fundamental and commonly used execution pattern in a Pipeline.  
+Multiple steps are executed in order, where the output of one step (if any) can serve as the input to the next, or each step can run independently.  
+A standard RAG workflow can typically be constructed using only the sequential structure, allowing smooth execution from data loading to final evaluation.
 
-## 使用示例
+## Usage Example
 
 ```yaml examples/rag.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -29,13 +31,14 @@ pipeline:
 - evaluation.evaluate
 ```
 
-在串型结构中，Pipeline 的每一行都表示一次对某个 Tool 的调用，其基本语法为：
+In a sequential structure, each line in the Pipeline represents a call to a specific Tool.  
+The basic syntax is as follows:
 
 ```yaml
 - server_name.tool_name
 ```
 
-- `server_name`：调用的模块名称，必须在 servers 部分中提前声明；
-- `tool_name`：该模块中通过 @tool(...) 或 @prompt(...) 装饰器注册的函数名称。
+- `server_name`: The name of the module being invoked. It must be declared in the `servers` section in advance.  
+- `tool_name`: The name of the function registered within that module using the `@tool(...)` or `@prompt(...)` decorator.
 
-这种结构适用于大多数单轮问答或推理任务，也是理解更复杂流程（如循环、分支）前的基础。
+This structure is suitable for most single-turn question-answering or reasoning tasks and serves as the foundation for understanding more complex structures such as loops and branches.
