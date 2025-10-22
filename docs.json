@@ -86,7 +86,7 @@
             ]
           },
           {
-            "tab": "API Reference",
+            "tab": "SDK Reference",
             "groups": [
               {
                 "group": "RAG Servers",
@@ -181,7 +181,7 @@
             ]
           },
           {
-            "tab": "API Reference",
+            "tab": "SDK Reference",
             "groups": [
               {
                 "group": "RAG Servers",
