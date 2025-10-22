@@ -215,7 +215,7 @@ Read the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/quick_sta
 ## Support
 
 UltraRAG 2.0 ships ready‑to‑use evaluation **datasets** and **large‑scale corpora**, published on [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) and [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark).  
-Download and use directly — no extra cleaning or conversion needed — and plug into UltraRAG’s evaluation pipelines. You can also customize by following the <a href="https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset"><b>data format guide</b></a>.
+Download and use directly — no extra cleaning or conversion needed — and plug into UltraRAG’s evaluation pipelines. You can also customize by following the <a href="https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset"><b>DataFormat</b></a>.
 
 ### 1) Supported Datasets
 
