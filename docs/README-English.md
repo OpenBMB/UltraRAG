@@ -115,28 +115,53 @@ pip install -e .
 [Optional] UR-2.0 supports rich Server components; developers can flexibly install dependencies according to actual tasks:
 
 ```shell
-# If you want to use faiss for vector indexing:
-# You need to manually compile and install the CPU or GPU version of FAISS depending on your hardware environment:
+# Retriever/Reranker Server dependencies:
+# infinity
+uv pip install infinity_emb
+# sentence_transformers
+uv pip install sentence_transformers
+# openai
+uv pip install openai
+# bm25
+uv pip install bm25s
+# faiss (you need to manually compile and install the CPU or GPU version according to your hardware environment)
 # CPU version:
 uv pip install faiss-cpu
 # GPU version (example: CUDA 12.x)
 uv pip install faiss-gpu-cu12
-# For other CUDA versions, install the corresponding package (e.g., faiss-gpu-cu11 for CUDA 11.x).
+# For other CUDA versions, install the corresponding package (e.g., CUDA 11.x uses faiss-gpu-cu11)
+# websearch
+# exa
+uv pip install exa_py
+# tavily
+uv pip install tavily-python
+# One-click installation:
+uv pip install -e ".[retriever]"
 
-# If you want to use infinity_emb for corpus encoding and indexing:
-uv pip install -e ".[infinity_emb]"
+# Generation Server dependencies:
+# vllm
+uv pip install vllm
+# openai
+uv pip install openai
+# hf
+uv pip install transformers
+# One-click installation:
+uv pip install -e ".[generation]"
 
-# If you want to use lancedb vector database:
-uv pip install -e ".[lancedb]"
-
-# If you want to deploy models with vLLM service:
-uv pip install -e ".[vllm]"
-
-# If you want to use corpus document parsing functionality:
+# Corpus Server dependencies:
+# chonkie
+uv pip install chonkie
+# pymupdf
+uv pip install pymupdf
+# mineru
+uv pip install "mineru[core]"
+# One-click installation:
 uv pip install -e ".[corpus]"
 
-# ====== Install all dependencies (except faiss) ======
+# Install all dependencies:
 uv pip install -e ".[all]"
+# Or use conda to import the environment:
+conda env create -f environment.yml
 ```
 
 Run the following command to verify a successful installation:
@@ -158,13 +183,13 @@ cd UltraRAG
 Build the image:
 
 ```shell
-docker build -t ultrarag:v2.0.0-beta .
+docker build -t ultrarag:v0.2.1 .
 ```
 
 Run an interactive environment:
 
 ```shell
-docker run -it --rm --gpus all ultrarag:v2.0.0-beta bash
+docker run -it --rm --gpus all ultrarag:v0.2.1 bash
 ```
 
 Run the following command to verify whether the installation is successful:
