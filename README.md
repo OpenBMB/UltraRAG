@@ -16,8 +16,6 @@
 | 
 <a href="https://ultrarag.openbmb.cn"><b>教程文档</b></a> 
 | 
-<a href="https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark"><b>数据集</b></a> 
-| 
 <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>每日论文</b></a> 
 | 
 <b>简体中文</b>
@@ -30,7 +28,7 @@
 
 *更新日志* 🔥
 
-- [2025.10.22] 🎉 UltraRAG 2.1 正式发布：全面重构 Server 架构，释放多模态与多后端潜能
+- [2025.10.22] 🎉 UltraRAG 2.1 正式发布：RAG Servers 全面升级——重构文档解析与知识库构建流程，强化多模态 RAG 能力，支持更多后端框架。
 - [2025.09.23] 新增每日 RAG 论文分享，每日更新最新前沿 RAG 工作 👉 |[📖 论文](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
 
 <details>
@@ -49,7 +47,7 @@
 
 检索增强生成系统（RAG）正从早期“检索+生成”的简单拼接，走向融合 **自适应知识组织**、**多轮推理**、**动态检索** 的复杂知识系统（典型代表如 *DeepResearch*、*Search-o1*）。但这种复杂度的提升，使科研人员在 **方法复现**、**快速迭代新想法** 时，面临着高昂的工程实现成本。
 
-为了解决这一痛点，清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、东北大学 [NEUIR](https://neuir.github.io) 实验室、[OpenBMB](https://www.openbmb.cn/home) 与 [AI9stars](https://github.com/AI9Stars) 联合推出 UltraRAG 2.0 （UR-2.0）—— 首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/overview) 架构设计的 RAG 框架。这一设计让科研人员只需编写 YAML 文件，就可以直接声明串行、循环、条件分支等复杂逻辑，从而以极低的代码量快速实现多阶段推理系统。
+为了解决这一痛点，清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、东北大学 [NEUIR](https://neuir.github.io) 实验室、[OpenBMB](https://www.openbmb.cn/home) 与 [AI9stars](https://github.com/AI9Stars) 联合推出 UltraRAG 2.0 （UR-2.0）—— 首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的 RAG 框架。这一设计让科研人员只需编写 YAML 文件，就可以直接声明串行、循环、条件分支等复杂逻辑，从而以极低的代码量快速实现多阶段推理系统。
 
 其核心思路是：
 - 组件化封装：将RAG 的核心组件封装为**标准化的独立 MCP Server**；
@@ -77,7 +75,7 @@
 
 ## 秘诀：MCP 架构与原生流程控制
 
-在不同的 RAG 系统中，检索、生成等核心能力在功能上具有高度相似性，但由于开发者实现策略各异，模块之间往往缺乏统一接口，难以跨项目复用。[Model Context Protocol (MCP)](https://modelcontextprotocol.io/overview) 作为一种开放协议，规范了为大型语言模型（LLMs）提供上下文的标准方式，并采用 **Client–Server** 架构，使得遵循该协议开发的 Server 组件可以在不同系统间无缝复用。
+在不同的 RAG 系统中，检索、生成等核心能力在功能上具有高度相似性，但由于开发者实现策略各异，模块之间往往缺乏统一接口，难以跨项目复用。[Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 作为一种开放协议，规范了为大型语言模型（LLMs）提供上下文的标准方式，并采用 **Client–Server** 架构，使得遵循该协议开发的 Server 组件可以在不同系统间无缝复用。
 
 受此启发，UltraRAG 2.0 基于 **MCP 架构**，将 RAG 系统中的检索、生成、评测等核心功能抽象并封装为相互独立的 **MCP Server**，并通过标准化的函数级 **Tool 接口**实现调用。这一设计既保证了模块功能扩展的灵活性，又允许新模块以“热插拔”的方式接入，无需对全局代码进行侵入式修改。在科研场景中，这种架构让研究者能够以极低的代码量快速适配新的模型或算法，同时保持整体系统的稳定性与一致性。
 
@@ -117,6 +115,13 @@ uv pip install -e .
 
 ```shell
 pip install -e .
+```
+
+运行以下命令验证安装是否成功：
+
+```shell
+# 成功运行显示'Hello, UltraRAG 2.0!' 欢迎语
+ultrarag run examples/sayhello.yaml
 ```
 
 
@@ -172,19 +177,14 @@ uv pip install -e ".[all]"
 conda env create -f environment.yml
 ```
 
-运行以下命令验证安装是否成功：
 
-```shell
-# 成功运行显示'Hello, UltraRAG 2.0!' 欢迎语
-ultrarag run examples/sayhello.yaml
-```
 
 ### 使用 Docker 构建运行环境
 
 通过 git 克隆项目到本地或服务器：
 
 ```shell
-git clone https://github.com/OpenBMB/UltraRAG.git
+git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 ```
 
@@ -207,16 +207,17 @@ docker run -it --rm --gpus all ultrarag:v0.2.1 bash
 ultrarag run examples/sayhello.yaml
 ```
 
-## 快速上手
+## 快速开始
 
 我们提供了从入门到进阶的完整教学示例，欢迎访问[教程文档](https://ultrarag.openbmb.cn
 )快速上手 UltraRAG 2.0！
 
-阅读[快速上手](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解 UltraRAG 的使用流程。整体分为三步：**① 编译 Pipeline 文件生成参数配置；② 修改参数文件；③ 运行 Pipeline 文件**。
+阅读[快速开始](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解如何基于 UltraRAG 运行一个完整的 RAG Pipeline。
 
 ## 支持
 
-UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开评测数据集**、**大规模语料库** 以及 **典型基线方法**，方便科研人员快速复现与扩展实验。你也可以参考[数据格式说明](https://ultrarag.openbmb.cn/pages/cn/tutorials/part_3/prepare_dataset)，灵活地自定义并添加任意数据集或语料库。完整的[数据集](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark)可通过该链接访问与下载。
+UltraRAG 2.0 开箱即用，已在 [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) 和 [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) 上同步发布当前 RAG 领域最常用的 **公开评测数据集**以及**大规模语料库**。
+用户可直接下载使用，无需额外清洗或转换，即可与 UltraRAG 的评测管线无缝对接。除此之外还可以参考[数据格式说明](https://ultrarag.openbmb.cn/pages/cn/develop_guide/dataset)，灵活地自定义并添加任意数据集或语料库。
 
 ### 1. 支持的数据集
 
@@ -267,7 +268,7 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 
 | 基线名称 | 脚本     |
 |:------------|:--------------|
-| Vanilla LLM   | examples/vanilla.yaml   |
+| Vanilla LLM   | examples/vanilla_llm.yaml   |
 | Vanilla RAG   | examples/rag.yaml     |
 | [IRCoT](https://arxiv.org/abs/2212.10509)   | examples/IRCoT.yaml   |
 | [IterRetGen](https://arxiv.org/abs/2305.15294)   | examples/IterRetGen.yaml     |
@@ -301,13 +302,17 @@ UltraRAG 2.0 开箱即用，内置支持当前 RAG 领域最常用的 **公开�
 ## 联系我们
 
 - 关于技术问题及功能请求，请使用 [GitHub Issues](https://github.com/OpenBMB/UltraRAG/issues) 功能。
-- 关于使用上的问题、意见以及任何关于 RAG 技术的讨论，欢迎加入我们的[微信群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png)和[discord](https://discord.gg/yRFFjjJnnS)，与我们共同交流。
+- 关于使用上的问题、意见以及任何关于 RAG 技术的讨论，欢迎加入我们的[微信群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png)，[飞书群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/feishu_qr.png)和[discord](https://discord.gg/yRFFjjJnnS)，与我们共同交流。
 
 <table>
   <tr>
     <td align="center">
       <img src="docs/wechat_qr.png" alt="WeChat Group QR Code" width="220"/><br/>
       <b>微信群组</b>
+    </td>
+    <td align="center">
+      <img src="docs/feishu_qr.png" alt="Feishu Group QR Code" width="220"/><br/>
+      <b>飞书群组</b>
     </td>
     <td align="center">
       <a href="https://discord.gg/yRFFjjJnnS">

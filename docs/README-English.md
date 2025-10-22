@@ -14,10 +14,8 @@ Less Code, Lower Barrier, Faster Deployment
 | 
 <a href="https://openbmb.github.io/UltraRAG"><b>Project Page</b></a> 
 | 
-<a href="https://ultrarag.openbmb.cn"><b>Documentation</b></a> 
+<a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>Documentation</b></a> 
 | 
-<a href="https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark"><b>Datasets</b></a> 
-|
 <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>Paper Daily</b></a> 
 | 
 <a href="../README.md"><b>简体中文</b></a>
@@ -30,18 +28,25 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
-- [2025.09.23] Added a Daily RAG Paper Sharing page, featuring the latest cutting-edge RAG papers updated every day 👉 |[📖 paper](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+- [2025.10.22] 🎉 UltraRAG 2.1 released: full upgrade of RAG Servers — reengineered document parsing & knowledge base construction, enhanced multimodal RAG, and broader backend support.
+- [2025.09.23] New daily RAG paper digest, updated every day 👉 |[📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+
+<details>
+<summary>Previous News</summary>
+
 - [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
 - [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 Released UltraRAG 2.0! UltraRAG 2.0 is fully upgraded: build a high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation!
 - [2025.01.23] UltraRAG Released! Enabling large models to better comprehend and utilize knowledge bases. The UltraRAG 1.0 code is still available at [v1](https://github.com/OpenBMB/UltraRAG/tree/v1).
+
+</details>
 
 ---
 ## UltraRAG 2.0: Accelerating RAG Research
 
 Retrieval-Augmented Generation (RAG) systems are evolving from early-stage simple concatenations of “retrieval + generation” to complex knowledge systems integrating **adaptive knowledge organization**, **multi-turn reasoning**, and **dynamic retrieval** (typical examples include *DeepResearch* and *Search-o1*). However, this increase in complexity imposes high engineering costs on researchers when it comes to **method reproduction** and **rapid iteration of new ideas**.
 
-To address this challenge, [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [NEUIR](https://neuir.github.io), [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars) jointly launched UltraRAG 2.0 (UR-2.0) — the first RAG framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/overview) architecture design. This design allows researchers to declare complex logic such as sequential, loop, and conditional branching simply by writing YAML files, enabling rapid implementation of multi-stage reasoning systems with minimal code.
+To address this challenge, [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [NEUIR](https://neuir.github.io), [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars) jointly launched UltraRAG 2.0 (UR-2.0) — the first RAG framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture design. This design allows researchers to declare complex logic such as sequential, loop, and conditional branching simply by writing YAML files, enabling rapid implementation of multi-stage reasoning systems with minimal code.
 
 Its core ideas are:
 - Modular encapsulation: Encapsulate RAG core components as **standardized independent MCP Servers**;
@@ -69,7 +74,7 @@ Compared with traditional frameworks, UltraRAG 2.0 significantly lowers the **te
 
 ## The Secret Sauce: MCP Architecture and Native Pipeline Control
 
-In different RAG systems, core capabilities such as retrieval and generation share high functional similarity, but due to diverse implementation strategies by developers, modules often lack unified interfaces, making cross-project reuse difficult. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/overview) is an open protocol that standardizes the way to provide context for large language models (LLMs) and adopts a **Client–Server** architecture, enabling MCP-compliant Server components to be seamlessly reused across different systems.
+In different RAG systems, core capabilities such as retrieval and generation share high functional similarity, but due to diverse implementation strategies by developers, modules often lack unified interfaces, making cross-project reuse difficult. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) is an open protocol that standardizes the way to provide context for large language models (LLMs) and adopts a **Client–Server** architecture, enabling MCP-compliant Server components to be seamlessly reused across different systems.
 
 Inspired by this, UltraRAG 2.0 is based on the **MCP architecture**, abstracting and encapsulating core functions such as retrieval, generation, and evaluation in RAG systems into independent **MCP Servers**, and invoking them through standardized function-level **Tool interfaces**. This design ensures flexible module function extension and allows new modules to be “hot-plugged” without invasive modifications to global code. In scientific research scenarios, this architecture enables researchers to quickly adapt new models or algorithms with minimal code while maintaining overall system stability and consistency.
 
@@ -109,6 +114,13 @@ If you prefer pip, you can directly run:
 
 ```shell
 pip install -e .
+```
+
+Verify the installation:
+
+```shell
+# On success you'll see 'Hello, UltraRAG 2.0!'
+ultrarag run examples/sayhello.yaml
 ```
 
 
@@ -164,19 +176,12 @@ uv pip install -e ".[all]"
 conda env create -f environment.yml
 ```
 
-Run the following command to verify a successful installation:
-
-```shell
-# If the installation was successful, you should see the welcome message 'Hello, UltraRAG 2.0!'
-ultrarag run examples/sayhello.yaml
-```
-
 ### Build and Run Environment with Docker
 
 Clone the project to your local machine or server via git:
 
 ```shell
-git clone https://github.com/OpenBMB/UltraRAG.git
+git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 ```
 
@@ -201,71 +206,74 @@ ultrarag run examples/sayhello.yaml
 
 ## Quick Start
 
-We provide a complete set of tutorials ranging from beginner to advanced. Visit the [tutorial documentation](https://ultrarag.openbmb.cn/pages/en/getting_started/introduction) to quickly get started with UltraRAG 2.0!  
+We provide end‑to‑end tutorials from basics to advanced. Visit the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>documentation</b></a> to get started with UltraRAG 2.0.
 
-Read the [Quick Start](https://ultrarag.openbmb.cn/pages/en/getting_started/quick_start) guide to learn the UltraRAG workflow, which consists of three steps: **(1) compile the Pipeline file to generate the parameter configuration, (2) modify the parameter file, and (3) run the Pipeline file**.
-
-In addition, we have prepared a directory of commonly used research functions, where you can directly jump to the desired module:  
-
-- [Corpus Embedding and Indexing with Retriever](https://ultrarag.openbmb.cn/pages/en/tutorials/part_3/emb_and_index)
-- [Deploying Retriever](https://ultrarag.openbmb.cn/pages/en/tutorials/part_4/deploy_retriever_serve)
-- [Deploying LLM](https://github.com/OpenBMB/UltraRAG/blob/main/script/vllm_serve.sh)
-- [Baseline Reproduction](https://ultrarag.openbmb.cn/pages/en/tutorials/part_3/reproduction)
-- [Case Study of Experimental Results](https://ultrarag.openbmb.cn/pages/en/tutorials/part_4/case_study)
-- [Debugging Guide](https://ultrarag.openbmb.cn/pages/en/tutorials/part_4/debug)
+Read the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/quick_start"><b>Quick Start</b></a> to learn how to run a complete RAG pipeline with UltraRAG.
 
 
 
 ## Support
 
-UltraRAG 2.0 is ready to use out-of-the-box, natively supporting the most commonly used **public evaluation datasets**, **large-scale corpus**, and **typical baseline methods** in the current RAG field, facilitating rapid reproduction and extension of experiments for researchers. You can also refer to the [Data Format Specification](https://ultrarag.openbmb.cn/pages/en/tutorials/part_3/prepare_dataset) to flexibly customize and add any datasets or corpus. The full [datasets](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) are available for access and download through this link.
+UltraRAG 2.0 ships ready‑to‑use evaluation **datasets** and **large‑scale corpora**, published on [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) and [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark).  
+Download and use directly — no extra cleaning or conversion needed — and plug into UltraRAG’s evaluation pipelines. You can also customize by following the <a href="https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset"><b>data format guide</b></a>.
 
-### 1. Supported Datasets
+### 1) Supported Datasets
 
-| Task Type         | Dataset Name           | Original Data Size                               | Evaluation Sample Size       |
-|------------------|----------------------|--------------------------------------------|--------------------|
-| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open)                   | 3,610                                      | 1,000              |
-| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/)             | 11,313                                     | 1,000              |
-| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA)                | 14,267                                     | 1,000              |
-| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa)              | 2,002                                      | 1,000              |
-| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation)              | 55,636           | 1,000 |
-| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions)         | 2,032                                      | 1,000              |
-| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa)             | 7,405                                      | 1,000              |
-| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju)      | 12,576                                     | 1,000              |
-| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view)              | 2,417                                      | 1,000              |
-| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle)            | 125                                        | 125                |
-| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa)          | 2,290                                      | 1,000              |
-| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc)                  | 3,548    | 1,000              |
-| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu)                 | 14,042                     | 1,000              |
-| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa)                 | 948                                        | 948                |
-| Fact-verification| [FEVER](https://fever.ai/dataset/fever.html)                | 13,332    | 1,000              |
-| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks)                  | 3,054                                      | 1,000              |
-| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks)                | 5,000                                      | 1,000              |
-
----
-
-### 2. Supported Corpus
-
-| Corpus Name | Document Count     |
-|------------|--------------|
-| [wiki-2018](https://huggingface.co/datasets/RUC-NLPIR/FlashRAG_datasets/tree/main/retrieval-corpus)   | 21,015,324   |
-| wiki-2024   | Under preparation, coming soon |
+| Task Type        | Dataset Name            | Raw Size                                | Eval Samples |
+|:------------------|:------------------------|:-----------------------------------------|:-------------|
+| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open) | 3,610 | 1,000 |
+| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/) | 11,313 | 1,000 |
+| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA) | 14,267 | 1,000 |
+| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa) | 2,002 | 1,000 |
+| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation) | 55,636 | 1,000 |
+| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions) | 2,032 | 1,000 |
+| VQA              | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA) | 591 | 591 |
+| VQA              | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA) | 63 | 63 |
+| VQA              | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA) | 718 | 718 |
+| VQA              | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA) | 863 | 863 |
+| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa) | 7,405 | 1,000 |
+| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju) | 12,576 | 1,000 |
+| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view) | 2,417 | 1,000 |
+| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle) | 125 | 125 |
+| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa) | 2,290 | 1,000 |
+| Multi-hop VQA    | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA) | 556 | 556 |
+| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc) | 3,548 | 1,000 |
+| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu) | 14,042 | 1,000 |
+| Multiple-choice VQA | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA) | 816 | 816 |
+| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa) | 948 | 948 |
+| Fact Verification | [FEVER](https://fever.ai/dataset/fever.html) | 13,332 | 1,000 |
+| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks) | 3,054 | 1,000 |
+| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks) | 5,000 | 1,000 |
 
 ---
 
-### 3. Supported Baseline Methods (Continuously Updated)
+### 2) Supported Corpora
 
-| Baseline Name | Script     |
-|------------|--------------|
-| Vanilla LLM   | examples/vanilla.yaml   |
-| Vanilla RAG   | examples/rag.yaml     |
-| [IRCoT](https://arxiv.org/abs/2212.10509)   | examples/IRCoT.yaml   |
-| [IterRetGen](https://arxiv.org/abs/2305.15294)   | examples/IterRetGen.yaml     |
-| [RankCoT](https://arxiv.org/abs/2502.17888)   | examples/RankCoT.yaml   |
-| [R1-searcher](https://arxiv.org/abs/2503.05592)   | examples/r1_searcher.yaml     |
-| [Search-o1](https://arxiv.org/abs/2501.05366)   | examples/search_o1.yaml   |
-| [Search-r1](https://arxiv.org/abs/2503.09516)   | examples/search_r1.yaml     |
-| WebNote   | examples/webnote.yaml    |
+| Corpus Name | # Documents |
+|:-------------|:-----------|
+| Wiki-2018    | 21,015,324 |
+| Wiki-2024    | 30,463,973 |
+| MP-DocVQA    | 741 |
+| ChartQA      | 500 |
+| InfoVQA      | 459 |
+| PlotQA       | 9,593 |
+| SlideVQA     | 1,284 |
+| ArXivQA      | 8,066 |
+
+---
+
+### 3) Supported Baselines (continuously updated)
+
+| Baseline | Script |
+|:---------|:-------|
+| Vanilla LLM   | examples/vanilla_llm.yaml |
+| Vanilla RAG   | examples/rag.yaml |
+| [IRCoT](https://arxiv.org/abs/2212.10509) | examples/IRCoT.yaml |
+| [IterRetGen](https://arxiv.org/abs/2305.15294) | examples/IterRetGen.yaml |
+| [RankCoT](https://arxiv.org/abs/2502.17888) | examples/RankCoT.yaml |
+| [R1-searcher](https://arxiv.org/abs/2503.05592) | examples/r1_searcher.yaml |
+| [Search-o1](https://arxiv.org/abs/2501.05366) | examples/search_o1.yaml |
+| [Search-r1](https://arxiv.org/abs/2503.09516) | examples/search_r1.yaml |
 
 ## Contributing
 
