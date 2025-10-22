@@ -1,5 +1,185 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-21
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.18821v1">Search Self-play: Pushing the Frontier of Agent Capability without Supervision</a></td><td><details><summary>展开</summary>Reinforcement learning with verifiable rewards (RLVR) has become the
+mainstream technique for training LLM agents. However, RLVR highly depends on
+well-crafted task queries and corresponding ground-truth answers to provide
+accurate rewards, which requires massive human efforts and hinders the RL
+scaling processes, especially under agentic scenarios. Although a few recent
+works explore task synthesis methods, the difficulty of generated agentic tasks
+can hardly be controlled to provide effective RL training advantages. To
+achieve agentic RLVR with higher scalability, we explore self-play training for
+deep search agents, in which the learning LLM utilizes multi-turn search engine
+calling and acts simultaneously as both a task proposer and a problem solver.
+The task proposer aims to generate deep search queries with well-defined
+ground-truth answers and increasing task difficulty. The problem solver tries
+to handle the generated search queries and output the correct answer
+predictions. To ensure that each generated search query has accurate ground
+truth, we collect all the searching results from the proposer's trajectory as
+external knowledge, then conduct retrieval-augmentation generation (RAG) to
+test whether the proposed query can be correctly answered with all necessary
+search documents provided. In this search self-play (SSP) game, the proposer
+and the solver co-evolve their agent capabilities through both competition and
+cooperation. With substantial experimental results, we find that SSP can
+significantly improve search agents' performance uniformly on various
+benchmarks without any supervision under both from-scratch and continuous RL
+training setups. The code is at https://github.com/Alibaba-Quark/SSP.</details></td><td><details><summary>展开</summary>本文提出了一种基于自我对弈训练（SSP）的深度搜索代理方法，通过让大语言模型同时充当任务提出者和问题解决者，生成具有明确答案和递增难度的搜索查询，并利用检索增强生成（RAG）技术验证查询的可回答性，从而在无监督情况下显著提升搜索代理的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18691v1">Investigating LLM Capabilities on Long Context Comprehension for Medical Question Answering</a></td><td><details><summary>展开</summary>This study is the first to investigate LLM comprehension capabilities over
+long-context (LC) medical QA of clinical relevance. Our comprehensive
+assessment spans a range of content-inclusion settings based on their
+relevance, LLM models of varying capabilities and datasets across task
+formulations, revealing insights on model size effects, limitations, underlying
+memorization issues and the benefits of reasoning models. Importantly, we
+examine the effect of RAG on medical LC comprehension, uncover best settings in
+single versus multi-document reasoning datasets and showcase RAG strategies for
+improvements over LC. We shed light into some of the evaluation aspects using a
+multi-faceted approach. Our qualitative and error analyses address open
+questions on when RAG is beneficial over LC, revealing common failure cases.</details></td><td><details><summary>展开</summary>该论文首次研究了大语言模型（LLM）在长上下文（LC）医学问答中的理解能力，评估了不同模型、数据集和任务设置下的表现，探讨了模型大小、记忆问题及推理模型的优势，重点分析了RAG对医学LC理解的影响，比较了单文档与多文档推理的最佳设置，并提出了改进RAG的策略，同时通过多角度评估揭示了RAG的适用场景和常见失败案例。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18633v1">Query Decomposition for RAG: Balancing Exploration-Exploitation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) systems address complex user requests by
+decomposing them into subqueries, retrieving potentially relevant documents for
+each, and then aggregating them to generate an answer. Efficiently selecting
+informative documents requires balancing a key trade-off: (i) retrieving
+broadly enough to capture all the relevant material, and (ii) limiting
+retrieval to avoid excessive noise and computational cost. We formulate query
+decomposition and document retrieval in an exploitation-exploration setting,
+where retrieving one document at a time builds a belief about the utility of a
+given sub-query and informs the decision to continue exploiting or exploring an
+alternative. We experiment with a variety of bandit learning methods and
+demonstrate their effectiveness in dynamically selecting the most informative
+sub-queries. Our main finding is that estimating document relevance using rank
+information and human judgments yields a 35% gain in document-level precision,
+15% increase in {\alpha}-nDCG, and better performance on the downstream task of
+long-form generation.</details></td><td><details><summary>展开</summary>这篇论文探讨了在RAG系统中如何通过分解用户查询、动态检索文档并平衡检索广度与噪声的问题，提出了一种基于探索-利用策略的bandit学习方法，利用排序信息和人工评估提升文档选择效率，实验表明该方法显著提高了文档检索精度和下游长文本生成任务的表现。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18502v1">Zero-Shot Vehicle Model Recognition via Text-Based Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Vehicle make and model recognition (VMMR) is an important task in intelligent
+transportation systems, but existing approaches struggle to adapt to newly
+released models. Contrastive Language-Image Pretraining (CLIP) provides strong
+visual-text alignment, yet its fixed pretrained weights limit performance
+without costly image-specific finetuning. We propose a pipeline that integrates
+vision language models (VLMs) with Retrieval-Augmented Generation (RAG) to
+support zero-shot recognition through text-based reasoning. A VLM converts
+vehicle images into descriptive attributes, which are compared against a
+database of textual features. Relevant entries are retrieved and combined with
+the description to form a prompt, and a language model (LM) infers the make and
+model. This design avoids large-scale retraining and enables rapid updates by
+adding textual descriptions of new vehicles. Experiments show that the proposed
+method improves recognition by nearly 20% over the CLIP baseline, demonstrating
+the potential of RAG-enhanced LM reasoning for scalable VMMR in smart-city
+applications.</details></td><td><details><summary>展开</summary>该论文提出了一种结合视觉语言模型（VLM）和检索增强生成（RAG）的流程，用于零样本车辆品牌和型号识别（VMMR）。通过将车辆图像转换为描述性属性并与文本特征数据库比对，检索相关信息后生成提示，由语言模型推断结果。该方法避免了大规模重新训练，支持快速更新，实验显示识别率比CLIP基线提升近20%。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18468v1">IMB: An Italian Medical Benchmark for Question Answering</a></td><td><details><summary>展开</summary>Online medical forums have long served as vital platforms where patients seek
+professional healthcare advice, generating vast amounts of valuable knowledge.
+However, the informal nature and linguistic complexity of forum interactions
+pose significant challenges for automated question answering systems,
+especially when dealing with non-English languages. We present two
+comprehensive Italian medical benchmarks: \textbf{IMB-QA}, containing 782,644
+patient-doctor conversations from 77 medical categories, and \textbf{IMB-MCQA},
+comprising 25,862 multiple-choice questions from medical specialty
+examinations. We demonstrate how Large Language Models (LLMs) can be leveraged
+to improve the clarity and consistency of medical forum data while retaining
+their original meaning and conversational style, and compare a variety of LLM
+architectures on both open and multiple-choice question answering tasks. Our
+experiments with Retrieval Augmented Generation (RAG) and domain-specific
+fine-tuning reveal that specialized adaptation strategies can outperform
+larger, general-purpose models in medical question answering tasks. These
+findings suggest that effective medical AI systems may benefit more from domain
+expertise and efficient information retrieval than from increased model scale.
+We release both datasets and evaluation frameworks in our GitHub repository to
+support further research on multilingual medical question answering:
+https://github.com/PRAISELab-PicusLab/IMB.</details></td><td><details><summary>展开</summary>该论文介绍了两个意大利医学基准数据集（IMB-QA和IMB-MCQA），探讨了利用大语言模型（LLMs）提升医学论坛数据的清晰度与一致性的方法，并通过实验对比了RAG与领域微调在医学问答任务中的表现，发现领域适配策略优于通用大模型，最终开源了数据集和评估框架以支持多语言医学问答研究。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18455v1">ChronoPlay: A Framework for Modeling Dual Dynamics and Authenticity in Game RAG Benchmarks</a></td><td><details><summary>展开</summary>Retrieval Augmented Generation (RAG) systems are increasingly vital in
+dynamic domains like online gaming, yet the lack of a dedicated benchmark has
+impeded standardized evaluation in this area. The core difficulty lies in Dual
+Dynamics: the constant interplay between game content updates and the shifting
+focus of the player community. Furthermore, the necessity of automating such a
+benchmark introduces a critical requirement for player-centric authenticity to
+ensure generated questions are realistic. To address this integrated challenge,
+we introduce ChronoPlay, a novel framework for the automated and continuous
+generation of game RAG benchmarks. ChronoPlay utilizes a dual-dynamic update
+mechanism to track both forms of change, and a dual-source synthesis engine
+that draws from official sources and player community to ensure both factual
+correctness and authentic query patterns. We instantiate our framework on three
+distinct games to create the first dynamic RAG benchmark for the gaming domain,
+offering new insights into model performance under these complex and realistic
+conditions. Code is avaliable at: https://github.com/hly1998/ChronoPlay.</details></td><td><details><summary>展开</summary>该论文提出了一种名为ChronoPlay的自动化动态RAG基准生成框架，针对在线游戏领域设计，通过双动态更新机制和双源合成引擎（官方资料与玩家社区）解决游戏内容更新与玩家关注点变化的双重挑战，并构建了首个游戏领域的动态RAG基准，用于评估模型在复杂现实条件下的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18355v1">KrishokBondhu: A Retrieval-Augmented Voice-Based Agricultural Advisory Call Center for Bengali Farmers</a></td><td><details><summary>展开</summary>In Bangladesh, many farmers continue to face challenges in accessing timely,
+expert-level agricultural guidance. This paper presents KrishokBondhu, a
+voice-enabled, call-centre-integrated advisory platform built on a
+Retrieval-Augmented Generation (RAG) framework, designed specifically for
+Bengali-speaking farmers. The system aggregates authoritative agricultural
+handbooks, extension manuals, and NGO publications; applies Optical Character
+Recognition (OCR) and document-parsing pipelines to digitize and structure the
+content; and indexes this corpus in a vector database for efficient semantic
+retrieval. Through a simple phone-based interface, farmers can call the system
+to receive real-time, context-aware advice: speech-to-text converts the Bengali
+query, the RAG module retrieves relevant content, a large language model (Gemma
+3-4B) generates a context-grounded response, and text-to-speech delivers the
+answer in natural spoken Bengali. In a pilot evaluation, KrishokBondhu produced
+high-quality responses for 72.7% of diverse agricultural queries covering crop
+management, disease control, and cultivation practices. Compared to the
+KisanQRS benchmark, the system achieved a composite score of 4.53 (vs. 3.13) on
+a 5-point scale, a 44.7% improvement, with especially large gains in contextual
+richness (+367%) and completeness (+100.4%), while maintaining comparable
+relevance and technical specificity. Semantic similarity analysis further
+revealed a strong correlation between retrieved context and answer quality,
+emphasizing the importance of grounding generative responses in curated
+documentation. KrishokBondhu demonstrates the feasibility of integrating
+call-centre accessibility, multilingual voice interaction, and modern RAG
+techniques to deliver expert-level agricultural guidance to remote Bangladeshi
+farmers, paving the way toward a fully AI-driven agricultural advisory
+ecosystem.</details></td><td><details><summary>展开</summary>这篇论文介绍了KrishokBondhu，一个基于RAG框架的语音农业咨询平台，专为孟加拉语农民设计，通过整合权威农业资料、OCR技术和语音交互，提供实时农业建议，并在试点评估中展现出高质量回答和显著性能提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18339v1">ECG-LLM-- training and evaluation of domain-specific large language models for electrocardiography</a></td><td><details><summary>展开</summary>Domain-adapted open-weight large language models (LLMs) offer promising
+healthcare applications, from queryable knowledge bases to multimodal
+assistants, with the crucial advantage of local deployment for privacy
+preservation. However, optimal adaptation strategies, evaluation methodologies,
+and performance relative to general-purpose LLMs remain poorly characterized.
+We investigated these questions in electrocardiography, an important area of
+cardiovascular medicine, by finetuning open-weight models on domain-specific
+literature and implementing a multi-layered evaluation framework comparing
+finetuned models, retrieval-augmented generation (RAG), and Claude Sonnet 3.7
+as a representative general-purpose model. Finetuned Llama 3.1 70B achieved
+superior performance on multiple-choice evaluations and automatic text metrics,
+ranking second to Claude 3.7 in LLM-as-a-judge assessments. Human expert
+evaluation favored Claude 3.7 and RAG approaches for complex queries. Finetuned
+models significantly outperformed their base counterparts across nearly all
+evaluation modes. Our findings reveal substantial performance heterogeneity
+across evaluation methodologies, underscoring assessment complexity.
+Nevertheless, domain-specific adaptation through finetuning and RAG achieves
+competitive performance with proprietary models, supporting the viability of
+privacy-preserving, locally deployable clinical solutions.</details></td><td><details><summary>展开</summary>这篇论文研究了在医疗领域（特别是心电图学）中，通过微调开源大语言模型（LLMs）和采用检索增强生成（RAG）技术来提升模型性能的方法。研究比较了微调模型、RAG方法和通用模型Claude Sonnet 3.7的表现，发现微调模型在多项评估中表现优异，而RAG和Claude 3.7在复杂查询中更受专家青睐。论文强调了评估方法的复杂性，并证明了领域特定适配（包括RAG）在隐私保护型本地临床解决方案中的可行性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18297v1">From Retrieval to Generation: Unifying External and Parametric Knowledge for Medical Question Answering</a></td><td><details><summary>展开</summary>Medical question answering (QA) requires extensive access to domain-specific
+knowledge. A promising direction is to enhance large language models (LLMs)
+with external knowledge retrieved from medical corpora or parametric knowledge
+stored in model parameters. Existing approaches typically fall into two
+categories: Retrieval-Augmented Generation (RAG), which grounds model reasoning
+on externally retrieved evidence, and Generation-Augmented Generation (GAG),
+which depends solely on the models internal knowledge to generate contextual
+documents. However, RAG often suffers from noisy or incomplete retrieval, while
+GAG is vulnerable to hallucinated or inaccurate information due to
+unconstrained generation. Both issues can mislead reasoning and undermine
+answer reliability. To address these challenges, we propose MedRGAG, a unified
+retrieval-generation augmented framework that seamlessly integrates external
+and parametric knowledge for medical QA. MedRGAG comprises two key modules:
+Knowledge-Guided Context Completion (KGCC), which directs the generator to
+produce background documents that complement the missing knowledge revealed by
+retrieval; and Knowledge-Aware Document Selection (KADS), which adaptively
+selects an optimal combination of retrieved and generated documents to form
+concise yet comprehensive evidence for answer generation. Extensive experiments
+on five medical QA benchmarks demonstrate that MedRGAG achieves a 12.5%
+improvement over MedRAG and a 4.5% gain over MedGENIE, highlighting the
+effectiveness of unifying retrieval and generation for knowledge-intensive
+reasoning. Our code and data are publicly available at
+https://anonymous.4open.science/r/MedRGAG</details></td><td><details><summary>展开</summary>该论文提出MedRGAG框架，通过整合外部检索（RAG）和内部生成（GAG）的医学知识，结合知识引导的上下文补全（KGCC）和知识感知文档选择（KADS）模块，显著提升医疗问答的准确性和可靠性，实验证明其性能优于纯检索或纯生成方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.18204v1">RESCUE: Retrieval Augmented Secure Code Generation</a></td><td><details><summary>展开</summary>Despite recent advances, Large Language Models (LLMs) still generate
+vulnerable code. Retrieval-Augmented Generation (RAG) has the potential to
+enhance LLMs for secure code generation by incorporating external security
+knowledge. However, the conventional RAG design struggles with the noise of raw
+security-related documents, and existing retrieval methods overlook the
+significant security semantics implicitly embedded in task descriptions. To
+address these issues, we propose RESCUE, a new RAG framework for secure code
+generation with two key innovations. First, we propose a hybrid knowledge base
+construction method that combines LLM-assisted cluster-then-summarize
+distillation with program slicing, producing both high-level security
+guidelines and concise, security-focused code examples. Second, we design a
+hierarchical multi-faceted retrieval to traverse the constructed knowledge base
+from top to bottom and integrates multiple security-critical facts at each
+hierarchical level, ensuring comprehensive and accurate retrieval. We evaluated
+RESCUE on four benchmarks and compared it with five state-of-the-art secure
+code generation methods on six LLMs. The results demonstrate that RESCUE
+improves the SecurePass@1 metric by an average of 4.8 points, establishing a
+new state-of-the-art performance for security. Furthermore, we performed
+in-depth analysis and ablation studies to rigorously validate the effectiveness
+of individual components in RESCUE.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为RESCUE的新型RAG框架，旨在通过改进检索增强生成技术来提升大语言模型生成安全代码的能力。RESCUE通过结合LLM辅助的聚类与摘要蒸馏方法以及程序切片技术构建混合知识库，并采用分层多面检索策略，有效整合高层安全指南和聚焦安全的代码示例，从而显著提高了生成代码的安全性。实验表明，RESCUE在多个基准测试中优于现有方法，平均提升SecurePass@1指标4.8分。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-20
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.17795v1">Executable Knowledge Graphs for Replicating AI Research</a></td><td><details><summary>展开</summary>Replicating AI research is a crucial yet challenging task for large language
 model (LLM) agents. Existing approaches often struggle to generate executable
