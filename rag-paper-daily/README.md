@@ -1,5 +1,87 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-22
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.19723v1">From Answers to Guidance: A Proactive Dialogue System for Legal Documents</a></td><td><details><summary>展开</summary>The accessibility of legal information remains a constant challenge,
+particularly for laypersons seeking to understand and apply complex
+institutional texts. While the European Union provides open access to
+legislation, parliamentary responses, and regulatory documents, these resources
+can be challenging for laypeople to explore. In this paper, we introduce
+EUDial, a proactive multi-turn dialogue dataset constructed from 204 blogs
+curated by the Citizens' Enquiries Unit (AskEP) of the European Parliamentary
+Research Service. EUDial contains 880 dialogue turns (averaging 4.3 turns per
+dialogue), where each dialogue includes initial questions, structured answers,
+and follow-up questions. Beyond dataset construction, we propose the LexGuide
+framework that leverages retrieval-augmented generation with hierarchical topic
+organization to structure dialogue progression, ensuring both comprehensive
+coverage of legal aspects and coherence across conversational turns. The
+results demonstrate that proactive, structured navigation closes the gap
+between the availability of legal information and citizen comprehension,
+establishing EUDial and LexGuide as practical resources for advancing proactive
+legal dialogue systems.</details></td><td><details><summary>展开</summary>这篇论文介绍了EUDial数据集和LexGuide框架，通过检索增强生成（RAG）结合层次化主题组织，构建主动多轮法律对话系统，帮助非专业人士理解欧盟复杂法律文本，提升信息可及性与对话连贯性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.19670v1">CoSense-LLM: Semantics at the Edge with Cost- and Uncertainty-Aware Cloud-Edge Cooperation</a></td><td><details><summary>展开</summary>We present CoSense-LLM, an edge-first framework that turns continuous
+multimodal sensor streams (for example Wi-Fi CSI, IMU, audio, RFID, and
+lightweight vision) into compact, verifiable semantic tokens and coordinates
+with large language models under explicit latency, energy, bandwidth, and
+privacy constraints. CoSense-LLM has four parts: (i) SenseFusion, a lightweight
+encoder that aligns sensor embeddings with language and compresses them into
+short discrete code sequences; (ii) Edge-RAG, a local hybrid retrieval layer
+that grounds generation in site specific policies and notes; (iii)
+PromptRouter, a cost and uncertainty aware policy that selects edge only
+generation, edge plus retrieval, or compact cloud escalation; and (iv) Secure
+Execution, an auditable redaction path that enforces data minimization so raw
+waveforms never leave the device. The system works with modern serving
+optimizations, including paged or streaming KV caches, FlashAttention style
+kernels, speculative decoding, and quantized LoRA adapters, and supports on
+device personalization and federated updates under non IID drift. Across home,
+office, and clinic deployments, CoSense-LLM delivers grounded explanations
+while meeting tight service level objectives: it sustains sub second (p95) end
+to end latency on edge dominant paths, reduces inter tier token and bandwidth
+costs by preferring local retrieval grounded responses, and preserves privacy
+by transmitting only discrete codes and redacted metadata. Ablations show that
+Edge-RAG improves factual consistency and reduces contradictions, calibrated
+uncertainty enables selective abstention and controlled escalations, and KV
+plus decoding accelerators lower energy per decision. The results support an
+edge first design that treats semantics, privacy, and predictable latency as co
+equal goals for large model deployments in interference prone environments.</details></td><td><details><summary>展开</summary>这篇文章提出了CoSense-LLM框架，通过结合轻量级传感器编码、本地混合检索层（Edge-RAG）和成本感知策略，将多模态传感器数据转化为语义标记并与大语言模型协同工作。Edge-RAG作为核心组件，通过本地检索增强生成过程，确保回答基于特定场景策略和记录，提高了事实一致性并减少矛盾，同时满足延迟、隐私和带宽约束。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.19644v1">LLavaCode: Compressed Code Representations for Retrieval-Augmented Code Generation</a></td><td><details><summary>展开</summary>Retrieval-augmented generation has emerged as one of the most effective
+approaches for code completion, particularly when context from a surrounding
+repository is essential. However, incorporating context significantly extends
+sequence length, leading to slower inference - a critical limitation for
+interactive settings such as IDEs. In this work, we introduce LlavaCode, a
+framework that compresses code into compact, semantically rich representations
+interpretable by code LLM, enhancing generation quality while reducing the
+retrieved context to only a few compressed single-token vectors. Using a small
+projector module we can significantly increase the EM and ES metrics of coding
+model with negligible latency increase. Our experiments demonstrate that
+compressed context enables 20-38% reduction in Time-to-First-Token (TTFT) on
+line completion tasks compared to full-RAG pipelines.</details></td><td><details><summary>展开</summary>这篇论文介绍了LlavaCode框架，通过将代码压缩成紧凑的语义丰富表示来优化RAG在代码补全中的应用，减少了检索上下文的长度，从而提升生成质量并降低延迟，实验显示其能显著减少Time-to-First-Token（TTFT）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.19331v1">Algorithmic Fairness in NLP: Persona-Infused LLMs for Human-Centric Hate Speech Detection</a></td><td><details><summary>展开</summary>In this paper, we investigate how personalising Large Language Models
+(Persona-LLMs) with annotator personas affects their sensitivity to hate
+speech, particularly regarding biases linked to shared or differing identities
+between annotators and targets. To this end, we employ Google's Gemini and
+OpenAI's GPT-4.1-mini models and two persona-prompting methods: shallow persona
+prompting and a deeply contextualised persona development based on
+Retrieval-Augmented Generation (RAG) to incorporate richer persona profiles. We
+analyse the impact of using in-group and out-group annotator personas on the
+models' detection performance and fairness across diverse social groups. This
+work bridges psychological insights on group identity with advanced NLP
+techniques, demonstrating that incorporating socio-demographic attributes into
+LLMs can address bias in automated hate speech detection. Our results highlight
+both the potential and limitations of persona-based approaches in reducing
+bias, offering valuable insights for developing more equitable hate speech
+detection systems.</details></td><td><details><summary>展开</summary>该论文研究了通过个性化大语言模型（Persona-LLMs）来提升对仇恨言论的敏感性，特别关注了注释者与目标群体身份异同带来的偏见。研究采用了Google的Gemini和OpenAI的GPT-4.1-mini模型，并使用了两种人物提示方法，其中一种基于检索增强生成（RAG）来整合更丰富的人物档案。论文分析了使用内群体和外群体注释者人物对模型检测性能和公平性的影响，展示了将社会人口属性融入大语言模型以减少自动仇恨言论检测中的偏见的潜力与局限性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.19171v1">Think Straight, Stop Smart: Structured Reasoning for Efficient Multi-Hop RAG</a></td><td><details><summary>展开</summary>Multi-hop retrieval-augmented generation (RAG) is a promising strategy for
+complex reasoning, yet existing iterative prompting approaches remain
+inefficient. They often regenerate predictable token sequences at every step
+and rely on stochastic stopping, leading to excessive token usage and unstable
+termination. We propose TSSS (Think Straight, Stop Smart), a structured
+multi-hop RAG framework designed for efficiency. TSSS introduces (i) a
+template-based reasoning that caches recurring prefixes and anchors sub-queries
+to the main question, reducing token generation cost while promoting stable
+reasoning, and (ii) a retriever-based terminator, which deterministically halts
+reasoning once additional sub-queries collapse into repetition. This separation
+of structured reasoning and termination control enables both faster inference
+and more reliable answers. On HotpotQA, 2WikiMultiHop, and MuSiQue, TSSS
+achieves state-of-the-art accuracy and competitive efficiency among RAG-CoT
+approaches, highlighting its effectiveness in efficiency-constrained scenarios
+such as on-device inference.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为TSSS（Think Straight, Stop Smart）的高效多跳检索增强生成（RAG）框架，通过模板化推理减少重复生成的令牌成本，并引入基于检索器的终止机制以稳定结束推理，在多个数据集上实现了高准确性和效率。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-21
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.18821v1">Search Self-play: Pushing the Frontier of Agent Capability without Supervision</a></td><td><details><summary>展开</summary>Reinforcement learning with verifiable rewards (RLVR) has become the
 mainstream technique for training LLM agents. However, RLVR highly depends on
