@@ -219,7 +219,7 @@ generation:
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
       model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
-      model_name_or_path: /mnt1/haidong1/model/MiniCPM-V-4/ # [!code ++]
+      model_name_or_path: openbmb/MiniCPM-V-4 # [!code ++]
       trust_remote_code: true
   sampling_params:
     chat_template_kwargs:
@@ -270,7 +270,7 @@ retriever:
   is_multimodal: false # [!code --]
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   is_multimodal: true # [!code ++]
-  model_name_or_path: /mnt1/haidong1/model/jina-embeddings-v4/ # [!code ++]
+  model_name_or_path: jinaai/jina-embeddings-v4 # [!code ++]
   query_instruction: ''
   top_k: 5
 
