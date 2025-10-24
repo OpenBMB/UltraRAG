@@ -6,8 +6,6 @@ servers:
   retriever: servers/retriever
   prompt: servers/prompt
   generation: servers/generation
-  evaluation: servers/evaluation
-  custom: servers/custom
 
 # MCP Client Pipeline
 pipeline:
