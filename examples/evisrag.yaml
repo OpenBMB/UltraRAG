@@ -21,4 +21,4 @@ pipeline:
     input:
       multimodal_path: ret_psg
 - custom.evisrag_output_extract_from_special
-- evaluation.evaluate
+- evaluation.evisrag_evaluate
