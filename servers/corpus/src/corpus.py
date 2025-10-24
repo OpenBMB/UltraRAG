@@ -539,7 +539,7 @@ async def chunk_documents(
             delim = DELIM_DEFAULT
 
         chunker = SentenceChunker(
-            tokenizer_or_token_counter=tokenizer,
+            tokenizer=tokenizer,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             min_sentences_per_chunk=min_sentences_per_chunk,
@@ -569,7 +569,7 @@ async def chunk_documents(
             app.logger.error(err_msg)
             raise ToolError(err_msg)
         chunker = RecursiveChunker(
-            tokenizer_or_token_counter=tokenizer,
+            tokenizer=tokenizer,
             chunk_size=chunk_size,
             rules=RecursiveRules(),
             min_characters_per_chunk=min_characters_per_chunk,
