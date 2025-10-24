@@ -356,5 +356,19 @@ def check_passages(
         all_prompts.append(p)
     return all_prompts
 
+
+# prompt for EVisRAG
+@app.prompt(output="q_ls,ret_psg,evisrag_template->prompt_ls")
+def evisrag_vqa(
+    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+) -> list[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q, psg in zip(q_ls, ret_psg):
+        p = template.render(question=q)
+        p = p.replace('<image>', '<image>' * len(psg))
+        ret.append(p)
+    return ret
+
 if __name__ == "__main__":
     app.run(transport="stdio")

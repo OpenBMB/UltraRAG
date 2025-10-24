@@ -28,7 +28,7 @@ class Generation:
         )
         mcp_inst.tool(
             self.multimodal_generate,
-            output="multimodal_path,prompt_ls,system_prompt->ans_ls",
+            output="multimodal_path,prompt_ls,system_prompt,image_tag->ans_ls",
         )
         mcp_inst.tool(
             self.vllm_shutdown,
@@ -371,6 +371,7 @@ class Generation:
         multimodal_path: List[List[str]],
         prompt_ls: List[Union[str, Dict[str, Any]]],
         system_prompt: str = "",
+        image_tag: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         system_prompt = str(system_prompt or "").strip()
         add_system = bool(system_prompt)
@@ -419,19 +420,45 @@ class Generation:
                 msgs.append({"role": "system", "content": system_prompt})
 
             content: List[Dict[str, Any]] = []
-            for mp in pths:
-                if not mp:
-                    continue
-                try:
-                    content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": self._to_data_url(mp)},
-                        }
-                    )
-                except Exception as e:
-                    app.logger.warning(f"[Image skip] idx={i}, path={mp}, err={e}")
-            content.append({"type": "text", "text": p})
+            
+            use_tag_mode = bool(image_tag) and bool(str(image_tag).strip())
+            tag = str(image_tag).strip() if use_tag_mode else None
+            
+            if use_tag_mode:
+                prompt_image_num = p.count(tag)
+                actual_image_num = len(pths)
+                if prompt_image_num != actual_image_num:
+                    raise ValueError(f"Number of ({tag}) image tag: ({prompt_image_num}) does not match number of image paths: ({actual_image_num})")
+                
+                parts = p.split(tag)
+                for j, part in enumerate(parts):
+                    if part.strip():
+                        content.append({"type": "text", "text": part})
+                    if j < actual_image_num:
+                        mp = pths[i]
+                        if not mp:
+                            continue
+                        try:
+                            content.append({
+                                "type": "image_url",
+                                "image_url": {"url": self._to_data_url(mp)},
+                            })
+                        except Exception as e:
+                            app.logger.warning(f"[Image skip] idx={j}, path={mp}, err={e}")
+            else:
+                for mp in pths:
+                    if not mp:
+                        continue
+                    try:
+                        content.append(
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": self._to_data_url(mp)},
+                            }
+                        )
+                    except Exception as e:
+                        app.logger.warning(f"[Image skip] idx={i}, path={mp}, err={e}")
+                content.append({"type": "text", "text": p})
 
             msgs.append({"role": "user", "content": content})
             msg_ls.append(msgs)

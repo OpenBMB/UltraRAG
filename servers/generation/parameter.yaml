@@ -29,3 +29,4 @@ sampling_params:
     enable_thinking: false
 
 system_prompt: ""
+image_tag: null
