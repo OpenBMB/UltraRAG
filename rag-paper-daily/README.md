@@ -1,5 +1,197 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-23
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.20797v1">Simple Context Compression: Mean-Pooling and Multi-Ratio Training</a></td><td><details><summary>展开</summary>A common strategy to reduce the computational costs of using long contexts in
+retrieval-augmented generation (RAG) with large language models (LLMs) is soft
+context compression, where the input sequence is transformed into a shorter
+continuous representation. We develop a lightweight and simple mean-pooling
+approach that consistently outperforms the widely used compression-tokens
+architecture, and study training the same compressor to output multiple
+compression ratios. We conduct extensive experiments across in-domain and
+out-of-domain QA datasets, as well as across model families, scales, and
+compression ratios. Overall, our simple mean-pooling approach achieves the
+strongest performance, with a relatively small drop when training for multiple
+compression ratios. More broadly though, across architectures and training
+regimes the trade-offs are more nuanced, illustrating the complex landscape of
+compression methods.</details></td><td><details><summary>展开</summary>该论文提出了一种轻量级的均值池化方法，用于在检索增强生成（RAG）中压缩长上下文输入，以降低计算成本。通过实验验证，该方法在多种压缩比和数据集上表现优于现有技术，并探讨了多压缩比训练的权衡问题。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20768v1">RAGRank: Using PageRank to Counter Poisoning in CTI LLM Pipelines</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as the dominant
+architectural pattern to operationalize Large Language Model (LLM) usage in
+Cyber Threat Intelligence (CTI) systems. However, this design is susceptible to
+poisoning attacks, and previously proposed defenses can fail for CTI contexts
+as cyber threat information is often completely new for emerging attacks, and
+sophisticated threat actors can mimic legitimate formats, terminology, and
+stylistic conventions. To address this issue, we propose that the robustness of
+modern RAG defenses can be accelerated by applying source credibility
+algorithms on corpora, using PageRank as an example. In our experiments, we
+demonstrate quantitatively that our algorithm applies a lower authority score
+to malicious documents while promoting trusted content, using the standardized
+MS MARCO dataset. We also demonstrate proof-of-concept performance of our
+algorithm on CTI documents and feeds.</details></td><td><details><summary>展开</summary>这篇论文探讨了在网络安全威胁情报（CTI）系统中应用检索增强生成（RAG）技术时面临的投毒攻击风险，并提出通过基于PageRank的源可信度算法来增强RAG防御的鲁棒性，实验验证了该算法在区分恶意文档和可信内容上的有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20609v1">Practical Code RAG at Scale: Task-Aware Retrieval Design Choices under Compute Budgets</a></td><td><details><summary>展开</summary>We study retrieval design for code-focused generation tasks under realistic
+compute budgets. Using two complementary tasks from Long Code Arena -- code
+completion and bug localization -- we systematically compare retrieval
+configurations across various context window sizes along three axes: (i)
+chunking strategy, (ii) similarity scoring, and (iii) splitting granularity.
+(1) For PL-PL, sparse BM25 with word-level splitting is the most effective and
+practical, significantly outperforming dense alternatives while being an order
+of magnitude faster. (2) For NL-PL, proprietary dense encoders (Voyager-3
+family) consistently beat sparse retrievers, however requiring 100x larger
+latency. (3) Optimal chunk size scales with available context: 32-64 line
+chunks work best at small budgets, and whole-file retrieval becomes competitive
+at 16000 tokens. (4) Simple line-based chunking matches syntax-aware splitting
+across budgets. (5) Retrieval latency varies by up to 200x across
+configurations; BPE-based splitting is needlessly slow, and BM25 + word
+splitting offers the best quality-latency trade-off. Thus, we provide
+evidence-based recommendations for implementing effective code-oriented RAG
+systems based on task requirements, model constraints, and computational
+efficiency.</details></td><td><details><summary>展开</summary>这篇论文研究代码相关生成任务（如代码补全和缺陷定位）中的检索设计，通过比较不同检索配置（分块策略、相似性评分和分割粒度）在有限计算资源下的表现，为代码导向的RAG系统提供了基于实证的优化建议，包括稀疏检索（BM25）与密集检索的适用场景、最佳分块大小及效率权衡方案。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20548v1">GlobalRAG: Enhancing Global Reasoning in Multi-hop Question Answering via Reinforcement Learning</a></td><td><details><summary>展开</summary>Reinforcement learning has recently shown promise in improving
+retrieval-augmented generation (RAG). Despite these advances, its effectiveness
+in multi-hop question answering (QA) remains limited by two fundamental
+limitations: (i) global planning absence to structure multi-step reasoning, and
+(ii) unfaithful execution, which hinders effective query formulation and
+consistent use of retrieved evidence. We propose GlobalRAG, a reinforcement
+learning framework designed to enhance global reasoning in multi-hop QA.
+GlobalRAG decomposes questions into subgoals, coordinates retrieval with
+reasoning, and refines evidence iteratively. To guide this process, we
+introduce Planning Quality Reward and SubGoal Completion Reward, which
+encourage coherent planning and reliable subgoal execution. In addition, a
+progressive weight annealing strategy balances process-oriented and
+outcome-based objectives. Extensive experiments on both in-domain and
+out-of-domain benchmarks demonstrate that GlobalRAG significantly outperforms
+strong baselines while using only 8k training data (42% of the training data
+used by strong baselines), achieving average improvements of 14.2% in both EM
+and F1.</details></td><td><details><summary>展开</summary>该论文提出了一种名为GlobalRAG的强化学习框架，旨在解决多跳问答（QA）中RAG技术的两大局限——缺乏全局规划和执行不忠实的问题。通过分解问题为子目标、协调检索与推理、迭代优化证据，并结合规划质量奖励和子目标完成奖励，该框架显著提升了性能，实验显示其在少量训练数据下优于基线模型。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20535v1">ARC-Encoder: learning compressed text representations for large language models</a></td><td><details><summary>展开</summary>Recent techniques such as retrieval-augmented generation or chain-of-thought
+reasoning have led to longer contexts and increased inference costs. Context
+compression techniques can reduce these costs, but the most effective
+approaches require fine-tuning the target model or even modifying its
+architecture. This can degrade its general abilities when not used for this
+specific purpose. Here we explore an alternative approach: an encoder that
+compresses the context into continuous representations which replace token
+embeddings in decoder LLMs. First, we perform a systematic study of training
+strategies and architecture choices for the encoder. Our findings led to the
+design of an Adaptable text Representations Compressor, named ARC-Encoder,
+which outputs $x$-times fewer continuous representations (typically
+$x\!\in\!\{4,8\}$) than text tokens. We evaluate ARC-Encoder across a variety
+of LLM usage scenarios, ranging from in-context learning to context window
+extension, on both instruct and base decoders. Results show that ARC-Encoder
+achieves state-of-the-art performance on several benchmarks while improving
+computational efficiency at inference. Finally, we demonstrate that our models
+can be adapted to multiple decoders simultaneously, allowing a single encoder
+to generalize across different decoder LLMs. This makes ARC-Encoder a flexible
+and efficient solution for portable encoders that work seamlessly with multiple
+LLMs. We release a training code at https://github.com/kyutai-labs/ARC-Encoder
+, fine-tuning dataset and pretrained models are available at
+https://huggingface.co/collections/kyutai/arc-encoders-68ee18787301407d60a57047 .</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为ARC-Encoder的上下文压缩技术，旨在解决RAG和思维链推理等技术带来的长上下文和高推理成本问题。通过将上下文压缩为更少的连续表示来替换解码器LLM中的令牌嵌入，ARC-Encoder在保持性能的同时提高了计算效率，并能适配多种解码器LLM。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20505v1">Hierarchical Sequence Iteration for Heterogeneous Question Answering</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) remains brittle on multi-step questions
+and heterogeneous evidence sources, trading accuracy against latency and
+token/tool budgets. This paper introducesHierarchical Sequence (HSEQ) Iteration
+for Heterogeneous Question Answering, a unified framework that (i) linearize
+documents, tables, and knowledge graphs into a reversible hierarchical sequence
+with lightweight structural tags, and (ii) perform structure-aware iteration to
+collect just-enough evidence before answer synthesis. A Head Agent provides
+guidance that leads retrieval, while an Iteration Agent selects and expands
+HSeq via structure-respecting actions (e.g., parent/child hops, table
+row/column neighbors, KG relations); Finally the head agent composes
+canonicalized evidence to genearte the final answer, with an optional
+refinement loop to resolve detected contradictions. Experiments on HotpotQA
+(text), HybridQA/TAT-QA (table+text), and MetaQA (KG) show consistent EM/F1
+gains over strong single-pass, multi-hop, and agentic RAG baselines with high
+efficiency. Besides, HSEQ exhibits three key advantages: (1) a format-agnostic
+unification that enables a single policy to operate across text, tables, and
+KGs without per-dataset specialization; (2) guided, budget-aware iteration that
+reduces unnecessary hops, tool calls, and tokens while preserving accuracy; and
+(3) evidence canonicalization for reliable QA, improving answers consistency
+and auditability.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为HSEQ Iteration的检索增强生成（RAG）改进框架，通过将文档、表格和知识图谱线性化为可逆的层次序列，并结合结构感知的迭代检索策略，以高效收集足够证据并生成更准确的答案。实验表明，该方法在多种问答任务中优于现有RAG基线，具有跨格式统一性、预算感知迭代和证据规范化三大优势。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20356v1">FreeChunker: A Cross-Granularity Chunking Framework</a></td><td><details><summary>展开</summary>Chunking strategies significantly impact the effectiveness of
+Retrieval-Augmented Generation (RAG) systems. Existing methods operate within
+fixed-granularity paradigms that rely on static boundary identification,
+limiting their adaptability to diverse query requirements. This paper presents
+FreeChunker, a Cross-Granularity Encoding Framework that fundamentally
+transforms the traditional chunking paradigm: the framework treats sentences as
+atomic units and shifts from static chunk segmentation to flexible retrieval
+supporting arbitrary sentence combinations. This paradigm shift not only
+significantly reduces the computational overhead required for semantic boundary
+detection but also enhances adaptability to complex queries. Experimental
+evaluation on LongBench V2 demonstrates that FreeChunker achieves superior
+retrieval performance compared to traditional chunking methods, while
+significantly outperforming existing approaches in computational efficiency.</details></td><td><details><summary>展开</summary>本文提出了一种名为FreeChunker的跨粒度编码框架，通过将句子作为原子单元并支持灵活的句子组合检索，改进了传统RAG系统中固定粒度的分块策略，显著降低了语义边界检测的计算开销，提升了对复杂查询的适应性，并在LongBench V2实验中表现出优于传统方法的检索性能和计算效率。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20303v1">Citation Failure: Definition, Analysis and Efficient Mitigation</a></td><td><details><summary>展开</summary>Citations from LLM-based RAG systems are supposed to simplify response
+verification. However, this does not hold for citation failure, when a model
+generates a helpful response, but fails to cite complete evidence. In contrast
+to previous work, we propose to disentangle this from response failure, where
+the response itself is flawed, and citing complete evidence is impossible. To
+address citation failure, this work follows a two-step approach: (1) We study
+when citation failure occurs and (2) how it can be mitigated. For step 1, we
+extend prior work by investigating how the relation between response and
+evidence affects citation quality. We introduce CITECONTROL, a benchmark that
+systematically varies this relation to analyze failure modes. Experiments show
+that failures increase with relational complexity and suggest that combining
+citation methods could improve performance, motivating step 2. To improve LLM
+citation efficiently, we propose CITENTION, a framework integrating generative,
+attention-based, and retrieval-based methods. Results demonstrate substantial
+citation improvements on CITECONTROL and in transfer settings. We make our data
+and code publicly available.</details></td><td><details><summary>展开</summary>这篇论文探讨了基于LLM的RAG系统中存在的“引用失败”问题（即模型生成有用回答但未完整引用证据），提出将其与“回答失败”区分，并通过CITECONTROL基准分析失败模式与证据-回答关系，最终提出整合生成、注意力与检索方法的CITENTION框架以提升引用效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20296v1">RAG-Stack: Co-Optimizing RAG Quality and Performance From the Vector Database Perspective</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) has emerged as one of the most prominent
+applications of vector databases. By integrating documents retrieved from a
+database into the prompt of a large language model (LLM), RAG enables more
+reliable and informative content generation. While there has been extensive
+research on vector databases, many open research problems remain once they are
+considered in the wider context of end-to-end RAG pipelines. One practical yet
+challenging problem is how to jointly optimize both system performance and
+generation quality in RAG, which is significantly more complex than it appears
+due to the numerous knobs on both the algorithmic side (spanning models and
+databases) and the systems side (from software to hardware). In this paper, we
+present RAG-Stack, a three-pillar blueprint for quality-performance
+co-optimization in RAG systems. RAG-Stack comprises: (1) RAG-IR, an
+intermediate representation that serves as an abstraction layer to decouple
+quality and performance aspects; (2) RAG-CM, a cost model for estimating system
+performance given an RAG-IR; and (3) RAG-PE, a plan exploration algorithm that
+searches for high-quality, high-performance RAG configurations. We believe this
+three-pillar blueprint will become the de facto paradigm for RAG
+quality-performance co-optimization in the years to come.</details></td><td><details><summary>展开</summary>这篇论文探讨了检索增强生成（RAG）技术，提出了一种名为RAG-Stack的三支柱蓝图，旨在共同优化RAG系统的性能与生成质量，包括RAG-IR中间表示、RAG-CM成本模型和RAG-PE计划探索算法，以解决现有研究中的挑战。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20279v1">ResearchGPT: Benchmarking and Training LLMs for End-to-End Computer Science Research Workflows</a></td><td><details><summary>展开</summary>As large language models (LLMs) advance, the ultimate vision for their role
+in science is emerging: we could build an AI collaborator to effectively assist
+human beings throughout the entire scientific research process. We refer to
+this envisioned system as ResearchGPT. Given that scientific research
+progresses through multiple interdependent phases, achieving this vision
+requires rigorous benchmarks that evaluate the end-to-end workflow rather than
+isolated sub-tasks. To this end, we contribute CS-54k, a high-quality corpus of
+scientific Q&A pairs in computer science, built from 14k CC-licensed papers. It
+is constructed through a scalable, paper-grounded pipeline that combines
+retrieval-augmented generation (RAG) with multi-stage quality control to ensure
+factual grounding. From this unified corpus, we derive two complementary
+subsets: CS-4k, a carefully curated benchmark for evaluating AI's ability to
+assist scientific research, and CS-50k, a large-scale training dataset.
+Extensive experiments demonstrate that CS-4k stratifies state-of-the-art LLMs
+into distinct capability tiers. Open models trained on CS-50k with supervised
+training and reinforcement learning demonstrate substantial improvements. Even
+7B-scale models, when properly trained, outperform many larger proprietary
+systems, such as GPT-4.1, GPT-4o, and Gemini 2.5 Pro. This indicates that
+making AI models better research assistants relies more on domain-aligned
+training with high-quality data than on pretraining scale or general benchmark
+performance. We release CS-4k and CS-50k in the hope of fostering AI systems as
+reliable collaborators in CS research.</details></td><td><details><summary>展开</summary>这篇论文提出ResearchGPT愿景，通过构建CS-54k科学问答语料库（含14k论文）支持AI辅助科研，其数据生成采用RAG技术确保事实性，并拆分出评估基准CS-4k与训练集CS-50k。实验表明，基于该数据训练的7B模型可超越GPT-4等商用系统，凸显领域对齐数据的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20260v1">Balancing Fine-tuning and RAG: A Hybrid Strategy for Dynamic LLM Recommendation Updates</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) empower recommendation systems through their
+advanced reasoning and planning capabilities. However, the dynamic nature of
+user interests and content poses a significant challenge: While initial
+fine-tuning aligns LLMs with domain knowledge and user preferences, it fails to
+capture such real-time changes, necessitating robust update mechanisms. This
+paper investigates strategies for updating LLM-powered recommenders, focusing
+on the trade-offs between ongoing fine-tuning and Retrieval-Augmented
+Generation (RAG). Using an LLM-powered user interest exploration system as a
+case study, we perform a comparative analysis of these methods across
+dimensions like cost, agility, and knowledge incorporation. We propose a hybrid
+update strategy that leverages the long-term knowledge adaptation of periodic
+fine-tuning with the agility of low-cost RAG. We demonstrate through live A/B
+experiments on a billion-user platform that this hybrid approach yields
+statistically significant improvements in user satisfaction, offering a
+practical and cost-effective framework for maintaining high-quality LLM-powered
+recommender systems.</details></td><td><details><summary>展开</summary>本文探讨了在基于大语言模型（LLM）的推荐系统中，如何通过持续微调和检索增强生成（RAG）两种策略动态适应用户兴趣和内容变化，提出了一种结合定期微调与低成本RAG的混合更新方法，并通过大规模A/B实验验证其显著提升用户满意度。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.20193v1">Multimedia-Aware Question Answering: A Review of Retrieval and Cross-Modal Reasoning Architectures</a></td><td><details><summary>展开</summary>Question Answering (QA) systems have traditionally relied on structured text
+data, but the rapid growth of multimedia content (images, audio, video, and
+structured metadata) has introduced new challenges and opportunities for
+retrieval-augmented QA. In this survey, we review recent advancements in QA
+systems that integrate multimedia retrieval pipelines, focusing on
+architectures that align vision, language, and audio modalities with user
+queries. We categorize approaches based on retrieval methods, fusion
+techniques, and answer generation strategies, and analyze benchmark datasets,
+evaluation protocols, and performance tradeoffs. Furthermore, we highlight key
+challenges such as cross-modal alignment, latency-accuracy tradeoffs, and
+semantic grounding, and outline open problems and future research directions
+for building more robust and context-aware QA systems leveraging multimedia
+data.</details></td><td><details><summary>展开</summary>这篇论文综述了结合多媒体检索（如图像、音频、视频）的问答系统（QA）的最新进展，聚焦于通过跨模态对齐（视觉、语言、音频）增强检索与生成的架构，探讨了检索方法、融合技术、生成策略及挑战（如跨模态对齐、语义 grounding），属于RAG技术在多媒体领域的扩展应用。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-22
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.19723v1">From Answers to Guidance: A Proactive Dialogue System for Legal Documents</a></td><td><details><summary>展开</summary>The accessibility of legal information remains a constant challenge,
 particularly for laypersons seeking to understand and apply complex
