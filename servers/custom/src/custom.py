@@ -155,19 +155,6 @@ def merge_passages(
     return {"ret_psg": ret_psg}
 
 
-@app.tool(output="context_ls,ret_psg->issuff_ls")
-def evisrag_is_sufficient(
-    context_ls: List[List[str]],
-    ret_psg: List[List[str]],
-) -> Dict[str, List[bool]]:
-    ret = []
-    for contexts, res in zip(context_ls, ret_psg):
-        res_ids = set([x.split('/')[-1] for x in res])
-        con_ids = set([x.split('/')[-1] for x in contexts])
-        is_suff = set(con_ids).issubset(set(res_ids))
-        ret.append(is_suff)
-    return {"issuff_ls": ret}
-
 @app.tool(output="ans_ls->pred_ls")
 def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str]]:
     def extract(ans: str) -> str:
