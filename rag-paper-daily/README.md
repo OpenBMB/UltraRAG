@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-24
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-10-23
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.20797v1">Simple Context Compression: Mean-Pooling and Multi-Ratio Training</a></td><td><details><summary>展开</summary>A common strategy to reduce the computational costs of using long contexts in
 retrieval-augmented generation (RAG) with large language models (LLMs) is soft
