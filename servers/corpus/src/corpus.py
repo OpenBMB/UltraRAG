@@ -452,6 +452,9 @@ async def chunk_documents(
 
     try:
         import chonkie
+        # default uv install chonkie version is 1.3.1, need to check for 1.4.0+
+        chonkie_ver = getattr(chonkie, "__version__", "")
+        is_chonkie_140 = chonkie_ver.startswith("1.4.0")
     except ImportError:
         err_msg = "chonkie not installed. Please `pip install chonkie`."
         app.logger.error(err_msg)
@@ -538,13 +541,23 @@ async def chunk_documents(
         elif delim is None:
             delim = DELIM_DEFAULT
 
-        chunker = SentenceChunker(
-            tokenizer=tokenizer,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            min_sentences_per_chunk=min_sentences_per_chunk,
-            delim=delim,
-        )
+        if is_chonkie_140:
+            chunker = SentenceChunker(
+                tokenizer=tokenizer,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                min_sentences_per_chunk=min_sentences_per_chunk,
+                delim=delim,
+            )
+        else:
+            chunker = SentenceChunker(
+                tokenizer_or_token_counter=tokenizer,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                min_sentences_per_chunk=min_sentences_per_chunk,
+                delim=delim,
+            )
+            
     elif chunk_backend == "recursive":
         from chonkie import RecursiveChunker, RecursiveRules
         import tiktoken
@@ -568,12 +581,21 @@ async def chunk_documents(
             err_msg = "`min_characters_per_chunk` is required for recursive chunking."
             app.logger.error(err_msg)
             raise ToolError(err_msg)
-        chunker = RecursiveChunker(
-            tokenizer=tokenizer,
-            chunk_size=chunk_size,
-            rules=RecursiveRules(),
-            min_characters_per_chunk=min_characters_per_chunk,
-        )
+        if is_chonkie_140:
+            chunker = RecursiveChunker(
+                tokenizer=tokenizer,
+                chunk_size=chunk_size,
+                rules=RecursiveRules(),
+                min_characters_per_chunk=min_characters_per_chunk,
+            )
+        else:
+            chunker = RecursiveChunker(
+                tokenizer_or_token_counter=tokenizer,
+                chunk_size=chunk_size,
+                rules=RecursiveRules(),
+                min_characters_per_chunk=min_characters_per_chunk,
+            )
+            
     else:
         err_msg = (
             f"Invalid chunking method: {chunk_backend}. "
