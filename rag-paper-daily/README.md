@@ -1,5 +1,95 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-27
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.23601v1">Alita-G: Self-Evolving Generative Agent for Agent Generation</a></td><td><details><summary>展开</summary>Large language models (LLMs) have been shown to perform better when
+scaffolded into agents with memory, tools, and feedback. Beyond this,
+self-evolving agents have emerged, but current work largely limits adaptation
+to prompt rewriting or failure retries. Therefore, we present ALITA-G, a
+self-evolution framework that transforms a general-purpose agent into a domain
+expert by systematically generating, abstracting, and curating Model Context
+Protocol (MCP) tools. In this framework, a generalist agent executes a curated
+suite of target-domain tasks and synthesizes candidate MCPs from successful
+trajectories. These are then abstracted to parameterized primitives and
+consolidated into an MCP Box. At inference time, ALITA-G performs
+retrieval-augmented MCP selection with the help of each tool's descriptions and
+use cases, before executing an agent equipped with the MCP Executor. Across
+several benchmarks GAIA, PathVQA, and Humanity's Last Exam, ALITA-G attains
+strong gains while reducing computation costs. On GAIA validation, it achieves
+83.03% pass@1 and 89.09% pass@3, establishing a new state-of-the-art result
+while reducing mean tokens per example by approximately 15% relative to a
+strong baseline agent. ALITA-G thus provides a principled pathway from
+generalist capability to reusable, domain-specific competence, improving both
+accuracy and efficiency on complex reasoning tasks.</details></td><td><details><summary>展开</summary>这篇文章介绍了ALITA-G框架，该框架通过生成、抽象和整理模型上下文协议（MCP）工具，将通用智能代理转化为领域专家。ALITA-G在推理时采用检索增强的MCP选择方法，结合工具描述和使用案例进行检索，从而提升任务执行的准确性和效率，并在多个基准测试中取得了显著的性能提升和计算成本降低。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.23544v1">LimRank: Less is More for Reasoning-Intensive Information Reranking</a></td><td><details><summary>展开</summary>Existing approaches typically rely on large-scale fine-tuning to adapt LLMs
+for information reranking tasks, which is computationally expensive. In this
+work, we demonstrate that modern LLMs can be effectively adapted using only
+minimal, high-quality supervision. To enable this, we design
+LIMRANK-SYNTHESIZER, a reusable and open-source pipeline for generating
+diverse, challenging, and realistic reranking examples. Using this synthetic
+data, we fine-tune our reranker model, LIMRANK. We evaluate LIMRANK on two
+challenging benchmarks, i.e., BRIGHT for reasoning-intensive retrieval and
+FollowIR for instruction-following retrieval. Our experiments demonstrate that
+LIMRANK achieves competitive performance, while being trained on less than 5%
+of the data typically used in prior work. Further ablation studies demonstrate
+the effectiveness of LIMRANK-SYNTHESIZER and the strong generalization
+capabilities of LIMRANK across downstream tasks, including scientific
+literature search and retrieval-augmented generation for knowledge-intensive
+problem solving.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为LIMRANK的高效信息重排模型，通过合成数据（LIMRANK-SYNTHESIZER生成）进行小规模微调，显著减少训练数据需求。研究验证了其在推理密集型检索（BRIGHT）和指令跟随检索（FollowIR）中的竞争力，并特别提到该模型在知识密集型问题解决（如科学文献搜索和检索增强生成RAG）中的下游任务泛化能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.23271v1">Mubeen AI: A Specialized Arabic Language Model for Heritage Preservation and User Intent Understanding</a></td><td><details><summary>展开</summary>Mubeen is a proprietary Arabic language model developed by MASARAT SA,
+optimized for deep understanding of Arabic linguistics, Islamic studies, and
+cultural heritage. Trained on an extensive collection of authentic Arabic
+sources significantly expanded by digitizing historical manuscripts via a
+proprietary Arabic OCR engine, the model incorporates seminal scholarly works
+in linguistics, jurisprudence, hadith, and Quranic exegesis, alongside
+thousands of academic theses and peer-reviewed research papers. Conditioned
+through a deep linguistic engineering framework, Mubeen masters not just the
+meaning but the eloquence of Arabic, enabling precise understanding across
+classical texts, contemporary writing, and regional dialects with focus on
+comprehending user intent and delivering accurate, contextually relevant
+responses. Unlike other Arabic models relying on translated English data that
+often fail in intent detection or retrieval-augmented generation (RAG), Mubeen
+uses native Arabic sources to ensure cultural authenticity and accuracy. Its
+core innovation is the Practical Closure Architecture, designed to solve the
+"Utility Gap Crisis" where factually correct answers fail to resolve users'
+core needs, forcing them into frustrating cycles of re-prompting. By
+prioritizing clarity and decisive guidance, Mubeen transforms from an
+information repository into a decisive guide, aligning with Saudi Vision 2030.
+The model's architecture combines deep heritage specialization with
+multi-disciplinary expert modules, enabling robust performance across both
+cultural preservation and general knowledge domains.</details></td><td><details><summary>展开</summary>这篇论文介绍了Mubeen，一个专有的阿拉伯语语言模型，通过结合原生阿拉伯语资料和深度语言工程框架，解决了传统阿拉伯语模型在意图检测和检索增强生成（RAG）上的不足。其核心创新“实用闭合架构”旨在解决“效用差距危机”，确保回答不仅准确且直接满足用户需求，同时强调了文化真实性和多学科专家模块的整合。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.23070v1">Quality-Aware Translation Tagging in Multilingual RAG system</a></td><td><details><summary>展开</summary>Multilingual Retrieval-Augmented Generation (mRAG) often retrieves English
+documents and translates them into the query language for low-resource
+settings. However, poor translation quality degrades response generation
+performance. Existing approaches either assume sufficient translation quality
+or utilize the rewriting method, which introduces factual distortion and
+hallucinations. To mitigate these problems, we propose Quality-Aware
+Translation Tagging in mRAG (QTT-RAG), which explicitly evaluates translation
+quality along three dimensions-semantic equivalence, grammatical accuracy, and
+naturalness&fluency-and attach these scores as metadata without altering the
+original content. We evaluate QTT-RAG against CrossRAG and DKM-RAG as baselines
+in two open-domain QA benchmarks (XORQA, MKQA) using six instruction-tuned LLMs
+ranging from 2.4B to 14B parameters, covering two low-resource languages
+(Korean and Finnish) and one high-resource language (Chinese). QTT-RAG
+outperforms the baselines by preserving factual integrity while enabling
+generator models to make informed decisions based on translation reliability.
+This approach allows for effective usage of cross-lingual documents in
+low-resource settings with limited native language documents, offering a
+practical and robust solution across multilingual domains.</details></td><td><details><summary>展开</summary>该论文提出了一种名为QTT-RAG的质量感知翻译标记方法，用于改进多语言检索增强生成（mRAG）中的翻译质量问题。通过评估翻译的语义等价性、语法准确性和流畅性，并将评分作为元数据附加到原文，该方法在低资源语言（如韩语、芬兰语）和高资源语言（如中文）的开放域问答任务中优于现有基线模型，同时保持了事实完整性并减少了幻觉问题。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22956v1">Tagging-Augmented Generation: Assisting Language Models in Finding Intricate Knowledge In Long Contexts</a></td><td><details><summary>展开</summary>Recent investigations into effective context lengths of modern flagship large
+language models (LLMs) have revealed major limitations in effective question
+answering (QA) and reasoning over long and complex contexts for even the
+largest and most impressive cadre of models. While approaches like
+retrieval-augmented generation (RAG) and chunk-based re-ranking attempt to
+mitigate this issue, they are sensitive to chunking, embedding and retrieval
+strategies and models, and furthermore, rely on extensive pre-processing,
+knowledge acquisition and indexing steps. In this paper, we propose
+Tagging-Augmented Generation (TAG), a lightweight data augmentation strategy
+that boosts LLM performance in long-context scenarios, without degrading and
+altering the integrity and composition of retrieved documents. We validate our
+hypothesis by augmenting two challenging and directly relevant
+question-answering benchmarks -- NoLima and NovelQA -- and show that tagging
+the context or even just adding tag definitions into QA prompts leads to
+consistent performance gains over the baseline -- up to 17% for 32K token
+contexts, and 2.9% in complex reasoning question-answering for multi-hop
+queries requiring knowledge across a wide span of text. Additional details are
+available at https://sites.google.com/view/tag-emnlp.</details></td><td><details><summary>展开</summary>这篇论文探讨了现代大语言模型（LLMs）在处理长且复杂上下文时的局限性，并提出了一种名为“标记增强生成（TAG）”的轻量级数据增强策略。TAG通过在上下文或提示中添加标记或标记定义，显著提升了LLMs在长上下文场景下的性能（如问答和复杂推理任务），而无需依赖RAG等传统方法所需的预处理和索引步骤。实验表明，TAG在32K标记的上下文和多跳查询任务中分别实现了高达17%和2.9%的性能提升。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-26
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
