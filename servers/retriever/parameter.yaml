@@ -30,12 +30,16 @@ backend_configs:
   bm25:
     lang: en
 
+index_backend: faiss # options: faiss
+index_backend_configs:
+  faiss:
+    index_use_gpu: True
+    index_chunk_size: 50000
+
 batch_size: 16
 top_k: 5
 gpu_ids: "0,1"
 query_instruction: ""
 is_multimodal: false
-faiss_use_gpu: True
 overwrite: false
-index_chunk_size: 50000
 retrieve_thread_num: 1

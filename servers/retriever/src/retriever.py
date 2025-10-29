@@ -12,6 +12,7 @@ from PIL import Image
 
 from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
+from index_backends import BaseIndexBackend, create_index_backend
 
 app = UltraRAG_MCP_Server("retriever")
 
@@ -20,7 +21,7 @@ class Retriever:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
         mcp_inst.tool(
             self.retriever_init,
-            output="model_name_or_path,backend_configs,batch_size,corpus_path,index_path,faiss_use_gpu,gpu_ids,is_multimodal,backend->None",
+            output="model_name_or_path,backend_configs,batch_size,corpus_path,index_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs->None",
         )
         mcp_inst.tool(
             self.retriever_embed,
@@ -28,7 +29,7 @@ class Retriever:
         )
         mcp_inst.tool(
             self.retriever_index,
-            output="embedding_path,index_path,overwrite,index_chunk_size->None",
+            output="embedding_path,overwrite->None",
         )
         mcp_inst.tool(
             self.bm25_index,
@@ -69,26 +70,18 @@ class Retriever:
         batch_size: int,
         corpus_path: str,
         index_path: Optional[str] = None,
-        faiss_use_gpu: bool = False,
         gpu_ids: Optional[object] = None,
         is_multimodal: bool = False,
-        backend: str = "infinity",
+        backend: str = "sentence_transformers",
+        index_backend: str = "faiss",
+        index_backend_configs: Optional[Dict[str, Any]] = None,
     ):
 
         self.backend = backend.lower()
-        if self.backend in ["infinity", "sentence_transformers", "openai"]:
-            try:
-                import faiss
-            except ImportError:
-                err_msg = (
-                    "faiss is not installed. "
-                    "Please install it with `pip install faiss-cpu` "
-                    "or `pip install faiss-gpu-cu12`."
-                )
-                app.logger.error(err_msg)
-                raise ImportError(err_msg)
+        self.index_backend_name = index_backend.lower()
+        self.index_backend_configs = index_backend_configs or {}
+        self.index_backend: Optional[BaseIndexBackend] = None
 
-        self.faiss_use_gpu = faiss_use_gpu
         self.batch_size = batch_size
         self.backend_configs = backend_configs
 
@@ -280,38 +273,28 @@ class Retriever:
                 pbar.refresh() 
 
         if self.backend in ["infinity", "sentence_transformers", "openai"]:
-            self.faiss_index = None
-            if index_path and os.path.exists(index_path):
-                cpu_index = faiss.read_index(index_path)
+            index_backend_cfg = self.index_backend_configs.get(
+                self.index_backend_name, {}
+            )
+            self.index_backend = create_index_backend(
+                name=self.index_backend_name,
+                contents=self.contents,
+                logger=app.logger,
+                config=index_backend_cfg,
+                device_num=self.device_num,
+            )
+            app.logger.info(
+                "[index] Initialized backend '%s'.", self.index_backend_name
+            )
+            try:
+                self.index_backend.load_index(index_path=index_path)
+            except Exception as exc:
+                warn_msg = (
+                    f"[index] Failed to load existing index using backend "
+                    f"'{self.index_backend_name}': {exc}"
+                )
+                app.logger.warning(warn_msg)
 
-                if self.faiss_use_gpu:
-                    co = faiss.GpuMultipleClonerOptions()
-                    co.shard = True
-                    co.useFloat16 = True
-                    try:
-                        self.faiss_index = faiss.index_cpu_to_all_gpus(cpu_index, co)
-                        info_msg = f"[faiss] Loaded index to GPU(s) with {self.device_num} device(s)."
-                        app.logger.info(info_msg)
-                    except RuntimeError as e:
-                        warn_msg = (
-                            f"[faiss] GPU index load failed: {e}. Falling back to CPU."
-                        )
-                        app.logger.warning(warn_msg)
-                        self.faiss_use_gpu = False
-                        self.faiss_index = cpu_index
-                else:
-                    self.faiss_index = cpu_index
-                    info_msg = "[faiss] Loaded index on CPU."
-                    app.logger.info(info_msg)
-
-                info_msg = "[faiss] Index loaded successfully."
-                app.logger.info(info_msg)
-            else:
-                if index_path and not os.path.exists(index_path):
-                    warn_msg = f"{index_path} does not exist."
-                    app.logger.warning(warn_msg)
-                info_msg = "[faiss] no index_path provided. Retriever initialized without index."
-                app.logger.info(info_msg)
         elif self.backend == "bm25":
             if index_path and os.path.exists(index_path):
                 self.model = self.model.load(index_path, mmap=True, load_corpus=False)
@@ -482,91 +465,42 @@ class Retriever:
     def retriever_index(
         self,
         embedding_path: str,
-        index_path: Optional[str] = None,
         overwrite: bool = False,
-        index_chunk_size: int = 50000,
     ):
-        try:
-            import faiss
-        except ImportError:
+        if self.backend == "bm25":
+            err_msg = "BM25 backend does not support vector index building via retriever_index."
+            app.logger.error(err_msg)
+            raise ValueError(err_msg)
+
+        if self.index_backend is None:
             err_msg = (
-                "faiss is not installed. "
-                "Please install it with `pip install faiss-cpu` "
-                "or `pip install faiss-gpu-cu12`."
+                "Vector index backend is not initialized. "
+                "Ensure retriever_init completed successfully."
             )
             app.logger.error(err_msg)
-            raise ImportError(err_msg)
+            raise RuntimeError(err_msg)
 
         if not os.path.exists(embedding_path):
             app.logger.error(f"Embedding file not found: {embedding_path}")
             raise NotFoundError(f"Embedding file not found: {embedding_path}")
 
-        if index_path:
-            if not index_path.endswith(".index"):
-                err_msg = (
-                    f"Parameter 'index_path' must end with '.index', got '{index_path}'"
-                )
-                raise ValidationError(err_msg)
-            output_dir = os.path.dirname(index_path)
-        else:
-            current_file = os.path.abspath(__file__)
-            project_root = os.path.dirname(os.path.dirname(current_file))
-            output_dir = os.path.join(project_root, "output", "index")
-            index_path = os.path.join(output_dir, "index.index")
-
-        if not overwrite and os.path.exists(index_path):
-            info_msg = (
-                f"Index file already exists: {index_path}. "
-                "Set overwrite=True to overwrite."
-            )
-            app.logger.info(info_msg)
-            return
-
-        os.makedirs(output_dir, exist_ok=True)
-
         embedding = np.load(embedding_path)
-        dim = embedding.shape[1]
         vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
+        
+        try:
+            self.index_backend.build_index(
+                embeddings=embedding,
+                ids=vec_ids,
+                overwrite=overwrite,
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        finally:
+            del embedding
+            gc.collect()
 
-        cpu_flat = faiss.IndexFlatIP(dim)
-        cpu_index = faiss.IndexIDMap2(cpu_flat)
-
-        total = embedding.shape[0]
-        info_msg = f"Start building FAISS index, total vectors: {total}"
-        app.logger.info(info_msg)
-
-        with tqdm(
-            total=total,
-            desc="[faiss] Indexing: ",
-            unit="vec",
-        ) as pbar:
-            for start in range(0, total, index_chunk_size):
-                end = min(start + index_chunk_size, total)
-                cpu_index.add_with_ids(embedding[start:end], vec_ids[start:end])
-                pbar.update(end - start)
-
-        faiss.write_index(cpu_index, index_path)
-        index = cpu_index
-        if self.faiss_use_gpu:
-            co = faiss.GpuMultipleClonerOptions()
-            co.shard = True
-            co.useFloat16 = True
-            try:
-                gpu_index = faiss.index_cpu_to_all_gpus(cpu_index, co)
-                index = gpu_index
-                info_msg = f"Using GPU for indexing with sharding, device_num: {self.device_num}"
-                app.logger.info(info_msg)
-            except RuntimeError as e:
-                err_msg = f"GPU indexing failed ({e}); fall back to CPU"
-                app.logger.warning(err_msg)
-                self.faiss_use_gpu = False
-                index = cpu_index
-        else:
-            index = cpu_index
-
-        if self.faiss_index is None or overwrite:
-            self.faiss_index = index
-        info_msg = "[faiss] Indexing success."
+        
+        info_msg = f"[{self.index_backend_name}] Indexing success."
         app.logger.info(info_msg)
 
     def bm25_index(
@@ -686,14 +620,17 @@ class Retriever:
 
         info_msg = f"query embedding shape: {query_embedding.shape}"
         app.logger.info(info_msg)
+        
+        if self.index_backend is None:
+            err_msg = (
+                "Vector index backend is not initialized. "
+                "Ensure retriever_init completed successfully."
+            )
+            app.logger.error(err_msg)
+            raise RuntimeError(err_msg)
 
-        _, ids = self.faiss_index.search(query_embedding, top_k)
-        rets = []
-        for i, _ in enumerate(query_list):
-            cur_ret = []
-            for _, id in enumerate(ids[i]):
-                cur_ret.append(self.contents[id])
-            rets.append(cur_ret)
+        rets = self.index_backend.search(query_embedding, top_k)
+
         return {"ret_psg": rets}
 
     async def retriever_search_colbert_maxsim(
