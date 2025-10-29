@@ -1,5 +1,232 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-28
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.24652v1">Optimizing Retrieval for RAG via Reinforced Contrastive Learning</a></td><td><details><summary>展开</summary>As retrieval-augmented generation (RAG) becomes increasingly widespread, the
+role of information retrieval (IR) is shifting from retrieving information for
+human users to retrieving contextual knowledge for artificial intelligence (AI)
+systems, where relevance becomes difficult to define or annotate beforehand. To
+address this challenge, we propose R3, a Retrieval framework optimized for RAG
+through trialand-feedback Reinforced contrastive learning. Unlike prior
+approaches that rely on annotated or synthetic data for supervised fine-tuning,
+R3 enables the retriever to dynamically explore and optimize relevance within
+the RAG environment. During training, the retrieved results interact with the
+environment to produce contrastive signals that automatically guide the
+retriever's self-improvement. Extensive experiments across diverse tasks
+demonstrate that R3 improves RAG performance by 5.2% over the original
+retriever and surpasses state-of-the-art retrievers by 4.9%, while achieving
+comparable results to LLM-augmented retrieval and RAG systems built on
+post-trained or instruction-tuned LLMs. It is both efficient and practical,
+requiring only 4 GPUs and completing training within a single day.</details></td><td><details><summary>展开</summary>本文提出了一种名为R3的检索框架，通过基于试错反馈的强化对比学习优化RAG中的检索过程，能够动态探索和优化相关性，无需依赖预标注或合成数据。实验表明，R3显著提升了RAG性能，优于现有检索方法，且训练效率高（仅需4块GPU和1天时间）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24476v1">Mitigating Hallucination in Large Language Models (LLMs): An Application-Oriented Survey on RAG, Reasoning, and Agentic Systems</a></td><td><details><summary>展开</summary>Hallucination remains one of the key obstacles to the reliable deployment of
+large language models (LLMs), particularly in real-world applications. Among
+various mitigation strategies, Retrieval-Augmented Generation (RAG) and
+reasoning enhancement have emerged as two of the most effective and widely
+adopted approaches, marking a shift from merely suppressing hallucinations to
+balancing creativity and reliability. However, their synergistic potential and
+underlying mechanisms for hallucination mitigation have not yet been
+systematically examined. This survey adopts an application-oriented perspective
+of capability enhancement to analyze how RAG, reasoning enhancement, and their
+integration in Agentic Systems mitigate hallucinations. We propose a taxonomy
+distinguishing knowledge-based and logic-based hallucinations, systematically
+examine how RAG and reasoning address each, and present a unified framework
+supported by real-world applications, evaluations, and benchmarks.</details></td><td><details><summary>展开</summary>这篇论文探讨了大型语言模型（LLMs）中的幻觉问题，重点分析了检索增强生成（RAG）和推理增强作为缓解幻觉的有效策略，并研究了它们协同作用的潜力及其在智能代理系统中的整合。文章提出了基于知识和逻辑的幻觉分类，系统性地评估了RAG和推理方法如何应对各类幻觉，并通过实际应用和基准测试提供了一个统一框架。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24469v1">Iterative Critique-Refine Framework for Enhancing LLM Personalization</a></td><td><details><summary>展开</summary>Personalized text generation requires models not only to produce coherent
+text but also to align with a target user's style, tone, and topical focus.
+Existing retrieval-augmented approaches such as LaMP and PGraphRAG enrich
+profiles with user and neighbor histories, but they stop at generation and
+often yield outputs that drift in tone, topic, or style. We present PerFine, a
+unified, training-free critique-refine framework that enhances personalization
+through iterative, profile-grounded feedback. In each iteration, an LLM
+generator produces a draft conditioned on the retrieved profile, and a critic
+LLM - also conditioned on the same profile - provides structured feedback on
+tone, vocabulary, sentence structure, and topicality. The generator then
+revises, while a novel knockout strategy retains the stronger draft across
+iterations. We further study additional inference-time strategies such as
+Best-of-N and Topic Extraction to balance quality and efficiency. Across Yelp,
+Goodreads, and Amazon datasets, PerFine consistently improves personalization
+over PGraphRAG, with GEval gains of +7-13%, steady improvements over 3-5
+refinement iterations, and scalability with increasing critic size. These
+results highlight that post-hoc, profile-aware feedback offers a powerful
+paradigm for personalized LLM generation that is both training-free and
+model-agnostic.</details></td><td><details><summary>展开</summary>该论文提出了一种名为PerFine的训练免费框架，通过结合检索增强生成（RAG）技术和迭代式反馈优化，提升个性化文本生成的质量。PerFine利用检索到的用户档案生成初稿，并通过基于相同档案的批评模型提供结构化反馈，进而迭代优化生成结果，在多个数据集中显著提升了个性化指标。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24427v1">SynthWorlds: Controlled Parallel Worlds for Disentangling Reasoning and Knowledge in Language Models</a></td><td><details><summary>展开</summary>Evaluating the reasoning ability of language models (LMs) is complicated by
+their extensive parametric world knowledge, where benchmark performance often
+reflects factual recall rather than genuine reasoning. Existing datasets and
+approaches (e.g., temporal filtering, paraphrasing, adversarial substitution)
+cannot cleanly separate the two. We present SynthWorlds, a framework that
+disentangles task reasoning complexity from factual knowledge. In SynthWorlds,
+we construct parallel corpora representing two worlds with identical
+interconnected structure: a real-mapped world, where models may exploit
+parametric knowledge, and a synthetic-mapped world, where such knowledge is
+meaningless. On top of these corpora, we design two mirrored tasks as case
+studies: multi-hop question answering and page navigation, which maintain equal
+reasoning difficulty across worlds. Experiments in parametric-only (e.g.,
+closed-book QA) and knowledge-augmented (e.g., retrieval-augmented) LM settings
+reveal a persistent knowledge advantage gap, defined as the performance boost
+models gain from memorized parametric world knowledge. Knowledge acquisition
+and integration mechanisms reduce but do not eliminate this gap, highlighting
+opportunities for system improvements. Fully automatic and scalable,
+SynthWorlds provides a controlled environment for evaluating LMs in ways that
+were previously challenging, enabling precise and testable comparisons of
+reasoning and memorization.</details></td><td><details><summary>展开</summary>这篇论文提出SynthWorlds框架，通过构建结构相同但知识背景不同的平行语料库（真实世界映射与合成世界映射），分离语言模型的任务推理能力与事实记忆能力。虽然主要研究模型推理与记忆的区分，但明确指出实验涉及检索增强（RAG）等知识增强设置，并探讨知识整合机制对性能差距的影响，因此与RAG技术相关。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24402v1">Metadata-Driven Retrieval-Augmented Generation for Financial Question Answering</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) struggles on long, structured financial
+filings where relevant evidence is sparse and cross-referenced. This paper
+presents a systematic investigation of advanced metadata-driven
+Retrieval-Augmented Generation (RAG) techniques, proposing and evaluating a
+novel, multi-stage RAG architecture that leverages LLM-generated metadata. We
+introduce a sophisticated indexing pipeline to create contextually rich
+document chunks and benchmark a spectrum of enhancements, including
+pre-retrieval filtering, post-retrieval reranking, and enriched embeddings,
+benchmarked on the FinanceBench dataset. Our results reveal that while a
+powerful reranker is essential for precision, the most significant performance
+gains come from embedding chunk metadata directly with text ("contextual
+chunks"). Our proposed optimal architecture combines LLM-driven pre-retrieval
+optimizations with these contextual embeddings to achieve superior performance.
+Additionally, we present a custom metadata reranker that offers a compelling,
+cost-effective alternative to commercial solutions, highlighting a practical
+trade-off between peak performance and operational efficiency. This study
+provides a blueprint for building robust, metadata-aware RAG systems for
+financial document analysis.</details></td><td><details><summary>展开</summary>这篇论文针对金融长文档中信息稀疏和交叉引用的问题，提出了一种基于LLM生成元数据的多阶段RAG架构，通过改进索引流程、预检索过滤、后检索重排序和增强嵌入等方法提升性能，并在FinanceBench数据集上验证了上下文分块嵌入和定制元数据重排序器的有效性，为金融文档分析提供了高效解决方案。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24390v1">Improving LLM Reasoning via Dependency-Aware Query Decomposition and Logic-Parallel Content Expansion</a></td><td><details><summary>展开</summary>The integration of Large Language Models (LLMs) into real-time Web
+applications, such as AI-powered search and conversational agents, presents a
+fundamental Web infrastructure challenge: reconciling the demand for
+high-quality, complex reasoning with the stringent low-latency and
+high-throughput requirements of interactive services. Current LLM reasoning,
+hindered by computationally inefficient sequential generation and rigid
+reasoning strategies, creates a critical bottleneck for the Web services.
+Existing approaches typically optimize the LLM reasoning for either efficiency
+or quality but struggle to achieve both, and thus fail to meet the dual
+requirements of modern Web platforms. To overcome these limitations, we propose
+Orion, a novel and efficient reasoning framework that enables dependency-aware
+query decomposition and logic-parallel content expansion. Concretely, Orion
+decomposes a single query reasoning process into two synergistic phases: (1)
+\textit{key point generation}, which distills logically structured key points
+through retrieval-augmented few-shot prompting, and (2) \textit{content
+parallel expansion}, which concurrently elaborates on these points based on a
+dependency graph to ensure logical consistency. Furthermore, Orion introduces a
+pipeline scheduling mechanism that exploits the complementary computational
+characteristics of the two phases (generation imposes pressure on GPU computing
+and expansion stresses on GPU memory) across multiple queries, enabling
+cross-query parallelism and dramatically improving reasoning performance (\ie,
+efficiency and quality). Experiments on diverse benchmarks show that Orion not
+only delivers up to 4.33x higher token generation speed and 3.42x lower answer
+latency over the baselines but also improves reasoning quality by up to 18.75%
+through explicitly modeling inter-point dependencies.</details></td><td><details><summary>展开</summary>本文提出Orion框架，通过检索增强的少量示例提示（retrieval-augmented few-shot prompting）分解查询为逻辑关键点生成和并行内容扩展两阶段，结合依赖图实现高效推理，显著提升大语言模型在实时Web应用中的性能（速度、延迟和回答质量）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24303v1">Retrieval and Argumentation Enhanced Multi-Agent LLMs for Judgmental Forecasting</a></td><td><details><summary>展开</summary>Judgmental forecasting is the task of making predictions about future events
+based on human judgment. This task can be seen as a form of claim verification,
+where the claim corresponds to a future event and the task is to assess the
+plausibility of that event. In this paper, we propose a novel multi-agent
+framework for claim verification, whereby different agents may disagree on
+claim veracity and bring specific evidence for and against the claims,
+represented as quantitative bipolar argumentation frameworks (QBAFs). We then
+instantiate the framework for supporting claim verification, with a variety of
+agents realised with Large Language Models (LLMs): (1) ArgLLM agents, an
+existing approach for claim verification that generates and evaluates QBAFs;
+(2) RbAM agents, whereby LLM-empowered Relation-based Argument Mining (RbAM)
+from external sources is used to generate QBAFs; (3) RAG-ArgLLM agents,
+extending ArgLLM agents with a form of Retrieval-Augmented Generation (RAG) of
+arguments from external sources. Finally, we conduct experiments with two
+standard judgmental forecasting datasets, with instances of our framework with
+two or three agents, empowered by six different base LLMs. We observe that
+combining evidence from agents can improve forecasting accuracy, especially in
+the case of three agents, while providing an explainable combination of
+evidence for claim verification.</details></td><td><details><summary>展开</summary>这篇论文提出了一种基于多智能体框架的声明验证方法，其中部分智能体（如RAG-ArgLLM）通过检索增强生成（RAG）技术从外部来源获取论据，并结合定量双极论证框架（QBAFs）进行验证。实验表明，多智能体协同能提升预测准确性并提供可解释的证据组合。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24242v1">Enabling Near-realtime Remote Sensing via Satellite-Ground Collaboration of Large Vision-Language Models</a></td><td><details><summary>展开</summary>Large vision-language models (LVLMs) have recently demonstrated great
+potential in remote sensing (RS) tasks (e.g., disaster monitoring) conducted by
+low Earth orbit (LEO) satellites. However, their deployment in real-world LEO
+satellite systems remains largely unexplored, hindered by limited onboard
+computing resources and brief satellite-ground contacts. We propose Grace, a
+satellite-ground collaborative system designed for near-realtime LVLM inference
+in RS tasks. Accordingly, we deploy compact LVLM on satellites for realtime
+inference, but larger ones on ground stations (GSs) to guarantee end-to-end
+performance. Grace is comprised of two main phases that are asynchronous
+satellite-GS Retrieval-Augmented Generation (RAG), and a task dispatch
+algorithm. Firstly, we still the knowledge archive of GS RAG to satellite
+archive with tailored adaptive update algorithm during limited satellite-ground
+data exchange period. Secondly, propose a confidence-based test algorithm that
+either processes the task onboard the satellite or offloads it to the GS.
+Extensive experiments based on real-world satellite orbital data show that
+Grace reduces the average latency by 76-95% compared to state-of-the-art
+methods, without compromising inference accuracy.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为Grace的卫星-地面协作系统，用于在遥感任务中实现近实时的视觉语言模型推理。系统通过异步的卫星-地面检索增强生成（RAG）和任务调度算法，结合卫星上的紧凑模型与地面站的大型模型，显著降低了延迟（76-95%）同时保持推理精度。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24120v1">Graph-Guided Concept Selection for Efficient Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Graph-based RAG constructs a knowledge graph (KG) from text chunks to enhance
+retrieval in Large Language Model (LLM)-based question answering. It is
+especially beneficial in domains such as biomedicine, law, and political
+science, where effective retrieval often involves multi-hop reasoning over
+proprietary documents. However, these methods demand numerous LLM calls to
+extract entities and relations from text chunks, incurring prohibitive costs at
+scale. Through a carefully designed ablation study, we observe that certain
+words (termed concepts) and their associated documents are more important.
+Based on this insight, we propose Graph-Guided Concept Selection (G2ConS). Its
+core comprises a chunk selection method and an LLM-independent concept graph.
+The former selects salient document chunks to reduce KG construction costs; the
+latter closes knowledge gaps introduced by chunk selection at zero cost.
+Evaluations on multiple real-world datasets show that G2ConS outperforms all
+baselines in construction cost, retrieval effectiveness, and answering quality.</details></td><td><details><summary>展开</summary>该论文提出了一种基于知识图谱的RAG方法（Graph-based RAG），通过从文本块构建知识图谱来增强基于大语言模型（LLM）的问答检索效果，特别适用于需要多跳推理的专业领域（如生物医学、法律等）。针对传统方法因频繁调用LLM提取实体和关系导致的高成本问题，作者提出了Graph-Guided Concept Selection（G2ConS），包含一个文档块选择方法和一个不依赖LLM的概念图谱，显著降低了知识图谱构建成本并填补了知识空白。实验表明，G2ConS在构建成本、检索效果和回答质量上均优于基线方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24049v1">Learning from History: A Retrieval-Augmented Framework for Spatiotemporal Prediction</a></td><td><details><summary>展开</summary>Accurate and long-term spatiotemporal prediction for complex physical systems
+remains a fundamental challenge in scientific computing. While deep learning
+models, as powerful parametric approximators, have shown remarkable success,
+they suffer from a critical limitation: the accumulation of errors during
+long-term autoregressive rollouts often leads to physically implausible
+artifacts. This deficiency arises from their purely parametric nature, which
+struggles to capture the full constraints of a system's intrinsic dynamics. To
+address this, we introduce a novel \textbf{Retrieval-Augmented Prediction
+(RAP)} framework, a hybrid paradigm that synergizes the predictive power of
+deep networks with the grounded truth of historical data. The core philosophy
+of RAP is to leverage historical evolutionary exemplars as a non-parametric
+estimate of the system's local dynamics. For any given state, RAP efficiently
+retrieves the most similar historical analog from a large-scale database. The
+true future evolution of this analog then serves as a \textbf{reference
+target}. Critically, this target is not a hard constraint in the loss function
+but rather a powerful conditional input to a specialized dual-stream
+architecture. It provides strong \textbf{dynamic guidance}, steering the
+model's predictions towards physically viable trajectories. In extensive
+benchmarks across meteorology, turbulence, and fire simulation, RAP not only
+surpasses state-of-the-art methods but also significantly outperforms a strong
+\textbf{analog-only forecasting baseline}. More importantly, RAP generates
+predictions that are more physically realistic by effectively suppressing error
+divergence in long-term rollouts.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为“检索增强预测（RAP）”的混合框架，通过结合深度学习模型的预测能力和历史数据的真实动态，利用检索到的相似历史演化示例作为非参数估计，引导模型生成更符合物理规律的长期时空预测，显著提升了气象、湍流和火灾模拟等领域的预测准确性和物理合理性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.24003v1">META-RAG: Meta-Analysis-Inspired Evidence-Re-Ranking Method for Retrieval-Augmented Generation in Evidence-Based Medicine</a></td><td><details><summary>展开</summary>Evidence-based medicine (EBM) holds a crucial role in clinical application.
+Given suitable medical articles, doctors effectively reduce the incidence of
+misdiagnoses. Researchers find it efficient to use large language models (LLMs)
+techniques like RAG for EBM tasks. However, the EBM maintains stringent
+requirements for evidence, and RAG applications in EBM struggle to efficiently
+distinguish high-quality evidence. Therefore, inspired by the meta-analysis
+used in EBM, we provide a new method to re-rank and filter the medical
+evidence. This method presents multiple principles to filter the best evidence
+for LLMs to diagnose. We employ a combination of several EBM methods to emulate
+the meta-analysis, which includes reliability analysis, heterogeneity analysis,
+and extrapolation analysis. These processes allow the users to retrieve the
+best medical evidence for the LLMs. Ultimately, we evaluate these high-quality
+articles and show an accuracy improvement of up to 11.4% in our experiments and
+results. Our method successfully enables RAG to extract higher-quality and more
+reliable evidence from the PubMed dataset. This work can reduce the infusion of
+incorrect knowledge into responses and help users receive more effective
+replies.</details></td><td><details><summary>展开</summary>这篇论文提出了一种基于RAG技术的改进方法，通过结合元分析中的可靠性分析、异质性分析和外推分析，对医学证据进行重新排序和筛选，以提高LLMs在循证医学任务中的诊断准确性，实验结果显示准确性提升了11.4%。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.23998v1">PICOs-RAG: PICO-supported Query Rewriting for Retrieval-Augmented Generation in Evidence-Based Medicine</a></td><td><details><summary>展开</summary>Evidence-based medicine (EBM) research has always been of paramount
+importance. It is important to find appropriate medical theoretical support for
+the needs from physicians or patients to reduce the occurrence of medical
+accidents. This process is often carried out by human querying relevant
+literature databases, which lacks objectivity and efficiency. Therefore,
+researchers utilize retrieval-augmented generation (RAG) to search for evidence
+and generate responses automatically. However, current RAG methods struggle to
+handle complex queries in real-world clinical scenarios. For example, when
+queries lack certain information or use imprecise language, the model may
+retrieve irrelevant evidence and generate unhelpful answers. To address this
+issue, we present the PICOs-RAG to expand the user queries into a better
+format. Our method can expand and normalize the queries into professional ones
+and use the PICO format, a search strategy tool present in EBM, to extract the
+most important information used for retrieval. This approach significantly
+enhances retrieval efficiency and relevance, resulting in up to an 8.8\%
+improvement compared to the baseline evaluated by our method. Thereby the
+PICOs-RAG improves the performance of the large language models into a helpful
+and reliable medical assistant in EBM.</details></td><td><details><summary>展开</summary>该论文提出了一种名为PICOs-RAG的方法，通过扩展和规范化用户查询（采用EBM中的PICO格式）来优化检索增强生成（RAG）在循证医学中的应用，解决了复杂临床查询下检索不精准的问题，实验显示其检索效率和相关性较基线提升8.8%，使大语言模型成为更可靠的医学助手。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.23995v1">M-Eval: A Heterogeneity-Based Framework for Multi-evidence Validation in Medical RAG Systems</a></td><td><details><summary>展开</summary>Retrieval-augmented Generation (RAG) has demonstrated potential in enhancing
+medical question-answering systems through the integration of large language
+models (LLMs) with external medical literature. LLMs can retrieve relevant
+medical articles to generate more professional responses efficiently. However,
+current RAG applications still face problems. They generate incorrect
+information, such as hallucinations, and they fail to use external knowledge
+correctly. To solve these issues, we propose a new method named M-Eval. This
+method is inspired by the heterogeneity analysis approach used in
+Evidence-Based Medicine (EBM). Our approach can check for factual errors in RAG
+responses using evidence from multiple sources. First, we extract additional
+medical literature from external knowledge bases. Then, we retrieve the
+evidence documents generated by the RAG system. We use heterogeneity analysis
+to check whether the evidence supports different viewpoints in the response. In
+addition to verifying the accuracy of the response, we also assess the
+reliability of the evidence provided by the RAG system. Our method shows an
+improvement of up to 23.31% accuracy across various LLMs. This work can help
+detect errors in current RAG-based medical systems. It also makes the
+applications of LLMs more reliable and reduces diagnostic errors.</details></td><td><details><summary>展开</summary>该论文提出了一种名为M-Eval的新方法，旨在解决RAG在医疗问答系统中存在的生成错误信息（如幻觉）和未能正确使用外部知识的问题。该方法基于循证医学的异质性分析，通过从外部知识库检索额外医学文献并与RAG生成的证据文档对比，验证回答的准确性和证据的可靠性，实验显示其可将不同大语言模型的准确率提升高达23.31%。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-27
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.23601v1">Alita-G: Self-Evolving Generative Agent for Agent Generation</a></td><td><details><summary>展开</summary>Large language models (LLMs) have been shown to perform better when
 scaffolded into agents with memory, tools, and feedback. Beyond this,
