@@ -3,7 +3,6 @@
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
-index_path: index/index.index
 
 backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
 backend_configs:
@@ -29,11 +28,25 @@ backend_configs:
     api_key: ""
   bm25:
     lang: en
+    save_path: index/bm25
 
-index_backend: faiss # options: faiss
+index_backend: faiss # options: faiss, milvus
 index_backend_configs:
   faiss:
     index_use_gpu: True
+    index_chunk_size: 50000
+    index_path: index/index.index
+  milvus:
+    index_path: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
+    token: null # Optional, e.g., "root:Milvus"
+    collection_name: ultrarag_embeddings
+    metric_type: IP # or L2 / COSINE
+    index_params:
+      index_type: AUTOINDEX
+      metric_type: IP
+    search_params:
+      metric_type: IP
+      params: {}
     index_chunk_size: 50000
 
 batch_size: 16

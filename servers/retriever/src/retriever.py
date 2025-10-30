@@ -21,7 +21,7 @@ class Retriever:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
         mcp_inst.tool(
             self.retriever_init,
-            output="model_name_or_path,backend_configs,batch_size,corpus_path,index_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs->None",
+            output="model_name_or_path,backend_configs,batch_size,corpus_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs->None",
         )
         mcp_inst.tool(
             self.retriever_embed,
@@ -33,7 +33,7 @@ class Retriever:
         )
         mcp_inst.tool(
             self.bm25_index,
-            output="index_path,overwrite->None",
+            output="overwrite->None",
         )
         mcp_inst.tool(
             self.retriever_search,
@@ -69,7 +69,6 @@ class Retriever:
         backend_configs: Dict[str, Any],
         batch_size: int,
         corpus_path: str,
-        index_path: Optional[str] = None,
         gpu_ids: Optional[object] = None,
         is_multimodal: bool = False,
         backend: str = "sentence_transformers",
@@ -86,6 +85,7 @@ class Retriever:
         self.backend_configs = backend_configs
 
         cfg = self.backend_configs.get(self.backend, {})
+        self.cfg = cfg
 
         gpu_ids = str(gpu_ids)
         os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
@@ -287,7 +287,7 @@ class Retriever:
                 "[index] Initialized backend '%s'.", self.index_backend_name
             )
             try:
-                self.index_backend.load_index(index_path=index_path)
+                self.index_backend.load_index()
             except Exception as exc:
                 warn_msg = (
                     f"[index] Failed to load existing index using backend "
@@ -296,17 +296,18 @@ class Retriever:
                 app.logger.warning(warn_msg)
 
         elif self.backend == "bm25":
-            if index_path and os.path.exists(index_path):
-                self.model = self.model.load(index_path, mmap=True, load_corpus=False)
-                self.tokenizer.load_stopwords(index_path)
-                self.tokenizer.load_vocab(index_path)
+            bm25_save_path = cfg.get("save_path", None)
+            if bm25_save_path and os.path.exists(bm25_save_path):
+                self.model = self.model.load(bm25_save_path, mmap=True, load_corpus=False)
+                self.tokenizer.load_stopwords(bm25_save_path)
+                self.tokenizer.load_vocab(bm25_save_path)
                 self.model.corpus = self.contents
                 self.model.backend = "numba"
                 info_msg = "[bm25] Index loaded successfully."
                 app.logger.info(info_msg)
             else:
-                if index_path and not os.path.exists(index_path):
-                    warn_msg = f"{index_path} does not exist."
+                if bm25_save_path and not os.path.exists(bm25_save_path):
+                    warn_msg = f"{bm25_save_path} does not exist."
                     app.logger.warning(warn_msg)
                 info_msg = "[bm25] no index_path provided. Retriever initialized without index."
                 app.logger.info(info_msg)
@@ -505,38 +506,33 @@ class Retriever:
 
     def bm25_index(
         self,
-        index_path: Optional[str] = None,
         overwrite: bool = False,
     ):
-        if index_path:
-            if not index_path.endswith(".index"):
-                err_msg = (
-                    f"Parameter 'index_path' must end with '.index', got '{index_path}'"
-                )
-                raise ValidationError(err_msg)
-            output_dir = os.path.dirname(index_path)
+        bm25_save_path = self.cfg.get("save_path", None)
+        if bm25_save_path:
+            output_dir = os.path.dirname(bm25_save_path)
         else:
             current_file = os.path.abspath(__file__)
             project_root = os.path.dirname(os.path.dirname(current_file))
             output_dir = os.path.join(project_root, "output", "index")
-            index_path = os.path.join(output_dir, "index.index")
+            bm25_save_path = os.path.join(output_dir, "bm25")
 
-        if not overwrite and os.path.exists(index_path):
+        if not overwrite and os.path.exists(bm25_save_path):
             info_msg = (
-                f"Index file already exists: {index_path}. "
+                f"Index file already exists: {bm25_save_path}. "
                 "Set overwrite=True to overwrite."
             )
             app.logger.info(info_msg)
             return
 
-        if overwrite and os.path.exists(index_path):
-            os.remove(index_path)
+        if overwrite and os.path.exists(bm25_save_path):
+            os.remove(bm25_save_path)
 
         corpus_tokens = self.tokenizer.tokenize(self.contents, return_as="tuple")
         self.model.index(corpus_tokens)
-        self.model.save(index_path, corpus=None)
-        self.tokenizer.save_stopwords(index_path)
-        self.tokenizer.save_vocab(index_path)
+        self.model.save(bm25_save_path, corpus=None)
+        self.tokenizer.save_stopwords(bm25_save_path)
+        self.tokenizer.save_vocab(bm25_save_path)
         info_msg = "[bm25] Indexing success."
         app.logger.info(info_msg)
 

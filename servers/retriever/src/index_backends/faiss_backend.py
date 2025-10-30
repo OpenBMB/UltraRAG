@@ -72,7 +72,8 @@ class FaissIndexBackend(BaseIndexBackend):
             self.use_gpu = False
             return cpu_index
 
-    def load_index(self, *, index_path: Optional[str] = None) -> None:
+    def load_index(self) -> None:
+        index_path = self.config.get("index_path")
         resolved = self._resolve_index_path(index_path)
         if not os.path.exists(resolved):
             info_msg = f"[faiss] Index path '{resolved}' does not exist. Retriever initialized without index."
