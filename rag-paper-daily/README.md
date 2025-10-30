@@ -1,5 +1,62 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-29
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.25724v1">BambooKG: A Neurobiologically-inspired Frequency-Weight Knowledge Graph</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation allows LLMs to access external knowledge,
+reducing hallucinations and ageing-data issues. However, it treats retrieved
+chunks independently and struggles with multi-hop or relational reasoning,
+especially across documents. Knowledge graphs enhance this by capturing the
+relationships between entities using triplets, enabling structured, multi-chunk
+reasoning. However, these tend to miss information that fails to conform to the
+triplet structure. We introduce BambooKG, a knowledge graph with
+frequency-based weights on non-triplet edges which reflect link strength,
+drawing on the Hebbian principle of "fire together, wire together". This
+decreases information loss and results in improved performance on single- and
+multi-hop reasoning, outperforming the existing solutions.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG技术的局限性（如独立处理检索片段、多跳推理困难），并提出了一种改进方法BambooKG——通过基于频率加权的非三元组边增强知识图谱结构，减少信息损失并提升单/多跳推理性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.25718v1">Retrieval-Augmented Search for Large-Scale Map Collections with ColPali</a></td><td><details><summary>展开</summary>Multimodal approaches have shown great promise for searching and navigating
+digital collections held by libraries, archives, and museums. In this paper, we
+introduce map-RAS: a retrieval-augmented search system for historic maps. In
+addition to introducing our framework, we detail our publicly-hosted demo for
+searching 101,233 map images held by the Library of Congress. With our system,
+users can multimodally query the map collection via ColPali, summarize search
+results using Llama 3.2, and upload their own collections to perform
+inter-collection search. We articulate potential use cases for archivists,
+curators, and end-users, as well as future work with our system in both machine
+learning and the digital humanities. Our demo can be viewed at:
+http://www.mapras.com.</details></td><td><details><summary>展开</summary>本文介绍了map-RAS，一个针对历史地图的检索增强搜索系统，结合多模态查询（如ColPali）、大模型（Llama 3.2）生成摘要及跨馆藏搜索功能，并提供了美国国会图书馆10万+地图的公开演示，探讨了其在数字人文领域的应用前景。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.25621v1">FARSIQA: Faithful and Advanced RAG System for Islamic Question Answering</a></td><td><details><summary>展开</summary>The advent of Large Language Models (LLMs) has revolutionized Natural
+Language Processing, yet their application in high-stakes, specialized domains
+like religious question answering is hindered by challenges like hallucination
+and unfaithfulness to authoritative sources. This issue is particularly
+critical for the Persian-speaking Muslim community, where accuracy and
+trustworthiness are paramount. Existing Retrieval-Augmented Generation (RAG)
+systems, relying on simplistic single-pass pipelines, fall short on complex,
+multi-hop queries requiring multi-step reasoning and evidence aggregation. To
+address this gap, we introduce FARSIQA, a novel, end-to-end system for Faithful
+Advanced Question Answering in the Persian Islamic domain. FARSIQA is built
+upon our innovative FAIR-RAG architecture: a Faithful, Adaptive, Iterative
+Refinement framework for RAG. FAIR-RAG employs a dynamic, self-correcting
+process: it adaptively decomposes complex queries, assesses evidence
+sufficiency, and enters an iterative loop to generate sub-queries,
+progressively filling information gaps. Operating on a curated knowledge base
+of over one million authoritative Islamic documents, FARSIQA demonstrates
+superior performance. Rigorous evaluation on the challenging IslamicPCQA
+benchmark shows state-of-the-art performance: the system achieves a remarkable
+97.0% in Negative Rejection - a 40-point improvement over baselines - and a
+high Answer Correctness score of 74.3%. Our work establishes a new standard for
+Persian Islamic QA and validates that our iterative, adaptive architecture is
+crucial for building faithful, reliable AI systems in sensitive domains.</details></td><td><details><summary>展开</summary>该论文提出FARSIQA系统，基于创新的FAIR-RAG架构（一种忠实、自适应、迭代优化的RAG框架），通过动态分解复杂查询、评估证据充分性并迭代生成子查询来解决波斯伊斯兰领域多跳问答问题，在权威知识库上实现了97%的负例拒绝率和74.3%答案正确率，显著提升了专业领域问答的可靠性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.25518v1">Retrieval Augmented Generation (RAG) for Fintech: Agentic Design and Evaluation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) systems often face limitations in
+specialized domains such as fintech, where domain-specific ontologies, dense
+terminology, and acronyms complicate effective retrieval and synthesis. This
+paper introduces an agentic RAG architecture designed to address these
+challenges through a modular pipeline of specialized agents. The proposed
+system supports intelligent query reformulation, iterative sub-query
+decomposition guided by keyphrase extraction, contextual acronym resolution,
+and cross-encoder-based context re-ranking. We evaluate our approach against a
+standard RAG baseline using a curated dataset of 85 question--answer--reference
+triples derived from an enterprise fintech knowledge base. Experimental results
+demonstrate that the agentic RAG system outperforms the baseline in retrieval
+precision and relevance, albeit with increased latency. These findings suggest
+that structured, multi-agent methodologies offer a promising direction for
+enhancing retrieval robustness in complex, domain-specific settings.</details></td><td><details><summary>展开</summary>这篇论文提出了一种面向金融科技等专业领域的多智能体RAG架构，通过模块化智能体实现查询重构、子查询分解、术语解析和上下文重排序，实验表明其在检索精度和相关性上优于基线RAG系统，但存在延迟增加的问题。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-28
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.24652v1">Optimizing Retrieval for RAG via Reinforced Contrastive Learning</a></td><td><details><summary>展开</summary>As retrieval-augmented generation (RAG) becomes increasingly widespread, the
 role of information retrieval (IR) is shifting from retrieving information for
