@@ -318,7 +318,115 @@ queries requiring knowledge across a wide span of text. Additional details are
 available at https://sites.google.com/view/tag-emnlp.</details></td><td><details><summary>展开</summary>这篇论文探讨了现代大语言模型（LLMs）在处理长且复杂上下文时的局限性，并提出了一种名为“标记增强生成（TAG）”的轻量级数据增强策略。TAG通过在上下文或提示中添加标记或标记定义，显著提升了LLMs在长上下文场景下的性能（如问答和复杂推理任务），而无需依赖RAG等传统方法所需的预处理和索引步骤。实验表明，TAG在32K标记的上下文和多跳查询任务中分别实现了高达17%和2.9%的性能提升。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-26
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.22728v1">S-Chain: Structured Visual Chain-of-Thought For Medicine</a></td><td><details><summary>展开</summary>Faithful reasoning in medical vision-language models (VLMs) requires not only
+accurate predictions but also transparent alignment between textual rationales
+and visual evidence. While Chain-of-Thought (CoT) prompting has shown promise
+in medical visual question answering (VQA), no large-scale expert-level dataset
+has captured stepwise reasoning with precise visual grounding. We introduce
+S-Chain, the first large-scale dataset of 12,000 expert-annotated medical
+images with bounding boxes and structured visual CoT (SV-CoT), explicitly
+linking visual regions to reasoning steps. The dataset further supports 16
+languages, totaling over 700k VQA pairs for broad multilingual applicability.
+Using S-Chain, we benchmark state-of-the-art medical VLMs (ExGra-Med,
+LLaVA-Med) and general-purpose VLMs (Qwen2.5-VL, InternVL2.5), showing that
+SV-CoT supervision significantly improves interpretability, grounding fidelity,
+and robustness. Beyond benchmarking, we study its synergy with
+retrieval-augmented generation, revealing how domain knowledge and visual
+grounding interact during autoregressive reasoning. Finally, we propose a new
+mechanism that strengthens the alignment between visual evidence and reasoning,
+improving both reliability and efficiency. S-Chain establishes a new benchmark
+for grounded medical reasoning and paves the way toward more trustworthy and
+explainable medical VLMs.</details></td><td><details><summary>展开</summary>这篇论文提出了S-Chain数据集，通过结构化视觉链式推理（SV-CoT）和跨语言VQA对增强医学视觉语言模型（VLMs）的可解释性与视觉证据对齐，并探讨了其与检索增强生成（RAG）的协同作用，揭示了领域知识与视觉基础在推理中的交互机制，最终提出了一种提升视觉证据与推理对齐的新方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22710v1">RaCoT: Plug-and-Play Contrastive Example Generation Mechanism for Enhanced LLM Reasoning Reliability</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) faces a core bottleneck with
+knowledge-sparse and semantically ambiguous long-tail queries, where retrieval
+noise distorts reasoning and necessitates costly post-processing. To tackle
+this, we propose RaCoT (Retrieval-aware Contrastive-of-Thought), a novel
+framework that shifts contrastive thinking to the pre-retrieval stage. By
+automatically generating a semantically adjacent yet differently answered
+contrastive question and extracting a $\Delta$-Prompt to capture their key
+differences, RaCoT guides the model to proactively focus on the ``critical
+details that determine answer divergence." This approach allows it to suppress
+semantic interference within a single retrieval pass, overcoming the
+theoretical bottleneck of single-vector queries that struggle to simultaneously
+encode signals for what to attend to and what to ignore. On six authoritative
+benchmarks, including PopQA and TriviaQA-unfiltered, RaCoT outperforms strong
+baselines like RankRAG and Self-RAG by 0.9-2.4 percentage points. It exhibits
+superior robustness, with a performance drop of only 8.6\% in adversarial
+tests, far surpassing the over 15\% degradation in other methods. Furthermore,
+its low latency (3.12s) and token overhead (11.54) place it on the
+accuracy-efficiency Pareto frontier, while ablation studies validate the
+necessity of each component. Ultimately, RaCoT reframes the RAG paradigm from
+``post-hoc context cleaning" to ``a priori shaping of discriminative
+reasoning", offering an efficient and robust path toward reliable AI systems
+for real-time, resource-constrained deployments.</details></td><td><details><summary>展开</summary>本文提出RaCoT框架，通过预检索阶段生成对比性问题并提取关键差异提示（Δ-Prompt），解决RAG中长尾查询的语义模糊和检索噪声问题，显著提升模型性能与鲁棒性，并在效率与准确性上达到帕累托前沿。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22694v1">Windsock is Dancing: Adaptive Multimodal Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Multimodal Retrieval-Augmented Generation (MRAG) has emerged as a promising
+method to generate factual and up-to-date responses of Multimodal Large
+Language Models (MLLMs) by incorporating non-parametric knowledge from external
+knowledge bases. However, existing MRAG approaches suffer from static retrieval
+strategies, inflexible modality selection, and suboptimal utilization of
+retrieved information, leading to three critical challenges: determining when
+to retrieve, what modality to incorporate, and how to utilize retrieved
+information effectively. To address these challenges, we introduce Windsock, a
+query-dependent module making decisions on retrieval necessity and modality
+selection, effectively reducing computational overhead and improving response
+quality. Additionally, we propose Dynamic Noise-Resistance (DANCE) Instruction
+Tuning, an adaptive training strategy that enhances MLLMs' ability to utilize
+retrieved information while maintaining robustness against noise. Moreover, we
+adopt a self-assessment approach leveraging knowledge within MLLMs to convert
+question-answering datasets to MRAG training datasets. Extensive experiments
+demonstrate that our proposed method significantly improves the generation
+quality by 17.07% while reducing 8.95% retrieval times.</details></td><td><details><summary>展开</summary>这篇论文提出了一种多模态检索增强生成（MRAG）方法Windsock，通过动态决策检索必要性和模态选择来优化生成质量，并结合自适应训练策略DANCE提升模型对检索信息的利用能力，实验证明其显著提升了生成质量并减少了检索次数。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22689v1">Rule-Based Explanations for Retrieval-Augmented LLM Systems</a></td><td><details><summary>展开</summary>If-then rules are widely used to explain machine learning models; e.g., "if
+employed = no, then loan application = rejected." We present the first proposal
+to apply rules to explain the emerging class of large language models (LLMs)
+with retrieval-augmented generation (RAG). Since RAG enables LLM systems to
+incorporate retrieved information sources at inference time, rules linking the
+presence or absence of sources can explain output provenance; e.g., "if a Times
+Higher Education ranking article is retrieved, then the LLM ranks Oxford
+first." To generate such rules, a brute force approach would probe the LLM with
+all source combinations and check if the presence or absence of any sources
+leads to the same output. We propose optimizations to speed up rule generation,
+inspired by Apriori-like pruning from frequent itemset mining but redefined
+within the scope of our novel problem. We conclude with qualitative and
+quantitative experiments demonstrating our solutions' value and efficiency.</details></td><td><details><summary>展开</summary>该论文提出了一种利用if-then规则解释检索增强生成（RAG）模型决策的方法，通过分析检索到的信息源与输出间的因果关系生成规则（如“若检索到某排名文章，则模型输出特定结果”），并设计优化算法加速规则挖掘，最终通过实验验证了方案的有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22609v1">CLIN-LLM: A Safety-Constrained Hybrid Framework for Clinical Diagnosis and Treatment Generation</a></td><td><details><summary>展开</summary>Accurate symptom-to-disease classification and clinically grounded treatment
+recommendations remain challenging, particularly in heterogeneous patient
+settings with high diagnostic risk. Existing large language model (LLM)-based
+systems often lack medical grounding and fail to quantify uncertainty,
+resulting in unsafe outputs. We propose CLIN-LLM, a safety-constrained hybrid
+pipeline that integrates multimodal patient encoding, uncertainty-calibrated
+disease classification, and retrieval-augmented treatment generation. The
+framework fine-tunes BioBERT on 1,200 clinical cases from the Symptom2Disease
+dataset and incorporates Focal Loss with Monte Carlo Dropout to enable
+confidence-aware predictions from free-text symptoms and structured vitals.
+Low-certainty cases (18%) are automatically flagged for expert review, ensuring
+human oversight. For treatment generation, CLIN-LLM employs Biomedical
+Sentence-BERT to retrieve top-k relevant dialogues from the 260,000-sample
+MedDialog corpus. The retrieved evidence and patient context are fed into a
+fine-tuned FLAN-T5 model for personalized treatment generation, followed by
+post-processing with RxNorm for antibiotic stewardship and drug-drug
+interaction (DDI) screening. CLIN-LLM achieves 98% accuracy and F1 score,
+outperforming ClinicalBERT by 7.1% (p < 0.001), with 78% top-5 retrieval
+precision and a clinician-rated validity of 4.2 out of 5. Unsafe antibiotic
+suggestions are reduced by 67% compared to GPT-5. These results demonstrate
+CLIN-LLM's robustness, interpretability, and clinical safety alignment. The
+proposed system provides a deployable, human-in-the-loop decision support
+framework for resource-limited healthcare environments. Future work includes
+integrating imaging and lab data, multilingual extensions, and clinical trial
+validation.</details></td><td><details><summary>展开</summary>这篇文章提出了CLIN-LLM，一个结合多模态患者编码、不确定性校准疾病分类和检索增强治疗生成的安全约束混合框架。其中，治疗生成部分通过Biomedical Sentence-BERT从MedDialog语料库中检索相关对话，并将检索结果与患者上下文输入FLAN-T5模型生成个性化治疗方案，体现了RAG技术的应用。该系统在准确性、临床安全性和检索性能方面表现优异，显著减少了不安全建议。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22521v1">Open Multimodal Retrieval-Augmented Factual Image Generation</a></td><td><details><summary>展开</summary>Large Multimodal Models (LMMs) have achieved remarkable progress in
+generating photorealistic and prompt-aligned images, but they often produce
+outputs that contradict verifiable knowledge, especially when prompts involve
+fine-grained attributes or time-sensitive events. Conventional
+retrieval-augmented approaches attempt to address this issue by introducing
+external information, yet they are fundamentally incapable of grounding
+generation in accurate and evolving knowledge due to their reliance on static
+sources and shallow evidence integration. To bridge this gap, we introduce
+ORIG, an agentic open multimodal retrieval-augmented framework for Factual
+Image Generation (FIG), a new task that requires both visual realism and
+factual grounding. ORIG iteratively retrieves and filters multimodal evidence
+from the web and incrementally integrates the refined knowledge into enriched
+prompts to guide generation. To support systematic evaluation, we build
+FIG-Eval, a benchmark spanning ten categories across perceptual, compositional,
+and temporal dimensions. Experiments demonstrate that ORIG substantially
+improves factual consistency and overall image quality over strong baselines,
+highlighting the potential of open multimodal retrieval for factual image
+generation.</details></td><td><details><summary>展开</summary>该论文提出了一种名为ORIG的开放式多模态检索增强框架，用于解决大型多模态模型（LMMs）生成图像时与可验证知识矛盾的问题。ORIG通过迭代检索和过滤网络中的多模态证据，并将精炼知识逐步整合到提示中以指导生成，显著提升了生成图像的事实一致性和质量。同时，作者构建了FIG-Eval基准进行系统评估，验证了该框架的有效性。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-25
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.22344v1">FAIR-RAG: Faithful Adaptive Iterative Refinement for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>While Retrieval-Augmented Generation (RAG) mitigates hallucination and
