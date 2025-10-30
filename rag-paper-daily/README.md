@@ -324,7 +324,150 @@ available at https://sites.google.com/view/tag-emnlp.</details></td><td><details
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-24
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.21933v1">A Comparison of Conversational Models and Humans in Answering Technical Questions: the Firefox Case</a></td><td><details><summary>展开</summary>The use of Large Language Models (LLMs) to support tasks in software
+development has steadily increased over recent years. From assisting developers
+in coding activities to providing conversational agents that answer newcomers'
+questions. In collaboration with the Mozilla Foundation, this study evaluates
+the effectiveness of Retrieval-Augmented Generation (RAG) in assisting
+developers within the Mozilla Firefox project. We conducted an empirical
+analysis comparing responses from human developers, a standard GPT model, and a
+GPT model enhanced with RAG, using real queries from Mozilla's developer chat
+rooms. To ensure a rigorous evaluation, Mozilla experts assessed the responses
+based on helpfulness, comprehensiveness, and conciseness. The results show that
+RAG-assisted responses were more comprehensive than human developers (62.50% to
+54.17%) and almost as helpful (75.00% to 79.17%), suggesting RAG's potential to
+enhance developer assistance. However, the RAG responses were not as concise
+and often verbose. The results show the potential to apply RAG-based tools to
+Open Source Software (OSS) to minimize the load to core maintainers without
+losing answer quality. Toning down retrieval mechanisms and making responses
+even shorter in the future would enhance developer assistance in massive
+projects like Mozilla Firefox.</details></td><td><details><summary>展开</summary>这篇论文评估了检索增强生成（RAG）在协助Mozilla Firefox开发者的效果，通过对比人类开发者、标准GPT模型和RAG增强GPT模型的回答质量（如帮助性、全面性和简洁性），发现RAG在综合性和帮助性上接近或优于人类，但存在冗长问题，未来可通过优化检索机制提升效率，减轻开源项目核心维护者负担。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21656v1">CMOMgen: Complex Multi-Ontology Alignment via Pattern-Guided In-Context Learning</a></td><td><details><summary>展开</summary>Constructing comprehensive knowledge graphs requires the use of multiple
+ontologies in order to fully contextualize data into a domain. Ontology
+matching finds equivalences between concepts interconnecting ontologies and
+creating a cohesive semantic layer. While the simple pairwise state of the art
+is well established, simple equivalence mappings cannot provide full semantic
+integration of related but disjoint ontologies. Complex multi-ontology matching
+(CMOM) aligns one source entity to composite logical expressions of multiple
+target entities, establishing more nuanced equivalences and provenance along
+the ontological hierarchy.
+  We present CMOMgen, the first end-to-end CMOM strategy that generates
+complete and semantically sound mappings, without establishing any restrictions
+on the number of target ontologies or entities. Retrieval-Augmented Generation
+selects relevant classes to compose the mapping and filters matching reference
+mappings to serve as examples, enhancing In-Context Learning. The strategy was
+evaluated in three biomedical tasks with partial reference alignments. CMOMgen
+outperforms baselines in class selection, demonstrating the impact of having a
+dedicated strategy. Our strategy also achieves a minimum of 63% in F1-score,
+outperforming all baselines and ablated versions in two out of three tasks and
+placing second in the third. Furthermore, a manual evaluation of non-reference
+mappings showed that 46% of the mappings achieve the maximum score, further
+substantiating its ability to construct semantically sound mappings.</details></td><td><details><summary>展开</summary>该论文提出了一种名为CMOMgen的端到端复杂多本体匹配策略，利用检索增强生成（RAG）技术从多个目标本体中选择相关类并过滤参考映射作为示例，以提高上下文学习效果，从而生成完整且语义合理的映射。该方法在三个生物医学任务中表现优于基线模型，验证了其有效性和语义准确性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21538v1">InterpDetect: Interpretable Signals for Detecting Hallucinations in Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) integrates external knowledge to
+mitigate hallucinations, yet models often generate outputs inconsistent with
+retrieved content. Accurate hallucination detection requires disentangling the
+contributions of external context and parametric knowledge, which prior methods
+typically conflate. We investigate the mechanisms underlying RAG hallucinations
+and find they arise when later-layer FFN modules disproportionately inject
+parametric knowledge into the residual stream. To address this, we explore a
+mechanistic detection approach based on external context scores and parametric
+knowledge scores. Using Qwen3-0.6b, we compute these scores across layers and
+attention heads and train regression-based classifiers to predict
+hallucinations. Our method is evaluated against state-of-the-art LLMs (GPT-5,
+GPT-4.1) and detection baselines (RAGAS, TruLens, RefChecker). Furthermore,
+classifiers trained on Qwen3-0.6b signals generalize to GPT-4.1-mini responses,
+demonstrating the potential of proxy-model evaluation. Our results highlight
+mechanistic signals as efficient, generalizable predictors for hallucination
+detection in RAG systems.</details></td><td><details><summary>展开</summary>这篇论文研究了RAG系统中的幻觉生成机制，提出了一种基于外部语境评分和参数知识评分的机制检测方法，通过分析模型层间信号训练分类器来预测幻觉，并在多种模型和基线方法上验证了其有效性和泛化能力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21459v1">SBASH: a Framework for Designing and Evaluating RAG vs. Prompt-Tuned LLM Honeypots</a></td><td><details><summary>展开</summary>Honeypots are decoy systems used for gathering valuable threat intelligence
+or diverting attackers away from production systems. Maximising attacker
+engagement is essential to their utility. However research has highlighted that
+context-awareness, such as the ability to respond to new attack types, systems
+and attacker agents, is necessary to increase engagement. Large Language Models
+(LLMs) have been shown as one approach to increase context awareness but suffer
+from several challenges including accuracy and timeliness of response time,
+high operational costs and data-protection issues due to cloud deployment. We
+propose the System-Based Attention Shell Honeypot (SBASH) framework which
+manages data-protection issues through the use of lightweight local LLMs. We
+investigate the use of Retrieval Augmented Generation (RAG) supported LLMs and
+non-RAG LLMs for Linux shell commands and evaluate them using several different
+metrics such as response time differences, realism from human testers, and
+similarity to a real system calculated with Levenshtein distance, SBert, and
+BertScore. We show that RAG improves accuracy for untuned models while models
+that have been tuned via a system prompt that tells the LLM to respond like a
+Linux system achieve without RAG a similar accuracy as untuned with RAG, while
+having a slightly lower latency.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为SBASH的框架，通过使用轻量级本地大语言模型（LLMs）来解决数据保护问题，并研究了基于检索增强生成（RAG）和非RAG的LLMs在Linux shell命令中的应用效果，评估了响应时间、真实性和系统相似性等指标，发现RAG能提高未调优模型的准确性，而通过系统提示调优的模型即使不使用RAG也能达到类似效果但延迟略低。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21440v1">Redefining Retrieval Evaluation in the Era of LLMs</a></td><td><details><summary>展开</summary>Traditional Information Retrieval (IR) metrics, such as nDCG, MAP, and MRR,
+assume that human users sequentially examine documents with diminishing
+attention to lower ranks. This assumption breaks down in Retrieval Augmented
+Generation (RAG) systems, where search results are consumed by Large Language
+Models (LLMs), which, unlike humans, process all retrieved documents as a whole
+rather than sequentially. Additionally, traditional IR metrics do not account
+for related but irrelevant documents that actively degrade generation quality,
+rather than merely being ignored. Due to these two major misalignments, namely
+human vs. machine position discount and human relevance vs. machine utility,
+classical IR metrics do not accurately predict RAG performance. We introduce a
+utility-based annotation schema that quantifies both the positive contribution
+of relevant passages and the negative impact of distracting ones. Building on
+this foundation, we propose UDCG (Utility and Distraction-aware Cumulative
+Gain), a metric using an LLM-oriented positional discount to directly optimize
+the correlation with the end-to-end answer accuracy. Experiments on five
+datasets and six LLMs demonstrate that UDCG improves correlation by up to 36%
+compared to traditional metrics. Our work provides a critical step toward
+aligning IR evaluation with LLM consumers and enables more reliable assessment
+of RAG components</details></td><td><details><summary>展开</summary>这篇论文探讨了传统信息检索（IR）指标在检索增强生成（RAG）系统中的局限性，指出这些指标因假设人类用户按顺序浏览文档而无法准确评估LLM处理检索结果的表现。作者提出了一种基于效用的标注框架（UDCG），量化相关文档的积极作用和干扰文档的负面影响，并通过实验证明UDCG与传统指标相比能显著提升与端到端答案准确性的相关性（最高达36%），为RAG系统的评估提供了更可靠的指标。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21144v1">NeuroGenPoisoning: Neuron-Guided Attacks on Retrieval-Augmented Generation of LLM via Genetic Optimization of External Knowledge</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) empowers Large Language Models (LLMs) to
+dynamically integrate external knowledge during inference, improving their
+factual accuracy and adaptability. However, adversaries can inject poisoned
+external knowledge to override the model's internal memory. While existing
+attacks iteratively manipulate retrieval content or prompt structure of RAG,
+they largely ignore the model's internal representation dynamics and
+neuron-level sensitivities. The underlying mechanism of RAG poisoning has not
+been fully studied and the effect of knowledge conflict with strong parametric
+knowledge in RAG is not considered. In this work, we propose NeuroGenPoisoning,
+a novel attack framework that generates adversarial external knowledge in RAG
+guided by LLM internal neuron attribution and genetic optimization. Our method
+first identifies a set of Poison-Responsive Neurons whose activation strongly
+correlates with contextual poisoning knowledge. We then employ a genetic
+algorithm to evolve adversarial passages that maximally activate these neurons.
+Crucially, our framework enables massive-scale generation of effective poisoned
+RAG knowledge by identifying and reusing promising but initially unsuccessful
+external knowledge variants via observed attribution signals. At the same time,
+Poison-Responsive Neurons guided poisoning can effectively resolves knowledge
+conflict. Experimental results across models and datasets demonstrate
+consistently achieving high Population Overwrite Success Rate (POSR) of over
+90% while preserving fluency. Empirical evidence shows that our method
+effectively resolves knowledge conflict.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG（检索增强生成）技术中外部知识被恶意注入（投毒攻击）的安全问题，提出了一种名为NeuroGenPoisoning的新型攻击框架。该框架通过分析大语言模型内部神经元激活与投毒知识的相关性，结合遗传算法生成对抗性外部知识，能够在保持文本流畅性的同时高效覆盖模型内部参数化知识（成功率超90%），并解决了知识冲突问题。实验验证了其在多模型和数据集上的有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21093v1">MedAlign: A Synergistic Framework of Multimodal Preference Optimization and Federated Meta-Cognitive Reasoning</a></td><td><details><summary>展开</summary>Recently, large models have shown significant potential for smart healthcare.
+However, the deployment of Large Vision-Language Models (LVLMs) for clinical
+services is currently hindered by three critical challenges: a tendency to
+hallucinate answers not grounded in visual evidence, the inefficiency of
+fixed-depth reasoning, and the difficulty of multi-institutional collaboration.
+To address these challenges, in this paper, we develop MedAlign, a novel
+framework to ensure visually accurate LVLM responses for Medical Visual
+Question Answering (Med-VQA). Specifically, we first propose a multimodal
+Direct Preference Optimization (mDPO) objective to explicitly align preference
+learning with visual context. We then design a Retrieval-Aware
+Mixture-of-Experts (RA-MoE) architecture that utilizes image and text
+similarity to route queries to a specialized and context-augmented LVLM (i.e.,
+an expert), thereby mitigating hallucinations in LVLMs. To achieve adaptive
+reasoning and facilitate multi-institutional collaboration, we propose a
+federated governance mechanism, where the selected expert, fine-tuned on
+clinical datasets based on mDPO, locally performs iterative Chain-of-Thought
+(CoT) reasoning via the local meta-cognitive uncertainty estimator. Extensive
+experiments on three representative Med-VQA datasets demonstrate that MedAlign
+achieves state-of-the-art performance, outperforming strong retrieval-augmented
+baselines by up to $11.85\%$ in F1-score, and simultaneously reducing the
+average reasoning length by $51.60\%$ compared with fixed-depth CoT approaches.</details></td><td><details><summary>展开</summary>该论文提出MedAlign框架，通过多模态偏好优化（mDPO）和检索感知的专家混合架构（RA-MoE）增强医学视觉问答（Med-VQA）的准确性，利用检索机制选择专家模型以减少幻觉，并结合联邦治理实现自适应推理，显著提升性能并降低推理耗时。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.21068v1">Bridging Language Gaps with Adaptive RAG: Improving Indonesian Language Question Answering</a></td><td><details><summary>展开</summary>Question Answering (QA) has seen significant improvements with the
+advancement of machine learning models, further studies enhanced this question
+answering system by retrieving external information, called Retrieval-Augmented
+Generation (RAG) to produce more accurate and informative answers. However,
+these state-of-the-art-performance is predominantly in English language. To
+address this gap we made an effort of bridging language gaps by incorporating
+Adaptive RAG system to Indonesian language. Adaptive RAG system integrates a
+classifier whose task is to distinguish the question complexity, which in turn
+determines the strategy for answering the question. To overcome the limited
+availability of Indonesian language dataset, our study employs machine
+translation as data augmentation approach. Experiments show reliable question
+complexity classifier; however, we observed significant inconsistencies in
+multi-retrieval answering strategy which negatively impacted the overall
+evaluation when this strategy was applied. These findings highlight both the
+promise and challenges of question answering in low-resource language
+suggesting directions for future improvement.</details></td><td><details><summary>展开</summary>该论文探讨了将自适应RAG系统应用于印尼语以弥补低资源语言问答系统的不足，通过问题复杂度分类器和机器翻译增强数据，但发现多检索策略存在不一致性影响整体性能，揭示了低资源语言问答的潜力与挑战。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-23
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.20797v1">Simple Context Compression: Mean-Pooling and Multi-Ratio Training</a></td><td><details><summary>展开</summary>A common strategy to reduce the computational costs of using long contexts in
