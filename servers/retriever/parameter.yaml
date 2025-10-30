@@ -37,10 +37,12 @@ index_backend_configs:
     index_chunk_size: 50000
     index_path: index/index.index
   milvus:
-    index_path: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
-    token: null # Optional, e.g., "root:Milvus"
+    uri: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
+    token: null
     collection_name: ultrarag_embeddings
-    metric_type: IP # or L2 / COSINE
+    id_field_name: id
+    vector_field_name: vector
+    metric_type: IP
     index_params:
       index_type: AUTOINDEX
       metric_type: IP
