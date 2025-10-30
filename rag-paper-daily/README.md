@@ -321,7 +321,84 @@ available at https://sites.google.com/view/tag-emnlp.</details></td><td><details
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-25
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.22344v1">FAIR-RAG: Faithful Adaptive Iterative Refinement for Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>While Retrieval-Augmented Generation (RAG) mitigates hallucination and
+knowledge staleness in Large Language Models (LLMs), existing frameworks often
+falter on complex, multi-hop queries that require synthesizing information from
+disparate sources. Current advanced RAG methods, employing iterative or
+adaptive strategies, lack a robust mechanism to systematically identify and
+fill evidence gaps, often propagating noise or failing to gather a
+comprehensive context. We introduce FAIR-RAG, a novel agentic framework that
+transforms the standard RAG pipeline into a dynamic, evidence-driven reasoning
+process. At its core is an Iterative Refinement Cycle governed by a module we
+term Structured Evidence Assessment (SEA). The SEA acts as an analytical gating
+mechanism: it deconstructs the initial query into a checklist of required
+findings and audits the aggregated evidence to identify confirmed facts and,
+critically, explicit informational gaps. These gaps provide a precise signal to
+an Adaptive Query Refinement agent, which generates new, targeted sub-queries
+to retrieve missing information. This cycle repeats until the evidence is
+verified as sufficient, ensuring a comprehensive context for a final, strictly
+faithful generation. We conducted experiments on challenging multi-hop QA
+benchmarks, including HotpotQA, 2WikiMultiHopQA, and MusiQue. In a unified
+experimental setup, FAIR-RAG significantly outperforms strong baselines. On
+HotpotQA, it achieves an F1-score of 0.453 -- an absolute improvement of 8.3
+points over the strongest iterative baseline -- establishing a new
+state-of-the-art for this class of methods on these benchmarks. Our work
+demonstrates that a structured, evidence-driven refinement process with
+explicit gap analysis is crucial for unlocking reliable and accurate reasoning
+in advanced RAG systems for complex, knowledge-intensive tasks.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为FAIR-RAG的新型代理框架，通过引入结构化证据评估（SEA）和自适应查询细化机制，改进了现有RAG系统在处理复杂多跳查询时的不足。FAIR-RAG通过迭代优化证据收集过程，显著提升了在多个基准测试上的性能，特别是在HotpotQA上实现了8.3分的绝对提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22272v1">From Slides to Chatbots: Enhancing Large Language Models with University Course Materials</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) have advanced rapidly in recent years. One
+application of LLMs is to support student learning in educational settings.
+However, prior work has shown that LLMs still struggle to answer questions
+accurately within university-level computer science courses. In this work, we
+investigate how incorporating university course materials can enhance LLM
+performance in this setting. A key challenge lies in leveraging diverse course
+materials such as lecture slides and transcripts, which differ substantially
+from typical textual corpora: slides also contain visual elements like images
+and formulas, while transcripts contain spoken, less structured language. We
+compare two strategies, Retrieval-Augmented Generation (RAG) and Continual
+Pre-Training (CPT), to extend LLMs with course-specific knowledge. For lecture
+slides, we further explore a multi-modal RAG approach, where we present the
+retrieved content to the generator in image form. Our experiments reveal that,
+given the relatively small size of university course materials, RAG is more
+effective and efficient than CPT. Moreover, incorporating slides as images in
+the multi-modal setting significantly improves performance over text-only
+retrieval. These findings highlight practical strategies for developing AI
+assistants that better support learning and teaching, and we hope they inspire
+similar efforts in other educational contexts.</details></td><td><details><summary>展开</summary>这篇论文探讨了如何通过整合大学课程材料（如讲义幻灯片和转录文本）来提升大语言模型（LLMs）在计算机科学教育中的问答性能，重点比较了检索增强生成（RAG）和持续预训练（CPT）两种策略，并提出多模态RAG方法（以图像形式处理幻灯片内容），实验表明RAG在小型课程数据集上更高效且多模态检索显著优于纯文本检索。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22210v1">LSPRAG: LSP-Guided RAG for Language-Agnostic Real-Time Unit Test Generation</a></td><td><details><summary>展开</summary>Automated unit test generation is essential for robust software development,
+yet existing approaches struggle to generalize across multiple programming
+languages and operate within real-time development. While Large Language Models
+(LLMs) offer a promising solution, their ability to generate high coverage test
+code depends on prompting a concise context of the focal method. Current
+solutions, such as Retrieval-Augmented Generation, either rely on imprecise
+similarity-based searches or demand the creation of costly, language-specific
+static analysis pipelines. To address this gap, we present LSPRAG, a framework
+for concise-context retrieval tailored for real-time, language-agnostic unit
+test generation. LSPRAG leverages off-the-shelf Language Server Protocol (LSP)
+back-ends to supply LLMs with precise symbol definitions and references in real
+time. By reusing mature LSP servers, LSPRAG provides an LLM with language-aware
+context retrieval, requiring minimal per-language engineering effort. We
+evaluated LSPRAG on open-source projects spanning Java, Go, and Python.
+Compared to the best performance of baselines, LSPRAG increased line coverage
+by up to 174.55% for Golang, 213.31% for Java, and 31.57% for Python.</details></td><td><details><summary>展开</summary>这篇论文提出了LSPRAG框架，通过集成语言服务器协议（LSP）实现实时、语言无关的单元测试生成，利用精确的符号检索增强大语言模型的上下文输入，显著提升了多语言测试代码的覆盖率，解决了传统RAG方法在相似性搜索或静态分析上的局限性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.22143v1">OlaMind: Towards Human-Like and Hallucination-Safe Customer Service for Retrieval-Augmented Dialogue</a></td><td><details><summary>展开</summary>Intelligent customer service (ICS) systems via retrieval-augmented generation
+(RAG) have been widely adopted in Web-based domains such as social platforms
+and e-commerce, achieving remarkable improvements in automation and efficiency.
+However, notable limitations still remain: these systems are prone to
+hallucinations and often generate rigid, mechanical responses, which can
+introduce business risks and undermine user experience, especially in Web-based
+customer service interactions under the RAG scenarios. In this paper, we
+introduce OlaMind, a human-like and hallucination-safe customer service
+framework for retrieval-augmented dialogue. Specifically, it first leverages a
+Learn-to-Think stage to learn the reasoning processes and response strategies
+from human experts, and then employs a Learn-to-Respond stage to perform
+cold-start supervised fine-tuning (SFT) combined with reinforcement learning
+(RL) for basic-to-hard self-refinement. Our method significantly enhances
+human-likeness and naturalness while effectively mitigating hallucinations and
+critical business risks. We have conducted large-scale online A/B experiments
+in an industry-level social customer service setting, and extensive
+experimental results show that OlaMind achieves significant cumulative relative
+improvements with intelligent resolution rates +28.92%/+18.42% and human
+takeover rate -6.08%/-7.12% in community-support/livestream-interaction
+scenarios, respectively, which highlights its consistent effectiveness across
+diverse real-world applications. The code and data will be publicly available.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为OlaMind的智能客服框架，基于检索增强生成（RAG）技术，旨在解决现有RAG系统在客服对话中易产生幻觉和机械回复的问题。OlaMind通过"Learn-to-Think"阶段学习人类专家的推理过程与应答策略，再通过"Learn-to-Respond"阶段结合监督微调（SFT）和强化学习（RL）进行自我优化，显著提升了回答的自然度和安全性。工业级A/B测试表明，该框架在社区支持和直播互动场景中显著提高了智能解决率并降低了人工接管率。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-24
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.21933v1">A Comparison of Conversational Models and Humans in Answering Technical Questions: the Firefox Case</a></td><td><details><summary>展开</summary>The use of Large Language Models (LLMs) to support tasks in software
