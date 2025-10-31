@@ -1,5 +1,129 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-30
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.26457v1">SecureReviewer: Enhancing Large Language Models for Secure Code Review through Secure-aware Fine-tuning</a></td><td><details><summary>展开</summary>Identifying and addressing security issues during the early phase of the
+development lifecycle is critical for mitigating the long-term negative impacts
+on software systems. Code review serves as an effective practice that enables
+developers to check their teammates' code before integration into the codebase.
+To streamline the generation of review comments, various automated code review
+approaches have been proposed, where LLM-based methods have significantly
+advanced the capabilities of automated review generation. However, existing
+models primarily focus on general-purpose code review, their effectiveness in
+identifying and addressing security-related issues remains underexplored.
+Moreover, adapting existing code review approaches to target security issues
+faces substantial challenges, including data scarcity and inadequate evaluation
+metrics. To address these limitations, we propose SecureReviewer, a new
+approach designed for enhancing LLMs' ability to identify and resolve
+security-related issues during code review. Specifically, we first construct a
+dataset tailored for training and evaluating secure code review capabilities.
+Leveraging this dataset, we fine-tune LLMs to generate code review comments
+that can effectively identify security issues and provide fix suggestions with
+our proposed secure-aware fine-tuning strategy. To mitigate hallucination in
+LLMs and enhance the reliability of their outputs, we integrate the RAG
+technique, which grounds the generated comments in domain-specific security
+knowledge. Additionally, we introduce SecureBLEU, a new evaluation metric
+designed to assess the effectiveness of review comments in addressing security
+issues. Experimental results demonstrate that SecureReviewer outperforms
+state-of-the-art baselines in both security issue detection accuracy and the
+overall quality and practical utility of generated review comments.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为SecureReviewer的方法，通过构建专用数据集、微调大语言模型（LLM）以及集成RAG技术，提升LLM在代码审查中识别和解决安全问题的能力，并设计新评估指标SecureBLEU验证其有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.26345v1">MisSynth: Improving MISSCI Logical Fallacies Classification with Synthetic Data</a></td><td><details><summary>展开</summary>Health-related misinformation is very prevalent and potentially harmful. It
+is difficult to identify, especially when claims distort or misinterpret
+scientific findings. We investigate the impact of synthetic data generation and
+lightweight fine-tuning techniques on the ability of large language models
+(LLMs) to recognize fallacious arguments using the MISSCI dataset and
+framework. In this work, we propose MisSynth, a pipeline that applies
+retrieval-augmented generation (RAG) to produce synthetic fallacy samples,
+which are then used to fine-tune an LLM model. Our results show substantial
+accuracy gains with fine-tuned models compared to vanilla baselines. For
+instance, the LLaMA 3.1 8B fine-tuned model achieved an over 35% F1-score
+absolute improvement on the MISSCI test split over its vanilla baseline. We
+demonstrate that introducing synthetic fallacy data to augment limited
+annotated resources can significantly enhance zero-shot LLM classification
+performance on real-world scientific misinformation tasks, even with limited
+computational resources. The code and synthetic dataset are available on
+https://github.com/mxpoliakov/MisSynth.</details></td><td><details><summary>展开</summary>该论文提出了一种名为MisSynth的流程，利用检索增强生成（RAG）技术生成合成谬误样本，并通过轻量级微调提升大语言模型（LLM）识别科学谬误的能力，实验表明该方法显著提高了模型在真实世界科学 misinformation 任务中的零样本分类性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.26309v1">GraphCompliance: Aligning Policy and Context Graphs for LLM-Based Regulatory Compliance</a></td><td><details><summary>展开</summary>Compliance at web scale poses practical challenges: each request may require
+a regulatory assessment. Regulatory texts (e.g., the General Data Protection
+Regulation, GDPR) are cross-referential and normative, while runtime contexts
+are expressed in unstructured natural language. This setting motivates us to
+align semantic information in unstructured text with the structured, normative
+elements of regulations. To this end, we introduce GraphCompliance, a framework
+that represents regulatory texts as a Policy Graph and runtime contexts as a
+Context Graph, and aligns them. In this formulation, the policy graph encodes
+normative structure and cross-references, whereas the context graph formalizes
+events as subject-action-object (SAO) and entity-relation triples. This
+alignment anchors the reasoning of a judge large language model (LLM) in
+structured information and helps reduce the burden of regulatory interpretation
+and event parsing, enabling a focus on the core reasoning step. In experiments
+on 300 GDPR-derived real-world scenarios spanning five evaluation tasks,
+GraphCompliance yields 4.1-7.2 percentage points (pp) higher micro-F1 than
+LLM-only and RAG baselines, with fewer under- and over-predictions, resulting
+in higher recall and lower false positive rates. Ablation studies indicate
+contributions from each graph component, suggesting that structured
+representations and a judge LLM are complementary for normative reasoning.</details></td><td><details><summary>展开</summary>这篇论文提出了GraphCompliance框架，通过将法规文本和运行时上下文分别建模为策略图和上下文图并进行对齐，结合大语言模型（LLM）进行规范性推理。实验表明该方法在GDPR相关场景中性能优于纯LLM和RAG基线，突出结构化表示与LLM在法规合规任务中的互补性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.26242v1">Retrieval Augmented Generation-Enhanced Distributed LLM Agents for Generalizable Traffic Signal Control with Emergency Vehicles</a></td><td><details><summary>展开</summary>With increasing urban traffic complexity, Traffic Signal Control (TSC) is
+essential for optimizing traffic flow and improving road safety. Large Language
+Models (LLMs) emerge as promising approaches for TSC. However, they are prone
+to hallucinations in emergencies, leading to unreliable decisions that may
+cause substantial delays for emergency vehicles. Moreover, diverse intersection
+types present substantial challenges for traffic state encoding and
+cross-intersection training, limiting generalization across heterogeneous
+intersections. Therefore, this paper proposes Retrieval Augmented Generation
+(RAG)-enhanced distributed LLM agents with Emergency response for Generalizable
+TSC (REG-TSC). Firstly, this paper presents an emergency-aware reasoning
+framework, which dynamically adjusts reasoning depth based on the emergency
+scenario and is equipped with a novel Reviewer-based Emergency RAG (RERAG) to
+distill specific knowledge and guidance from historical cases, enhancing the
+reliability and rationality of agents' emergency decisions. Secondly, this
+paper designs a type-agnostic traffic representation and proposes a
+Reward-guided Reinforced Refinement (R3) for heterogeneous intersections. R3
+adaptively samples training experience from diverse intersections with
+environment feedback-based priority and fine-tunes LLM agents with a designed
+reward-weighted likelihood loss, guiding REG-TSC toward high-reward policies
+across heterogeneous intersections. On three real-world road networks with 17
+to 177 heterogeneous intersections, extensive experiments show that REG-TSC
+reduces travel time by 42.00%, queue length by 62.31%, and emergency vehicle
+waiting time by 83.16%, outperforming other state-of-the-art methods.</details></td><td><details><summary>展开</summary>该论文提出了一种基于检索增强生成（RAG）的分布式大语言模型（LLM）代理系统（REG-TSC），用于提升交通信号控制（TSC）的泛化能力和应急响应能力。通过结合紧急场景感知推理框架（动态调整推理深度）和新型Reviewer-based Emergency RAG（RERAG）从历史案例中检索知识，增强应急决策的可靠性；同时设计了与路口类型无关的交通表示方法及奖励引导的强化优化（R3），以适配异构路口并提升策略性能。实验表明，REG-TSC在真实路网中显著降低了通行时间、排队长度及应急车辆等待时间。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.26205v1">Towards Global Retrieval Augmented Generation: A Benchmark for Corpus-Level Reasoning</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) has emerged as a leading approach to
+reducing hallucinations in large language models (LLMs). Current RAG evaluation
+benchmarks primarily focus on what we call local RAG: retrieving relevant
+chunks from a small subset of documents to answer queries that require only
+localized understanding within specific text chunks. However, many real-world
+applications require a fundamentally different capability -- global RAG --
+which involves aggregating and analyzing information across entire document
+collections to derive corpus-level insights (for example, "What are the top 10
+most cited papers in 2023?"). In this paper, we introduce GlobalQA -- the first
+benchmark specifically designed to evaluate global RAG capabilities, covering
+four core task types: counting, extremum queries, sorting, and top-k
+extraction. Through systematic evaluation across different models and
+baselines, we find that existing RAG methods perform poorly on global tasks,
+with the strongest baseline achieving only 1.51 F1 score. To address these
+challenges, we propose GlobalRAG, a multi-tool collaborative framework that
+preserves structural coherence through chunk-level retrieval, incorporates
+LLM-driven intelligent filters to eliminate noisy documents, and integrates
+aggregation modules for precise symbolic computation. On the Qwen2.5-14B model,
+GlobalRAG achieves 6.63 F1 compared to the strongest baseline's 1.51 F1,
+validating the effectiveness of our method.</details></td><td><details><summary>展开</summary>这篇论文提出了GlobalQA基准和GlobalRAG框架，旨在解决传统RAG在全局信息聚合任务（如跨文档统计、排序等）上的不足，通过多工具协作和智能过滤显著提升了模型在全局检索增强生成任务中的性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.26130v1">Beyond Synthetic Benchmarks: Evaluating LLM Performance on Real-World Class-Level Code Generation</a></td><td><details><summary>展开</summary>Large language models (LLMs) have advanced code generation at the function
+level, yet their ability to produce correct class-level implementations in
+authentic software projects remains poorly understood. This work introduces a
+novel benchmark derived from open-source repositories, comprising real-world
+classes divided into seen and unseen partitions to evaluate generalization
+under practical conditions. The evaluation examines multiple LLMs under varied
+input specifications, retrieval-augmented configurations, and documentation
+completeness levels.
+  Results reveal a stark performance disparity: LLMs achieve 84% to 89%
+correctness on established synthetic benchmarks but only 25% to 34% on
+real-world class tasks, with negligible differences between familiar and novel
+codebases. Comprehensive docstrings yield modest gains of 1% to 3% in
+functional accuracy, though statistical significance is rare.
+Retrieval-augmented generation proves most effective with partial
+documentation, improving correctness by 4% to 7% by supplying concrete
+implementation patterns absent from specifications. Error profiling identifies
+AttributeError, TypeError, and AssertionError as dominant failure modes (84% of
+cases), with synthetic tests overemphasizing assertion issues and real-world
+scenarios highlighting type and attribute mismatches. Retrieval augmentation
+reduces logical flaws but can introduce dependency conflicts.
+  The benchmark and analysis expose critical limitations in current LLM
+capabilities for class-level engineering, offering actionable insights for
+enhancing context modelling, documentation strategies, and retrieval
+integration in production code assistance tools.</details></td><td><details><summary>展开</summary>这篇论文研究了大型语言模型（LLMs）在真实软件项目中生成类级别代码的能力，通过引入基于开源仓库的新基准测试，评估了不同输入规范、检索增强配置和文档完整性对模型性能的影响。研究发现，检索增强生成（RAG）在部分文档情况下最有效，能提升4%到7%的正确性，但也可能引发依赖冲突，同时揭示了当前LLMs在类级别工程中的关键局限性。</details></td></tr></tbody></table>
+
 ### 📅 2025-10-29
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.25724v1">BambooKG: A Neurobiologically-inspired Frequency-Weight Knowledge Graph</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation allows LLMs to access external knowledge,
 reducing hallucinations and ageing-data issues. However, it treats retrieved
