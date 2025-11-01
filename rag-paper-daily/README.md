@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-10-31
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-10-30
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.26457v1">SecureReviewer: Enhancing Large Language Models for Secure Code Review through Secure-aware Fine-tuning</a></td><td><details><summary>展开</summary>Identifying and addressing security issues during the early phase of the
 development lifecycle is critical for mitigating the long-term negative impacts
