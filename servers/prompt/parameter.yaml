@@ -13,6 +13,11 @@ search_r1_gen_template: prompt/search_r1_append.jinja
 # R1-Searcher
 r1_searcher_gen_template: prompt/r1_searcher_append.jinja
 
+# Search-o1
+searcho1_reasoning_template: prompt/search_o1_reasoning.jinja
+searcho1_refine_template: prompt/search_o1_refinement.jinja
+
+
 # For other prompts, please add parameters here as needed
 
 # Take webnote as an example:

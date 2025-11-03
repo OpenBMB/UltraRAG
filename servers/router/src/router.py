@@ -108,11 +108,12 @@ def r1_searcher_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
 @app.tool(output="ans_ls->ans_ls")
 def search_o1_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     def get_eos(text):
-
         if "<|im_end|>" in text:
-            return True
+            return True               
         elif "<|end_search_query|>" in text:
-            return False
+            return False              
+        else:
+            return True  
 
     ans_ls = [
         {

@@ -17,7 +17,7 @@ pipeline:
 - prompt.search_o1_init
 - generation.generate
 - loop:
-    times: 3
+    times: 10
     steps:
     - branch:
         router:
@@ -32,7 +32,6 @@ pipeline:
           - generation.generate
           - prompt.search_o1_insert
           - generation.generate
-          stop: []
-- evaluation.evaluate:
-    input:
-      pred_ls: ans_ls
+          stop: []   
+- custom.output_extract_from_boxed
+- evaluation.evaluate

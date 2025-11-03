@@ -276,23 +276,22 @@ def r1_searcher_gen(
 
 
 # prompt for search-o1
-@app.prompt(output="q_ls,template->prompt_ls")
+@app.prompt(output="q_ls,searcho1_reasoning_template->prompt_ls")
 def search_o1_init(
     q_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
     template: Template = load_prompt_template(template)
-    # bad implementation
-    MAX_SEARCH_LIMIT = 10
+
     ret = []
     for q in q_ls:
-        p = template.render(question=q, MAX_SEARCH_LIMIT=MAX_SEARCH_LIMIT)
+        p = template.render(question=q)
         ret.append(p)
     return ret
 
 
 @app.prompt(
-    output="prompt_ls,extract_query_list,ret_psg,reasoning_indoc_template->prompt_ls"
+    output="prompt_ls,extract_query_list,ret_psg,searcho1_refine_template->prompt_ls"
 )
 def searcho1_reasoning_indocument(
     prompt_ls: List[PromptMessage],
@@ -303,9 +302,7 @@ def searcho1_reasoning_indocument(
     template: Template = load_prompt_template(template)
     ret = []
     for prompt, squery, psg in zip(prompt_ls, extract_query_list, ret_psg):
-
-        passages = psg[:3]
-        passage_text = "\n".join(passages)
+        passage_text = "\n".join(psg)
         _pro = prompt.content.text
         p = template.render(
             prev_reasoning=_pro, search_query=squery, document=passage_text

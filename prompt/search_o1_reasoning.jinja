@@ -3,8 +3,6 @@ accurately. You have special tools:
 To perform a search: write <|begin_search_query|> your query here <|end_search_query|>.
 Then, the system will search and analyze relevant web pages, then provide you with helpful information in the
 format <|begin_search_result|> ...search results... <|end_search_result|>.
-You can repeat the search process multiple times if necessary. The maximum number of search attempts is
-limited to {{MAX_SEARCH_LIMIT}}.
 Once you have all the information you need, continue your reasoning.
 Example:
 Question: “...”
@@ -16,7 +14,7 @@ Assistant:
 Assistant continues reasoning with the new information...
 Remember:
 - Use <|begin_search_query|> to request a web search and end with <|end_search_query|>.
-- When done searching, continue your reasoning.
+- When done searching, continue your reasoning.\n\n
 Please answer the following question. You should think step by step to solve it.\n\n
 Provide your final answer in the format \\boxed{YOUR_ANSWER}.\n\n
 Question:\n{{question}}\n\n
