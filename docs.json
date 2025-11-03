@@ -80,7 +80,8 @@
                 "pages": [
                   "pages/cn/pipeline/rag",
                   "pages/cn/pipeline/light_deepresearch",
-                  "pages/cn/pipeline/visrag"
+                  "pages/cn/pipeline/visrag",
+                  "pages/cn/pipeline/search_o1"
                 ]
               }
             ]
@@ -175,7 +176,8 @@
                 "pages": [
                   "pages/en/pipeline/rag",
                   "pages/en/pipeline/light_deepresearch",
-                  "pages/en/pipeline/visrag"
+                  "pages/en/pipeline/visrag",
+                  "pages/en/pipeline/search_o1"
                 ]
               }
             ]

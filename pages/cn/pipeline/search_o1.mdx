@@ -1,0 +1,192 @@
+---
+title: "Search-o1"
+icon: "searchengin" 
+---
+
+## 简介
+
+Search-o1 提出一种将大规模推理模型与 **自主检索增强生成（Agentic RAG）** 和 **文档内推理（Reason-in-Documents）** 结合的框架。当模型在推理过程中遇到知识空缺时，会主动检索外部信息、进行精炼，并将结果注入推理链，从而提升科学、数学、编程等复杂任务中的推理准确性与稳健性。
+
+<Note>论文链接：[Arxiv](https://arxiv.org/abs/2501.05366)。</Note>
+
+### 流程
+
+![](/images/pipeline/searcho1/suanfa.png)
+
+简而言之，Search-o1 先以原始问题开展推理；一旦识别信息缺口，即生成子问题并触发检索；随后对召回应答进行精炼，提取关键信息回注入推理过程，直到形成可置信的最终答案。
+
+## 复现
+
+
+### 编写Pipeline
+
+基于上面的逻辑，可以写出如下 Pipeline：
+
+```yaml examples/search_o1.yaml icon="/images/yaml.svg"
+# MCP Servers
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  evaluation: servers/evaluation
+  router: servers/router
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- prompt.search_o1_init
+- generation.generate
+- loop:
+    times: 10
+    steps:
+    - branch:
+        router:
+        - router.search_o1_check
+        branches:
+          retrieve:
+          - custom.search_o1_query_extract
+          - retriever.retriever_search:
+              input:
+                query_list: extract_query_list
+          - prompt.searcho1_reasoning_indocument
+          - generation.generate
+          - prompt.search_o1_insert
+          - generation.generate
+          stop: []   
+- custom.output_extract_from_boxed
+- evaluation.evaluate
+```
+
+### 编译Pipeline文件
+
+```shell
+ultrarag build examples/search_o1.yaml
+```
+
+### 修改参数文件
+
+```yaml examples/parameters/search_o1_parameter.yaml icon="/images/yaml.svg" 
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom: {}
+evaluation:
+  metrics:
+  - acc
+  - f1
+  - em
+  - coverem
+  - stringem
+  - rouge-1
+  - rouge-2
+  - rouge-l
+  save_path: output/evaluate_results.json
+generation:
+  backend: vllm
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1
+      concurrency: 8
+      model_name: MiniCPM4-8B
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 4,5,6,7
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
+      model_name_or_path: Qwen/QwQ-32B # [!code ++]
+      trust_remote_code: true
+  sampling_params:
+  chat_template_kwargs: # [!code --]
+      enable_thinking: false # [!code --]
+    max_tokens: 2048 # [!code --]
+    max_tokens: 32768 # [!code ++]
+    temperature: 0.7
+    top_p: 0.8 # [!code ++]
+    top_k: 20 # [!code ++]
+    repetition_penalty: 1.05 # [!code ++]
+    include_stop_str_in_output: true # [!code ++]
+    stop: [ "<|im_end|>", "<|end_search_query|>" ] # [!code ++]
+  system_prompt: ''
+prompt:
+  searcho1_reasoning_template: prompt/search_o1_reasoning.jinja
+  searcho1_refine_template: prompt/search_o1_refinement.jinja
+retriever:
+  backend: sentence_transformers
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      device: cuda
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: ''
+      base_url: https://api.openai.com/v1
+      model_name: text-embedding-3-small
+    sentence_transformers:
+      device: cuda
+      sentence_transformers_encode:
+        encode_chunk_size: 10000
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: 0,1
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 50000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      collection_name: ultrarag_embeddings
+      id_field_name: id
+      index_chunk_size: 50000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
+  model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
+  query_instruction: ''
+  top_k: 5
+```
+
+### 运行Pipeline文件
+
+```shell
+ultrarag run examples/search_o1.yaml
+```
