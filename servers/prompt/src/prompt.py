@@ -215,22 +215,21 @@ def webnote_fill_page(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
-        p = template.render(question=q, plan=plan, page=page, subq=subq, psg=psg)
+        p = template.render(question=q, plan=plan, sub_question=subq, docs_text=psg, page=page)
         all_prompts.append(p)
     return all_prompts
 
 
-@app.prompt(output="q_ls,plan_ls,page_ls,webnote_gen_answer_template->prompt_ls")
+@app.prompt(output="q_ls,page_ls,webnote_gen_answer_template->prompt_ls")
 def webnote_gen_answer(
     q_ls: List[str],
-    plan_ls: List[str],
     page_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
     template: Template = load_prompt_template(template)
     all_prompts = []
-    for q, plan, page in zip(q_ls, plan_ls, page_ls):
-        p = template.render(question=q, plan=plan, page=page)
+    for q, page in zip(q_ls, page_ls):
+        p = template.render(page=page, question=q)
         all_prompts.append(p)
     return all_prompts
 
