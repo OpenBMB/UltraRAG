@@ -23,7 +23,7 @@ dependencies = [
     "aiohttp",
     "pillow",
     "rouge-score",
-    "pytrec_eval",
+    "pytrec-eval-terrier",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +38,7 @@ retriever = [
 ]
 
 generation = [
-    "vllm",
+    "vllm<=0.10.1.1",
     "openai",
     "transformers",
 ]
