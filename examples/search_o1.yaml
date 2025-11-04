@@ -10,6 +10,7 @@ servers:
   router: servers/router
   custom: servers/custom
 
+# MCP Client Pipeline
 pipeline:
 - benchmark.get_data
 - retriever.retriever_init
