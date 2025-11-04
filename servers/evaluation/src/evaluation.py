@@ -59,7 +59,7 @@ def accuracy_score(gt: List[str], pred: str) -> float:
     if not pred_norm:
         return 0.0
     gt_norm_ls = [normalize_text(g) for g in gt]
-    return 1.0 if any(pred_norm in g for g in gt_norm_ls) else 0.0
+    return 1.0 if any(g in pred_norm for g in gt_norm_ls) else 0.0
 
 
 # Exact Match Score
