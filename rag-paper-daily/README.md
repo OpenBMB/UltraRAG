@@ -19,7 +19,135 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-10-31
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.00265v1">AgentBnB: A Browser-Based Cybersecurity Tabletop Exercise with Large Language Model Support and Retrieval-Aligned Scaffolding</a></td><td><details><summary>展开</summary>Traditional cybersecurity tabletop exercises (TTXs) provide valuable training
+but are often scripted, resource-intensive, and difficult to scale. We
+introduce AgentBnB, a browser-based re-imagining of the Backdoors & Breaches
+game that integrates large language model teammates with a Bloom-aligned,
+retrieval-augmented copilot (C2D2). The system expands a curated corpus into
+factual, conceptual, procedural, and metacognitive snippets, delivering
+on-demand, cognitively targeted hints. Prompt-engineered agents employ a
+scaffolding ladder that gradually fades as learner confidence grows. In a
+solo-player pilot with four graduate students, participants reported greater
+intention to use the agent-based version compared to the physical card deck and
+viewed it as more scalable, though a ceiling effect emerged on a simple
+knowledge quiz. Despite limitations of small sample size, single-player focus,
+and narrow corpus, these early findings suggest that large language model
+augmented TTXs can provide lightweight, repeatable practice without the
+logistical burden of traditional exercises. Planned extensions include
+multi-player modes, telemetry-driven coaching, and comparative studies with
+larger cohorts.</details></td><td><details><summary>展开</summary>这篇论文介绍了AgentBnB系统，该网络浏览器系统基于大型语言模型和RAG技术（通过检索增强助手C2D2），提供按需的认知目标提示，旨在改进传统的网络安全桌面练习（TTXs）。研究结果表明，这种方法比传统方法更轻量、可扩展且易于重复，尽管样本规模较小且存在一些限制。计划中的扩展包括多人模式和更大规模的比较研究。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.27569v1">MARAG-R1: Beyond Single Retriever via Reinforcement-Learned Multi-Tool Agentic Retrieval</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) excel at reasoning and generation but are
+inherently limited by static pretraining data, resulting in factual
+inaccuracies and weak adaptability to new information. Retrieval-Augmented
+Generation (RAG) addresses this issue by grounding LLMs in external knowledge;
+However, the effectiveness of RAG critically depends on whether the model can
+adequately access relevant information. Existing RAG systems rely on a single
+retriever with fixed top-k selection, restricting access to a narrow and static
+subset of the corpus. As a result, this single-retriever paradigm has become
+the primary bottleneck for comprehensive external information acquisition,
+especially in tasks requiring corpus-level reasoning. To overcome this
+limitation, we propose MARAG-R1, a reinforcement-learned multi-tool RAG
+framework that enables LLMs to dynamically coordinate multiple retrieval
+mechanisms for broader and more precise information access. MARAG-R1 equips the
+model with four retrieval tools -- semantic search, keyword search, filtering,
+and aggregation -- and learns both how and when to use them through a two-stage
+training process: supervised fine-tuning followed by reinforcement learning.
+This design allows the model to interleave reasoning and retrieval,
+progressively gathering sufficient evidence for corpus-level synthesis.
+Experiments on GlobalQA, HotpotQA, and 2WikiMultiHopQA demonstrate that
+MARAG-R1 substantially outperforms strong baselines and achieves new
+state-of-the-art results in corpus-level reasoning tasks.</details></td><td><details><summary>展开</summary>这篇论文提出了一种基于强化学习的多工具RAG框架MARAG-R1，通过动态协调四种检索工具（语义搜索、关键词搜索、过滤和聚合）来提升大语言模型对外部知识的获取能力，解决了传统单检索器RAG在语料级推理任务中的局限性，并在多个数据集上验证其优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.27568v1">SIGMA: Search-Augmented On-Demand Knowledge Integration for Agentic Mathematical Reasoning</a></td><td><details><summary>展开</summary>Solving mathematical reasoning problems requires not only accurate access to
+relevant knowledge but also careful, multi-step thinking. However, current
+retrieval-augmented models often rely on a single perspective, follow
+inflexible search strategies, and struggle to effectively combine information
+from multiple sources. We introduce SIGMA (Search-Augmented On-Demand Knowledge
+Integration for AGentic Mathematical reAsoning), a unified framework that
+orchestrates specialized agents to independently reason, perform targeted
+searches, and synthesize findings through a moderator mechanism. Each agent
+generates hypothetical passages to optimize retrieval for its analytic
+perspective, ensuring knowledge integration is both context-sensitive and
+computation-efficient. When evaluated on challenging benchmarks such as
+MATH500, AIME, and PhD-level science QA GPQA, SIGMA consistently outperforms
+both open- and closed-source systems, achieving an absolute performance
+improvement of 7.4%. Our results demonstrate that multi-agent, on-demand
+knowledge integration significantly enhances both reasoning accuracy and
+efficiency, offering a scalable approach for complex, knowledge-intensive
+problem-solving. We will release the code upon publication.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为SIGMA的多智能体检索增强框架，用于解决数学推理问题。通过协调专门化的智能体进行独立推理、定向检索和结果合成，SIGMA优化了上下文敏感且高效的知识整合，在多项基准测试中表现优于现有系统，实现了7.4%的绝对性能提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.27566v1">Interact-RAG: Reason and Interact with the Corpus, Beyond Black-Box Retrieval</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has significantly enhanced LLMs by
+incorporating external information. However, prevailing agentic RAG approaches
+are constrained by a critical limitation: they treat the retrieval process as a
+black-box querying operation. This confines agents' actions to query issuing,
+hindering its ability to tackle complex information-seeking tasks. To address
+this, we introduce Interact-RAG, a new paradigm that elevates the LLM agent
+from a passive query issuer into an active manipulator of the retrieval
+process. We dismantle the black-box with a Corpus Interaction Engine, equipping
+the agent with a set of action primitives for fine-grained control over
+information retrieval. To further empower the agent on the entire RAG pipeline,
+we first develop a reasoning-enhanced workflow, which enables both zero-shot
+execution and the synthesis of interaction trajectories. We then leverage this
+synthetic data to train a fully autonomous end-to-end agent via Supervised
+Fine-Tuning (SFT), followed by refinement with Reinforcement Learning (RL).
+Extensive experiments across six benchmarks demonstrate that Interact-RAG
+significantly outperforms other advanced methods, validating the efficacy of
+our reasoning-interaction strategy.</details></td><td><details><summary>展开</summary>该论文提出了一种名为Interact-RAG的新范式，通过引入Corpus Interaction Engine和细粒度控制机制，将大语言模型从被动的查询发起者转变为检索过程的主动操控者，并利用增强的工作流程和强化学习优化整个RAG流程，实验证明其在多个基准测试中优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.27537v1">AstuteRAG-FQA: Task-Aware Retrieval-Augmented Generation Framework for Proprietary Data Challenges in Financial Question Answering</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) shows significant promise in
+knowledge-intensive tasks by improving domain specificity, enhancing temporal
+relevance, and reducing hallucinations. However, applying RAG to finance
+encounters critical challenges: restricted access to proprietary datasets,
+limited retrieval accuracy, regulatory constraints, and sensitive data
+interpretation. We introduce AstuteRAG-FQA, an adaptive RAG framework tailored
+for Financial Question Answering (FQA), leveraging task-aware prompt
+engineering to address these challenges. The framework uses a hybrid retrieval
+strategy integrating both open-source and proprietary financial data while
+maintaining strict security protocols and regulatory compliance. A dynamic
+prompt framework adapts in real time to query complexity, improving precision
+and contextual relevance. To systematically address diverse financial queries,
+we propose a four-tier task classification: explicit factual, implicit factual,
+interpretable rationale, and hidden rationale involving implicit causal
+reasoning. For each category, we identify key challenges, datasets, and
+optimization techniques within the retrieval and generation process. The
+framework incorporates multi-layered security mechanisms including differential
+privacy, data anonymization, and role-based access controls to protect
+sensitive financial information. Additionally, AstuteRAG-FQA implements
+real-time compliance monitoring through automated regulatory validation systems
+that verify responses against industry standards and legal obligations. We
+evaluate three data integration techniques - contextual embedding, small model
+augmentation, and targeted fine-tuning - analyzing their efficiency and
+feasibility across varied financial environments.</details></td><td><details><summary>展开</summary>AstuteRAG-FQA是一个专为金融问答（FQA）设计的自适应RAG框架，通过混合检索策略、动态提示框架和四层任务分类优化检索与生成过程，并采用多层安全机制和实时合规监测来解决金融领域的独特挑战（如数据敏感性、监管限制等）。研究还比较了三种数据集成技术的效率与可行性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.00122v1">Engineering.ai: A Platform for Teams of AI Engineers in Computational Design</a></td><td><details><summary>展开</summary>In modern engineering practice, human engineers collaborate in specialized
+teams to design complex products, with each expert completing their respective
+tasks while communicating and exchanging results and data with one another.
+While this division of expertise is essential for managing multidisciplinary
+complexity, it demands substantial development time and cost. Recently, we
+introduced OpenFOAMGPT (1.0, 2.0), which functions as an autonomous AI engineer
+for computational fluid dynamics, and turbulence.ai, which can conduct
+end-to-end research in fluid mechanics draft publications and PhD theses.
+Building upon these foundations, we present Engineering.ai, a platform for
+teams of AI engineers in computational design. The framework employs a
+hierarchical multi-agent architecture where a Chief Engineer coordinates
+specialized agents consisting of Aerodynamics, Structural, Acoustic, and
+Optimization Engineers, each powered by LLM with domain-specific knowledge.
+Agent-agent collaboration is achieved through file-mediated communication for
+data provenance and reproducibility, while a comprehensive memory system
+maintains project context, execution history, and retrieval-augmented domain
+knowledge to ensure reliable decision-making across the workflow. The system
+integrates FreeCAD, Gmsh, OpenFOAM, CalculiX, and BPM acoustic analysis,
+enabling parallel multidisciplinary simulations while maintaining computational
+accuracy. The framework is validated through UAV wing optimization. This work
+demonstrates that agentic-AI-enabled AI engineers has the potential to perform
+complex engineering tasks autonomously. Remarkably, the automated workflow
+achieved a 100% success rate across over 400 parametric configurations, with
+zero mesh generation failures, solver convergence issues, or manual
+interventions required, validating that the framework is trustworthy.</details></td><td><details><summary>展开</summary>这篇文章介绍了Engineering.ai平台，采用多智能体架构协作完成计算设计任务，其中智能体通过检索增强的领域知识确保决策可靠性，并验证了该系统在无人机翼优化中的成功应用。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2510.27080v1">Adapting Large Language Models to Emerging Cybersecurity using Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Security applications are increasingly relying on large language models
+(LLMs) for cyber threat detection; however, their opaque reasoning often limits
+trust, particularly in decisions that require domain-specific cybersecurity
+knowledge. Because security threats evolve rapidly, LLMs must not only recall
+historical incidents but also adapt to emerging vulnerabilities and attack
+patterns. Retrieval-Augmented Generation (RAG) has demonstrated effectiveness
+in general LLM applications, but its potential for cybersecurity remains
+underexplored. In this work, we introduce a RAG-based framework designed to
+contextualize cybersecurity data and enhance LLM accuracy in knowledge
+retention and temporal reasoning. Using external datasets and the
+Llama-3-8B-Instruct model, we evaluate baseline RAG, an optimized hybrid
+retrieval approach, and conduct a comparative analysis across multiple
+performance metrics. Our findings highlight the promise of hybrid retrieval in
+strengthening the adaptability and reliability of LLMs for cybersecurity tasks.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG在网络安全领域的应用，提出了一个基于RAG的框架，旨在利用外部数据集和优化混合检索方法提升大语言模型在网络安全任务中的知识记忆和时间推理能力，并通过实验验证了混合检索在增强模型适应性和可靠性方面的潜力。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-30
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2510.27054v1">LLM-Centric RAG with Multi-Granular Indexing and Confidence Constraints</a></td><td><details><summary>展开</summary>This paper addresses the issues of insufficient coverage, unstable results,
