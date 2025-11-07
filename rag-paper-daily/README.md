@@ -10,7 +10,176 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-11-03
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.02119v1">InsurAgent: A Large Language Model-Empowered Agent for Simulating Individual Behavior in Purchasing Flood Insurance</a></td><td><details><summary>展开</summary>Flood insurance is an effective strategy for individuals to mitigate
+disaster-related losses. However, participation rates among at-risk populations
+in the United States remain strikingly low. This gap underscores the need to
+understand and model the behavioral mechanisms underlying insurance decisions.
+Large language models (LLMs) have recently exhibited human-like intelligence
+across wide-ranging tasks, offering promising tools for simulating human
+decision-making. This study constructs a benchmark dataset to capture insurance
+purchase probabilities across factors. Using this dataset, the capacity of LLMs
+is evaluated: while LLMs exhibit a qualitative understanding of factors, they
+fall short in estimating quantitative probabilities. To address this
+limitation, InsurAgent, an LLM-empowered agent comprising five modules
+including perception, retrieval, reasoning, action, and memory, is proposed.
+The retrieval module leverages retrieval-augmented generation (RAG) to ground
+decisions in empirical survey data, achieving accurate estimation of marginal
+and bivariate probabilities. The reasoning module leverages LLM common sense to
+extrapolate beyond survey data, capturing contextual information that is
+intractable for traditional models. The memory module supports the simulation
+of temporal decision evolutions, illustrated through a roller coaster life
+trajectory. Overall, InsurAgent provides a valuable tool for behavioral
+modeling and policy analysis.</details></td><td><details><summary>展开</summary>该论文研究了利用大语言模型（LLMs）模拟洪水保险购买决策行为的局限性，提出了一个名为InsurAgent的LLM增强代理系统，其中检索模块采用检索增强生成（RAG）技术，通过结合实证调查数据提升概率估计的准确性，同时结合推理和记忆模块模拟动态决策过程，为行为建模和政策分析提供了新工具。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01668v1">Hybrid Retrieval-Augmented Generation Agent for Trustworthy Legal Question Answering in Judicial Forensics</a></td><td><details><summary>展开</summary>As artificial intelligence permeates judicial forensics, ensuring the
+veracity and traceability of legal question answering (QA) has become critical.
+Conventional large language models (LLMs) are prone to hallucination, risking
+misleading guidance in legal consultation, while static knowledge bases
+struggle to keep pace with frequently updated statutes and case law. We present
+a hybrid legal QA agent tailored for judicial settings that integrates
+retrieval-augmented generation (RAG) with multi-model ensembling to deliver
+reliable, auditable, and continuously updatable counsel. The system prioritizes
+retrieval over generation: when a trusted legal repository yields relevant
+evidence, answers are produced via RAG; otherwise, multiple LLMs generate
+candidates that are scored by a specialized selector, with the top-ranked
+answer returned. High-quality outputs then undergo human review before being
+written back to the repository, enabling dynamic knowledge evolution and
+provenance tracking. Experiments on the Law\_QA dataset show that our hybrid
+approach significantly outperforms both a single-model baseline and a vanilla
+RAG pipeline on F1, ROUGE-L, and an LLM-as-a-Judge metric. Ablations confirm
+the complementary contributions of retrieval prioritization, model ensembling,
+and the human-in-the-loop update mechanism. The proposed system demonstrably
+reduces hallucination while improving answer quality and legal compliance,
+advancing the practical landing of media forensics technologies in judicial
+scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了一种针对司法环境的混合法律问答代理，结合了检索增强生成（RAG）与多模型集成技术，以提高法律问答的可靠性、可审计性和可更新性。系统优先通过检索获取可信法律证据，若检索失败则调用多模型生成候答案并筛选最优结果，实验表明该方法在多个指标上显著优于单一模型或基础RAG流程，同时通过人工审核循环更新知识库，有效减少了幻觉并提升法律合规性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01649v1">Evaluating Cultural Knowledge Processing in Large Language Models: A Cognitive Benchmarking Framework Integrating Retrieval-Augmented Generation</a></td><td><details><summary>展开</summary>This study proposes a cognitive benchmarking framework to evaluate how large
+language models (LLMs) process and apply culturally specific knowledge. The
+framework integrates Bloom's Taxonomy with Retrieval-Augmented Generation (RAG)
+to assess model performance across six hierarchical cognitive domains:
+Remembering, Understanding, Applying, Analyzing, Evaluating, and Creating.
+Using a curated Taiwanese Hakka digital cultural archive as the primary
+testbed, the evaluation measures LLM-generated responses' semantic accuracy and
+cultural relevance.</details></td><td><details><summary>展开</summary>该研究提出一个认知评估框架，利用Bloom分类法与RAG技术相结合，评估大语言模型在处理和应用特定文化知识（以台湾客家数字文化档案为例）时的表现，涵盖六个认知层级，并检测生成回答的语义准确性和文化相关性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01643v1">A Graph-based RAG for Energy Efficiency Question Answering</a></td><td><details><summary>展开</summary>In this work, we investigate the use of Large Language Models (LLMs) within a
+graph-based Retrieval Augmented Generation (RAG) architecture for Energy
+Efficiency (EE) Question Answering. First, the system automatically extracts a
+Knowledge Graph (KG) from guidance and regulatory documents in the energy
+field. Then, the generated graph is navigated and reasoned upon to provide
+users with accurate answers in multiple languages. We implement a human-based
+validation using the RAGAs framework properties, a validation dataset
+comprising 101 question-answer pairs, and domain experts. Results confirm the
+potential of this architecture and identify its strengths and weaknesses.
+Validation results show how the system correctly answers in about three out of
+four of the cases (75.2 +- 2.7%), with higher results on questions related to
+more general EE answers (up to 81.0 +- 4.1%), and featuring promising
+multilingual abilities (4.4% accuracy loss due to translation).</details></td><td><details><summary>展开</summary>该论文提出了一种基于图结构的RAG架构，利用大语言模型（LLMs）进行能源效率（EE）领域的多语言问答。系统从能源领域的指导文件和法规中自动提取知识图谱（KG），并通过图谱导航和推理生成精确答案。研究采用人工验证（RAGAs框架、101组QA数据集及专家评估），结果显示模型整体准确率达75.2%，通用类问题准确率更高（81%），且多语言能力表现良好（翻译仅导致4.4%准确率下降）。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01581v1">ExplicitLM: Decoupling Knowledge from Parameters via Explicit Memory Banks</a></td><td><details><summary>展开</summary>Large language models suffer from knowledge staleness and lack of
+interpretability due to implicit knowledge storage across entangled network
+parameters, preventing targeted updates and reasoning transparency. We propose
+ExplicitLM, a novel architecture featuring a million-scale external memory bank
+storing human-readable knowledge as token sequences, enabling direct inspection
+and modification. We design a differentiable two-stage retrieval mechanism with
+efficient coarse-grained filtering via product key decomposition (reducing
+complexity from $\mathcal{O}(N \cdot |I|)$ to $\mathcal{O}(\sqrt{N} \cdot
+|I|)$) and fine-grained Gumbel-Softmax matching for end-to-end training.
+Inspired by dual-system cognitive theory, we partition knowledge into frozen
+explicit facts (20%) and learnable implicit patterns (80%), maintained through
+Exponential Moving Average updates for stability. ExplicitLM achieves up to
+43.67% improvement on knowledge-intensive tasks versus standard Transformers,
+with 3.62$\times$ gains in low-data regimes (10k samples). Analysis shows
+strong correlations between memory retrieval and performance, with correct
+predictions achieving 49% higher hit rates. Unlike RAG systems with frozen
+retrieval, our jointly optimized architecture demonstrates that interpretable,
+updatable models can maintain competitive performance while providing
+unprecedented knowledge transparency.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为ExplicitLM的新架构，通过引入一个大规模外部存储库（存储人类可读的知识作为标记序列）来解决大语言模型中知识过时和可解释性不足的问题。该架构采用可微分的两阶段检索机制（粗粒度筛选和细粒度匹配）进行端到端训练，并将知识分为冻结的显式事实（20%）和可学习的隐式模式（80%）。与标准Transformer相比，ExplicitLM在知识密集型任务上性能提升达43.67%，并在低数据场景下表现更优。其核心贡献是通过联合优化实现可解释、可更新的知识透明化模型，与RAG类似但突破了传统RAG检索模块固定的限制。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01454v1">"Don't Teach Minerva": Guiding LLMs Through Complex Syntax for Faithful Latin Translation with RAG</a></td><td><details><summary>展开</summary>Translating a morphology-rich, low-resource language like Latin poses
+significant challenges. This paper introduces a reproducible draft-based
+refinement pipeline that elevates open-source Large Language Models (LLMs) to a
+performance level statistically comparable to top-tier proprietary systems. Our
+method first uses a fine-tuned NLLB-1.3B model to generate a high-quality,
+structurally faithful draft. A zero-shot LLM (Llama-3.3 or Qwen3) then polishes
+this draft, a process that can be further enhanced by augmenting the context
+with retrieved out-context examples (RAG). We demonstrate the robustness of
+this approach on two distinct benchmarks: a standard in-domain test set
+(Rosenthal, 2023) and a new, challenging out-of-domain (OOD) set of
+12th-century Latin letters (2025). Our central finding is that this open-source
+RAG system achieves performance statistically comparable to the GPT-5 baseline,
+without any task-specific LLM fine-tuning. We release the pipeline, the
+Chartres OOD set, and evaluation scripts and models to facilitate replicability
+and further research.</details></td><td><details><summary>展开</summary>该论文提出了一种结合微调模型与零样本大语言模型（LLMs）的翻译流程，通过检索增强生成（RAG）引入外部上下文示例优化低资源语言（拉丁语）的翻译质量，在多项测试中达到与顶级私有系统相当的性能，并开源了相关数据集与工具。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01409v2">LiveSearchBench: An Automatically Constructed Benchmark for Retrieval and Reasoning over Dynamic Knowledge</a></td><td><details><summary>展开</summary>Evaluating large language models (LLMs) on question answering often relies on
+static benchmarks that reward memorization and understate the role of
+retrieval, failing to capture the dynamic nature of world knowledge. We present
+LiveSearchBench, an automated pipeline for constructing retrieval-dependent
+benchmarks from recent knowledge updates. Our method computes deltas between
+successive Wikidata snapshots, filters candidate triples for quality, and
+synthesizes natural-language questions at three levels of reasoning difficulty,
+each guaranteed to admit a unique, verifiable answer through SPARQL validation.
+The pipeline is fully automated, scalable across time, and minimizes human
+intervention, enabling continual regeneration of temporally grounded
+benchmarks. Experiments show a pronounced performance drop when models confront
+facts that post-date pretraining, with the gap most salient on multi-hop
+queries. Retrieval augmented methods and larger, instruction-tuned models
+provide partial gains but fail to close this recency gap. By design,
+LiveSearchBench shifts evaluation from static memorization toward tasks that
+require up-to-date retrieval and reasoning, offering a foundation for
+systematic, long-term assessment of LLMs under evolving knowledge.</details></td><td><details><summary>展开</summary>这篇论文介绍了LiveSearchBench，一个自动化构建依赖检索的基准测试的流程，旨在评估大语言模型在处理时效性知识时的表现。研究发现模型在面对训练数据之后的新事实时性能下降，尤其是多跳查询，检索增强方法和大模型仅能部分缓解这一问题。该方法强调了检索和时效性推理在评估模型性能中的重要性，与RAG技术的目标一致。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01386v1">RAGSmith: A Framework for Finding the Optimal Composition of Retrieval-Augmented Generation Methods Across Datasets</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) quality depends on many interacting
+choices across retrieval, ranking, augmentation, prompting, and generation, so
+optimizing modules in isolation is brittle. We introduce RAGSmith, a modular
+framework that treats RAG design as an end-to-end architecture search over nine
+technique families and 46{,}080 feasible pipeline configurations. A genetic
+search optimizes a scalar objective that jointly aggregates retrieval metrics
+(recall@k, mAP, nDCG, MRR) and generation metrics (LLM-Judge and semantic
+similarity). We evaluate on six Wikipedia-derived domains (Mathematics, Law,
+Finance, Medicine, Defense Industry, Computer Science), each with 100 questions
+spanning factual, interpretation, and long-answer types. RAGSmith finds
+configurations that consistently outperform naive RAG baseline by +3.8\% on
+average (range +1.2\% to +6.9\% across domains), with gains up to +12.5\% in
+retrieval and +7.5\% in generation. The search typically explores $\approx
+0.2\%$ of the space ($\sim 100$ candidates) and discovers a robust backbone --
+vector retrieval plus post-generation reflection/revision -- augmented by
+domain-dependent choices in expansion, reranking, augmentation, and prompt
+reordering; passage compression is never selected. Improvement magnitude
+correlates with question type, with larger gains on factual/long-answer mixes
+than interpretation-heavy sets. These results provide practical, domain-aware
+guidance for assembling effective RAG systems and demonstrate the utility of
+evolutionary search for full-pipeline optimization.</details></td><td><details><summary>展开</summary>这篇论文介绍了RAGSmith，一个端到端的模块化框架，通过遗传算法在46,080种可行的RAG配置中进行搜索，优化检索和生成的综合指标。在六个Wikipedia衍生领域的实验中，该框架找到的配置平均优于基线3.8%，并揭示了领域相关的优化策略（如向量检索和后生成反思），为构建高效RAG系统提供实践指导。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01305v1">DeepSpecs: Expert-Level Questions Answering in 5G</a></td><td><details><summary>展开</summary>5G technology enables mobile Internet access for billions of users. Answering
+expert-level questions about 5G specifications requires navigating thousands of
+pages of cross-referenced standards that evolve across releases. Existing
+retrieval-augmented generation (RAG) frameworks, including telecom-specific
+approaches, rely on semantic similarity and cannot reliably resolve
+cross-references or reason about specification evolution. We present DeepSpecs,
+a RAG system enhanced by structural and temporal reasoning via three
+metadata-rich databases: SpecDB (clause-aligned specification text), ChangeDB
+(line-level version diffs), and TDocDB (standardization meeting documents).
+DeepSpecs explicitly resolves cross-references by recursively retrieving
+referenced clauses through metadata lookup, and traces specification evolution
+by mining changes and linking them to Change Requests that document design
+rationale. We curate two 5G QA datasets: 573 expert-annotated real-world
+questions from practitioner forums and educational resources, and 350
+evolution-focused questions derived from approved Change Requests. Across
+multiple LLM backends, DeepSpecs outperforms base models and state-of-the-art
+telecom RAG systems; ablations confirm that explicit cross-reference resolution
+and evolution-aware retrieval substantially improve answer quality,
+underscoring the value of modeling the structural and temporal properties of 5G
+standards.</details></td><td><details><summary>展开</summary>这篇论文介绍了DeepSpecs，一个增强版的RAG系统，专门用于处理5G技术规范的复杂性问题。该系统通过构建三个元数据丰富的数据库（SpecDB、ChangeDB和TDocDB）来实现结构和时间推理，能够显式解析交叉引用并追踪规范演变。DeepSpecs在多个LLM后端上表现优于基础模型和其他先进的电信RAG系统，验证了其结构性和时间性建模对提升答案质量的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01268v1">Rescuing the Unpoisoned: Efficient Defense against Knowledge Corruption Attacks on RAG Systems</a></td><td><details><summary>展开</summary>Large language models (LLMs) are reshaping numerous facets of our daily
+lives, leading widespread adoption as web-based services. Despite their
+versatility, LLMs face notable challenges, such as generating hallucinated
+content and lacking access to up-to-date information. Lately, to address such
+limitations, Retrieval-Augmented Generation (RAG) has emerged as a promising
+direction by generating responses grounded in external knowledge sources. A
+typical RAG system consists of i) a retriever that probes a group of relevant
+passages from a knowledge base and ii) a generator that formulates a response
+based on the retrieved content. However, as with other AI systems, recent
+studies demonstrate the vulnerability of RAG, such as knowledge corruption
+attacks by injecting misleading information. In response, several defense
+strategies have been proposed, including having LLMs inspect the retrieved
+passages individually or fine-tuning robust retrievers. While effective, such
+approaches often come with substantial computational costs.
+  In this work, we introduce RAGDefender, a resource-efficient defense
+mechanism against knowledge corruption (i.e., by data poisoning) attacks in
+practical RAG deployments. RAGDefender operates during the post-retrieval
+phase, leveraging lightweight machine learning techniques to detect and filter
+out adversarial content without requiring additional model training or
+inference. Our empirical evaluations show that RAGDefender consistently
+outperforms existing state-of-the-art defenses across multiple models and
+adversarial scenarios: e.g., RAGDefender reduces the attack success rate (ASR)
+against the Gemini model from 0.89 to as low as 0.02, compared to 0.69 for
+RobustRAG and 0.24 for Discern-and-Answer when adversarial passages outnumber
+legitimate ones by a factor of four (4x).</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG系统中的安全挑战，特别是知识污染攻击（如通过数据投毒注入误导信息），并提出了一种名为RAGDefender的轻量级后检索阶段防御机制，该机制无需额外训练或模型推理即可高效检测并过滤对抗性内容，在多项实验中显著降低了攻击成功率。</details></td></tr></tbody></table>
 
 ### 📅 2025-11-02
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.01059v1">Efficient Test-Time Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Although Large Language Models (LLMs) demonstrate significant capabilities,
