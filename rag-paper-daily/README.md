@@ -7,7 +7,110 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-11-04
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.03048v1">ROBoto2: An Interactive System and Dataset for LLM-assisted Clinical Trial Risk of Bias Assessment</a></td><td><details><summary>展开</summary>We present ROBOTO2, an open-source, web-based platform for large language
+model (LLM)-assisted risk of bias (ROB) assessment of clinical trials. ROBOTO2
+streamlines the traditionally labor-intensive ROB v2 (ROB2) annotation process
+via an interactive interface that combines PDF parsing, retrieval-augmented LLM
+prompting, and human-in-the-loop review. Users can upload clinical trial
+reports, receive preliminary answers and supporting evidence for ROB2 signaling
+questions, and provide real-time feedback or corrections to system suggestions.
+ROBOTO2 is publicly available at https://roboto2.vercel.app/, with code and
+data released to foster reproducibility and adoption. We construct and release
+a dataset of 521 pediatric clinical trial reports (8954 signaling questions
+with 1202 evidence passages), annotated using both manually and LLM-assisted
+methods, serving as a benchmark and enabling future research. Using this
+dataset, we benchmark ROB2 performance for 4 LLMs and provide an analysis into
+current model capabilities and ongoing challenges in automating this critical
+aspect of systematic review.</details></td><td><details><summary>展开</summary>这篇文章介绍了ROBOTO2，一个基于网络的开源平台，用于大型语言模型（LLM）辅助的临床试验偏倚风险（ROB2）评估。该平台通过结合PDF解析、检索增强的LLM提示和人工参与审查的交互界面，简化了传统的ROB2注释流程。文章还公开了一个包含521份儿科临床试验报告的数据集，并评估了4种LLM在ROB2任务上的性能，分析了当前模型的挑战。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.02979v1">Systematizing LLM Persona Design: A Four-Quadrant Technical Taxonomy for AI Companion Applications</a></td><td><details><summary>展开</summary>The design and application of LLM-based personas in AI companionship is a
+rapidly expanding but fragmented field, spanning from virtual emotional
+companions and game NPCs to embodied functional robots. This diversity in
+objectives, modality, and technical stacks creates an urgent need for a unified
+framework. To address this gap, this paper systematizes the field by proposing
+a Four-Quadrant Technical Taxonomy for AI companion applications. The framework
+is structured along two critical axes: Virtual vs. Embodied and Emotional
+Companionship vs. Functional Augmentation. Quadrant I (Virtual Companionship)
+explores virtual idols, romantic companions, and story characters, introducing
+a four-layer technical framework to analyze their challenges in maintaining
+long-term emotional consistency. Quadrant II (Functional Virtual Assistants)
+analyzes AI applications in work, gaming, and mental health, highlighting the
+shift from "feeling" to "thinking and acting" and pinpointing key technologies
+like enterprise RAG and on-device inference. Quadrants III & IV (Embodied
+Intelligence) shift from the virtual to the physical world, analyzing home
+robots and vertical-domain assistants, revealing core challenges in symbol
+grounding, data privacy, and ethical liability. This taxonomy provides not only
+a systematic map for researchers and developers to navigate the complex persona
+design space but also a basis for policymakers to identify and address the
+unique risks inherent in different application scenarios.</details></td><td><details><summary>展开</summary>这篇论文提出了一个AI伴侣的四象限技术分类框架，其中在第二象限（功能性虚拟助手）提到了企业RAG（检索增强生成）技术，作为实现工作、游戏和心理健康领域AI应用的关键技术之一，突出了RAG在从“情感”向“思考与行动”转变中的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.02919v1">Cache Mechanism for Agent RAG Systems</a></td><td><details><summary>展开</summary>Recent advances in Large Language Model (LLM)-based agents have been
+propelled by Retrieval-Augmented Generation (RAG), which grants the models
+access to vast external knowledge bases. Despite RAG's success in improving
+agent performance, agent-level cache management, particularly constructing,
+maintaining, and updating a compact, relevant corpus dynamically tailored to
+each agent's need, remains underexplored. Therefore, we introduce ARC (Agent
+RAG Cache Mechanism), a novel, annotation-free caching framework that
+dynamically manages small, high-value corpora for each agent. By synthesizing
+historical query distribution patterns with the intrinsic geometry of cached
+items in the embedding space, ARC automatically maintains a high-relevance
+cache. With comprehensive experiments on three retrieval datasets, our
+experimental results demonstrate that ARC reduces storage requirements to
+0.015% of the original corpus while offering up to 79.8% has-answer rate and
+reducing average retrieval latency by 80%. Our results demonstrate that ARC can
+drastically enhance efficiency and effectiveness in RAG-powered LLM agents.</details></td><td><details><summary>展开</summary>这篇论文提出了ARC（Agent RAG Cache Mechanism），一种无需标注的缓存框架，旨在动态管理面向RAG驱动的LLM代理的小型高价值语料库。通过结合历史查询分布模式和嵌入空间中缓存项的内在几何结构，ARC能自动维护高相关性缓存，显著减少存储需求（至原语料的0.015%），提升回答率（达79.8%）并降低80%的平均检索延迟，从而优化RAG代理的效率和效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.02749v1">Using Span Queries to Optimize for Cache and Attention Locality</a></td><td><details><summary>展开</summary>Clients are evolving beyond chat completion, and now include a variety of
+innovative inference-time scaling and deep reasoning techniques. At the same
+time, inference servers remain heavily optimized for chat completion. Prior
+work has shown that large improvements to KV cache hit rate are possible if
+inference servers evolve towards these non-chat use cases. However, they offer
+solutions that are also optimized for a single use case, RAG. In this paper, we
+introduce the span query to generalize the interface to the inference server.
+We demonstrate that chat, RAG, inference-time scaling, and agentic workloads
+can all be expressed as span queries. We show how the critical distinction that
+had been assumed by prior work lies in whether the order of the inputs matter
+-- do they commute? In chat, they do not. In RAG, they often do. This paper
+introduces span queries, which are expression trees of inference calls, linked
+together with commutativity constraints. We describe span query syntax and
+semantics. We show how they can be automatically optimized to improve KV cache
+locality. We show how a small change to vLLM (affecting only 492 lines) can
+enable high-performance execution of span queries. Using this stack, we
+demonstrate that span queries can achieve 10-20x reductions in TTFT for two
+distinct non-chat use cases. Finally, we show that span queries can also be
+optimized to improve attention locality, so as to avoid the so-called
+lost-in-the-middle problem. We demonstrate that an attention-optimized span
+query on a 2b parameter model vastly outperforms the accuracy of a stock
+inference server using an 8b model.</details></td><td><details><summary>展开</summary>本文介绍了一种称为“span query”的通用接口，用于推理服务器，能够统一处理包括RAG、聊天、推理时间扩展和代理工作负载在内的多种任务。文章提出了span query的语法和语义，并展示了如何通过优化KV缓存局部性和注意力局部性来提升性能，特别是在非聊天用例中显著减少首次令牌生成时间（TTFT）和解决“迷失在中间”问题。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.02490v1">BRAINS: A Retrieval-Augmented System for Alzheimer's Detection and Monitoring</a></td><td><details><summary>展开</summary>As the global burden of Alzheimer's disease (AD) continues to grow, early and
+accurate detection has become increasingly critical, especially in regions with
+limited access to advanced diagnostic tools. We propose BRAINS (Biomedical
+Retrieval-Augmented Intelligence for Neurodegeneration Screening) to address
+this challenge. This novel system harnesses the powerful reasoning capabilities
+of Large Language Models (LLMs) for Alzheimer's detection and monitoring.
+BRAINS features a dual-module architecture: a cognitive diagnostic module and a
+case-retrieval module. The Diagnostic Module utilizes LLMs fine-tuned on
+cognitive and neuroimaging datasets -- including MMSE, CDR scores, and brain
+volume metrics -- to perform structured assessments of Alzheimer's risk.
+Meanwhile, the Case Retrieval Module encodes patient profiles into latent
+representations and retrieves similar cases from a curated knowledge base.
+These auxiliary cases are fused with the input profile via a Case Fusion Layer
+to enhance contextual understanding. The combined representation is then
+processed with clinical prompts for inference. Evaluations on real-world
+datasets demonstrate BRAINS effectiveness in classifying disease severity and
+identifying early signs of cognitive decline. This system not only shows strong
+potential as an assistive tool for scalable, explainable, and early-stage
+Alzheimer's disease detection, but also offers hope for future applications in
+the field.</details></td><td><details><summary>展开</summary>这篇论文提出了一个名为BRAINS的系统，利用检索增强生成（RAG）技术，结合大型语言模型（LLMs）和病例检索模块，通过结构化评估和类似病例的检索融合，提高了阿尔茨海默病的早期检测和诊断准确性，展示了其在临床辅助工具中的潜力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.02371v1">LUMA-RAG: Lifelong Multimodal Agents with Provably Stable Streaming Alignment</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) has emerged as the dominant paradigm for
+grounding large language model outputs in verifiable evidence. However, as
+modern AI agents transition from static knowledge bases to continuous
+multimodal streams encompassing text, images, video, and audio, two critical
+challenges arise: maintaining index freshness without prohibitive re-indexing
+costs, and preserving cross-modal semantic consistency across heterogeneous
+embedding spaces. We present LUMA-RAG, a lifelong multimodal agent architecture
+featuring three key innovations: (i) a streaming, multi-tier memory system that
+dynamically spills embeddings from a hot HNSW tier to a compressed IVFPQ tier
+under strict memory budgets; (ii) a streaming CLAP->CLIP alignment bridge that
+maintains cross-modal consistency through incremental orthogonal Procrustes
+updates; and (iii) stability-aware retrieval telemetry providing Safe@k
+guarantees by jointly bounding alignment drift and quantization error.
+Experiments demonstrate robust text-to-image retrieval (Recall@10 = 0.94),
+graceful performance degradation under product quantization offloading, and
+provably stable audio-to-image rankings (Safe@1 = 1.0), establishing LUMA-RAG
+as a practical framework for production multimodal RAG systems.</details></td><td><details><summary>展开</summary>这篇文章提出了一种名为LUMA-RAG的新型终身多模态代理架构，旨在解决现代AI代理在处理连续多模态数据流（如文本、图像、视频和音频）时面临的索引更新成本高和跨模态语义一致性等挑战。其核心创新包括动态分层的流式记忆系统、增量正交更新的跨模态对齐桥接技术，以及兼具稳定性保证的检索机制，实验表明其在多模态检索任务中具有高效性和鲁棒性。</details></td></tr></tbody></table>
 
 ### 📅 2025-11-03
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.02119v1">InsurAgent: A Large Language Model-Empowered Agent for Simulating Individual Behavior in Purchasing Flood Insurance</a></td><td><details><summary>展开</summary>Flood insurance is an effective strategy for individuals to mitigate
