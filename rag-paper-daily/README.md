@@ -16,7 +16,82 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-11-01
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.00739v1">A CPU-Centric Perspective on Agentic AI</a></td><td><details><summary>展开</summary>Agentic AI frameworks add a decision-making orchestrator embedded with
+external tools, including web search, Python interpreter, contextual database,
+and others, on top of monolithic LLMs, turning them from passive text oracles
+into autonomous problem-solvers that can plan, call tools, remember past steps,
+and adapt on the fly.
+  This paper aims to characterize and understand the system bottlenecks
+introduced by agentic AI workloads from a largely overlooked CPU-centric
+perspective. We first systematically characterize Agentic AI on the basis of
+orchestrator/decision making component, inference path dynamics and
+repetitiveness of the agentic flow which directly influences the system-level
+performance. Thereafter, based on the characterization, we choose five
+representative agentic AI workloads- Haystack RAG, Toolformer, ChemCrow,
+Langchain and SWE-Agent to profile latency, throughput and energy metrics and
+demystify the significant impact of CPUs on these metrics relative to GPUs. We
+observe that - 1. Tool processing on CPUs can take up to 90.6% of the total
+latency; 2. Agentic throughput gets bottlenecked either by CPU factors -
+coherence, synchronization and over-subscription of cores or GPU factors - main
+memory capacity and bandwidth; \circled{3} CPU dynamic energy consumes up to
+44% of the total dynamic energy at large batch sizes. Based on the profiling
+insights, we present two key optimizations- 1. CPU and GPU-Aware Micro-batching
+(CGAM) and 2. Mixed Agentic Workload Scheduling (MAWS) for homogeneous and
+heterogeneous agentic workloads respectively to demonstrate the potential to
+improve the performance, efficiency, and scalability of agentic AI. We achieve
+up to 2.1x and 1.41x P50 latency speedup compared to the multi-processing
+benchmark for homogeneous and heterogeneous agentic workloads respectively.</details></td><td><details><summary>展开</summary>这篇论文从CPU中心视角分析了Agentic AI框架（如Haystack RAG、Langchain等）的系统性能瓶颈，揭示了CPU在工具处理延迟和能耗中的关键作用，并提出了针对同质/异构工作负载的优化方案（CGAM和MAWS），最终实现了显著的延迟降低和效率提升。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.00505v2">Zero-RAG: Towards Retrieval-Augmented Generation with Zero Redundant Knowledge</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation has shown remarkable results to address Large
+Language Models' hallucinations, which usually uses a large external corpus to
+supplement knowledge to LLMs. However, with the development of LLMs, the
+internal knowledge of LLMs has expanded significantly, thus causing significant
+knowledge redundancy between the external corpus and LLMs. On the one hand, the
+indexing cost of dense retrieval is highly related to the corpus size and thus
+significant redundant knowledge intensifies the dense retrieval's workload. On
+the other hand, the redundant knowledge in the external corpus is not helpful
+to LLMs and our exploratory analysis shows that it instead hurts the RAG
+performance on those questions which the LLM can answer by itself. To address
+these issues, we propose Zero-RAG to tackle these challenges. Specifically, we
+first propose the Mastery-Score metric to identify redundant knowledge in the
+RAG corpus to prune it. After pruning, answers to "mastered" questions rely
+primarily on internal knowledge of the LLM. To better harness the internal
+capacity, we propose Query Router and Noise-Tolerant Tuning to avoid the
+irrelevant documents' distraction and thus further improve the LLM's
+utilization of internal knowledge with pruned corpus. Experimental results show
+that Zero-RAG prunes the Wikipedia corpus by 30\% and accelerates the retrieval
+stage by 22\%, without compromising RAG's performance.</details></td><td><details><summary>展开</summary>这篇论文探讨了RAG技术中外部知识库与大型语言模型（LLM）内部知识冗余的问题，提出了Zero-RAG方法，通过Mastery-Score指标识别并修剪冗余知识，结合Query Router和Noise-Tolerant Tuning优化LLM对内部知识的利用。实验表明，该方法将维基百科语料库缩减30%，检索速度提升22%，同时保持RAG性能不受影响。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.00489v1">ToM: Leveraging Tree-oriented MapReduce for Long-Context Reasoning in Large Language Models</a></td><td><details><summary>展开</summary>Large Language Models (LLMs), constrained by limited context windows, often
+face significant performance degradation when reasoning over long contexts. To
+address this, Retrieval-Augmented Generation (RAG) retrieves and reasons over
+chunks but frequently sacrifices logical coherence due to its reliance on
+similarity-based rankings. Similarly, divide-and-conquer frameworks (DCF) split
+documents into small chunks for independent reasoning and aggregation. While
+effective for local reasoning, DCF struggles to capture long-range dependencies
+and risks inducing conflicts by processing chunks in isolation. To overcome
+these limitations, we propose ToM, a novel Tree-oriented MapReduce framework
+for long-context reasoning. ToM leverages the inherent hierarchical structure
+of long documents (e.g., main headings and subheadings) by constructing a
+DocTree through hierarchical semantic parsing and performing bottom-up
+aggregation. Using a Tree MapReduce approach, ToM enables recursive reasoning:
+in the Map step, rationales are generated at child nodes; in the Reduce step,
+these rationales are aggregated across sibling nodes to resolve conflicts or
+reach consensus at parent nodes. Experimental results on 70B+ LLMs show that
+ToM significantly outperforms existing divide-and-conquer frameworks and
+retrieval-augmented generation methods, achieving better logical coherence and
+long-context reasoning. Our code is available at
+https://github.com/gjn12-31/ToM .</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为ToM（Tree-oriented MapReduce）的新框架，用于解决大语言模型（LLMs）在长上下文推理中的性能下降问题。与传统的检索增强生成（RAG）和分治框架（DCF）相比，ToM通过利用长文档的层次结构（如主标题和副标题），构建DocTree并进行自底向上的聚合，从而提高了逻辑连贯性和长上下文推理能力。实验结果表明，ToM在70B+的LLMs上显著优于现有的RAG和DCF方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.00340v1">Better Call CLAUSE: A Discrepancy Benchmark for Auditing LLMs Legal Reasoning Capabilities</a></td><td><details><summary>展开</summary>The rapid integration of large language models (LLMs) into high-stakes legal
+work has exposed a critical gap: no benchmark exists to systematically
+stress-test their reliability against the nuanced, adversarial, and often
+subtle flaws present in real-world contracts. To address this, we introduce
+CLAUSE, a first-of-its-kind benchmark designed to evaluate the fragility of an
+LLM's legal reasoning. We study the capabilities of LLMs to detect and reason
+about fine-grained discrepancies by producing over 7500 real-world perturbed
+contracts from foundational datasets like CUAD and ContractNLI. Our novel,
+persona-driven pipeline generates 10 distinct anomaly categories, which are
+then validated against official statutes using a Retrieval-Augmented Generation
+(RAG) system to ensure legal fidelity. We use CLAUSE to evaluate leading LLMs'
+ability to detect embedded legal flaws and explain their significance. Our
+analysis shows a key weakness: these models often miss subtle errors and
+struggle even more to justify them legally. Our work outlines a path to
+identify and correct such reasoning failures in legal AI.</details></td><td><details><summary>展开</summary>这篇论文介绍了CLAUSE基准，用于评估大语言模型（LLM）在法律推理中的脆弱性，通过生成7500多份扰动合同来测试模型检测细微差异的能力，并使用了RAG系统验证异常类别的法律可信性，揭示了模型在识别和解释法律漏洞方面的不足。</details></td></tr></tbody></table>
 
 ### 📅 2025-10-31
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.00265v1">AgentBnB: A Browser-Based Cybersecurity Tabletop Exercise with Large Language Model Support and Retrieval-Aligned Scaffolding</a></td><td><details><summary>展开</summary>Traditional cybersecurity tabletop exercises (TTXs) provide valuable training
