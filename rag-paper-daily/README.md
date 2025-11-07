@@ -13,7 +13,63 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-11-02
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.01059v1">Efficient Test-Time Retrieval Augmented Generation</a></td><td><details><summary>展开</summary>Although Large Language Models (LLMs) demonstrate significant capabilities,
+their reliance on parametric knowledge often leads to inaccuracies. Retrieval
+Augmented Generation (RAG) mitigates this by incorporating external knowledge,
+but these methods may introduce irrelevant retrieved documents, leading to
+inaccurate responses. While the integration methods filter out incorrect
+answers from multiple responses, but lack external knowledge like RAG methods,
+and their high costs require balancing overhead with performance gains. To
+address these issues, we propose an Efficient Test-Time Retrieval-Augmented
+Generation Framework named ET2RAG to improve the performance of LLMs while
+maintaining efficiency. Specifically, ET2RAG is a training-free method, that
+first retrieves the most relevant documents and augments the LLMs to
+efficiently generate diverse candidate responses by managing response length.
+Then we compute the similarity of candidate responses and employ a majority
+voting mechanism to select the most suitable response as the final output. In
+particular, we discover that partial generation is sufficient to capture the
+key information necessary for consensus calculation, allowing us to effectively
+perform majority voting without the need for fully generated responses. Thus,
+we can reach a balance between computational cost and performance by managing
+the response length for the number of retrieved documents for majority voting.
+Experimental results demonstrate that ET2RAG significantly enhances performance
+across three tasks, including open-domain question answering, recipe generation
+and image captioning.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为ET2RAG的高效测试时检索增强生成框架，旨在通过结合外部知识检索和多数投票机制来提升大语言模型（LLMs）的性能和效率，同时减少无关检索文档和计算成本的影响，并在开放域问答、食谱生成和图像描述等任务上验证了其有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.01052v1">Knowledge Elicitation with Large Language Models for Interpretable Cancer Stage Identification from Pathology Reports</a></td><td><details><summary>展开</summary>Cancer staging is critical for patient prognosis and treatment planning, yet
+extracting pathologic TNM staging from unstructured pathology reports poses a
+persistent challenge. Existing natural language processing (NLP) and machine
+learning (ML) strategies often depend on large annotated datasets, limiting
+their scalability and adaptability. In this study, we introduce two Knowledge
+Elicitation methods designed to overcome these limitations by enabling large
+language models (LLMs) to induce and apply domain-specific rules for cancer
+staging. The first, Knowledge Elicitation with Long-Term Memory (KEwLTM), uses
+an iterative prompting strategy to derive staging rules directly from
+unannotated pathology reports, without requiring ground-truth labels. The
+second, Knowledge Elicitation with Retrieval-Augmented Generation (KEwRAG),
+employs a variation of RAG where rules are pre-extracted from relevant
+guidelines in a single step and then applied, enhancing interpretability and
+avoiding repeated retrieval overhead. We leverage the ability of LLMs to apply
+broad knowledge learned during pre-training to new tasks. Using breast cancer
+pathology reports from the TCGA dataset, we evaluate their performance in
+identifying T and N stages, comparing them against various baseline approaches
+on two open-source LLMs. Our results indicate that KEwLTM outperforms KEwRAG
+when Zero-Shot Chain-of-Thought (ZSCOT) inference is effective, whereas KEwRAG
+achieves better performance when ZSCOT inference is less effective. Both
+methods offer transparent, interpretable interfaces by making the induced rules
+explicit. These findings highlight the promise of our Knowledge Elicitation
+methods as scalable, high-performing solutions for automated cancer staging
+with enhanced interpretability, particularly in clinical settings with limited
+annotated data.</details></td><td><details><summary>展开</summary>该论文提出了两种知识提取方法（KEwLTM和KEwRAG），其中KEwRAG采用检索增强生成（RAG）的变体，通过从指南中预提取规则并应用于癌症分期任务，提升可解释性并减少重复检索开销。实验表明，两种方法在缺乏标注数据的临床环境中均能实现高性能且透明的自动癌症分期，其中KEwRAG在零样本思维链效果较差时表现更优。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.00903v1">ColMate: Contrastive Late Interaction and Masked Text for Multimodal Document Retrieval</a></td><td><details><summary>展开</summary>Retrieval-augmented generation has proven practical when models require
+specialized knowledge or access to the latest data. However, existing methods
+for multimodal document retrieval often replicate techniques developed for
+text-only retrieval, whether in how they encode documents, define training
+objectives, or compute similarity scores. To address these limitations, we
+present ColMate, a document retrieval model that bridges the gap between
+multimodal representation learning and document retrieval. ColMate utilizes a
+novel OCR-based pretraining objective, a self-supervised masked contrastive
+learning objective, and a late interaction scoring mechanism more relevant to
+multimodal document structures and visual characteristics. ColMate obtains
+3.61% improvements over existing retrieval models on the ViDoRe V2 benchmark,
+demonstrating stronger generalization to out-of-domain benchmarks.</details></td><td><details><summary>展开</summary>本文提出了一种名为ColMate的多模态文档检索模型，针对现有方法在处理多模态文档时的局限性，通过创新的OCR预训练目标、自监督掩蔽对比学习目标及与多模态文档结构更相关的评分机制，提升了检索性能，并在ViDoRe V2基准测试中优于现有模型3.61%，展现了更强的跨领域泛化能力。</details></td></tr></tbody></table>
 
 ### 📅 2025-11-01
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.00739v1">A CPU-Centric Perspective on Agentic AI</a></td><td><details><summary>展开</summary>Agentic AI frameworks add a decision-making orchestrator embedded with
