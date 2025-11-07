@@ -1,7 +1,133 @@
 # 📚 RAG Paper Daily
 
 ### 📅 2025-11-06
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.04560v1">BanglaMedQA and BanglaMMedBench: Evaluating Retrieval-Augmented Generation Strategies for Bangla Biomedical Question Answering</a></td><td><details><summary>展开</summary>Developing accurate biomedical Question Answering (QA) systems in
+low-resource languages remains a major challenge, limiting equitable access to
+reliable medical knowledge. This paper introduces BanglaMedQA and
+BanglaMMedBench, the first large-scale Bangla biomedical Multiple Choice
+Question (MCQ) datasets designed to evaluate reasoning and retrieval in medical
+artificial intelligence (AI). The study applies and benchmarks several
+Retrieval-Augmented Generation (RAG) strategies, including Traditional,
+Zero-Shot Fallback, Agentic, Iterative Feedback, and Aggregate RAG, combining
+textbook-based and web retrieval with generative reasoning to improve factual
+accuracy. A key novelty lies in integrating a Bangla medical textbook corpus
+through Optical Character Recognition (OCR) and implementing an Agentic RAG
+pipeline that dynamically selects between retrieval and reasoning strategies.
+Experimental results show that the Agentic RAG achieved the highest accuracy
+89.54% with openai/gpt-oss-120b, outperforming other configurations and
+demonstrating superior rationale quality. These findings highlight the
+potential of RAG-based methods to enhance the reliability and accessibility of
+Bangla medical QA, establishing a foundation for future research in
+multilingual medical artificial intelligence.</details></td><td><details><summary>展开</summary>这篇论文提出了首个孟加拉语生物医学问答数据集BanglaMedQA和BanglaMMedBench，并利用多种RAG策略（如传统、零样本回退、代理、迭代反馈和聚合RAG）进行基准测试。通过结合教科书和网络检索与生成推理，研究验证了代理RAG方法在提升答案准确性和合理性方面的优越性（最高达89.54%），为低资源语言医学QA系统提供了可靠解决方案。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04502v1">RAGalyst: Automated Human-Aligned Agentic Evaluation for Domain-Specific RAG</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) is a critical technique for grounding
+Large Language Models (LLMs) in factual evidence, yet evaluating RAG systems in
+specialized, safety-critical domains remains a significant challenge. Existing
+evaluation frameworks often rely on heuristic-based metrics that fail to
+capture domain-specific nuances and other works utilize LLM-as-a-Judge
+approaches that lack validated alignment with human judgment. This paper
+introduces RAGalyst, an automated, human-aligned agentic framework designed for
+the rigorous evaluation of domain-specific RAG systems. RAGalyst features an
+agentic pipeline that generates high-quality, synthetic question-answering (QA)
+datasets from source documents, incorporating an agentic filtering step to
+ensure data fidelity. The framework refines two key LLM-as-a-Judge
+metrics-Answer Correctness and Answerability-using prompt optimization to
+achieve a strong correlation with human annotations. Applying this framework to
+evaluate various RAG components across three distinct domains (military
+operations, cybersecurity, and bridge engineering), we find that performance is
+highly context-dependent. No single embedding model, LLM, or hyperparameter
+configuration proves universally optimal. Additionally, we provide an analysis
+on the most common low Answer Correctness reasons in RAG. These findings
+highlight the necessity of a systematic evaluation framework like RAGalyst,
+which empowers practitioners to uncover domain-specific trade-offs and make
+informed design choices for building reliable and effective RAG systems.
+RAGalyst is available on our Github.</details></td><td><details><summary>展开</summary>本文介绍了RAGalyst，一种自动化且与人类判断对齐的代理框架，用于严格评估领域特定的RAG系统。该框架通过生成高质量的合成QA数据集、优化LLM-as-a-Judge指标（如答案正确性和可回答性），并在三个专业领域（军事行动、网络安全和桥梁工程）验证其性能，揭示了RAG组件的表现高度依赖上下文，并分析了低答案正确性的常见原因。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04234v1">Reusing Pre-Training Data at Test Time is a Compute Multiplier</a></td><td><details><summary>展开</summary>Large language models learn from their vast pre-training corpora, gaining the
+ability to solve an ever increasing variety of tasks; yet although researchers
+work to improve these datasets, there is little effort to understand how
+efficient the pre-training apparatus is at extracting ideas and knowledge from
+the data. In this work, we use retrieval augmented generation along with
+test-time compute as a way to quantify how much dataset value was left behind
+by the process of pre-training, and how this changes across scale. We
+demonstrate that pre-training then retrieving from standard and largely
+open-sourced datasets results in significant accuracy gains in MMLU, Math-500,
+and SimpleQA, which persist through decontamination. For MMLU we observe that
+retrieval acts as a ~5x compute multiplier versus pre-training alone. We show
+that these results can be further improved by leveraging additional compute at
+test time to parse the retrieved context, demonstrating a 10 percentage point
+improvement on MMLU for the public LLaMA 3.1 8B model. Overall, our results
+suggest that today's pre-training methods do not make full use of the
+information in existing pre-training datasets, leaving significant room for
+progress.</details></td><td><details><summary>展开</summary>本文采用检索增强生成（RAG）和测试时计算来量化预训练过程中未被充分利用的数据集价值，并探讨其在不同规模下的变化。实验表明，在标准开源数据集上预训练后结合检索能显著提升MMLU、Math-500和SimpleQA的准确性，检索效果相当于预训练计算量的5倍增益。通过测试时额外计算解析检索上下文，进一步使LLaMA 3.1 8B模型的MMLU性能提升10个百分点，证实当前预训练方法未能充分挖掘数据集信息。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04205v1">LLM-as-a-Judge is Bad, Based on AI Attempting the Exam Qualifying for the Member of the Polish National Board of Appeal</a></td><td><details><summary>展开</summary>This study provides an empirical assessment of whether current large language
+models (LLMs) can pass the official qualifying examination for membership in
+Poland's National Appeal Chamber (Krajowa Izba Odwo{\l}awcza). The authors
+examine two related ideas: using LLM as actual exam candidates and applying the
+'LLM-as-a-judge' approach, in which model-generated answers are automatically
+evaluated by other models. The paper describes the structure of the exam, which
+includes a multiple-choice knowledge test on public procurement law and a
+written judgment, and presents the hybrid information recovery and extraction
+pipeline built to support the models. Several LLMs (including GPT-4.1, Claude 4
+Sonnet and Bielik-11B-v2.6) were tested in closed-book and various
+Retrieval-Augmented Generation settings. The results show that although the
+models achieved satisfactory scores in the knowledge test, none met the passing
+threshold in the practical written part, and the evaluations of the
+'LLM-as-a-judge' often diverged from the judgments of the official examining
+committee. The authors highlight key limitations: susceptibility to
+hallucinations, incorrect citation of legal provisions, weaknesses in logical
+argumentation, and the need for close collaboration between legal experts and
+technical teams. The findings indicate that, despite rapid technological
+progress, current LLMs cannot yet replace human judges or independent examiners
+in Polish public procurement adjudication.</details></td><td><details><summary>展开</summary>该论文评估了大语言模型（LLMs）在波兰国家上诉法庭资格考试中的表现，测试了包括GPT-4.1、Claude 4 Sonnet和Bielik-11B-v2.6在内的多个模型在闭卷和多种检索增强生成（RAG）设置下的能力。研究发现，尽管模型在选择题部分表现尚可，但在实践写作部分均未达标，同时指出模型存在幻觉、错误引用法律条款等局限性，强调当前LLMs尚无法取代人类法官或考官。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04080v1">Caption Injection for Optimization in Generative Search Engine</a></td><td><details><summary>展开</summary>Generative Search Engines (GSEs) leverage Retrieval-Augmented Generation
+(RAG) techniques and Large Language Models (LLMs) to integrate multi-source
+information and provide users with accurate and comprehensive responses. Unlike
+traditional search engines that present results in ranked lists, GSEs shift
+users' attention from sequential browsing to content-driven subjective
+perception, driving a paradigm shift in information retrieval. In this context,
+enhancing the subjective visibility of content through Generative Search Engine
+Optimization (G-SEO) methods has emerged as a new research focus. With the
+rapid advancement of Multimodal Retrieval-Augmented Generation (MRAG)
+techniques, GSEs can now efficiently integrate text, images, audio, and video,
+producing richer responses that better satisfy complex information needs.
+Existing G-SEO methods, however, remain limited to text-based optimization and
+fail to fully exploit multimodal data. To address this gap, we propose Caption
+Injection, the first multimodal G-SEO approach, which extracts captions from
+images and injects them into textual content, integrating visual semantics to
+enhance the subjective visibility of content in generative search scenarios. We
+systematically evaluate Caption Injection on MRAMG, a benchmark for MRAG, under
+both unimodal and multimodal settings. Experimental results show that Caption
+Injection significantly outperforms text-only G-SEO baselines under the G-Eval
+metric, demonstrating the necessity and effectiveness of multimodal integration
+in G-SEO to improve user-perceived content visibility.</details></td><td><details><summary>展开</summary>该论文讨论了一种新型的生成式搜索引擎（GSEs），它利用检索增强生成（RAG）技术和大型语言模型（LLMs）整合多源信息，为用户提供更准确和全面的响应。区别于传统搜索引擎，GSEs关注内容驱动的主观感知，推动信息检索范式的转变。论文特别提出了一种多模态的生成式搜索引擎优化方法（G-SEO）——Caption Injection，通过从图像中提取标题并将其注入文本内容，综合视觉语义以增强内容在生成式搜索中的主观可见性。实验表明，该方法在多模态RAG基准测试中显著优于仅基于文本的G-SEO基线，证明了多模态整合在提升用户感知内容可见性方面的必要性和有效性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04072v1">Plan of Knowledge: Retrieval-Augmented Large Language Models for Temporal Knowledge Graph Question Answering</a></td><td><details><summary>展开</summary>Temporal Knowledge Graph Question Answering (TKGQA) aims to answer
+time-sensitive questions by leveraging factual information from Temporal
+Knowledge Graphs (TKGs). While previous studies have employed pre-trained TKG
+embeddings or graph neural networks to inject temporal knowledge, they fail to
+fully understand the complex semantic information of time constraints.
+Recently, Large Language Models (LLMs) have shown remarkable progress,
+benefiting from their strong semantic understanding and reasoning
+generalization capabilities. However, their temporal reasoning ability remains
+limited. LLMs frequently suffer from hallucination and a lack of knowledge. To
+address these limitations, we propose the Plan of Knowledge framework with a
+contrastive temporal retriever, which is named PoK. Specifically, the proposed
+Plan of Knowledge module decomposes a complex temporal question into a sequence
+of sub-objectives from the pre-defined tools, serving as intermediate guidance
+for reasoning exploration. In parallel, we construct a Temporal Knowledge Store
+(TKS) with a contrastive retrieval framework, enabling the model to selectively
+retrieve semantically and temporally aligned facts from TKGs. By combining
+structured planning with temporal knowledge retrieval, PoK effectively enhances
+the interpretability and factual consistency of temporal reasoning. Extensive
+experiments on four benchmark TKGQA datasets demonstrate that PoK significantly
+improves the retrieval precision and reasoning accuracy of LLMs, surpassing the
+performance of the state-of-the-art TKGQA methods by 56.0% at most.</details></td><td><details><summary>展开</summary>这篇文章提出了一种名为PoK的框架，通过结合知识规划和对比性时序检索器，将复杂时序问题分解为子目标并从中检索时序知识图谱中的相关事实，以增强大语言模型在时序知识图谱问答中的推理准确性和事实一致性，显著提升了检索精度和推理性能。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.04020v1">Abductive Inference in Retrieval-Augmented Language Models: Generating and Validating Missing Premises</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) enhanced with retrieval -- commonly referred to
+as Retrieval-Augmented Generation (RAG) -- have demonstrated strong performance
+in knowledge-intensive tasks. However, RAG pipelines often fail when retrieved
+evidence is incomplete, leaving gaps in the reasoning process. In such cases,
+\emph{abductive inference} -- the process of generating plausible missing
+premises to explain observations -- offers a principled approach to bridge
+these gaps. In this paper, we propose a framework that integrates abductive
+inference into retrieval-augmented LLMs. Our method detects insufficient
+evidence, generates candidate missing premises, and validates them through
+consistency and plausibility checks. Experimental results on abductive
+reasoning and multi-hop QA benchmarks show that our approach improves both
+answer accuracy and reasoning faithfulness. This work highlights abductive
+inference as a promising direction for enhancing the robustness and
+explainability of RAG systems.</details></td><td><details><summary>展开</summary>这篇论文提出了一种将溯因推理（abductive inference）整合到检索增强生成（RAG）中的框架，通过检测不完整的检索证据、生成缺失前提并进行验证，提升了RAG系统在知识密集型任务中的答案准确性和推理可信度。</details></td></tr></tbody></table>
 
 ### 📅 2025-11-05
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.03782v1">Expert Evaluation of LLM World Models: A High-$T_c$ Superconductivity Case Study</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) show great promise as a powerful tool for
