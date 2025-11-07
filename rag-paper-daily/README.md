@@ -4,7 +4,121 @@
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
 ### 📅 2025-11-05
-<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.03782v1">Expert Evaluation of LLM World Models: A High-$T_c$ Superconductivity Case Study</a></td><td><details><summary>展开</summary>Large Language Models (LLMs) show great promise as a powerful tool for
+scientific literature exploration. However, their effectiveness in providing
+scientifically accurate and comprehensive answers to complex questions within
+specialized domains remains an active area of research. Using the field of
+high-temperature cuprates as an exemplar, we evaluate the ability of LLM
+systems to understand the literature at the level of an expert. We construct an
+expert-curated database of 1,726 scientific papers that covers the history of
+the field, and a set of 67 expert-formulated questions that probe deep
+understanding of the literature. We then evaluate six different LLM-based
+systems for answering these questions, including both commercially available
+closed models and a custom retrieval-augmented generation (RAG) system capable
+of retrieving images alongside text. Experts then evaluate the answers of these
+systems against a rubric that assesses balanced perspectives, factual
+comprehensiveness, succinctness, and evidentiary support. Among the six systems
+two using RAG on curated literature outperformed existing closed models across
+key metrics, particularly in providing comprehensive and well-supported
+answers. We discuss promising aspects of LLM performances as well as critical
+short-comings of all the models. The set of expert-formulated questions and the
+rubric will be valuable for assessing expert level performance of LLM based
+reasoning systems.</details></td><td><details><summary>展开</summary>这篇论文研究了大型语言模型（LLMs）在科学文献探索中的应用，特别是在高温铜酸盐领域的专家级理解能力。作者构建了一个包含1,726篇科学论文的专家精选数据库和67个专家提出的问题，评估了六种基于LLM的系统（包括商业闭源模型和自定义的RAG系统）的回答质量。研究发现，使用RAG的系统在关键指标上表现优于其他闭源模型，尤其是在提供全面和证据支持的答案方面。论文还讨论了LLM的优势和不足，并提出了评估专家级LLM推理系统的工具和方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03563v1">ASVRI-Legal: Fine-Tuning LLMs with Retrieval Augmented Generation for Enhanced Legal Regulation</a></td><td><details><summary>展开</summary>In this study, we explore the fine-tuning of Large Language Models (LLMs) to
+better support policymakers in their crucial work of understanding, analyzing,
+and crafting legal regulations. To equip the model with a deep understanding of
+legal texts, we curated a supervised dataset tailored to the specific needs of
+the legal domain. Additionally, we integrated the Retrieval-Augmented
+Generation (RAG) method, enabling the LLM to access and incorporate up-to-date
+legal knowledge from external sources. This combination of fine-tuning and
+RAG-based augmentation results in a tool that not only processes legal
+information but actively assists policymakers in interpreting regulations and
+drafting new ones that align with current needs. The results demonstrate that
+this approach can significantly enhance the effectiveness of legal research and
+regulation development, offering a valuable resource in the ever-evolving field
+of law.</details></td><td><details><summary>展开</summary>这篇论文探讨了通过微调大语言模型（LLMs）并结合检索增强生成（RAG）技术，为政策制定者提供法律文本分析与法规制定的辅助工具，结果表明该方法能有效提升法律研究和法规开发的效果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03475v1">RAGBoost: Efficient Retrieval-Augmented Generation with Accuracy-Preserving Context Reuse</a></td><td><details><summary>展开</summary>Retrieval-augmented generation (RAG) enhances large language models (LLMs)
+with retrieved context but often suffers from downgraded prefill performance as
+modern applications demand longer and more complex inputs. Existing caching
+techniques either preserve accuracy with low cache reuse or improve reuse at
+the cost of degraded reasoning quality. We present RAGBoost, an efficient RAG
+system that achieves high cache reuse without sacrificing accuracy through
+accuracy-preserving context reuse. RAGBoost detects overlapping retrieved items
+across concurrent sessions and multi-turn interactions, using efficient context
+indexing, ordering, and de-duplication to maximize reuse, while lightweight
+contextual hints maintain reasoning fidelity. It integrates seamlessly with
+existing LLM inference engines and improves their prefill performance by 1.5-3X
+over state-of-the-art methods, while preserving or even enhancing reasoning
+accuracy across diverse RAG and agentic AI workloads. Our code is released at:
+https://github.com/Edinburgh-AgenticAI/RAGBoost.</details></td><td><details><summary>展开</summary>这篇论文提出了RAGBoost系统，旨在解决检索增强生成（RAG）中因长而复杂的输入导致的预填充性能下降问题。通过高效的上下文索引、排序和去重技术，实现了高缓存复用率，同时保持了推理准确性，相比现有方法提升了1.5-3倍的预填充性能，并兼容现有大语言模型推理引擎。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03261v1">Comparing the Performance of LLMs in RAG-based Question-Answering: A Case Study in Computer Science Literature</a></td><td><details><summary>展开</summary>Retrieval Augmented Generation (RAG) is emerging as a powerful technique to
+enhance the capabilities of Generative AI models by reducing hallucination.
+Thus, the increasing prominence of RAG alongside Large Language Models (LLMs)
+has sparked interest in comparing the performance of different LLMs in
+question-answering (QA) in diverse domains. This study compares the performance
+of four open-source LLMs, Mistral-7b-instruct, LLaMa2-7b-chat,
+Falcon-7b-instruct and Orca-mini-v3-7b, and OpenAI's trending GPT-3.5 over QA
+tasks within the computer science literature leveraging RAG support. Evaluation
+metrics employed in the study include accuracy and precision for binary
+questions and ranking by a human expert, ranking by Google's AI model Gemini,
+alongside cosine similarity for long-answer questions. GPT-3.5, when paired
+with RAG, effectively answers binary and long-answer questions, reaffirming its
+status as an advanced LLM. Regarding open-source LLMs, Mistral AI's
+Mistral-7b-instruct paired with RAG surpasses the rest in answering both binary
+and long-answer questions. However, among the open-source LLMs, Orca-mini-v3-7b
+reports the shortest average latency in generating responses, whereas
+LLaMa2-7b-chat by Meta reports the highest average latency. This research
+underscores the fact that open-source LLMs, too, can go hand in hand with
+proprietary models like GPT-3.5 with better infrastructure.</details></td><td><details><summary>展开</summary>这篇论文研究了Retrieval-Augmented Generation (RAG) 技术在提升生成式AI模型性能中的应用，通过比较不同开源LLMs（如Mistral-7b-instruct、LLaMa2-7b-chat等）与GPT-3.5在计算机科学文献问答任务中的表现，评估了它们在二进制问题和长答案问题上的准确性、延迟等指标，发现结合RAG的开源模型（如Mistral）性能接近GPT-3.5。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03214v1">LGM: Enhancing Large Language Models with Conceptual Meta-Relations and Iterative Retrieval</a></td><td><details><summary>展开</summary>Large language models (LLMs) exhibit strong semantic understanding, yet
+struggle when user instructions involve ambiguous or conceptually misaligned
+terms. We propose the Language Graph Model (LGM) to enhance conceptual clarity
+by extracting meta-relations-inheritance, alias, and composition-from natural
+language. The model further employs a reflection mechanism to validate these
+meta-relations. Leveraging a Concept Iterative Retrieval Algorithm, these
+relations and related descriptions are dynamically supplied to the LLM,
+improving its ability to interpret concepts and generate accurate responses.
+Unlike conventional Retrieval-Augmented Generation (RAG) approaches that rely
+on extended context windows, our method enables large language models to
+process texts of any length without the need for truncation. Experiments on
+standard benchmarks demonstrate that the LGM consistently outperforms existing
+RAG baselines.</details></td><td><details><summary>展开</summary>这篇文章提出了一种名为Language Graph Model（LGM）的方法，通过从自然语言中提取继承、别名和组合等元关系来增强概念清晰度，并利用概念迭代检索算法动态地将这些关系和相关描述提供给大语言模型（LLM），以提高其解释概念和生成准确回答的能力。与传统的RAG方法不同，LGM不需要依赖扩展的上下文窗口即可处理任意长度的文本，且实验表明其在标准基准测试中优于现有的RAG基线。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03149v1">Forecast2Anomaly (F2A): Adapting Multivariate Time Series Foundation Models for Anomaly Prediction</a></td><td><details><summary>展开</summary>Forecasting anomalies (anomaly prediction) in multivariate time series from
+different real-world, dynamic, and complex systems is vital for preempting
+critical failures, leading to a substantial minimization in operational costs
+and human labor. Yet, existing methods are limited to specific systems while
+failing to generalize to evolving anomaly patterns over time. In contrast,
+pretrained Time Series Foundation Models (TSFMs) have recently demonstrated
+strong generalization and zero-shot forecasting capabilities. However, their
+potential remains untapped for anomaly prediction, a task fundamentally
+different from forecasting normal behavior. Thus, we present Forecast2Anomaly
+(F2A), a novel framework that empowers TSFMs with anomaly prediction abilities
+through two key innovations. First, we propose a joint forecast-anomaly loss
+that fine-tunes TSFMs to accurately forecast future signals even at anomalous
+time points. Second, we introduce a Retrieval-Augmented Generation (RAG) module
+that retrieves historically relevant horizons and conditions predictions on
+them. This component dynamically adapts to distributional shifts at inference
+time, enabling F2A to track evolving anomalies without requiring model updates.
+By combining targeted fine-tuning with dynamic retrieval, F2A bridges the gap
+between robust TSFM zero-shot forecasting and zero-shot anomaly prediction.
+Extensive experiments across 16 diverse datasets and multiple TSFM backbones
+show that F2A consistently outperforms state-of-the-art methods, offering a
+scalable, zero-shot anomaly prediction solution for real-world applications.</details></td><td><details><summary>展开</summary>这篇文章介绍了Forecast2Anomaly（F2A）框架，通过结合预训练的时间序列基础模型（TSFMs）和检索增强生成（RAG）模块，提升了对多变量时间序列中异常行为的预测能力。F2A利用联合预测-异常损失微调模型，并通过RAG模块动态检索历史相关数据以适应分布变化，实现了在零样本设置下的高效异常预测。实验表明其在多个数据集上优于现有方法。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.03138v1">A Proprietary Model-Based Safety Response Framework for AI Agents</a></td><td><details><summary>展开</summary>With the widespread application of Large Language Models (LLMs), their
+associated security issues have become increasingly prominent, severely
+constraining their trustworthy deployment in critical domains. This paper
+proposes a novel safety response framework designed to systematically safeguard
+LLMs at both the input and output levels. At the input level, the framework
+employs a supervised fine-tuning-based safety classification model. Through a
+fine-grained four-tier taxonomy (Safe, Unsafe, Conditionally Safe, Focused
+Attention), it performs precise risk identification and differentiated handling
+of user queries, significantly enhancing risk coverage and business scenario
+adaptability, and achieving a risk recall rate of 99.3%. At the output level,
+the framework integrates Retrieval-Augmented Generation (RAG) with a
+specifically fine-tuned interpretation model, ensuring all responses are
+grounded in a real-time, trustworthy knowledge base. This approach eliminates
+information fabrication and enables result traceability. Experimental results
+demonstrate that our proposed safety control model achieves a significantly
+higher safety score on public safety evaluation benchmarks compared to the
+baseline model, TinyR1-Safety-8B. Furthermore, on our proprietary high-risk
+test set, the framework's components attained a perfect 100% safety score,
+validating their exceptional protective capabilities in complex risk scenarios.
+This research provides an effective engineering pathway for building
+high-security, high-trust LLM applications.</details></td><td><details><summary>展开</summary></details></td></tr></tbody></table>
 
 ### 📅 2025-11-04
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.03048v1">ROBoto2: An Interactive System and Dataset for LLM-assisted Clinical Trial Risk of Bias Assessment</a></td><td><details><summary>展开</summary>We present ROBOTO2, an open-source, web-based platform for large language
