@@ -1,5 +1,8 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-11-07
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
+
 ### 📅 2025-11-06
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.04560v1">BanglaMedQA and BanglaMMedBench: Evaluating Retrieval-Augmented Generation Strategies for Bangla Biomedical Question Answering</a></td><td><details><summary>展开</summary>Developing accurate biomedical Question Answering (QA) systems in
 low-resource languages remains a major challenge, limiting equitable access to
