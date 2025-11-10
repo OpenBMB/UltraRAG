@@ -271,6 +271,43 @@ pre {
 .small { font-size: 12px; }
 .divider { height: 1px; background: var(--border); margin: 10px 0; opacity: .6; }
 .footer { color: var(--muted); text-align: center; padding: 24px 8px; }
+img.zoomable { cursor: zoom-in; }
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(3,5,12,0.88);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  z-index: 999;
+}
+.lightbox.open { display: flex; }
+.lightbox img {
+  max-width: min(92vw, 1200px);
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
+  object-fit: contain;
+}
+.lightbox-close {
+  position: absolute;
+  top: 24px; right: 24px;
+  background: rgba(12,17,37,0.9);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 18px;
+  cursor: pointer;
+  letter-spacing: 0.6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.lightbox-close:hover { border-color: var(--accent); }
+body.lightbox-open { overflow: hidden; }
 """
 
 INDEX_HTML = r"""<!doctype html>
@@ -295,12 +332,21 @@ INDEX_HTML = r"""<!doctype html>
     <div id="cases"></div>
   </div>
 
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <img id="lightbox-img" alt="" />
+    <button id="lightbox-close" class="lightbox-close" type="button">关闭 ✕</button>
+  </div>
+
   <div class="footer small">
     Tips：点击步骤标题可折叠/展开；支持键盘 ← → 切换；URL 支持 #case-<index> 直达；<a href="/api/reload" style="color:#7aa2ff;text-decoration:none;">/api/reload</a> 可热加载最新数据。
   </div>
 
 <script>
 const state = { idx: 0, cases: [] };
+let lightboxEl = null;
+let lightboxImgEl = null;
+let lightboxCloseBtn = null;
+let lightboxReady = false;
 
 function $(sel, root=document){ return root.querySelector(sel); }
 function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
@@ -310,6 +356,48 @@ function escapeHtml(s) {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function closeLightbox() {
+  if (!lightboxEl || !lightboxImgEl) return;
+  lightboxEl.classList.remove("open");
+  if (document.body) document.body.classList.remove("lightbox-open");
+  lightboxImgEl.src = "";
+}
+
+function setupLightbox() {
+  if (lightboxReady) return;
+  lightboxEl = $("#lightbox");
+  lightboxImgEl = $("#lightbox-img");
+  lightboxCloseBtn = $("#lightbox-close");
+  if (!lightboxEl || !lightboxImgEl || !lightboxCloseBtn) return;
+  lightboxReady = true;
+  lightboxCloseBtn.addEventListener("click", closeLightbox);
+  lightboxEl.addEventListener("click", (e) => {
+    if (e.target === lightboxEl) closeLightbox();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && lightboxEl.classList.contains("open")) {
+      closeLightbox();
+    }
+  });
+}
+
+function openLightbox(src, altText="") {
+  setupLightbox();
+  if (!lightboxImgEl || !lightboxEl) return;
+  lightboxImgEl.src = src;
+  lightboxImgEl.alt = altText;
+  lightboxEl.classList.add("open");
+  if (document.body) document.body.classList.add("lightbox-open");
+}
+
+function attachImageZoom(img, altLabel) {
+  if (!img) return;
+  img.classList.add("zoomable");
+  img.addEventListener("click", () => {
+    openLightbox(img.dataset.fullSrc || img.src, altLabel || img.alt || "");
+  });
 }
 
 async function fetchCases() {
@@ -470,9 +558,13 @@ function render() {
           // 单张图片
           copyText = val;
           const img = document.createElement("img");
-          img.src = "/file?path=" + encodeURIComponent(val);
+          const imgSrc = "/file?path=" + encodeURIComponent(val);
+          img.src = imgSrc;
+          img.dataset.fullSrc = imgSrc;
           img.alt = k;
           img.style = "max-width:100%; border-radius:12px; display:block;";
+          img.loading = "lazy";
+          attachImageZoom(img, k);
           right.appendChild(img);
         } else if (imagesOnly && imgs.length > 0) {
           // 图片集合（允许任意层嵌套）
@@ -483,9 +575,13 @@ function render() {
             const wrapImg = document.createElement("div");
             wrapImg.style = "background:#0c1125; border:1px solid var(--border); border-radius:12px; padding:6px;";
             const img = document.createElement("img");
-            img.src = "/file?path=" + encodeURIComponent(p);
+            const imgSrc = "/file?path=" + encodeURIComponent(p);
+            img.src = imgSrc;
+            img.dataset.fullSrc = imgSrc;
             img.alt = k;
             img.style = "width:100%; height:140px; object-fit:cover; border-radius:8px; display:block;";
+            img.loading = "lazy";
+            attachImageZoom(img, k);
             wrapImg.appendChild(img);
             grid.appendChild(wrapImg);
           });
@@ -573,6 +669,7 @@ function goto(delta) {
 }
 
 async function main() {
+  setupLightbox();
   await fetchCases();
   parseHash();
   if (!Array.isArray(state.cases)) state.cases = [];
