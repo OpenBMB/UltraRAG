@@ -178,7 +178,7 @@ conda env create -f environment.yml
 
 ### Build and Run Environment with Docker
 
-Clone the project to your local machine or server via git:
+(Option 1) Clone the project to your local machine or server via git:
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
@@ -194,7 +194,21 @@ docker build -t ultrarag:v0.2.1 .
 Run an interactive environment:
 
 ```shell
-docker run -it --rm --gpus all ultrarag:v0.2.1 bash
+docker run -it --gpus all ultrarag:v0.2.1 /bin/bash
+```
+
+(Option 2) Use the Prebuilt Image
+
+Pull the prebuilt image:
+
+```shell
+docker pull hdxin2002/ultrarag:v0.2.1
+```
+
+Run an interactive environment:
+
+```shell
+docker run -it --gpus all hdxin2002/ultrarag:v0.2.1 /bin/bash
 ```
 
 Run the following command to verify whether the installation is successful:

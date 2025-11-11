@@ -177,9 +177,9 @@ uv pip install -e ".[all]"
 conda env create -f environment.yml
 ```
 
-
-
 ### 使用 Docker 构建运行环境
+
+#### （方式一）本地构建镜像
 
 通过 git 克隆项目到本地或服务器：
 
@@ -197,7 +197,21 @@ docker build -t ultrarag:v0.2.1 .
 运行交互环境：
 
 ```shell
-docker run -it --rm --gpus all ultrarag:v0.2.1 bash
+docker run -it --gpus all ultrarag:v0.2.1 /bin/bash
+```
+
+#### （方式二）使用预构建好的镜像
+
+拉取构建好的镜像：
+
+```shell
+docker pull hdxin2002/ultrarag:v0.2.1
+```
+
+运行交互环境：
+
+```shell
+docker run -it --gpus all hdxin2002/ultrarag:v0.2.1 /bin/bash
 ```
 
 运行以下命令验证安装是否成功：
