@@ -1,5 +1,101 @@
 # 📚 RAG Paper Daily
 
+### 📅 2025-11-10
+<table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody><tr><td><a href="http://arxiv.org/abs/2511.07328v1">Q-RAG: Long Context Multi-step Retrieval via Value-based Embedder Training</a></td><td><details><summary>展开</summary>Retrieval-Augmented Generation (RAG) methods enhance LLM performance by
+efficiently filtering relevant context for LLMs, reducing hallucinations and
+inference cost. However, most existing RAG methods focus on single-step
+retrieval, which is often insufficient for answering complex questions that
+require multi-step search. Recently, multi-step retrieval approaches have
+emerged, typically involving the fine-tuning of small LLMs to perform
+multi-step retrieval. This type of fine-tuning is highly resource-intensive and
+does not enable the use of larger LLMs. In this work, we propose Q-RAG, a novel
+approach that fine-tunes the Embedder model for multi-step retrieval using
+reinforcement learning (RL). Q-RAG offers a competitive, resource-efficient
+alternative to existing multi-step retrieval methods for open-domain question
+answering and achieves state-of-the-art results on the popular long-context
+benchmarks Babilong and RULER for contexts up to 10M tokens.</details></td><td><details><summary>展开</summary>这篇论文提出了一种名为Q-RAG的新方法，通过强化学习微调Embedder模型来实现多步检索，以解决现有RAG方法在复杂问题中单步检索不足的问题，并在开放域问答任务中取得了先进成果。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.07262v1">AgenticSciML: Collaborative Multi-Agent Systems for Emergent Discovery in Scientific Machine Learning</a></td><td><details><summary>展开</summary>Scientific Machine Learning (SciML) integrates data-driven inference with
+physical modeling to solve complex problems in science and engineering.
+However, the design of SciML architectures, loss formulations, and training
+strategies remains an expert-driven research process, requiring extensive
+experimentation and problem-specific insights. Here we introduce AgenticSciML,
+a collaborative multi-agent system in which over 10 specialized AI agents
+collaborate to propose, critique, and refine SciML solutions through structured
+reasoning and iterative evolution. The framework integrates structured debate,
+retrieval-augmented method memory, and ensemble-guided evolutionary search,
+enabling the agents to generate and assess new hypotheses about architectures
+and optimization procedures. Across physics-informed learning and operator
+learning tasks, the framework discovers solution methods that outperform
+single-agent and human-designed baselines by up to four orders of magnitude in
+error reduction. The agents produce novel strategies -- including adaptive
+mixture-of-expert architectures, decomposition-based PINNs, and
+physics-informed operator learning models -- that do not appear explicitly in
+the curated knowledge base. These results show that collaborative reasoning
+among AI agents can yield emergent methodological innovation, suggesting a path
+toward scalable, transparent, and autonomous discovery in scientific computing.</details></td><td><details><summary>展开</summary>这篇论文介绍了AgenticSciML，一个多智能体协作系统，通过检索增强的方法记忆（retrieval-augmented method memory）等机制，让多个AI智能体协作提出、评估和优化科学机器学习（SciML）解决方案。该系统在物理信息学习和算子学习任务中表现优异，能生成超越人工设计的创新策略，展示了AI协作在科学计算中的方法论创新潜力。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.06973v1">Oh That Looks Familiar: A Novel Similarity Measure for Spreadsheet Template Discovery</a></td><td><details><summary>展开</summary>Traditional methods for identifying structurally similar spreadsheets fail to
+capture the spatial layouts and type patterns defining templates. To quantify
+spreadsheet similarity, we introduce a hybrid distance metric that combines
+semantic embeddings, data type information, and spatial positioning. In order
+to calculate spreadsheet similarity, our method converts spreadsheets into
+cell-level embeddings and then uses aggregation techniques like Chamfer and
+Hausdorff distances. Experiments across template families demonstrate superior
+unsupervised clustering performance compared to the graph-based Mondrian
+baseline, achieving perfect template reconstruction (Adjusted Rand Index of
+1.00 versus 0.90) on the FUSTE dataset. Our approach facilitates large-scale
+automated template discovery, which in turn enables downstream applications
+such as retrieval-augmented generation over tabular collections, model
+training, and bulk data cleaning.</details></td><td><details><summary>展开</summary>该论文提出了一种混合距离度量方法，通过结合语义嵌入、数据类型和空间位置来量化电子表格的相似性，从而支持大规模自动化模板发现；其应用场景明确包含检索增强生成（RAG）技术，用于表格数据的下游任务。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.06738v1">Rethinking Retrieval-Augmented Generation for Medicine: A Large-Scale, Systematic Expert Evaluation and Practical Insights</a></td><td><details><summary>展开</summary>Large language models (LLMs) are transforming the landscape of medicine, yet
+two fundamental challenges persist: keeping up with rapidly evolving medical
+knowledge and providing verifiable, evidence-grounded reasoning.
+Retrieval-augmented generation (RAG) has been widely adopted to address these
+limitations by supplementing model outputs with retrieved evidence. However,
+whether RAG reliably achieves these goals remains unclear. Here, we present the
+most comprehensive expert evaluation of RAG in medicine to date. Eighteen
+medical experts contributed a total of 80,502 annotations, assessing 800 model
+outputs generated by GPT-4o and Llama-3.1-8B across 200 real-world patient and
+USMLE-style queries. We systematically decomposed the RAG pipeline into three
+components: (i) evidence retrieval (relevance of retrieved passages), (ii)
+evidence selection (accuracy of evidence usage), and (iii) response generation
+(factuality and completeness of outputs). Contrary to expectation, standard RAG
+often degraded performance: only 22% of top-16 passages were relevant, evidence
+selection remained weak (precision 41-43%, recall 27-49%), and factuality and
+completeness dropped by up to 6% and 5%, respectively, compared with non-RAG
+variants. Retrieval and evidence selection remain key failure points for the
+model, contributing to the overall performance drop. We further show that
+simple yet effective strategies, including evidence filtering and query
+reformulation, substantially mitigate these issues, improving performance on
+MedMCQA and MedXpertQA by up to 12% and 8.2%, respectively. These findings call
+for re-examining RAG's role in medicine and highlight the importance of
+stage-aware evaluation and deliberate system design for reliable medical LLM
+applications.</details></td><td><details><summary>展开</summary>这篇论文对医学领域的RAG技术进行了全面评估，发现标准RAG在证据检索、选择和生成环节存在显著缺陷（如检索相关性低、证据使用不准确），反而降低了模型输出的准确性和完整性，但通过证据过滤和查询重构等策略可有效提升性能。研究呼吁重新审视RAG在医学中的作用，并强调分阶段评估和系统设计的重要性。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.06668v1">When Evidence Contradicts: Toward Safer Retrieval-Augmented Generation in Healthcare</a></td><td><details><summary>展开</summary>In high-stakes information domains such as healthcare, where large language
+models (LLMs) can produce hallucinations or misinformation, retrieval-augmented
+generation (RAG) has been proposed as a mitigation strategy, grounding model
+outputs in external, domain-specific documents. Yet, this approach can
+introduce errors when source documents contain outdated or contradictory
+information. This work investigates the performance of five LLMs in generating
+RAG-based responses to medicine-related queries. Our contributions are
+three-fold: i) the creation of a benchmark dataset using consumer medicine
+information documents from the Australian Therapeutic Goods Administration
+(TGA), where headings are repurposed as natural language questions, ii) the
+retrieval of PubMed abstracts using TGA headings, stratified across multiple
+publication years, to enable controlled temporal evaluation of outdated
+evidence, and iii) a comparative analysis of the frequency and impact of
+outdated or contradictory content on model-generated responses, assessing how
+LLMs integrate and reconcile temporally inconsistent information. Our findings
+show that contradictions between highly similar abstracts do, in fact, degrade
+performance, leading to inconsistencies and reduced factual accuracy in model
+answers. These results highlight that retrieval similarity alone is
+insufficient for reliable medical RAG and underscore the need for
+contradiction-aware filtering strategies to ensure trustworthy responses in
+high-stakes domains.</details></td><td><details><summary>展开</summary>这篇论文研究了在医疗领域中使用检索增强生成（RAG）技术时，大语言模型（LLMs）因外部文档中的过时或矛盾信息而产生的错误。作者创建了一个基于澳大利亚治疗商品管理局（TGA）药品信息的基准数据集，通过PubMed摘要分层检索不同年份的文献，评估了过时证据对模型生成回答的影响。研究发现，高度相似但矛盾的摘要会降低模型性能，导致回答不一致和事实准确性下降，强调仅依赖检索相似性不足以确保可靠的医疗RAG，需采用矛盾感知的过滤策略。</details></td></tr><tr><td><a href="http://arxiv.org/abs/2511.06582v1">TabRAG: Tabular Document Retrieval via Structured Language Representations</a></td><td><details><summary>展开</summary>Ingesting data for Retrieval-Augmented Generation (RAG) involves either
+fine-tuning the embedding model directly on the target corpus or parsing
+documents for embedding model encoding. The former, while accurate, incurs high
+computational hardware requirements, while the latter suffers from suboptimal
+performance when extracting tabular data. In this work, we address the latter
+by presenting TabRAG, a parsing-based RAG pipeline designed to tackle
+table-heavy documents via structured language representations. TabRAG
+outperforms existing popular parsing-based methods for generation and
+retrieval. Code is available at https://github.com/jacobyhsi/TabRAG.</details></td><td><details><summary>展开</summary>这篇论文提出了TabRAG，一种针对表格密集型文档设计的基于解析的RAG流程，通过结构化语言表示提升表格数据提取性能，优于现有解析方法，解决了传统解析方法在表格数据处理上的不足。</details></td></tr></tbody></table>
+
 ### 📅 2025-11-09
 <table style='width:100%;'><colgroup><col><col><col></colgroup><thead><tr><th>title</th><th>abstract</th><th>summary</th></tr></thead><tbody></tbody></table>
 
