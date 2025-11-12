@@ -108,9 +108,13 @@ async def build_text_corpus(
     if os.path.isfile(in_path):
         process_one_file(in_path)
     else:
+        all_files = []
         for dp, _, fns in os.walk(in_path):
             for fn in sorted(fns):
-                process_one_file(os.path.join(dp, fn))
+                all_files.append(os.path.join(dp, fn))
+
+        for fp in tqdm(all_files, desc="Building text corpus", unit="file"):
+            process_one_file(fp)
 
     out_path = os.path.abspath(text_corpus_save_path)
     _save_jsonl(rows, out_path)
@@ -167,7 +171,7 @@ async def build_image_corpus(
     valid_rows: List[Dict[str, Any]] = []
     gid = 0
 
-    for pdf_path in pdf_list:
+    for pdf_path in tqdm(pdf_list, desc="Building image corpus", unit="pdf"):
         stem = os.path.splitext(os.path.basename(pdf_path))[0]
         out_img_dir = os.path.join(base_img_dir, stem)
         os.makedirs(out_img_dir, exist_ok=True)
