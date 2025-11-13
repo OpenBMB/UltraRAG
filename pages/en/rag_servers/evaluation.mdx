@@ -147,7 +147,7 @@ Common approaches include:
 - **Permutation Test** — randomly swaps results between systems A and B many times (e.g., 10,000 iterations) to build a random difference distribution. If the observed improvement exceeds 95% of random outcomes (p < 0.05), it is considered significant.  
 - **Paired t-test** — assumes per-query scores follow a normal distribution and evaluates whether the difference in means is significant.
 
-UR-2.0 implements a **two-sided permutation test** by default, outputting the following statistics automatically:
+UR-v2 implements a **two-sided permutation test** by default, outputting the following statistics automatically:
 
 - **A_mean / B_mean** — average metrics of the new and old systems  
 - **Diff(A-B)** — performance difference  

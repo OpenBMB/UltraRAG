@@ -3,12 +3,12 @@ title: "Data Flow"
 icon: "arrows-split-up-and-left"
 ---
 
-In UR-2.0, the Pipeline achieves **data binding through variable names**. Each Tool declares its input parameters and output variables during registration.  
+In UR-v2, the Pipeline achieves **data binding through variable names**. Each Tool declares its input parameters and output variables during registration.  
 At runtime, the Pipeline uses these variable names to transfer and share data between different steps.
 
 This mechanism is simple and intuitive, making it easy to build sequential data flows.  
 However, in multi-round calls or complex control structures, variable name conflicts or data overwriting may occur.  
-To address this, UR-2.0 provides a **parameter renaming mechanism**, allowing developers to flexibly rename variables in the Pipeline without modifying any source code.
+To address this, UR-v2 provides a **parameter renaming mechanism**, allowing developers to flexibly rename variables in the Pipeline without modifying any source code.
 
 ## How Does Data Flow?
 
@@ -49,7 +49,7 @@ you need a way to tell the Pipeline that these variables are **“aliases”** o
 
 ## Parameter Renaming Mechanism
 
-To resolve variable name conflicts and binding ambiguities, UR-2.0 provides a flexible **parameter renaming mechanism**.  
+To resolve variable name conflicts and binding ambiguities, UR-v2 provides a flexible **parameter renaming mechanism**.  
 You can directly use the `input:` and `output:` fields in the Pipeline YAML file to explicitly specify parameter-variable mappings—without modifying any Server code.
 
 ```yaml  icon="/images/yaml.svg"

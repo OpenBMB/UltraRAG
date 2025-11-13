@@ -3,9 +3,9 @@ title: "项目简介"
 icon: "hand-wave"
 ---
 
-## UltraRAG 2.0
+## UltraRAG v2
 
-UltraRAG 2.0 （UR-2.0）是首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 系统构建框架，
+UltraRAG v2 （UR-v2）是首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 系统构建框架，
 旨在为科研探索场景提供高效的建模支持。它将 RAG 中的核心组件（如 [Retriever](/pages/cn/rag_servers/retriever)、[Generation](/pages/cn/rag_servers/generation) 等）标准化封装为独立的 MCP Server，并通过函数级 Tool 接口实现灵活调用与功能扩展。借助 MCP Client 作为流程调度器，开发者仅需编写简洁的 YAML 文件，便可高效构建支持串行、循环与条件分支等复杂控制结构的推理流程，显著降低搭建与调试复杂 RAG 系统的技术门槛与学习成本。
 
 <p align="center">
@@ -24,13 +24,13 @@ UltraRAG 2.0 （UR-2.0）是首个基于 [Model Context Protocol (MCP)](https://
   </Card>
 </Columns>
 
-此外，UR-2.0 提供由浅入深的完整教学示例，集成多项主流 benchmark 任务与高质量 baseline，配合统一的评测体系与知识库支持，能够显著提升系统开发效率并确保实验的可复现性。
+此外，UR-v2 提供由浅入深的完整教学示例，集成多项主流 benchmark 任务与高质量 baseline，配合统一的评测体系与知识库支持，能够显著提升系统开发效率并确保实验的可复现性。
 
-## Why UltraRAG 2.0?
+## Why UltraRAG v2?
 
 RAG 系统正从早期模块串联的简单模式，演进为依赖模型主动推理、动态检索与条件判断的复杂体系。传统框架在灵活性与可扩展性方面已难以满足此类系统多轮交互与信息更新的需求。同时，现有的开源实现普遍缺乏统一范式，不同 baseline 模块之间耦合严重、结构松散，给理解、复现与对比研究带来极大挑战。
 
-为应对这些挑战，UltraRAG 2.0 致力于提供：
+为应对这些挑战，UltraRAG v2 致力于提供：
 
 <Card title="🚀 低代码构建复杂 Pipeline">
   原生支持串行、循环、条件分支等推理控制结构，开发者只需编写 YAML 文件，自定义几十行代码即可实现复杂迭代式 RAG 流程等）。

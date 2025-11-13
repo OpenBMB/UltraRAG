@@ -5,7 +5,7 @@ icon: "diagram-project"
 
 ## Pipeline Overview
 
-In UR-2.0, a **Pipeline** defines *how an inference task is executed*. It functions like a **task plan**, specifying the exact sequence of operations that the system should perform at each step.
+In UR-v2, a **Pipeline** defines *how an inference task is executed*. It functions like a **task plan**, specifying the exact sequence of operations that the system should perform at each step.
 
 With a Pipeline, you can flexibly combine different functions (Tools) from multiple modules (Servers) to build a complete, reproducible, and controllable RAG inference workflow. For example:
 
@@ -16,7 +16,7 @@ With a Pipeline, you can flexibly combine different functions (Tools) from multi
 
 ## Writing Specification
 
-In UR-2.0, a Pipeline is written in YAML format and defines the full task execution process.  
+In UR-v2, a Pipeline is written in YAML format and defines the full task execution process.  
 A typical Pipeline file contains two top-level sections:
 
 - **`servers`** — Declares all MCP Server modules used in the current workflow. Each Server corresponds to a functional module (such as retrieval, generation, or evaluation). The key is the module name, and the value is its path within the project.  

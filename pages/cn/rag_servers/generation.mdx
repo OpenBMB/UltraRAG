@@ -5,7 +5,7 @@ icon: "pen-nib"
 
 ## 作用
 
-Generation Server 是 UR-2.0 中负责 调用和部署大语言模型（LLM） 的核心模块。
+Generation Server 是 UR-v2 中负责 调用和部署大语言模型（LLM） 的核心模块。
 它接收来自 Prompt Server 构建的输入提示（Prompt），并生成相应的输出结果。
 该模块支持 文本生成 与 图像-文本多模态生成 两种模式，可灵活适配不同任务场景（如问答、推理、总结、视觉问答等）。
 
@@ -212,7 +212,7 @@ ultrarag run examples/vanilla_vlm.yaml
 
 ### 部署模型
 
-UR-2.0 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的模型都可以直接接入，无需额外适配或修改代码。
+UR-v2 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的模型都可以直接接入，无需额外适配或修改代码。
 以下示例展示如何使用 [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) 部署本地模型。
 
 **step1: 后台部署模型**

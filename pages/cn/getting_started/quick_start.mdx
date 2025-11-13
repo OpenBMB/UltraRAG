@@ -3,7 +3,7 @@ title: "快速开始"
 icon: "rocket-launch"
 ---
 
-本节将帮助你快速了解如何基于 UR-2.0 运行一个完整的 RAG Pipeline。UR-2.0 的使用流程主要包括以下三个阶段：
+本节将帮助你快速了解如何基于 UR-v2 运行一个完整的 RAG Pipeline。UR-v2 的使用流程主要包括以下三个阶段：
 
 - 编写 Pipeline 配置文件
 - 编译 Pipeline 并调整参数
@@ -11,7 +11,7 @@ icon: "rocket-launch"
 
 此外，你还可以通过可视化工具对运行结果进行分析与评估。
 
-<Tip>如果尚未安装 UR-2.0，请先参考 [环境部署](/pages/cn/getting_started/installation)。</Tip>
+<Tip>如果尚未安装 UR-v2，请先参考 [环境部署](/pages/cn/getting_started/installation)。</Tip>
 
 <Tip>如需了解更完整的 RAG 开发实践，请查看完整文档。</Tip>
 
@@ -43,14 +43,14 @@ pipeline:
 - evaluation.evaluate
 ```
 
-UR-2.0 的 Pipeline 配置文件需要包含以下两个部分：
+UR-v2 的 Pipeline 配置文件需要包含以下两个部分：
  
 - `servers`：声明当前流程所依赖的各个模块（Server）。例如，检索阶段需要使用 `retriever` Server。
 - `pipeline`：定义各 Server 中功能函数（Tool）的调用顺序。本示例展示了从数据加载、检索编码与索引构建，到生成与评测的完整流程。
 
 ## Step 2：编译 Pipeline 并调整参数
 
-在运行代码前，首先需要配置运行所需的参数。UR-2.0 提供了快捷的 build 指令，可自动生成当前 Pipeline 所依赖的完整参数文件。
+在运行代码前，首先需要配置运行所需的参数。UR-v2 提供了快捷的 build 指令，可自动生成当前 Pipeline 所依赖的完整参数文件。
 系统会读取各个 Server 的 parameter.yaml 文件，解析本次流程中涉及的全部参数项，并统一汇总生成到一个独立的配置文件中。执行以下命令：
 
 ```shell
@@ -204,7 +204,7 @@ python ./script/case_study.py \
 ## 小结
 
 至此，你已完成从 Pipeline 配置、参数编译 到 流程运行与可视化分析 的完整 RAG 实践流程。
-UR-2.0 通过模块化的 MCP 架构与统一的评测体系，使得 RAG 系统的构建、运行与分析更加高效、直观、可复现。
+UR-v2 通过模块化的 MCP 架构与统一的评测体系，使得 RAG 系统的构建、运行与分析更加高效、直观、可复现。
 
 你可以在此基础上：
 

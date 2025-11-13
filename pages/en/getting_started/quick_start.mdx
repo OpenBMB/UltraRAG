@@ -3,7 +3,7 @@ title: "Quickstart"
 icon: "rocket-launch"
 ---
 
-This section will help you quickly understand how to run a complete RAG Pipeline using UR-2.0. The workflow in UR-2.0 mainly includes the following three stages:
+This section will help you quickly understand how to run a complete RAG Pipeline using UR-v2. The workflow in UR-v2 mainly includes the following three stages:
 
 - Writing the Pipeline configuration file  
 - Building the Pipeline and adjusting parameters  
@@ -11,7 +11,7 @@ This section will help you quickly understand how to run a complete RAG Pipeline
 
 Additionally, you can analyze and evaluate the execution results using built-in visualization tools.
 
-<Tip>If UR-2.0 is not yet installed, please refer to [Installation](/pages/en/getting_started/installation).</Tip>
+<Tip>If UR-v2 is not yet installed, please refer to [Installation](/pages/en/getting_started/installation).</Tip>
 
 <Tip>For a more comprehensive RAG development guide, please refer to the full documentation.</Tip>
 
@@ -43,7 +43,7 @@ pipeline:
 - evaluation.evaluate
 ```
 
-A UR-2.0 Pipeline configuration file contains two essential sections:
+A UR-v2 Pipeline configuration file contains two essential sections:
 
 - `servers`: Declares the modules (Servers) required for the workflow. For example, the retrieval stage requires the `retriever` Server.
 - `pipeline`: Defines the execution order of functional methods (Tools) within each Server.  
@@ -51,7 +51,7 @@ A UR-2.0 Pipeline configuration file contains two essential sections:
 
 ## Step 2: Build the Pipeline and Adjust Parameters
 
-Before running the code, you need to configure the required parameters. UR-2.0 provides a convenient **build** command that automatically generates a complete parameter file for the current Pipeline.  
+Before running the code, you need to configure the required parameters. UR-v2 provides a convenient **build** command that automatically generates a complete parameter file for the current Pipeline.  
 The system reads the `parameter.yaml` file from each Server, parses all involved parameter items, and consolidates them into a single unified configuration file.  
 Execute the following command:
 
@@ -205,7 +205,7 @@ Example interface:
 ## Summary
 
 You have now completed the full RAG workflow—from Pipeline configuration and parameter compilation to execution and visualization analysis.  
-UR-2.0, with its modular MCP architecture and unified evaluation system, makes RAG system construction, execution, and analysis more efficient, intuitive, and reproducible.
+UR-v2, with its modular MCP architecture and unified evaluation system, makes RAG system construction, execution, and analysis more efficient, intuitive, and reproducible.
 
 You can further:
 

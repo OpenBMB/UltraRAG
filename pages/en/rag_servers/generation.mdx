@@ -5,7 +5,7 @@ icon: "pen-nib"
 
 ## Overview
 
-The **Generation Server** is the core module in UR-2.0 responsible for **invoking and deploying Large Language Models (LLMs)**.
+The **Generation Server** is the core module in UR-v2 responsible for **invoking and deploying Large Language Models (LLMs)**.
 It receives input prompts constructed by the **Prompt Server** and generates the corresponding outputs.
 This module supports both **text generation** and **image-text multimodal generation**, making it adaptable to diverse task scenarios such as question answering, reasoning, summarization, and visual question answering.
 
@@ -213,7 +213,7 @@ ultrarag run examples/vanilla_vlm.yaml
 
 ### Model Deployment
 
-UR-2.0 is fully compatible with the **OpenAI API** specification, allowing any model conforming to this standard to be integrated directly—no extra adaptation or code modification required.
+UR-v2 is fully compatible with the **OpenAI API** specification, allowing any model conforming to this standard to be integrated directly—no extra adaptation or code modification required.
 The following example shows how to deploy a local model using [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig).
 
 **Step 1: Run the Model in the Background**

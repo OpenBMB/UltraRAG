@@ -5,7 +5,7 @@ icon: "magnifying-glass"
 
 ## Overview
 
-The **Retriever Server** is the core retrieval module in UR-2.0. It integrates **model loading**, **text/image encoding**, **index construction**, and **search** into a single component. It natively supports multiple backends—[Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings)—so it can flexibly adapt to corpora of various sizes and types, meeting the needs of **large-scale embedding** and **efficient document recall**.
+The **Retriever Server** is the core retrieval module in UR-v2. It integrates **model loading**, **text/image encoding**, **index construction**, and **search** into a single component. It natively supports multiple backends—[Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings)—so it can flexibly adapt to corpora of various sizes and types, meeting the needs of **large-scale embedding** and **efficient document recall**.
 
 ## Usage Example
 
@@ -214,7 +214,7 @@ ultrarag run examples/corpus_search.yaml
 
 ### BM25 Retrieval
 
-In addition to dense retrieval, UR-2.0 includes the classic **BM25** sparse text retrieval algorithm. BM25 is an improvement over TF–IDF and is commonly used for fast, lightweight keyword-based matching. In practice, BM25 and dense retrieval are complementary: combining them often improves both coverage and recall diversity.
+In addition to dense retrieval, UR-v2 includes the classic **BM25** sparse text retrieval algorithm. BM25 is an improvement over TF–IDF and is commonly used for fast, lightweight keyword-based matching. In practice, BM25 and dense retrieval are complementary: combining them often improves both coverage and recall diversity.
 
 **Step 1: Build the BM25 index**
 
@@ -357,7 +357,7 @@ ultrarag run examples/bm25_search.yaml
 
 ### Hybrid Retrieval
 
-In real applications, a single retrieval method often struggles to balance **recall** and **precision**. For instance, BM25 excels at keyword matching, while dense retrieval is stronger in semantic understanding. UR-2.0 supports **Hybrid Retrieval** that combines sparse (BM25) and dense methods to leverage both, improving diversity and robustness.
+In real applications, a single retrieval method often struggles to balance **recall** and **precision**. For instance, BM25 excels at keyword matching, while dense retrieval is stronger in semantic understanding. UR-v2 supports **Hybrid Retrieval** that combines sparse (BM25) and dense methods to leverage both, improving diversity and robustness.
 
 The example below shows how to run BM25 and dense retrieval in the same Pipeline and merge results via a custom module.
 
@@ -488,7 +488,7 @@ ultrarag run examples/hybrid_search.yaml
 
 ### Deploy Retrieval Models
 
-UR-2.0 is fully compatible with the **OpenAI API** interface specification, so any embedding model that conforms to this API can be integrated without extra adapters or code changes. The example below shows how to deploy a local embedding model with **vLLM**.
+UR-v2 is fully compatible with the **OpenAI API** interface specification, so any embedding model that conforms to this API can be integrated without extra adapters or code changes. The example below shows how to deploy a local embedding model with **vLLM**.
 
 **Step 1: Serve the model in the background**
 
@@ -585,7 +585,7 @@ Once configured, you can run it just like regular vector retrieval.
 
 ### Web Search API
 
-UR-2.0 natively integrates three mainstream Web search APIs: [Tavily](https://www.tavily.com/), [Exa](https://exa.ai/), and [GLM](https://docs.z.ai/guides/tools/web-search). These APIs can be directly used as Retriever Server backends to enable online information retrieval and real-time knowledge augmentation.
+UR-v2 natively integrates three mainstream Web search APIs: [Tavily](https://www.tavily.com/), [Exa](https://exa.ai/), and [GLM](https://docs.z.ai/guides/tools/web-search). These APIs can be directly used as Retriever Server backends to enable online information retrieval and real-time knowledge augmentation.
 
 **Step 1: Configure API Keys**
 
@@ -595,7 +595,7 @@ Before use, set the corresponding service's API key. You can manually export env
 export TAVILY_API_KEY="your retriever key"
 ```
 
-It is recommended to manage keys centrally using a `.env` configuration file. In the UR-2.0 root directory, rename the template file `.env.dev` to `.env` and fill in your key information, for example:
+It is recommended to manage keys centrally using a `.env` configuration file. In the UR-v2 root directory, rename the template file `.env.dev` to `.env` and fill in your key information, for example:
 
 ```
 LLM_API_KEY=
@@ -604,7 +604,7 @@ TAVILY_API_KEY=tvly-dev-yourapikeyhere
 EXA_API_KEY=
 ZHIPUAI_API_KEY=
 ```
-UR-2.0 will automatically read this file and load the configuration at startup.
+UR-v2 will automatically read this file and load the configuration at startup.
 
 **Step 2: Web Search**
 

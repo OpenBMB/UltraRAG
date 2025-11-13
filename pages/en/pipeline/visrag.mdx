@@ -26,14 +26,14 @@ Therefore, the electronic vibration reduction function of the Nikon Z7 is unavai
 ```
 Although the model produces a fluent and well-structured answer, it lacks factual grounding since it does not rely on real documentation, resulting in seemingly plausible yet incorrect responses.
 
-To address this issue, UR-2.0 implements a **multimodal retrieval-augmented pipeline** based on [VisRAG](https://arxiv.org/abs/2410.10594).  
+To address this issue, UR-v2 implements a **multimodal retrieval-augmented pipeline** based on [VisRAG](https://arxiv.org/abs/2410.10594).  
 Instead of relying on text-only parsing, VisRAG directly feeds **screenshots of relevant document pages** into a **vision-language model**, enabling document-grounded question answering based on **visual semantics**.
 
 ## Building a Personal Knowledge Base
 
 Using the “Nikon User Manual” as an example, you can [click here to download](https://download.nikonimglib.com/archive4/ywJ4K00fa2Lr05vv5OS00pV5Hg36/Z7Z6UM_TH(Sc)07.pdf) the PDF file.
 
-We use the **Corpus Server** in UR-2.0 to directly convert this PDF into an **image corpus**:
+We use the **Corpus Server** in UR-v2 to directly convert this PDF into an **image corpus**:
 
 ```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server

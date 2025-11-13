@@ -148,7 +148,7 @@ ultrarag run examples/eval_trec.yaml
 - **置换检验（Permutation Test）**：通过随机交换系统 A 和系统 B 的查询结果多次（如 10000 次），构建差异的随机分布。若实际差异超过 95% 的随机情况（p < 0.05），则认为提升显著。
 - **t 检验（Paired t-test）**：假设两个系统的查询得分服从正态分布，计算两者均值差异的显著性。
 
-UR-2.0 内置 双侧置换检验（Two-sided Permutation Test），在自动评估过程中输出以下关键统计信息：
+UR-v2 内置 双侧置换检验（Two-sided Permutation Test），在自动评估过程中输出以下关键统计信息：
 
 - **A_mean / B_mean** 表示新旧系统的平均指标；
 - **Diff(A-B)** 表示改进幅度；

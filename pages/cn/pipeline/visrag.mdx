@@ -26,14 +26,14 @@ icon: "eyes"
 ```
 可以看到，模型虽然能生成语义流畅的回答，但由于缺乏真实文档支撑，往往会出现“似是而非”的结果。
 
-为了解决这一问题，UR-2.0 基于 [VisRAG](https://arxiv.org/abs/2410.10594) 实现了一种多模态检索增强 Pipeline。
+为了解决这一问题，UR-v2 基于 [VisRAG](https://arxiv.org/abs/2410.10594) 实现了一种多模态检索增强 Pipeline。
 它不再依赖繁琐的文本解析，而是直接将“相关文档的截图”输入给视觉语言模型，从而实现基于视觉语义的真实文档问答。
 
 ## 构建个人知识库
 
 以“尼康使用说明书”为例。你可以 [点击此处下载](https://download.nikonimglib.com/archive4/ywJ4K00fa2Lr05vv5OS00pV5Hg36/Z7Z6UM_TH(Sc)07.pdf) PDF 文件。
 
-我们使用 UR-2.0 的 Corpus Server 将该 PDF 直接转换为图像语料库：
+我们使用 UR-v2 的 Corpus Server 将该 PDF 直接转换为图像语料库：
 
 ```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server

@@ -5,7 +5,7 @@ icon: "file"
 
 ## 作用
 
-Corpus Server 是 UR-2.0 中用于处理原始语料文档的核心组件。它支持从多种数据源中解析、提取并标准化文本或图像内容，并提供多种切块策略，将原始文档转换为可直接用于后续检索与生成的格式。
+Corpus Server 是 UR-v2 中用于处理原始语料文档的核心组件。它支持从多种数据源中解析、提取并标准化文本或图像内容，并提供多种切块策略，将原始文档转换为可直接用于后续检索与生成的格式。
 
 Corpus Server 的主要功能包括：
 
@@ -122,7 +122,7 @@ ultrarag run examples/build_image_corpus.yaml
 ### MinerU解析
 
 [MinerU](https://github.com/opendatalab/MinerU) 是业界广受好评的 PDF 解析框架，支持高精度的文本与版面结构提取。
-UR-2.0 将 MinerU 无缝集成为内置工具，可直接在 Pipeline 中调用，实现一站式的 PDF → 文本 + 图像 语料构建。
+UR-v2 将 MinerU 无缝集成为内置工具，可直接在 Pipeline 中调用，实现一站式的 PDF → 文本 + 图像 语料构建。
 
 ```yaml examples/build_mineru_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -165,7 +165,7 @@ ultrarag run examples/build_mineru_corpus.yaml
 
 ## 文档切块示例
 
-UR-2.0 集成了 [chonkie](https://docs.chonkie.ai/common/welcome) 文档切块库，并内置三种主流切块策略：`Token Chunker`，`Sentence Chunker`以及`Recursive Chunker`，可灵活应对不同类型的文本结构。
+UR-v2 集成了 [chonkie](https://docs.chonkie.ai/common/welcome) 文档切块库，并内置三种主流切块策略：`Token Chunker`，`Sentence Chunker`以及`Recursive Chunker`，可灵活应对不同类型的文本结构。
 
 - `Token Chunker`：按分词器、单词或字符进行分块，适用于一般文本。
 - `Sentence Chunker`：按句子边界切分，保证语义完整性。

@@ -7,7 +7,7 @@ icon: "books"
 
 In a typical RAG system, the overall workflow usually consists of multiple functional modules, such as the Retriever and the Generator. Each module is responsible for a specific task, and they work together through pipeline orchestration to complete complex question-answering and reasoning processes.
 
-In UR-2.0, we adopt the MCP (Model Context Protocol) architecture to standardize and encapsulate these functional modules into a unified implementation—**Server**.
+In UR-v2, we adopt the MCP (Model Context Protocol) architecture to standardize and encapsulate these functional modules into a unified implementation—**Server**.
 
 <Note>A Server is essentially an independent RAG module component with a specific function.</Note>
 
@@ -21,7 +21,7 @@ To help you better understand how to use Servers, this section demonstrates a co
 
 First, create a new folder named `sayhello` under the `servers` directory, and then create a source folder `sayhello/src` inside it. Next, create a file named `sayhello.py` in the `src` directory—this will serve as the main entry point for the Server.
 
-In UR-2.0, all Servers are instantiated via the `UltraRAG_MCP_Server` base class. Example:
+In UR-v2, all Servers are instantiated via the `UltraRAG_MCP_Server` base class. Example:
 
 ```python servers/sayhello/src/sayhello.py icon="python"
 from ultrarag.server import UltraRAG_MCP_Server
@@ -66,18 +66,18 @@ Example:
 name: UltraRAG 2.0
 ```
 
-Here, we define the parameter `name` with the default value `"UltraRAG 2.0"`.
+Here, we define the parameter `name` with the default value `"UltraRAG v2"`.
 
 ### Parameter Registration Mechanism
 
 <Note>If different Prompt Tools have conflicting parameter names, refer to the “Multiple Prompt Tool Invocation” section in the [Prompt Server](/pages/en/rag_servers/prompt) documentation for resolution.</Note>
 
-During the **build** phase, UR-2.0 automatically reads each Server’s `parameter.yaml` file to detect and register the parameters required by its Tool functions.  
+During the **build** phase, UR-v2 automatically reads each Server’s `parameter.yaml` file to detect and register the parameters required by its Tool functions.  
 When using this mechanism, keep the following points in mind:
 
 - **Parameter Sharing:** When multiple Tools need to share a parameter (e.g., `template`, `model_name_or_path`), you only need to declare it once in `parameter.yaml`, and it can be reused across Tools.  
 - **Field Overriding Risks:** If multiple Tools use the same parameter name but with different meanings or default values, you should explicitly distinguish them by using different field names to prevent unintentional overwriting in the automatically generated configuration file.  
-- **Automatic Context Inference:** If a Tool’s input parameter is not defined in `parameter.yaml`, UR-2.0 will attempt to infer its value from the runtime context (i.e., from the output of upstream Tools). Therefore, only explicitly define parameters in `parameter.yaml` when they cannot be automatically inferred.
+- **Automatic Context Inference:** If a Tool’s input parameter is not defined in `parameter.yaml`, UR-v2 will attempt to infer its value from the runtime context (i.e., from the output of upstream Tools). Therefore, only explicitly define parameters in `parameter.yaml` when they cannot be automatically inferred.
 
 ### Encapsulating Shared Variables with Classes
 

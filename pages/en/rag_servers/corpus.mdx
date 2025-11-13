@@ -5,7 +5,7 @@ icon: "file"
 
 ## Overview
 
-The **Corpus Server** is a core component in UR-2.0 designed for processing raw document corpora. It supports parsing, extracting, and standardizing textual or visual content from multiple data sources, and provides various chunking strategies to convert raw documents into formats ready for retrieval and generation.
+The **Corpus Server** is a core component in UR-v2 designed for processing raw document corpora. It supports parsing, extracting, and standardizing textual or visual content from multiple data sources, and provides various chunking strategies to convert raw documents into formats ready for retrieval and generation.
 
 Main features of the Corpus Server include:
 
@@ -130,7 +130,7 @@ The resulting `.jsonl` file can be directly used for multimodal retrieval or gen
 ### MinerU Parsing
 
 [MinerU](https://github.com/opendatalab/MinerU) is a widely adopted PDF parsing framework known for high-precision text and layout extraction.  
-UR-2.0 seamlessly integrates MinerU as a built-in utility, enabling end-to-end corpus construction (PDF → Text + Image) directly within the Pipeline.
+UR-v2 seamlessly integrates MinerU as a built-in utility, enabling end-to-end corpus construction (PDF → Text + Image) directly within the Pipeline.
 
 ```yaml examples/build_mineru_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -175,7 +175,7 @@ After execution, the system automatically outputs both text and image corpora in
 
 ## Document Chunking Example
 
-UR-2.0 integrates the [Chonkie](https://docs.chonkie.ai/common/welcome) document chunking library and provides three main chunking strategies:  
+UR-v2 integrates the [Chonkie](https://docs.chonkie.ai/common/welcome) document chunking library and provides three main chunking strategies:  
 **Token Chunker**, **Sentence Chunker**, and **Recursive Chunker**, offering flexibility for various text structures.
 
 - **Token Chunker:** Splits text by tokenizer, word, or character — suitable for general text.  

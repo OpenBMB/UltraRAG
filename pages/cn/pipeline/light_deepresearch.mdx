@@ -24,14 +24,14 @@ Deep Research（也称为 Agentic Deep Research）是指大语言模型（LLM）
 
 我们提供了两种方式传入 API Key：环境变量和显式参数。其中推荐使用 环境变量，更安全，也能避免 API Key 在日志中泄漏。
 
-在 UR-2.0 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
+在 UR-v2 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
 并填写你的密钥信息，例如：
 
 ```
 LLM_API_KEY="your llm key"
 TAVILY_API_KEY="your retriever key"
 ```
-UR-2.0 会在启动时自动读取该文件并加载相关配置。
+UR-v2 会在启动时自动读取该文件并加载相关配置。
 
 ## Pipeline介绍
 
