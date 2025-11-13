@@ -108,16 +108,16 @@ uv pip install -e ".[all]"
 conda env create -f environment.yml
 ```
 
-## Build and Run Environment with Docker
+### Build and Run Environment with Docker
 
-Clone the project from GitHub to your local machine or server:
+(Option 1) Clone the project to your local machine or server via git:
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 ```
 
-Build the Docker image:
+Build the image:
 
 ```shell
 docker build -t ultrarag:v0.2.1 .
@@ -126,12 +126,26 @@ docker build -t ultrarag:v0.2.1 .
 Run an interactive environment:
 
 ```shell
-docker run -it --rm --gpus all ultrarag:v0.2.1 bash
+docker run -it --gpus all ultrarag:v0.2.1 /bin/bash
 ```
 
-Run the following command to verify installation success:
+(Option 2) Use the Prebuilt Image
+
+Pull the prebuilt image:
 
 ```shell
-# Successful execution will display the welcome message 'Hello, UltraRAG 2.0!'
+docker pull hdxin2002/ultrarag:v0.2.1
+```
+
+Run an interactive environment:
+
+```shell
+docker run -it --gpus all hdxin2002/ultrarag:v0.2.1 /bin/bash
+```
+
+Run the following command to verify whether the installation is successful:
+
+```shell
+# If successful, it will display the welcome message 'Hello, UltraRAG 2.0!'
 ultrarag run examples/sayhello.yaml
 ```
