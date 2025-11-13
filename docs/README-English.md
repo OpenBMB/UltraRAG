@@ -12,8 +12,6 @@ Less Code, Lower Barrier, Faster Deployment
 
 <p align="center">
 | 
-<a href="https://openbmb.github.io/UltraRAG"><b>Project Page</b></a> 
-| 
 <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>Documentation</b></a> 
 | 
 <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>Paper Daily</b></a> 
@@ -28,12 +26,12 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
-- [2025.10.22] 🎉 UltraRAG 2.1 released: full upgrade of RAG Servers — reengineered document parsing & knowledge base construction, enhanced multimodal RAG, and broader backend support.
-- [2025.09.23] New daily RAG paper digest, updated every day 👉 |[📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
+- **[2025.11.11]** 🎉 UltraRAG 2.1 Released: Enhanced knowledge ingestion & multimodal support, with a more complete unified evaluation system!
 
 <details>
 <summary>Previous News</summary>
 
+- [2025.09.23] New daily RAG paper digest, updated every day 👉 |[📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
 - [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
 - [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 Released UltraRAG 2.0! UltraRAG 2.0 is fully upgraded: build a high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation!
@@ -42,41 +40,54 @@ Less Code, Lower Barrier, Faster Deployment
 </details>
 
 ---
-## UltraRAG 2.0: Accelerating RAG Research
+## UltraRAG v2: Accelerating RAG Research
 
 Retrieval-Augmented Generation (RAG) systems are evolving from early-stage simple concatenations of “retrieval + generation” to complex knowledge systems integrating **adaptive knowledge organization**, **multi-turn reasoning**, and **dynamic retrieval** (typical examples include *DeepResearch* and *Search-o1*). However, this increase in complexity imposes high engineering costs on researchers when it comes to **method reproduction** and **rapid iteration of new ideas**.
 
-To address this challenge, [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [NEUIR](https://neuir.github.io), [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars) jointly launched UltraRAG 2.0 (UR-2.0) — the first RAG framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture design. This design allows researchers to declare complex logic such as sequential, loop, and conditional branching simply by writing YAML files, enabling rapid implementation of multi-stage reasoning systems with minimal code.
+To address this challenge, [THUNLP](https://nlp.csai.tsinghua.edu.cn/), [NEUIR](https://neuir.github.io), [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars) jointly launched UltraRAG v2— the first RAG framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture design. This design allows researchers to declare complex logic such as sequential, loop, and conditional branching simply by writing YAML files, enabling rapid implementation of multi-stage reasoning systems with minimal code.
 
 Its core ideas are:
 - Modular encapsulation: Encapsulate RAG core components as **standardized independent MCP Servers**;
 - Flexible invocation and extension: Provide **function-level Tool** interfaces to support flexible function calls and extensions;
 - Lightweight workflow orchestration: Use **MCP Client** to build a top-down simplified linkage;
 
-Compared with traditional frameworks, UltraRAG 2.0 significantly lowers the **technical threshold and learning cost** of complex RAG systems, allowing researchers to focus more on **experimental design and algorithm innovation** rather than lengthy engineering implementations.
+Compared with traditional frameworks, UltraRAG v2 significantly lowers the **technical threshold and learning cost** of complex RAG systems, allowing researchers to focus more on **experimental design and algorithm innovation** rather than lengthy engineering implementations.
 
 ## 🌟 Key Highlights
 
-- 🚀 **Low-Code Construction of Complex Pipelines**  
-  Natively supports **sequential, loop, conditional branching** and other inference control structures. Developers only need to write YAML files to build **iterative RAG workflows** with dozens of lines of code (e.g., *Search-o1*).
+- 🚀 **Low-code construction of complex pipelines**  
+  - Natively supports **sequential, loop, and conditional-branch** reasoning.  
+  - Complex iterative RAG pipelines can be built with only YAML.
 
-- ⚡ **Rapid Reproduction and Functional Extension**  
-  Based on the **MCP architecture**, all modules are encapsulated as independent, reusable **Servers**.  
-  - Users can customize Servers as needed or directly reuse existing modules;  
-  - Each Server’s functions are registered as function-level **Tools**, and new functions can be integrated into the complete workflow by adding a single function;  
-  - It also supports calling **external MCP Servers**, easily extending pipeline capabilities and application scenarios.
+- 🖼️ **Native multimodal support: retrieval, generation & evaluation in one system**  
+  - Fully unifies Retriever, Generator, and Evaluator modules.  
+  - Supports a closed-loop flow: **local PDF corpus → multimodal retrieval → multimodal generation**.  
+  - Significant performance improvements on complex document understanding and VQA.
 
-- 📊 **Unified Evaluation and Comparison**  
-  Built-in **standardized evaluation workflows and metric management**, out-of-the-box support for 17 mainstream scientific benchmarks.  
-  - Continuously integrate the latest baselines;  
-  - Provide leaderboard results;  
-  - Facilitate systematic comparison and optimization experiments for researchers.
+- ⚡ **Rapid reproduction & flexible extension (MCP-native)**  
+  - Every module is an independent MCP Server.  
+  - Add new functionalities by simply adding a Tool-level function.  
+  - Seamlessly supports external MCP Servers to extend RAG capability.
+
+- 📚 **Automated knowledge ingestion & corpus construction**  
+  - Supports PDF, Markdown, HTML, TXT parsing & chunking.  
+  - Integrated with **MinerU** for structured extraction + multimodal chunking (text/table/image).  
+  - One-click personal or enterprise-level knowledge base construction.
+
+- 🔗 **Unified pipeline for RAG construction & evaluation**  
+  - Supports diverse retrieval engines & generation engines.  
+  - Built-in standardized evaluation with full visualization.  
+
+- 📊 **Unified evaluation & comparison**  
+  - Supports many mainstream research benchmarks.  
+  - Continuously integrates new baselines.  
+  - Enables systematic comparisons for research.
 
 ## The Secret Sauce: MCP Architecture and Native Pipeline Control
 
 In different RAG systems, core capabilities such as retrieval and generation share high functional similarity, but due to diverse implementation strategies by developers, modules often lack unified interfaces, making cross-project reuse difficult. The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) is an open protocol that standardizes the way to provide context for large language models (LLMs) and adopts a **Client–Server** architecture, enabling MCP-compliant Server components to be seamlessly reused across different systems.
 
-Inspired by this, UltraRAG 2.0 is based on the **MCP architecture**, abstracting and encapsulating core functions such as retrieval, generation, and evaluation in RAG systems into independent **MCP Servers**, and invoking them through standardized function-level **Tool interfaces**. This design ensures flexible module function extension and allows new modules to be “hot-plugged” without invasive modifications to global code. In scientific research scenarios, this architecture enables researchers to quickly adapt new models or algorithms with minimal code while maintaining overall system stability and consistency.
+Inspired by this, UltraRAG v2 is based on the **MCP architecture**, abstracting and encapsulating core functions such as retrieval, generation, and evaluation in RAG systems into independent **MCP Servers**, and invoking them through standardized function-level **Tool interfaces**. This design ensures flexible module function extension and allows new modules to be “hot-plugged” without invasive modifications to global code. In scientific research scenarios, this architecture enables researchers to quickly adapt new models or algorithms with minimal code while maintaining overall system stability and consistency.
 
 <p align="center">
   <picture>
@@ -84,9 +95,9 @@ Inspired by this, UltraRAG 2.0 is based on the **MCP architecture**, abstracting
   </picture>
 </p>
 
-Developing complex RAG inference frameworks is significantly challenging. UltraRAG 2.0’s ability to support complex systems under **low-code** conditions lies in its native support for multi-structured **pipeline workflow control**. Whether sequential, loop, or conditional branching, all control logic can be defined and orchestrated at the YAML level, covering various workflow expression forms needed for complex inference tasks. During runtime, inference workflow scheduling is executed by the built-in **Client**, whose logic is fully described by user-written external **Pipeline YAML scripts**, achieving decoupling from the underlying implementation. Developers can call instructions like loop and step as if using programming language keywords, quickly constructing multi-stage inference workflows in a declarative manner.
+Developing complex RAG inference frameworks is significantly challenging. UltraRAG v2’s ability to support complex systems under **low-code** conditions lies in its native support for multi-structured **pipeline workflow control**. Whether sequential, loop, or conditional branching, all control logic can be defined and orchestrated at the YAML level, covering various workflow expression forms needed for complex inference tasks. During runtime, inference workflow scheduling is executed by the built-in **Client**, whose logic is fully described by user-written external **Pipeline YAML scripts**, achieving decoupling from the underlying implementation. Developers can call instructions like loop and step as if using programming language keywords, quickly constructing multi-stage inference workflows in a declarative manner.
 
-By deeply integrating the **MCP architecture** with **native workflow control**, UltraRAG 2.0 makes building complex RAG systems as natural and efficient as “orchestrating workflows.” Additionally, the framework includes 17 mainstream benchmark tasks and multiple high-quality baselines, combined with a unified evaluation system and knowledge base support, further enhancing system development efficiency and experiment reproducibility.
+By deeply integrating the **MCP architecture** with **native workflow control**, UltraRAG v2 makes building complex RAG systems as natural and efficient as “orchestrating workflows.” Additionally, the framework includes 17 mainstream benchmark tasks and multiple high-quality baselines, combined with a unified evaluation system and knowledge base support, further enhancing system development efficiency and experiment reproducibility.
 
 ## Installation
 
@@ -124,7 +135,7 @@ ultrarag run examples/sayhello.yaml
 ```
 
 
-[Optional] UR-2.0 supports rich Server components; developers can flexibly install dependencies according to actual tasks:
+[Optional] UltraRAG v2 supports rich Server components; developers can flexibly install dependencies according to actual tasks:
 
 ```shell
 # Retriever/Reranker Server dependencies:
@@ -220,7 +231,7 @@ ultrarag run examples/sayhello.yaml
 
 ## Quick Start
 
-We provide end‑to‑end tutorials from basics to advanced. Visit the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>documentation</b></a> to get started with UltraRAG 2.0.
+We provide end‑to‑end tutorials from basics to advanced. Visit the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>documentation</b></a> to get started with UltraRAG v2.
 
 Read the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/quick_start"><b>Quick Start</b></a> to learn how to run a complete RAG pipeline with UltraRAG.
 
@@ -228,7 +239,7 @@ Read the <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/quick_sta
 
 ## Support
 
-UltraRAG 2.0 ships ready‑to‑use evaluation **datasets** and **large‑scale corpora**, published on [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) and [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark).  
+UltraRAG v2 ships ready‑to‑use evaluation **datasets** and **large‑scale corpora**, published on [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) and [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark).  
 Download and use directly — no extra cleaning or conversion needed — and plug into UltraRAG’s evaluation pipelines. You can also customize by following the <a href="https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset"><b>DataFormat</b></a>.
 
 ### 1) Supported Datasets
@@ -288,6 +299,8 @@ Download and use directly — no extra cleaning or conversion needed — and plu
 | [R1-searcher](https://arxiv.org/abs/2503.05592) | examples/r1_searcher.yaml |
 | [Search-o1](https://arxiv.org/abs/2501.05366) | examples/search_o1.yaml |
 | [Search-r1](https://arxiv.org/abs/2503.09516) | examples/search_r1.yaml |
+| [VisRAG](https://arxiv.org/abs/2410.10594)   | examples/visrag.yaml     |
+| [VisRAG 2.0](https://arxiv.org/abs/2510.09733)   | examples/evisrag.yaml     |
 
 ## Contributing
 
