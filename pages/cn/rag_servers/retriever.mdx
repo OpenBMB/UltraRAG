@@ -663,3 +663,167 @@ ultrarag run examples/web_search.yaml
 ```
 
 <Note>你可以将 retriever_tavily_search 替换为 retriever_exa_search 或 retriever_zhipuai_search Web 检索源。</Note>
+
+### 部署 Retriever Server
+
+在同一语料库下测试多种 benchmark 或模型性能时，如果每次都重新初始化 retriever server，都会重复加载大型语料库和索引，耗时且低效。
+
+为此，UR-v2 提供了 常驻式 Retriever Server 部署脚本，可让 retriever 长时间运行在 CPU 或 GPU 上，避免重复加载，加速实验流程。
+
+**step1: 参数设置**
+
+与普通 retriever server 相同，需先准备配置文件：
+
+```json script/deploy_retriever_config.json icon="/images/json.svg"
+{
+  "model_name_or_path": "openbmb/MiniCPM-Embedding-Light",
+  "corpus_path": "data/corpus_example.jsonl",
+
+  "backend": "sentence_transformers",
+  "backend_configs": {
+    "infinity": {
+      "bettertransformer": false,
+      "pooling_method": "auto",
+      "device": "cuda",
+      "model_warmup": false,
+      "trust_remote_code": true
+    },
+    "sentence_transformers": {
+      "device": "cuda",
+      "trust_remote_code": true,
+      "sentence_transformers_encode": {
+        "normalize_embeddings": false,
+        "encode_chunk_size": 10000,
+        "q_prompt_name": "query",
+        "psg_prompt_name": "document",
+        "psg_task": null,
+        "q_task": null
+      }
+    },
+    "openai": {
+      "model_name": "text-embedding-3-small",
+      "base_url": "https://api.openai.com/v1",
+      "api_key": ""
+    },
+    "bm25": {
+      "lang": "en",
+      "save_path": "index/bm25"
+    }
+  },
+
+  "index_backend": "faiss",
+  "index_backend_configs": {
+    "faiss": {
+      "index_use_gpu": true,
+      "index_chunk_size": 50000,
+      "index_path": "index/index.index"
+    },
+    "milvus": {
+      "uri": "index/milvus_demo.db",
+      "token": null,
+      "collection_name": "ultrarag_embeddings",
+      "id_field_name": "id",
+      "vector_field_name": "vector",
+      "metric_type": "IP",
+      "index_params": {
+        "index_type": "AUTOINDEX",
+        "metric_type": "IP"
+      },
+      "search_params": {
+        "metric_type": "IP",
+        "params": {}
+      },
+      "index_chunk_size": 50000
+    }
+  },
+
+  "batch_size": 16,
+  "gpu_ids": "0,1",
+  "is_multimodal": false
+}
+```
+
+**step2: 后台部署**
+
+推荐使用 Screen 以便让 retriever 后台长期运行、随时查看日志。
+
+创建 Screen 会话：
+
+```shell
+screen -S retriever
+```
+
+启动 retriever server：
+
+```python script/deploy_retriever_server.py
+python ./script/deploy_retriever_server.py \
+    --config_path script/deploy_retriever_config.json \
+    --host 0.0.0.0 \
+    --port 64501
+```
+
+Server 启动后，将常驻内存，无需重复加载语料与索引。
+
+**step3: 在线检索**
+
+在线检索时，无需重新初始化 retriever，只需在 pipeline 中指定已部署的地址：
+
+```yaml examples/deploy_corpus_search.yaml icon="/images/yaml.svg" 
+#  Deploy Corpus Search Demo
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_deploy_search
+```
+
+运行以下命令编译 Pipeline：
+
+```shell
+ultrarag build examples/deploy_corpus_search.yaml
+```
+
+修改参数：
+```yaml examples/parameters/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+retriever:
+  query_instruction: ''
+  retriever_url: http://127.0.0.1:64501
+  top_k: 5
+```
+
+运行 Pipeline：
+```shell
+ultrarag run examples/deploy_corpus_search.yaml
+```
+
+### 存储检索文档
+
+UR-v2 的运行结果默认保存在 `output/memory_xxx.json` 文件中。
+在一些场景下，我们希望将 检索到的文档内容直接写回原始数据集，便于后续处理或进一步执行流水线。
+
+为此，UR-v2 提供了一个辅助脚本，可将检索结果合并到原始数据集并输出为新的文件：
+
+```python script/save_retrieve_results.py
+python ./script/save_retrieve_results.py \
+    --origin_data_path [your dataset path] \
+    --question_key [key name in the original dataset] \
+    --result_path [UR-v2 memory result path] \
+    --save_data_path [output dataset path]
+```
+
+运行该脚本后，会自动读取原始数据、匹配检索结果，并生成包含检索内容的新数据文件。

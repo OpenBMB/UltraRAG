@@ -651,3 +651,168 @@ ultrarag run examples/web_search.yaml
 ```
 
 <Note>You can replace `retriever_tavily_search` with `retriever_exa_search` or `retriever_zhipuai_search` as the Web search source.</Note>
+
+### Deploying the Retriever Server
+
+When evaluating multiple benchmarks or model variants on the same corpus, re-initializing the retriever server each time leads to repeated loading of large corpora and index files — a slow and inefficient process.
+
+To address this, UR-v2 provides a persistent Retriever Server deployment script, allowing the retriever to stay alive on CPU or GPU, eliminating repeated loading and significantly accelerating experimentation.
+
+**Step 1: Configure Parameters**
+
+Prepare a configuration file similar to the standard retriever server setup:
+
+```json script/deploy_retriever_config.json icon="/images/json.svg"
+{
+  "model_name_or_path": "openbmb/MiniCPM-Embedding-Light",
+  "corpus_path": "data/corpus_example.jsonl",
+
+  "backend": "sentence_transformers",
+  "backend_configs": {
+    "infinity": {
+      "bettertransformer": false,
+      "pooling_method": "auto",
+      "device": "cuda",
+      "model_warmup": false,
+      "trust_remote_code": true
+    },
+    "sentence_transformers": {
+      "device": "cuda",
+      "trust_remote_code": true,
+      "sentence_transformers_encode": {
+        "normalize_embeddings": false,
+        "encode_chunk_size": 10000,
+        "q_prompt_name": "query",
+        "psg_prompt_name": "document",
+        "psg_task": null,
+        "q_task": null
+      }
+    },
+    "openai": {
+      "model_name": "text-embedding-3-small",
+      "base_url": "https://api.openai.com/v1",
+      "api_key": ""
+    },
+    "bm25": {
+      "lang": "en",
+      "save_path": "index/bm25"
+    }
+  },
+
+  "index_backend": "faiss",
+  "index_backend_configs": {
+    "faiss": {
+      "index_use_gpu": true,
+      "index_chunk_size": 50000,
+      "index_path": "index/index.index"
+    },
+    "milvus": {
+      "uri": "index/milvus_demo.db",
+      "token": null,
+      "collection_name": "ultrarag_embeddings",
+      "id_field_name": "id",
+      "vector_field_name": "vector",
+      "metric_type": "IP",
+      "index_params": {
+        "index_type": "AUTOINDEX",
+        "metric_type": "IP"
+      },
+      "search_params": {
+        "metric_type": "IP",
+        "params": {}
+      },
+      "index_chunk_size": 50000
+    }
+  },
+
+  "batch_size": 16,
+  "gpu_ids": "0,1",
+  "is_multimodal": false
+}
+```
+
+**Step 2: Deploy in Background**
+
+It is recommended to use Screen so the retriever server can run persistently and logs can be monitored at any time.
+
+Create a new Screen session:
+
+```shell
+screen -S retriever
+```
+
+Start the retriever server:
+
+```shell script/deploy_retriever_server.py
+python ./script/deploy_retriever_server.py \
+    --config_path script/deploy_retriever_config.json \
+    --host 0.0.0.0 \
+    --port 64501
+```
+
+Once launched, the server will remain in memory and no longer needs to reload the corpus or index.
+
+**Step 3: Online Retrieval**
+
+When performing retrieval, you no longer need to initialize a retriever inside the pipeline.
+Simply specify the deployed server’s URL:
+
+```yaml examples/deploy_corpus_search.yaml icon="/images/yaml.svg" 
+#  Deploy Corpus Search Demo
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_deploy_search
+```
+
+Build the pipeline:
+
+```shell
+ultrarag build examples/deploy_corpus_search.yaml
+```
+
+Configure parameters:
+```yaml examples/parameters/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+retriever:
+  query_instruction: ''
+  retriever_url: http://127.0.0.1:64501
+  top_k: 5
+```
+
+Run the pipeline:
+```shell
+ultrarag run examples/deploy_corpus_search.yaml
+```
+
+### Saving Retrieved Documents
+
+By default, UR-v2 stores runtime results in files like `output/memory_xxx.json`.
+In many cases, however, you may want to write the retrieved documents back into the original dataset — for example, to facilitate downstream processing or to continue running additional pipelines.
+
+To support this workflow, UR-v2 provides a utility script that merges retrieval results into the original dataset and outputs an updated file:
+
+```python script/save_retrieve_results.py
+python ./script/save_retrieve_results.py \
+    --origin_data_path [your dataset path] \
+    --question_key [key name in the original dataset] \
+    --result_path [UR-v2 memory result path] \
+    --save_data_path [output dataset path]
+```
+
+After execution, the script automatically loads the dataset, aligns retrieval results, and generates a new dataset containing the retrieved document fields.
