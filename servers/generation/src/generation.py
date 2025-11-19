@@ -141,15 +141,33 @@ class Generation:
 
             self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
 
-            self.chat_template_kwargs = sampling_params.get("chat_template_kwargs", {})
+            # For the OpenAI backend, do **not** send chat_template_kwargs; this
+            # is only used for local backends (vllm / hf) and is rejected by
+            # the OpenAI Chat Completions API.
+            self.chat_template_kwargs = {}
+            # Some newer OpenAI models (for example, reasoning models like
+            # `o3-mini`) do not support certain sampling parameters on the
+            # Chat Completions API and will return `unsupported_parameter`
+            # errors if they are present. We proactively drop `top_p` and
+            # `top_k` here so that these models can be used out of the box.
             openai_sampling_params = self._drop_keys(
-                sampling_params, banned=["chat_template_kwargs", "top_k"]
+                sampling_params,
+                banned=["chat_template_kwargs", "top_k", "top_p"],
             )
+
+            # New OpenAI Chat Completions parameter name:
+            # - "max_tokens" is no longer supported for many models
+            # - use "max_completion_tokens" instead
+            if "max_tokens" in openai_sampling_params and "max_completion_tokens" not in openai_sampling_params:
+                app.logger.warning(
+                    "[openai] 'max_tokens' is deprecated; using it as 'max_completion_tokens' instead. "
+                    "Please update your sampling_params configuration."
+                )
+                openai_sampling_params["max_completion_tokens"] = openai_sampling_params.pop("max_tokens")
+
             extra_body = {}
             if "top_k" in sampling_params:
                 extra_body["top_k"] = sampling_params["top_k"]
-            if self.chat_template_kwargs:
-                extra_body["chat_template_kwargs"] = self.chat_template_kwargs
             if extra_body:
                 openai_sampling_params["extra_body"] = extra_body
             self.sampling_params = openai_sampling_params
