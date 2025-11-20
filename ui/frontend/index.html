@@ -1,219 +1,237 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>UltraRAG Flow Builder</title>
+  <title>UltraRAG Flow</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-body text-default">
-  <nav class="navbar navbar-expand-lg navbar-light glass-nav">
-    <div class="container-fluid justify-content-between align-items-center gap-3">
-      <div class="nav-brand d-flex flex-column flex-md-row align-items-start align-items-md-center gap-1">
-        <span class="navbar-brand fw-semibold mb-0">UltraRAG 2.0</span>
-        <span class="navbar-text text-muted small">Less Code · Lower Barrier · Faster Deployment</span>
+<body>
+  
+  <nav class="navbar fixed-top">
+    <div class="container-xl">
+      <div class="d-flex align-items-center gap-3">
+        <span class="navbar-brand fw-semibold">UltraRAG</span>
+        <div class="status-indicator" id="hero-status" data-status="idle">Idle</div>
       </div>
-      <div class="d-flex align-items-center gap-2">
-        <div class="status-chip">UI Connected</div>
-        <button type="button" id="shutdown-app" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-          <span class="icon">&#10005;</span> 退出系统
-        </button>
+      <div class="d-flex align-items-center gap-3">
+        <span class="pipeline-label text-muted small" id="hero-selected-pipeline">No Pipeline Selected</span>
+        <button type="button" id="shutdown-app" class="btn btn-text btn-sm text-secondary">Exit</button>
       </div>
     </div>
   </nav>
 
-  <main class="container-fluid py-4">
-    <header class="page-hero glass-card mb-4">
-      <div class="hero-copy">
-        <h1 class="hero-title">可视化构建你的UltraRAG Pipeline</h1>
-        <p class="hero-subtitle">拖拽并连接结构化节点，灵活组装工具为串行、循环与分支的管线，高效构建专属RAG流程。</p>
-      </div>
-      <div class="hero-meta">
-        <div class="meta-block">
-          <span class="meta-label">当前 Pipeline</span>
-          <span class="meta-value" id="hero-selected-pipeline">尚未选择</span>
-        </div>
-        <div class="meta-block">
-          <span class="meta-label">状态</span>
-          <span class="meta-value status-pill" id="hero-status">Idle</span>
-        </div>
-      </div>
-    </header>
+  <main class="main-container">
+    <div class="content-wrapper">
+      <header class="page-header text-center fade-in-up">
+        <h1 class="display-title">Build Your RAG Workflow</h1>
+        <p class="subtitle text-secondary">Design intelligent serial, branch, and loop pipelines.</p>
+      </header>
 
-    <div class="row g-4">
-      <div class="col-12">
-        <form id="pipeline-form" class="glass-card flow-form d-flex flex-column gap-4 p-4">
-          <div class="d-flex flex-wrap align-items-center gap-2 form-toolbar">
-            <div class="dropdown">
-              <button class="btn btn-outline-primary btn-soft dropdown-toggle" type="button" id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                选择 Pipeline
+      <form id="pipeline-form" class="fade-in-up delay-1">
+        <div class="toolbar-card">
+          <div class="row g-3 align-items-center">
+            <div class="col-md-auto">
+              <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                  Select Pipeline
+                </button>
+                <ul class="dropdown-menu shadow-sm border-0" id="pipeline-menu"></ul>
+              </div>
+            </div>
+            <div class="col-auto">
+              <button type="button" id="new-pipeline-btn" class="btn btn-light border px-3" title="Create a new blank workflow">
+                <span class="fw-bold text-success">+</span> New
               </button>
-              <ul class="dropdown-menu" id="pipeline-menu"></ul>
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-soft btn-sm" id="refresh-pipelines">刷新 Pipelines</button>
-            <div class="divider-vertical"></div>
-            <div class="input-group compact-input">
-              <span class="input-group-text">名称</span>
-              <input type="text" id="pipeline-name" class="form-control" placeholder="例如：my_flow" />
+            <div class="col">
+              <input type="text" id="pipeline-name" class="form-control form-control-flush" placeholder="Enter Pipeline Name..." />
             </div>
-          </div>
-
-          <div class="card builder border-0 shadow-sm glass-surface">
-            <div class="card-body">
-              <div class="canvas-toolbar d-flex align-items-center justify-content-between mb-3">
-                <p class="text-muted small mb-0">悬停在流程间隙，点击 <span class="flow-inline-plus">+</span> 选择要添加的工具或结构。</p>
-                <div class="d-flex gap-2">
-                  <button type="button" id="clear-steps" class="btn btn-outline-danger btn-soft btn-sm d-flex align-items-center gap-1"><span class="icon">&#128465;</span>清空</button>
-                </div>
-              </div>
-              <div id="flow-canvas" class="flow-canvas" aria-label="Pipeline canvas"></div>
-              <div id="context-controls" class="context-controls mt-3"></div>
-              <div class="mt-3">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <h6 class="fw-semibold mb-0">Pipeline YAML</h6>
-                  <span class="text-muted small">实时同步节点结构</span>
-                </div>
-                <pre id="pipeline-preview" class="pipeline-preview"></pre>
-              </div>
-            </div>
-          </div>
-
-          <div class="d-flex flex-wrap gap-2 action-bar">
-            <button type="submit" id="save-pipeline" class="btn btn-primary btn-soft d-flex align-items-center gap-2"><span class="icon">&#128190;</span> 保存 Pipeline</button>
-            <button type="button" id="build-pipeline" class="btn btn-outline-primary btn-soft d-flex align-items-center gap-2"><span class="icon">&#9881;</span> 构建</button>
-            <button type="button" id="delete-pipeline" class="btn btn-outline-danger btn-soft ms-auto d-flex align-items-center gap-1"><span class="icon">&#10005;</span> 删除</button>
-          </div>
-        </form>
-
-        <div id="parameter-panel" class="glass-card panel-soft d-none mt-4">
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <h5 class="mb-0 flex-grow-1">参数配置</h5>
-              <button type="button" id="parameter-back" class="btn btn-outline-secondary btn-soft btn-sm d-flex align-items-center gap-1"><span class="icon">&#11013;</span> 返回流程</button>
-            </div>
-            <p class="text-muted small mb-4">以下参数来自 <code>examples/parameter/&lt;name&gt;_parameter.yaml</code>。请根据需要修改后点击保存，再执行运行。</p>
-            <div id="parameter-form" class="parameter-form"></div>
-            <div class="d-flex flex-wrap gap-2 mt-4">
-              <button type="button" class="btn btn-primary btn-soft" id="parameter-save">保存参数</button>
-              <button type="button" class="btn btn-success btn-soft" id="parameter-run">运行</button>
-              <button type="button" class="btn btn-outline-primary btn-soft" id="parameter-chat">Chat</button>
+            <div class="col-auto d-flex gap-2">
+              <button type="button" class="btn btn-icon" id="refresh-pipelines" title="Refresh">↻</button>
+              <button type="button" id="clear-steps" class="btn btn-icon text-danger" title="Clear Canvas">🗑</button>
             </div>
           </div>
         </div>
 
-        <div id="step-editor" class="glass-card panel-soft mt-4" hidden>
-          <div class="card-body">
-            <h6 class="card-title">编辑节点</h6>
-            <textarea id="step-editor-value" rows="6" class="form-control mb-3"></textarea>
-            <div class="d-flex gap-2">
-              <button type="button" id="step-editor-save" class="btn btn-primary btn-sm">保存</button>
-              <button type="button" id="step-editor-cancel" class="btn btn-outline-secondary btn-sm">取消</button>
+        <div class="builder-section mt-4">
+          <div id="flow-canvas" class="flow-canvas" aria-label="Pipeline canvas"></div>
+          <div id="context-controls" class="context-controls mt-3"></div>
+          <div class="code-preview mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-uppercase text-xs fw-bold text-muted tracking-wider">Live Preview</span>
             </div>
+            <pre id="pipeline-preview" class="code-block"></pre>
           </div>
         </div>
-      </div>
 
-      <div class="col-12">
-        <div class="glass-card panel-soft mt-4">
-          <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">运行日志</h5>
-            <span class="text-muted small">实时追踪 build / run 输出</span>
-          </div>
-          <div class="card-body">
-            <pre id="log" class="log-area"></pre>
-          </div>
+        <div class="floating-actions">
+          <button type="submit" id="save-pipeline" class="btn btn-dark btn-pill">Save Changes</button>
+          <button type="button" id="build-pipeline" class="btn btn-light btn-pill border">Build</button>
+          <button type="button" id="delete-pipeline" class="btn btn-text text-danger ms-2">Delete</button>
         </div>
+      </form>
+
+      <div class="log-section mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-uppercase text-xs fw-bold text-muted">System Output</span>
+        </div>
+        <pre id="log" class="log-terminal"></pre>
       </div>
     </div>
   </main>
 
-  <section id="chat-view" class="chat-view d-none">
-    <header class="chat-header glass-nav">
-      <div class="chat-header-left">
-        <span class="chat-label">当前 Pipeline</span>
-        <h2 class="chat-title" id="chat-pipeline-name">—</h2>
+  <div id="parameter-panel" class="view-overlay d-none fade-in">
+    <header class="view-header">
+      <div class="btn-back-wrapper">
+        <button type="button" id="parameter-back" class="btn-back" title="Return to Flow Canvas">←</button>
       </div>
-      <div class="chat-header-actions">
-        <span id="chat-status" class="chat-status badge rounded-pill text-bg-light" aria-live="polite">准备就绪</span>
-        <button type="button" class="btn btn-outline-secondary btn-soft" id="chat-back">返回参数配置</button>
+      <div class="text-center">
+        <h2 class="m-0 fs-5 fw-semibold">Parameter Configuration</h2>
       </div>
     </header>
-    <div class="chat-body">
-      <div class="chat-history" id="chat-history"></div>
-      <form id="chat-form" class="chat-input-bar">
-        <div class="input-group input-group-lg">
-          <input type="text" id="chat-input" class="form-control" placeholder="输入问题并按回车" autocomplete="off" />
-          <button class="btn btn-primary" type="submit" id="chat-send">发送</button>
+
+    <div class="container-wide py-5">
+      <div class="row justify-content-center">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4 p-lg-5">
+              <p class="text-secondary mb-4 border-bottom pb-3">Please configure the parameters required to run the Pipeline. Objects and Arrays are displayed on a full line.</p>
+              <div id="parameter-form" class="parameter-grid"></div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3 justify-content-center pb-5">
+            <button type="button" class="btn btn-dark btn-pill px-4 py-2" id="parameter-save">Save Parameters</button>
+            <button type="button" class="btn btn-primary btn-pill px-4 py-2" id="parameter-run">Run Test ▶</button>
+            <div class="vr mx-2 opacity-25"></div>
+            <button type="button" class="btn btn-ai-gradient btn-pill px-4 py-2" id="parameter-chat">✨ Enter Chat Mode</button>
+          </div>
         </div>
-      </form>
+      </div>
+    </div>
+  </div>
+
+  <section id="run-view" class="view-overlay d-none">
+    <header class="view-header">
+      <div class="btn-back-wrapper">
+        <button type="button" id="run-back" class="btn-back" title="Return to Parameter Config">←</button>
+      </div>
+      <div class="text-center">
+        <span class="text-muted text-xs text-uppercase mb-1 d-block">Run Mode</span>
+        <h3 class="m-0 fs-5">Terminal Output</h3>
+      </div>
+      <div class="position-absolute end-0 me-4">
+         <div id="run-spinner" class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      </div>
+    </header>
+    <div class="terminal-container">
+      <pre id="run-terminal" class="terminal-content"></pre>
     </div>
   </section>
 
+  <section id="chat-view" class="view-overlay d-none">
+  <div class="chat-layout">
+    
+    <aside class="chat-sidebar">
+      <div class="sidebar-header">
+        <button type="button" id="chat-new-btn" class="btn btn-new-chat">
+          <span class="icon">+</span> New Chat
+        </button>
+      </div>
+      
+      <div class="sidebar-list">
+        <div class="sidebar-label">Recent History</div>
+        <div id="chat-session-list" class="session-list"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button type="button" id="chat-back" class="btn btn-sidebar-action">
+          <span class="icon">←</span> Return to Parameters
+        </button>
+      </div>
+    </aside>
+
+    <div class="chat-main">
+      <header class="view-header border-bottom-0">
+        <div class="d-md-none position-absolute start-0 ms-3">
+           <button type="button" class="btn btn-icon" id="chat-mobile-back">←</button>
+        </div>
+        
+        <div class="text-center">
+          <span class="text-muted text-xs text-uppercase mb-1 d-block">Chat Mode</span>
+          <h3 class="m-0 fs-5" id="chat-pipeline-name">Pipeline</h3>
+        </div>
+        <div class="position-absolute end-0 me-4">
+          <span id="chat-status" class="badge rounded-pill bg-light text-dark border">Ready</span>
+        </div>
+      </header>
+
+      <div class="chat-container">
+        <div class="chat-scroll-area" id="chat-history"></div>
+        <div class="chat-input-wrapper">
+          <form id="chat-form" class="chat-input-container shadow-sm">
+            <input type="text" id="chat-input" class="form-control chat-input" placeholder="Send a message..." autocomplete="off" />
+            <button class="btn btn-send" type="submit" id="chat-send">↑</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </section>
+
+  <div id="step-editor" class="step-editor-modal" hidden>
+    <div class="step-editor-content">
+      <h6 class="mb-3 fw-semibold">Edit Node Configuration</h6>
+      <textarea id="step-editor-value" rows="8" class="form-control code-font mb-3"></textarea>
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" id="step-editor-cancel" class="btn btn-sm btn-light border">Cancel</button>
+        <button type="button" id="step-editor-save" class="btn btn-sm btn-dark">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal fade" id="nodePickerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">添加节点</h5>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-semibold">Add Node</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
-          <ul class="nav nav-pills node-picker-tabs" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-node-mode="tool" type="button">Server Tool</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-node-mode="branch" type="button">分支</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-node-mode="loop" type="button">循环</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-node-mode="custom" type="button">自定义</button>
-            </li>
+        <div class="modal-body pt-2">
+          <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active rounded-3 py-2 small" data-node-mode="tool" type="button">Tool</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="branch" type="button">Branch</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="loop" type="button">Loop</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="custom" type="button">Custom</button></li>
           </ul>
-
-          <div class="node-picker-panel mt-3" id="node-picker-tool-panel">
-            <div class="mb-3">
-              <label class="form-label">服务器</label>
-              <select id="node-picker-server" class="form-select"></select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">工具</label>
-              <select id="node-picker-tool" class="form-select"></select>
-            </div>
-            <p class="text-muted small mb-0">选择需要调用的工具节点，稍后可在节点详情内调整参数。</p>
+          <div id="node-picker-tool-panel" class="picker-content">
+            <label class="form-label text-muted text-xs fw-bold text-uppercase">Server</label>
+            <select id="node-picker-server" class="form-select mb-3"></select>
+            <label class="form-label text-muted text-xs fw-bold text-uppercase">Function</label>
+            <select id="node-picker-tool" class="form-select"></select>
           </div>
-
-          <div class="node-picker-panel mt-3 d-none" id="node-picker-branch-panel">
-            <div class="mb-3">
-              <label class="form-label">分支名称（逗号分隔）</label>
-              <input type="text" class="form-control" id="node-picker-branch-cases" value="case1, case2" />
-            </div>
-            <p class="text-muted small mb-0">创建后可在分支面板中继续调整路由和子分支。</p>
+          <div id="node-picker-branch-panel" class="picker-content d-none">
+            <label class="form-label text-muted text-xs fw-bold text-uppercase">Cases</label>
+            <input type="text" class="form-control" id="node-picker-branch-cases" value="case1, case2" />
           </div>
-
-          <div class="node-picker-panel mt-3 d-none" id="node-picker-loop-panel">
-            <div class="mb-3">
-              <label class="form-label">循环次数</label>
-              <input type="number" min="1" class="form-control" id="node-picker-loop-times" value="2" />
-            </div>
-            <p class="text-muted small mb-0">循环节点会重复执行其内部的步骤，可在 Loop 面板调整参数。</p>
+          <div id="node-picker-loop-panel" class="picker-content d-none">
+            <label class="form-label text-muted text-xs fw-bold text-uppercase">Iterations</label>
+            <input type="number" min="1" class="form-control" id="node-picker-loop-times" value="2" />
           </div>
-
-          <div class="node-picker-panel mt-3 d-none" id="node-picker-custom-panel">
-            <div class="mb-3">
-              <label class="form-label">自定义节点</label>
-              <textarea id="node-picker-custom" class="form-control" rows="4" placeholder="输入 server.tool 或 JSON 对象"></textarea>
-            </div>
-            <p class="text-muted small mb-0">适用于特殊节点或粘贴高级配置。</p>
+          <div id="node-picker-custom-panel" class="picker-content d-none">
+             <label class="form-label text-muted text-xs fw-bold text-uppercase">JSON Config</label>
+            <textarea id="node-picker-custom" class="form-control code-font" rows="4"></textarea>
           </div>
-
-          <div id="node-picker-error" class="text-danger small d-none mt-3"></div>
+          <div id="node-picker-error" class="text-danger small mt-2 d-none"></div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-          <button type="button" class="btn btn-primary" id="node-picker-confirm">添加节点</button>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-dark w-100 rounded-3 py-2" id="nodePickerConfirm">Confirm Add</button>
         </div>
       </div>
     </div>

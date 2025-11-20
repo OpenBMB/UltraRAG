@@ -10,15 +10,31 @@ const state = {
   mode: "builder",
   logStream: { runId: null, lastId: -1, timer: null, status: "idle" },
   shutdownScheduled: false,
-  chat: { history: [], running: false },
+  // Updated Chat State, adding sessions and currentSessionId
+  chat: { 
+    history: [], 
+    running: false,
+    sessions: [], // Stores { id, title, messages: [] }
+    currentSessionId: null
+  },
 };
 
 const LOG_POLL_INTERVAL = 1500;
 
 const els = {
-  mainRoot: document.querySelector("main"),
-  log: document.getElementById("log"),
+  // View Containers
+  mainRoot: document.querySelector(".content-wrapper"),
   pipelineForm: document.getElementById("pipeline-form"),
+  parameterPanel: document.getElementById("parameter-panel"),
+  chatView: document.getElementById("chat-view"),
+  runView: document.getElementById("run-view"),
+  
+  // Logs
+  log: document.getElementById("log"),
+  runTerminal: document.getElementById("run-terminal"),
+  runSpinner: document.getElementById("run-spinner"),
+
+  // Controls
   name: document.getElementById("pipeline-name"),
   flowCanvas: document.getElementById("flow-canvas"),
   contextControls: document.getElementById("context-controls"),
@@ -32,12 +48,33 @@ const els = {
   pipelineDropdownBtn: document.getElementById("pipelineDropdownBtn"),
   pipelineMenu: document.getElementById("pipeline-menu"),
   refreshPipelines: document.getElementById("refresh-pipelines"),
-  parameterPanel: document.getElementById("parameter-panel"),
+  newPipelineBtn: document.getElementById("new-pipeline-btn"),
+  shutdownApp: document.getElementById("shutdown-app"),
+  heroSelectedPipeline: document.getElementById("hero-selected-pipeline"),
+  heroStatus: document.getElementById("hero-status"),
+  
+  // Parameter Controls
   parameterForm: document.getElementById("parameter-form"),
   parameterSave: document.getElementById("parameter-save"),
   parameterBack: document.getElementById("parameter-back"),
   parameterRun: document.getElementById("parameter-run"),
   parameterChat: document.getElementById("parameter-chat"),
+  
+  // Run Back
+  runBack: document.getElementById("run-back"),
+  
+  // Chat Controls (Updated)
+  chatPipelineName: document.getElementById("chat-pipeline-name"),
+  chatBack: document.getElementById("chat-back"),
+  chatHistory: document.getElementById("chat-history"),
+  chatForm: document.getElementById("chat-form"),
+  chatInput: document.getElementById("chat-input"),
+  chatStatus: document.getElementById("chat-status"),
+  chatSend: document.getElementById("chat-send"),
+  chatNewBtn: document.getElementById("chat-new-btn"), // New
+  chatSessionList: document.getElementById("chat-session-list"), // New
+  
+  // Node Picker
   nodePickerModal: document.getElementById("nodePickerModal"),
   nodePickerTabs: document.querySelectorAll("[data-node-mode]"),
   nodePickerServer: document.getElementById("node-picker-server"),
@@ -52,23 +89,13 @@ const els = {
     custom: document.getElementById("node-picker-custom-panel"),
   },
   nodePickerError: document.getElementById("node-picker-error"),
-  nodePickerConfirm: document.getElementById("node-picker-confirm"),
-  shutdownApp: document.getElementById("shutdown-app"),
-  heroSelectedPipeline: document.getElementById("hero-selected-pipeline"),
-  heroStatus: document.getElementById("hero-status"),
-  chatView: document.getElementById("chat-view"),
-  chatPipelineName: document.getElementById("chat-pipeline-name"),
-  chatBack: document.getElementById("chat-back"),
-  chatHistory: document.getElementById("chat-history"),
-  chatForm: document.getElementById("chat-form"),
-  chatInput: document.getElementById("chat-input"),
-  chatStatus: document.getElementById("chat-status"),
-  chatSend: document.getElementById("chat-send"),
+  nodePickerConfirm: document.getElementById("nodePickerConfirm"),
 };
 
 const Modes = {
   BUILDER: "builder",
   PARAMETERS: "parameters",
+  RUN: "run",
   CHAT: "chat",
 };
 
@@ -83,1778 +110,649 @@ const nodePickerState = {
 
 let nodePickerModalInstance = null;
 let pendingInsert = null;
-let fallbackModalHandlers = null;
 
+// --- Logging ---
 function log(message) {
   const stamp = new Date().toLocaleTimeString();
-  if (!els.log) {
-    console.log(`[${stamp}] ${message}`);
-    return;
-  }
-  els.log.textContent += `[${stamp}] ${message}\n`;
-  els.log.scrollTop = els.log.scrollHeight;
+  const msg = `> [${stamp}] ${message}`;
+  if (els.log) { els.log.textContent += msg + "\n"; els.log.scrollTop = els.log.scrollHeight; }
+  if (state.mode === Modes.RUN && els.runTerminal) logToTerminal(msg); 
+  else console.log(msg);
+}
+function logToTerminal(msg) {
+    if (!els.runTerminal) return;
+    els.runTerminal.textContent += msg + "\n";
+    const container = els.runTerminal.parentElement;
+    if (container) container.scrollTop = container.scrollHeight;
 }
 
+function createNewPipeline() {
+  if (state.steps.length > 0) {
+    if (!confirm("Create new pipeline? Unsaved changes will be lost.")) return;
+  }
+  state.selectedPipeline = null; state.parameterData = null; state.steps = []; state.isBuilt = false; state.parametersReady = false;
+  els.name.value = ""; if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = "Select Pipeline";
+  setHeroPipelineLabel(""); setHeroStatusLabel("idle");
+  resetContextStack(); renderSteps(); updatePipelinePreview(); setMode(Modes.BUILDER); updateActionButtons();
+  log("Created new blank pipeline.");
+}
+
+// --- Chat Session Management ---
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+function createNewChatSession() {
+    // If the current session is not empty, save it before creating a new one
+    if (state.chat.history.length > 0) {
+        saveCurrentSession(true); // Force save for existing, non-empty session
+    }
+    
+    state.chat.currentSessionId = generateId();
+    state.chat.history = [];
+    renderChatHistory();
+    renderChatSidebar();
+    setChatStatus("Ready", "ready");
+    if(els.chatInput) els.chatInput.focus();
+    log("Started new chat session.");
+}
+
+function loadChatSession(sessionId) {
+    if (state.chat.running) return; // Don't switch while generating
+    
+    // Save current session before loading a new one, in case it was modified
+    saveCurrentSession(false); 
+    
+    const session = state.chat.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    state.chat.currentSessionId = session.id;
+    state.chat.history = [...session.messages]; // Copy messages
+    renderChatHistory();
+    renderChatSidebar();
+    setChatStatus("Ready", "ready");
+    log(`Loaded chat session: ${session.title}`);
+}
+
+function saveCurrentSession(force = false) {
+    if (!state.chat.currentSessionId) return;
+
+    // Only save non-empty sessions, unless forced
+    if (!force && state.chat.history.length === 0) {
+        // If an empty session exists in the list, remove it
+        state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
+        renderChatSidebar();
+        return;
+    }
+    
+    let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
+    
+    // Generate Title from first user message if it's a new session or title is default
+    let title = "New Chat";
+    const firstUserMsg = state.chat.history.find(m => m.role === 'user');
+    if (firstUserMsg) {
+        title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
+    }
+
+    if (!session) {
+        session = { id: state.chat.currentSessionId, title: title, messages: [] };
+        state.chat.sessions.unshift(session); // Add to top
+    } else {
+        // Update existing
+        // Move to top on update
+        state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
+        state.chat.sessions.unshift(session);
+        
+        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) {
+             session.title = title;
+        }
+    }
+    session.messages = [...state.chat.history]; // Update messages
+    renderChatSidebar();
+}
+
+function renderChatSidebar() {
+    if (!els.chatSessionList) return;
+    els.chatSessionList.innerHTML = "";
+    
+    state.chat.sessions.forEach(session => {
+        const btn = document.createElement("button");
+        btn.className = `chat-session-item ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
+        btn.textContent = session.title || "Untitled Chat";
+        btn.onclick = () => loadChatSession(session.id);
+        els.chatSessionList.appendChild(btn);
+    });
+}
+
+// --- Chat Logic ---
 function resetChatSession() {
-  state.chat.history = [];
-  state.chat.running = false;
-  renderChatHistory();
-  setChatStatus("准备就绪", "ready");
+    // This is for pipeline reset, clears all chat data
+    state.chat.history = [];
+    state.chat.running = false;
+    state.chat.sessions = [];
+    state.chat.currentSessionId = null;
+    renderChatHistory(); 
+    renderChatSidebar();
+    setChatStatus("Ready", "ready");
 }
 
 function appendChatMessage(role, text, meta = {}) {
-  const entry = {
-    role,
-    text,
-    meta,
-    timestamp: new Date().toISOString(),
-  };
+  const entry = { role, text, meta, timestamp: new Date().toISOString() };
   state.chat.history.push(entry);
   renderChatHistory();
+  
+  // Save to session list immediately
+  saveCurrentSession(); 
 }
 
 function renderChatHistory() {
   if (!els.chatHistory) return;
   els.chatHistory.innerHTML = "";
+  if (state.chat.history.length === 0) { els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start a conversation.</p></div>'; return; }
   state.chat.history.forEach((entry) => {
-    const bubble = document.createElement("div");
-    bubble.className = `chat-bubble ${entry.role}`;
-    const content = document.createElement("div");
-    content.textContent = entry.text;
-    bubble.appendChild(content);
-    const timestamp = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : "";
-    const extra = entry.meta && entry.meta.hint ? ` · ${entry.meta.hint}` : "";
-    const metaText = `${timestamp}${extra}`.trim();
-    if (metaText) {
-      const metaLine = document.createElement("small");
-      metaLine.textContent = metaText;
-      bubble.appendChild(metaLine);
+    const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
+    const content = document.createElement("div"); content.textContent = entry.text; bubble.appendChild(content);
+    if (entry.meta && entry.meta.hint) {
+        const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
+        metaLine.style.fontSize = "0.7em"; metaLine.textContent = entry.meta.hint; bubble.appendChild(metaLine);
     }
     els.chatHistory.appendChild(bubble);
   });
   els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
-
 function setChatStatus(message, variant = "info") {
   if (!els.chatStatus) return;
   const badge = els.chatStatus;
-  const variants = {
-    info: "text-bg-light",
-    ready: "text-bg-light",
-    running: "text-bg-primary",
-    success: "text-bg-success",
-    warn: "text-bg-warning",
-    error: "text-bg-danger",
-  };
-  const classes = [
-    "text-bg-light",
-    "text-bg-primary",
-    "text-bg-success",
-    "text-bg-warning",
-    "text-bg-danger",
-  ];
-  classes.forEach((cls) => badge.classList.remove(cls));
-  badge.classList.add(variants[variant] || variants.info);
-  badge.dataset.variant = variant;
-  badge.textContent = message || "";
+  const variants = { info: "bg-light text-dark", ready: "bg-light text-dark", running: "bg-primary text-white", success: "bg-success text-white", warn: "bg-warning text-dark", error: "bg-danger text-white" };
+  badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`; badge.textContent = message || "";
 }
-
 function setChatRunning(isRunning) {
   state.chat.running = isRunning;
-  if (els.chatInput) {
-    els.chatInput.disabled = isRunning;
-  }
-  if (els.chatSend) {
-    els.chatSend.disabled = isRunning;
-  }
-  if (els.parameterChat && state.mode !== Modes.CHAT) {
-    els.parameterChat.disabled = isRunning || !canUseChat();
-  }
-  if (els.chatBack) {
-    els.chatBack.disabled = isRunning;
-  }
-  if (isRunning) {
-    setChatStatus("正在生成答案，请稍候...", "running");
-  }
-  if (!isRunning) {
-    updateActionButtons();
-  }
+  if (els.chatInput) els.chatInput.disabled = isRunning;
+  if (els.chatSend) els.chatSend.disabled = isRunning;
+  if (els.chatBack) els.chatBack.disabled = isRunning;
+  if (isRunning) setChatStatus("Thinking...", "running"); else updateActionButtons();
 }
-
-function canUseChat() {
-  return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData);
-}
-
+function canUseChat() { return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData); }
 function openChatView() {
-  if (!canUseChat()) {
-    log("请先构建并保存参数后再使用 Chat");
-    return;
+  if (!canUseChat()) { log("Please build and save parameters first."); return; }
+  if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
+  
+  // Initialize session if needed
+  if (!state.chat.currentSessionId) {
+      createNewChatSession();
   }
-  if (els.chatPipelineName) {
-    els.chatPipelineName.textContent = state.selectedPipeline || "—";
-  }
+  
   renderChatHistory();
+  renderChatSidebar(); // Render sidebar
   setMode(Modes.CHAT);
   setChatRunning(state.chat.running);
-  if (!state.chat.running && (state.chat.history.length === 0 || !els.chatStatus.textContent)) {
-    setChatStatus("准备就绪", "ready");
-  }
-  if (!state.chat.running && els.chatInput) {
-    els.chatInput.focus();
-  }
+  
+  if (!state.chat.running && state.chat.history.length === 0) setChatStatus("Ready", "ready");
+  if (!state.chat.running && els.chatInput) els.chatInput.focus();
 }
-
 async function handleChatSubmit(event) {
   event.preventDefault();
-  if (!canUseChat()) {
-    log("请先构建并保存参数后再使用 Chat");
-    return;
-  }
-  if (state.chat.running) {
-    return;
-  }
-  const question = (els.chatInput ? els.chatInput.value : "").trim();
-  if (!question) {
-    return;
-  }
-  if (els.chatInput) {
-    els.chatInput.value = "";
-  }
-  appendChatMessage("user", question);
-  log(`[Chat] 提交问题：${question}`);
-  setChatRunning(true);
-  setHeroStatusLabel("running");
+  if (!canUseChat()) return; if (state.chat.running) return;
+  const question = (els.chatInput ? els.chatInput.value : "").trim(); if (!question) return;
+  if (els.chatInput) els.chatInput.value = "";
+  appendChatMessage("user", question); setChatRunning(true);
   try {
-    if (!state.parametersReady) {
-      setChatStatus("正在保存参数...", "running");
-      await persistParameterData({ silent: true });
-      log("参数已保存（Chat 自动保存）");
-      setChatStatus("参数已保存，正在运行...", "running");
-    }
+    if (!state.parametersReady) await persistParameterData({ silent: true });
+    
+    // Pass session history with request
     const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
-    const resp = await fetchJSON(endpoint, {
-      method: "POST",
-      body: JSON.stringify({ question }),
-    });
-    const status = resp.status || "unknown";
-    if (status) {
-      setHeroStatusLabel(status);
-    }
-    const answer = resp.answer || resp.result || "未获取到答案";
-    const hints = [];
-    if (resp.dataset_path) hints.push(`数据集: ${resp.dataset_path}`);
-    if (resp.memory_path) hints.push(`Memory: ${resp.memory_path}`);
-    const hint = hints.join(" | ");
-    appendChatMessage("assistant", answer, { hint });
-    log(`[Chat] 运行结果（${status}）`);
-    if (status !== "succeeded") {
-      const errorMsg = resp.error ? `（${resp.error}）` : "";
-      appendChatMessage("system", `运行未成功${errorMsg}`.trim());
-    }
-    setChatStatus(status === "succeeded" ? "运行完成" : "运行结束，有提示请查看日志", status === "succeeded" ? "success" : "warn");
-  } catch (err) {
-    setHeroStatusLabel("failed");
-    appendChatMessage("system", `运行失败：${err.message || err}`);
-    setChatStatus("运行失败，请查看日志", "error");
-  } finally {
-    setChatRunning(false);
-  }
+    const body = JSON.stringify({ question, history: state.chat.history });
+    
+    const resp = await fetchJSON(endpoint, { method: "POST", body: body });
+    const status = resp.status || "unknown"; const answer = resp.answer || resp.result || "No answer received";
+    const hints = []; if (resp.dataset_path) hints.push(`Dataset: ${resp.dataset_path}`); if (resp.memory_path) hints.push(`Memory: ${resp.memory_path}`);
+    appendChatMessage("assistant", answer, { hint: hints.join(" | ") });
+    if (status !== "succeeded") appendChatMessage("system", `Ended with status: ${status} ${resp.error || ''}`);
+    setChatStatus("Done", status === "succeeded" ? "success" : "warn");
+  } catch (err) { appendChatMessage("system", `Error: ${err.message || err}`); setChatStatus("Error", "error"); } finally { setChatRunning(false); }
 }
 
-function resetLogView() {
-  if (els.log) {
-    els.log.textContent = "";
-  }
-}
-
-function setHeroPipelineLabel(name) {
-  if (!els.heroSelectedPipeline) return;
-  els.heroSelectedPipeline.textContent = name ? name : "尚未选择";
-}
-
+// --- Status & Log Stream ---
+function resetLogView() { if (els.log) els.log.textContent = ""; if (els.runTerminal) els.runTerminal.textContent = ""; }
+function setHeroPipelineLabel(name) { if (els.heroSelectedPipeline) els.heroSelectedPipeline.textContent = name ? name : "No Pipeline Selected"; }
 function setHeroStatusLabel(status) {
   if (!els.heroStatus) return;
-  const statusMap = {
-    idle: "Idle",
-    running: "Running",
-    succeeded: "Succeeded",
-    failed: "Failed",
-    unknown: "Pending",
-  };
-  const normalized = statusMap[status] ? status : "unknown";
-  els.heroStatus.dataset.status = normalized;
-  els.heroStatus.textContent = statusMap[normalized] || statusMap.unknown;
+  els.heroStatus.dataset.status = status; els.heroStatus.textContent = status.toUpperCase();
+  if (els.runSpinner) { if (status === "running") els.runSpinner.classList.remove("d-none"); else els.runSpinner.classList.add("d-none"); }
 }
-
 function scheduleWindowClose() {
-  if (state.shutdownScheduled) return;
-  state.shutdownScheduled = true;
-  log("退出命令已发送，浏览器窗口即将关闭...");
-  setTimeout(() => {
-    try {
-      window.open("", "_self", "");
-      window.close();
-    } catch (err) {
-      console.debug("window.close 被浏览器阻止", err);
-    }
-    setTimeout(() => {
-      if (!window.closed) {
-        window.location.replace("about:blank");
-      }
-    }, 400);
-  }, 800);
+  if (state.shutdownScheduled) return; state.shutdownScheduled = true; log("Shutdown command sent. Closing window...");
+  setTimeout(() => { try { window.close(); } catch (e) {} window.location.replace("about:blank"); }, 800);
 }
-
-function requestShutdown() {
-  if (!window.confirm("确定退出 UltraRAG UI 吗？")) return;
-  stopRunLogStream();
-  log("正在请求关闭 UltraRAG 服务...");
-  const fallbackCloseTimer = setTimeout(scheduleWindowClose, 5000);
-  const shutdownPromise = fetch("/api/system/shutdown", { method: "POST" })
-    .then(async (resp) => {
-      let data = {};
-      try {
-        data = await resp.json();
-      } catch (err) {
-        // ignore JSON errors
-      }
-      if (!resp.ok) {
-        const msg = (data && data.error) || resp.statusText || "未知错误";
-        log(`退出命令发送失败：${msg}`);
-        return;
-      }
-      const mode = (data && data.mode) || "unknown";
-      if (mode === "force") {
-        log("退出命令已发送（强制模式），服务即将结束。");
-      } else if (mode === "graceful") {
-        log("退出命令已发送，服务正优雅关闭，请稍候...");
-      } else {
-        log("退出命令已发送，服务器即将停止。");
-      }
-    })
-    .catch((err) => {
-      log(`退出命令发送失败（服务器可能已终止）：${err.message}`);
-    });
-  shutdownPromise.finally(() => {
-    clearTimeout(fallbackCloseTimer);
-    scheduleWindowClose();
-  });
-}
-
+function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; stopRunLogStream(); fetch("/api/system/shutdown", { method: "POST" }).finally(scheduleWindowClose); }
 function stopRunLogStream(finalStatus = "idle") {
-  if (state.logStream.timer) {
-    clearTimeout(state.logStream.timer);
-  }
-  state.logStream.timer = null;
-  state.logStream.runId = null;
-  state.logStream.lastId = -1;
-  state.logStream.status = finalStatus;
+  if (state.logStream.timer) clearTimeout(state.logStream.timer);
+  state.logStream.timer = null; state.logStream.runId = null; state.logStream.lastId = -1; state.logStream.status = finalStatus;
   setHeroStatusLabel(finalStatus);
 }
-
 async function pollRunLogs() {
   if (!state.logStream.runId) return;
-  const params = new URLSearchParams();
-  params.set("since", String(state.logStream.lastId));
-  params.set("run_id", state.logStream.runId);
+  const params = new URLSearchParams(); params.set("since", String(state.logStream.lastId)); params.set("run_id", state.logStream.runId);
   try {
     const data = await fetchJSON(`/api/logs/run?${params.toString()}`);
-    if (data.reset) {
-      resetLogView();
-      state.logStream.lastId = -1;
-    }
+    if (data.reset) { resetLogView(); state.logStream.lastId = -1; }
     const entries = data.entries || [];
-    entries.forEach((entry) => {
-      state.logStream.lastId = Math.max(state.logStream.lastId, entry.id);
-      if (entry.message) {
-        log(entry.message);
-      }
-    });
-    const status = data.status || {};
-    const stateValue = status.state || "running";
-    state.logStream.status = stateValue;
-    setHeroStatusLabel(stateValue);
-    if (stateValue === "running") {
-      state.logStream.timer = window.setTimeout(pollRunLogs, LOG_POLL_INTERVAL);
-    } else {
-      stopRunLogStream(stateValue);
-    }
-  } catch (err) {
-    log(`拉取运行日志失败：${err.message}`);
-    stopRunLogStream("failed");
-  }
+    entries.forEach((entry) => { state.logStream.lastId = Math.max(state.logStream.lastId, entry.id); if (entry.message) log(entry.message); });
+    const status = data.status || {}; const stateValue = status.state || "running"; state.logStream.status = stateValue; setHeroStatusLabel(stateValue);
+    if (stateValue === "running") { state.logStream.timer = window.setTimeout(pollRunLogs, LOG_POLL_INTERVAL); } else { stopRunLogStream(stateValue); }
+  } catch (err) { stopRunLogStream("failed"); }
 }
-
-function startRunLogStream(runId) {
-  if (!runId) return;
-  stopRunLogStream("idle");
-  state.logStream.runId = runId;
-  state.logStream.lastId = -1;
-  state.logStream.status = "running";
-  setHeroStatusLabel("running");
-  pollRunLogs();
-}
+function startRunLogStream(runId) { if (!runId) return; stopRunLogStream("idle"); state.logStream.runId = runId; state.logStream.lastId = -1; state.logStream.status = "running"; setHeroStatusLabel("running"); pollRunLogs(); }
 
 async function fetchJSON(url, options = {}) {
-  const resp = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || resp.statusText);
-  }
+  const resp = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
+  if (!resp.ok) { const text = await resp.text(); throw new Error(text || resp.statusText); }
   return resp.json();
 }
 
 async function persistParameterData({ silent = false } = {}) {
-  if (!state.selectedPipeline) {
-    throw new Error("请先保存 Pipeline");
-  }
-  if (!state.parameterData) {
-    throw new Error("无参数可保存");
-  }
-  await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/parameters`, {
-    method: "PUT",
-    body: JSON.stringify(state.parameterData),
-  });
-  state.parametersReady = true;
-  updateActionButtons();
-  if (!silent) {
-    log("参数已保存");
-  }
+  if (!state.selectedPipeline || !state.parameterData) throw new Error("No parameters to save");
+  await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/parameters`, { method: "PUT", body: JSON.stringify(state.parameterData) });
+  state.parametersReady = true; updateActionButtons(); if (!silent) log("Parameters saved.");
 }
 
-function cloneDeep(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-}
-
-function createLocation(segments = []) {
-  return { segments: segments.map((seg) => ({ ...seg })) };
-}
-
-function locationsEqual(a, b) {
-  return JSON.stringify((a && a.segments) || []) === JSON.stringify((b && b.segments) || []);
-}
-
+// --- Helpers ---
+function cloneDeep(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+function createLocation(segments = []) { return { segments: segments.map((seg) => ({ ...seg })) }; }
+function locationsEqual(a, b) { return JSON.stringify((a && a.segments) || []) === JSON.stringify((b && b.segments) || []); }
 function getContextKind(location) {
-  const segments = (location && location.segments) || [];
-  if (!segments.length) return "root";
+  const segments = (location && location.segments) || []; if (!segments.length) return "root";
   const last = segments[segments.length - 1];
-  if (last.type === "loop") return "loop";
-  if (last.type === "branch") return last.section === "router" ? "branch-router" : "branch-case";
+  if (last.type === "loop") return "loop"; if (last.type === "branch") return last.section === "router" ? "branch-router" : "branch-case";
   return "root";
 }
-
 function resolveSteps(location) {
-  let steps = state.steps;
-  const segments = (location && location.segments) || [];
+  let steps = state.steps; const segments = (location && location.segments) || [];
   for (const seg of segments) {
-    const entry = steps[seg.index];
-    if (!entry) return steps;
-    if (seg.type === "loop" && entry.loop) {
-      entry.loop.steps = entry.loop.steps || [];
-      steps = entry.loop.steps;
-    } else if (seg.type === "branch" && entry.branch) {
-      entry.branch.router = entry.branch.router || [];
-      entry.branch.branches = entry.branch.branches || {};
-      if (seg.section === "router") {
-        steps = entry.branch.router;
-      } else if (seg.section === "branch") {
-        entry.branch.branches[seg.branchKey] = entry.branch.branches[seg.branchKey] || [];
-        steps = entry.branch.branches[seg.branchKey];
-      }
+    const entry = steps[seg.index]; if (!entry) return steps;
+    if (seg.type === "loop" && entry.loop) { entry.loop.steps = entry.loop.steps || []; steps = entry.loop.steps; }
+    else if (seg.type === "branch" && entry.branch) {
+      entry.branch.router = entry.branch.router || []; entry.branch.branches = entry.branch.branches || {};
+      if (seg.section === "router") steps = entry.branch.router; else if (seg.section === "branch") steps = entry.branch.branches[seg.branchKey] || [];
     }
   }
   return steps;
 }
-
-function resolveParentSteps(stepPath) {
-  return resolveSteps(createLocation(stepPath.parentSegments || []));
-}
-
-function createStepPath(parentLocation, index) {
-  return {
-    parentSegments: (parentLocation.segments || []).map((seg) => ({ ...seg })),
-    index,
-  };
-}
-
-function getStepByPath(stepPath) {
-  const steps = resolveParentSteps(stepPath);
-  return steps[stepPath.index];
-}
-
-function setStepByPath(stepPath, value) {
-  const steps = resolveParentSteps(stepPath);
-  steps[stepPath.index] = value;
-  markPipelineDirty();
-}
-
-function removeStepByPath(stepPath) {
-  const steps = resolveParentSteps(stepPath);
-  steps.splice(stepPath.index, 1);
-}
-
-function getEntryForSegments(segments) {
-  let steps = state.steps;
-  let entry = null;
-  for (const seg of segments) {
-    entry = steps[seg.index];
-    if (!entry) return null;
-    if (seg.type === "loop" && entry.loop) {
-      steps = entry.loop.steps || [];
-    } else if (seg.type === "branch" && entry.branch) {
-      if (seg.section === "router") {
-        steps = entry.branch.router || [];
-      } else if (seg.section === "branch") {
-        entry.branch.branches = entry.branch.branches || {};
-        steps = entry.branch.branches[seg.branchKey] || [];
-      }
-    }
-  }
-  return entry;
-}
-
-function ensureContextInitialized() {
-  if (!state.contextStack.length) {
-    state.contextStack = [createLocation([])];
-  }
-}
-
-function getActiveLocation() {
-  ensureContextInitialized();
-  return state.contextStack[state.contextStack.length - 1];
-}
-
+function resolveParentSteps(stepPath) { return resolveSteps(createLocation(stepPath.parentSegments || [])); }
+function createStepPath(parentLocation, index) { return { parentSegments: (parentLocation.segments || []).map((seg) => ({ ...seg })), index }; }
+function getStepByPath(stepPath) { const steps = resolveParentSteps(stepPath); return steps[stepPath.index]; }
+function setStepByPath(stepPath, value) { const steps = resolveParentSteps(stepPath); steps[stepPath.index] = value; markPipelineDirty(); }
+function removeStepByPath(stepPath) { const steps = resolveParentSteps(stepPath); steps.splice(stepPath.index, 1); }
+function ensureContextInitialized() { if (!state.contextStack.length) state.contextStack = [createLocation([])]; }
+function getActiveLocation() { ensureContextInitialized(); return state.contextStack[state.contextStack.length - 1]; }
 function setActiveLocation(location) {
-  const segments = (location && location.segments) || [];
-  const newStack = [createLocation([])];
-  for (let i = 0; i < segments.length; i += 1) {
-    newStack.push(createLocation(segments.slice(0, i + 1)));
-  }
-  state.contextStack = newStack;
-  renderContextControls();
-  renderSteps();
-  updatePipelinePreview();
+  const segments = (location && location.segments) || []; const newStack = [createLocation([])];
+  for (let i = 0; i < segments.length; i += 1) newStack.push(createLocation(segments.slice(0, i + 1)));
+  state.contextStack = newStack; renderContextControls(); renderSteps(); updatePipelinePreview();
 }
+function resetContextStack() { state.contextStack = [createLocation([])]; renderContextControls(); }
 
-function resetContextStack() {
-  state.contextStack = [createLocation([])];
-  renderContextControls();
-}
-
+// --- YAML ---
 function yamlScalar(value) {
-  if (value === null || value === undefined) return "null";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "null";
-  if (typeof value === "string") {
-    if (/^[A-Za-z0-9_.-]+$/.test(value)) return value;
-    return JSON.stringify(value);
-  }
-  return JSON.stringify(value);
+    if (value === null || value === undefined) return "null";
+    if (typeof value === "boolean") return value ? "true" : "false";
+    if (typeof value === "number") return Number.isFinite(value) ? String(value) : "null";
+    if (typeof value === "string") return value; return JSON.stringify(value);
 }
-
 function yamlStringify(value, indent = 0) {
-  const pad = "  ".repeat(indent);
-  if (Array.isArray(value)) {
-    if (!value.length) return `${pad}[]`;
-    return value
-      .map((item) => {
-        if (item && typeof item === "object") {
-          const nested = yamlStringify(item, indent + 1);
-          return `${pad}-\n${nested}`;
-        }
-        return `${pad}- ${yamlScalar(item)}`;
-      })
-      .join("\n");
-  }
-  if (value && typeof value === "object") {
-    const entries = Object.entries(value);
-    if (!entries.length) return `${pad}{}`;
-    return entries
-      .map(([key, val]) => {
-        if (val && typeof val === "object") {
-          if (Array.isArray(val) && !val.length) {
-            return `${pad}${key}: []`;
-          }
-          if (!Array.isArray(val) && !Object.keys(val).length) {
-            return `${pad}${key}: {}`;
-          }
-          const nested = yamlStringify(val, indent + 1);
-          return `${pad}${key}:\n${nested}`;
-        }
-        return `${pad}${key}: ${yamlScalar(val)}`;
-      })
-      .join("\n");
-  }
-  return `${pad}${yamlScalar(value)}`;
-}
-
-function collectServersFromSteps(steps, set = new Set()) {
-  for (const step of steps) {
-    if (typeof step === "string") {
-      const parts = step.split(".");
-      if (parts.length > 1) set.add(parts[0]);
-    } else if (step && typeof step === "object") {
-      if (step.loop && Array.isArray(step.loop.steps)) {
-        collectServersFromSteps(step.loop.steps, set);
-      } else if (step.branch) {
-        collectServersFromSteps(step.branch.router || [], set);
-        Object.values(step.branch.branches || {}).forEach((branchSteps) => collectServersFromSteps(branchSteps || [], set));
-      }
+    const pad = "  ".repeat(indent);
+    if (Array.isArray(value)) {
+        if (!value.length) return `${pad}[]`;
+        return value.map(item => { if (item && typeof item === "object") return `${pad}-\n${yamlStringify(item, indent + 1)}`; return `${pad}- ${yamlScalar(item)}`; }).join("\n");
     }
-  }
-  return set;
+    if (value && typeof value === "object") {
+        const entries = Object.entries(value); if (!entries.length) return `${pad}{}`;
+        return entries.map(([k, v]) => { if (v && typeof v === "object") return `${pad}${k}:\n${yamlStringify(v, indent + 1)}`; return `${pad}${k}: ${yamlScalar(v)}`; }).join("\n");
+    }
+    return `${pad}${yamlScalar(value)}`;
 }
-
-function buildServersMapping(steps) {
-  const mapping = {};
-  collectServersFromSteps(steps, new Set()).forEach((name) => {
-    mapping[name] = `servers/${name}`;
-  });
-  return mapping;
+function collectServersFromSteps(steps, set = new Set()) {
+    for (const step of steps) {
+        if (typeof step === "string") { const parts = step.split("."); if (parts.length > 1) set.add(parts[0]); }
+        else if (step && typeof step === "object") {
+            if (step.loop && Array.isArray(step.loop.steps)) collectServersFromSteps(step.loop.steps, set);
+            else if (step.branch) { collectServersFromSteps(step.branch.router || [], set); Object.values(step.branch.branches || {}).forEach(bs => collectServersFromSteps(bs || [], set)); }
+        }
+    }
+    return set;
 }
+function buildServersMapping(steps) { const mapping = {}; collectServersFromSteps(steps, new Set()).forEach((name) => { mapping[name] = `servers/${name}`; }); return mapping; }
+function buildPipelinePayloadForPreview() { return { servers: buildServersMapping(state.steps), pipeline: cloneDeep(state.steps) }; }
+function updatePipelinePreview() { if (els.pipelinePreview) els.pipelinePreview.textContent = yamlStringify(buildPipelinePayloadForPreview()); }
 
-function buildPipelinePayloadForPreview() {
-  return {
-    servers: buildServersMapping(state.steps),
-    pipeline: cloneDeep(state.steps),
-  };
-}
-
-function updatePipelinePreview() {
-  if (!els.pipelinePreview) return;
-  const payload = buildPipelinePayloadForPreview();
-  els.pipelinePreview.textContent = yamlStringify(payload);
-}
-
+// --- View Switching ---
 function setMode(mode) {
   state.mode = mode;
-  const inChat = mode === Modes.CHAT;
-  if (els.mainRoot) {
-    els.mainRoot.classList.toggle("d-none", inChat);
-  }
-  if (els.chatView) {
-    els.chatView.classList.toggle("d-none", !inChat);
-  }
-  if (mode === Modes.BUILDER) {
-    if (els.pipelineForm) els.pipelineForm.classList.remove("d-none");
-    if (els.parameterPanel) els.parameterPanel.classList.add("d-none");
-  } else if (mode === Modes.PARAMETERS) {
-    if (els.pipelineForm) els.pipelineForm.classList.add("d-none");
-    if (els.parameterPanel) els.parameterPanel.classList.remove("d-none");
-  } else if (mode === Modes.CHAT) {
-    if (els.pipelineForm) els.pipelineForm.classList.add("d-none");
-    if (els.parameterPanel) els.parameterPanel.classList.add("d-none");
-  }
+  if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
+  if (els.parameterPanel) els.parameterPanel.classList.toggle("d-none", mode !== Modes.PARAMETERS);
+  if (els.chatView) els.chatView.classList.toggle("d-none", mode !== Modes.CHAT);
+  if (els.runView) els.runView.classList.toggle("d-none", mode !== Modes.RUN);
 }
 
+// --- Node Picker ---
 function getNodePickerModal() {
-  const modalElement = els.nodePickerModal;
-  if (!modalElement) return null;
-  if (!nodePickerModalInstance) {
-    const hasBootstrap = typeof window !== "undefined" && window.bootstrap && typeof window.bootstrap.Modal === "function";
-    if (hasBootstrap) {
-      nodePickerModalInstance = new window.bootstrap.Modal(modalElement, { backdrop: "static" });
-      modalElement.addEventListener("hidden.bs.modal", () => {
-        pendingInsert = null;
-        clearNodePickerError();
-      });
-    } else {
-      const body = document.body;
-      const beforeOverflow = body.style.overflow;
-      const beforePaddingRight = body.style.paddingRight;
-      fallbackModalHandlers = {
-        show() {
-          modalElement.classList.add("show");
-          modalElement.style.display = "block";
-          modalElement.removeAttribute("aria-hidden");
-          body.classList.add("modal-open");
-          body.style.overflow = "hidden";
-          body.style.paddingRight = "0px";
-        },
-        hide() {
-          modalElement.classList.remove("show");
-          modalElement.style.display = "none";
-          modalElement.setAttribute("aria-hidden", "true");
-          body.classList.remove("modal-open");
-          body.style.overflow = beforeOverflow;
-          body.style.paddingRight = beforePaddingRight;
-          pendingInsert = null;
-          clearNodePickerError();
-        },
-      };
-      modalElement.addEventListener("click", (event) => {
-        if (event.target === modalElement) {
-          fallbackModalHandlers.hide();
+    const modalElement = els.nodePickerModal; if (!modalElement) return null;
+    if (!nodePickerModalInstance) {
+        // Fallback for missing Bootstrap in environment
+        if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+            nodePickerModalInstance = new window.bootstrap.Modal(modalElement, { backdrop: "static" });
+            modalElement.addEventListener("hidden.bs.modal", () => { pendingInsert = null; clearNodePickerError(); });
+        } else {
+            const body = document.body;
+            let fallbackHandlers = {
+                show() {
+                    modalElement.classList.add("show"); modalElement.style.display = "block"; modalElement.removeAttribute("aria-hidden");
+                    let backdrop = document.querySelector('.modal-backdrop'); if (!backdrop) { backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop fade show'; body.appendChild(backdrop); }
+                    body.classList.add("modal-open"); body.style.overflow = "hidden";
+                },
+                hide() {
+                    modalElement.classList.remove("show"); modalElement.style.display = "none"; modalElement.setAttribute("aria-hidden", "true");
+                    const backdrop = document.querySelector('.modal-backdrop'); if (backdrop) backdrop.remove();
+                    body.classList.remove("modal-open"); body.style.overflow = ""; pendingInsert = null; clearNodePickerError();
+                }
+            };
+            modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => btn.onclick = () => fallbackHandlers.hide());
+            nodePickerModalInstance = fallbackHandlers;
         }
-      });
-      modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((btn) => {
-        btn.addEventListener("click", () => fallbackModalHandlers.hide());
-      });
-      nodePickerModalInstance = fallbackModalHandlers;
     }
-  }
-  return nodePickerModalInstance;
+    return nodePickerModalInstance;
 }
-
-function clearNodePickerError() {
-  if (!els.nodePickerError) return;
-  els.nodePickerError.textContent = "";
-  els.nodePickerError.classList.add("d-none");
-}
-
-function showNodePickerError(message) {
-  if (!els.nodePickerError) return;
-  els.nodePickerError.textContent = message;
-  els.nodePickerError.classList.remove("d-none");
-}
-
+function clearNodePickerError() { if (els.nodePickerError) els.nodePickerError.classList.add("d-none"); }
+function showNodePickerError(msg) { if (els.nodePickerError) { els.nodePickerError.textContent = msg; els.nodePickerError.classList.remove("d-none"); } }
 function populateNodePickerTools() {
-  if (!els.nodePickerTool) return;
-  const select = els.nodePickerTool;
-  select.innerHTML = "";
-  const server = nodePickerState.server;
-  const tools = (server && state.toolCatalog.byServer[server]) || [];
-  if (!tools.length) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = server ? "该服务器暂无工具" : "暂无可用工具";
-    select.appendChild(option);
-    select.disabled = true;
-    nodePickerState.tool = null;
-    return;
-  }
-  select.disabled = false;
-  if (!nodePickerState.tool || !tools.some((item) => item.tool === nodePickerState.tool)) {
-    nodePickerState.tool = tools[0].tool;
-  }
-  tools.forEach((tool) => {
-    const option = document.createElement("option");
-    option.value = tool.tool;
-    option.textContent = tool.tool;
-    select.appendChild(option);
-  });
-  select.value = nodePickerState.tool || "";
+    if (!els.nodePickerTool) return;
+    const select = els.nodePickerTool; select.innerHTML = "";
+    const server = nodePickerState.server; const tools = (server && state.toolCatalog.byServer[server]) || [];
+    if (!tools.length) { const option = document.createElement("option"); option.textContent = server ? "No tools" : "Select Server"; select.appendChild(option); select.disabled = true; nodePickerState.tool = null; return; }
+    select.disabled = false; if (!nodePickerState.tool) nodePickerState.tool = tools[0].tool;
+    tools.forEach(t => { const option = document.createElement("option"); option.value = t.tool; option.textContent = t.tool; select.appendChild(option); });
+    select.value = nodePickerState.tool || "";
 }
-
 function populateNodePickerServers() {
-  if (!els.nodePickerServer) return;
-  const select = els.nodePickerServer;
-  select.innerHTML = "";
-  const servers = state.toolCatalog.order || [];
-  if (!servers.length) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "暂无可用服务器";
-    select.appendChild(option);
-    select.disabled = true;
-    nodePickerState.server = null;
-    nodePickerState.tool = null;
-    populateNodePickerTools();
-    return;
-  }
-  select.disabled = false;
-  if (!nodePickerState.server || !servers.includes(nodePickerState.server)) {
-    nodePickerState.server = servers[0];
-  }
-  servers.forEach((server) => {
-    const option = document.createElement("option");
-    option.value = server;
-    option.textContent = server;
-    select.appendChild(option);
-  });
-  select.value = nodePickerState.server;
-  populateNodePickerTools();
+    if (!els.nodePickerServer) return;
+    const select = els.nodePickerServer; select.innerHTML = "";
+    const servers = state.toolCatalog.order || [];
+    if (!servers.length) { const option = document.createElement("option"); option.textContent = "No Servers"; select.appendChild(option); select.disabled = true; return; }
+    select.disabled = false; if (!nodePickerState.server) nodePickerState.server = servers[0];
+    servers.forEach(s => { const option = document.createElement("option"); option.value = s; option.textContent = s; select.appendChild(option); });
+    select.value = nodePickerState.server; populateNodePickerTools();
 }
-
 function updateNodePickerInputs() {
-  if (els.nodePickerBranchCases) {
-    els.nodePickerBranchCases.value = nodePickerState.branchCases || "case1, case2";
-  }
-  if (els.nodePickerLoopTimes) {
-    els.nodePickerLoopTimes.value = nodePickerState.loopTimes || 2;
-  }
-  if (els.nodePickerCustom) {
-    els.nodePickerCustom.value = nodePickerState.customValue || "";
-  }
+  if (els.nodePickerBranchCases) els.nodePickerBranchCases.value = nodePickerState.branchCases || "case1, case2";
+  if (els.nodePickerLoopTimes) els.nodePickerLoopTimes.value = nodePickerState.loopTimes || 2;
+  if (els.nodePickerCustom) els.nodePickerCustom.value = nodePickerState.customValue || "";
 }
-
 function setNodePickerMode(mode) {
-  if (!mode) return;
-  nodePickerState.mode = mode;
-  if (els.nodePickerTabs && els.nodePickerTabs.length) {
-    els.nodePickerTabs.forEach((tab) => {
-      tab.classList.toggle("active", tab.dataset.nodeMode === mode);
-    });
-  }
-  Object.entries(els.nodePickerPanels).forEach(([key, panel]) => {
-    if (!panel) return;
-    panel.classList.toggle("d-none", key !== mode);
-  });
-  clearNodePickerError();
-  if (mode === "tool") {
-    populateNodePickerServers();
-  }
-  updateNodePickerInputs();
+  if (!mode) return; nodePickerState.mode = mode;
+  if (els.nodePickerTabs) els.nodePickerTabs.forEach(t => t.classList.toggle("active", t.dataset.nodeMode === mode));
+  Object.entries(els.nodePickerPanels).forEach(([key, panel]) => { if (panel) panel.classList.toggle("d-none", key !== mode); });
+  clearNodePickerError(); if (mode === "tool") populateNodePickerServers(); updateNodePickerInputs();
 }
-
 function openNodePicker(location, insertIndex) {
-  pendingInsert = { location, index: insertIndex };
-  if (!nodePickerState.mode) nodePickerState.mode = "tool";
-  if (!state.toolCatalog.order.length && nodePickerState.mode === "tool") {
-    nodePickerState.mode = "branch";
-  }
-  if (!Number.isInteger(nodePickerState.loopTimes) || nodePickerState.loopTimes < 1) {
-    nodePickerState.loopTimes = 2;
-  }
-  populateNodePickerServers();
-  updateNodePickerInputs();
-  setNodePickerMode(nodePickerState.mode);
-  const modal = getNodePickerModal();
-  if (modal) {
-    modal.show();
-  }
+  pendingInsert = { location, index: insertIndex }; if (!nodePickerState.mode) nodePickerState.mode = "tool";
+  populateNodePickerServers(); updateNodePickerInputs(); setNodePickerMode(nodePickerState.mode);
+  const modal = getNodePickerModal(); if (modal) modal.show();
 }
-
 function handleNodePickerConfirm() {
-  if (!pendingInsert) {
-    const modal = getNodePickerModal();
-    if (modal) modal.hide();
-    return;
-  }
-  clearNodePickerError();
-  const { location, index } = pendingInsert;
-  let insertedPath = null;
-  try {
-    switch (nodePickerState.mode) {
-      case "tool": {
-        const server = nodePickerState.server;
-        const tool = nodePickerState.tool;
-        if (!server || !tool) {
-          showNodePickerError("请选择服务器与工具");
-          return;
+    if (!pendingInsert) { getNodePickerModal()?.hide(); return; }
+    const { location, index } = pendingInsert;
+    try {
+        switch (nodePickerState.mode) {
+            case "tool": if (!nodePickerState.server || !nodePickerState.tool) throw new Error("Select a tool"); insertStepAt(location, index, `${nodePickerState.server}.${nodePickerState.tool}`); break;
+            case "loop": const times = Math.max(1, Number(nodePickerState.loopTimes) || 1); const p = insertStepAt(location, index, { loop: { times, steps: [] } }); enterStructureContext("loop", p); break;
+            case "branch": const cases = (nodePickerState.branchCases || "").split(",").map(c => c.trim()).filter(B => B); const step = { branch: { router: [], branches: {} } }; (cases.length ? cases : ["c1", "c2"]).forEach(k => step.branch.branches[k] = []); const p2 = insertStepAt(location, index, step); enterStructureContext("branch", p2); break;
+            case "custom": if (!nodePickerState.customValue) throw new Error("Custom value cannot be empty"); insertStepAt(location, index, parseStepInput(nodePickerState.customValue)); break;
         }
-        const identifier = `${server}.${tool}`;
-        insertStepAt(location, index, identifier);
-        log(`已添加节点 ${identifier}`);
-        break;
-      }
-      case "loop": {
-        const times = Math.max(1, Number(nodePickerState.loopTimes) || 1);
-        const loopStep = { loop: { times, steps: [] } };
-        insertedPath = insertStepAt(location, index, loopStep);
-        enterStructureContext("loop", insertedPath);
-        log(`已添加 Loop (times=${times})`);
-        break;
-      }
-      case "branch": {
-        const rawCases = (nodePickerState.branchCases || "").split(",").map((c) => c.trim()).filter(Boolean);
-        const cases = rawCases.length ? rawCases : ["case1", "case2"];
-        const branchStep = { branch: { router: [], branches: {} } };
-        cases.forEach((caseKey) => {
-          branchStep.branch.branches[caseKey] = [];
-        });
-        insertedPath = insertStepAt(location, index, branchStep);
-        enterStructureContext("branch", insertedPath);
-        log(`已添加 Branch (${cases.join(", ")})`);
-        break;
-      }
-      case "custom": {
-        const raw = nodePickerState.customValue;
-        if (!raw || !raw.trim()) {
-          showNodePickerError("请输入自定义节点内容");
-          return;
-        }
-        const parsed = parseStepInput(raw);
-        insertStepAt(location, index, parsed);
-        log("已添加自定义节点");
-        break;
-      }
-      default:
-        showNodePickerError("未知的节点类型");
-        return;
-    }
-    const modal = getNodePickerModal();
-    if (modal) modal.hide();
-    pendingInsert = null;
-  } catch (err) {
-    showNodePickerError(err.message || "添加节点失败");
-  }
+        getNodePickerModal()?.hide(); pendingInsert = null;
+    } catch (e) { showNodePickerError(e.message); }
 }
 
-function markPipelineDirty() {
-  stopRunLogStream();
-  state.isBuilt = false;
-  state.parametersReady = false;
-  if (state.mode !== Modes.BUILDER) {
-    setMode(Modes.BUILDER);
-  }
-  updateActionButtons();
-}
-
-function setSteps(steps) {
-  state.steps = Array.isArray(steps) ? cloneDeep(steps) : [];
-  state.parameterData = null;
-  resetChatSession();
-  markPipelineDirty();
-  resetContextStack();
-  renderSteps();
-  updatePipelinePreview();
-}
-
+// --- Actions ---
+function markPipelineDirty() { stopRunLogStream(); state.isBuilt = false; state.parametersReady = false; if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); updateActionButtons(); }
+function setSteps(steps) { state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; state.parameterData = null; resetChatSession(); markPipelineDirty(); resetContextStack(); renderSteps(); updatePipelinePreview(); }
 function updateActionButtons() {
-  if (els.parameterRun) {
-    const canRun = !!(state.isBuilt && state.parametersReady && state.selectedPipeline);
-    els.parameterRun.disabled = !canRun;
-  }
-  if (els.parameterSave) {
-    const canSave = !!(state.isBuilt && state.selectedPipeline);
-    els.parameterSave.disabled = !canSave;
-  }
-  if (els.parameterChat && !state.chat.running) {
-    els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
-  }
+  if (els.parameterRun) els.parameterRun.disabled = !(state.isBuilt && state.parametersReady && state.selectedPipeline);
+  if (els.parameterSave) els.parameterSave.disabled = !(state.isBuilt && state.selectedPipeline);
+  if (els.parameterChat) els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
 }
-
-function addStepToActive(stepValue) {
-  const location = getActiveLocation();
-  const stepsArray = resolveSteps(location);
-  stepsArray.push(cloneDeep(stepValue));
-  markPipelineDirty();
-  setActiveLocation(location);
-  return createStepPath(location, stepsArray.length - 1);
-}
-
 function insertStepAt(location, insertIndex, stepValue) {
-  const stepsArray = resolveSteps(location);
-  const index = Math.max(0, Math.min(insertIndex, stepsArray.length));
-  stepsArray.splice(index, 0, cloneDeep(stepValue));
-  markPipelineDirty();
-  setActiveLocation(location);
-  return createStepPath(location, index);
+  const stepsArray = resolveSteps(location); const index = Math.max(0, Math.min(insertIndex, stepsArray.length));
+  stepsArray.splice(index, 0, cloneDeep(stepValue)); markPipelineDirty(); setActiveLocation(location); return createStepPath(location, index);
 }
-
-function moveStep(stepPath, targetLocation, insertIndex) {
-  const source = resolveParentSteps(stepPath);
-  const [item] = source.splice(stepPath.index, 1);
-  const target = resolveSteps(targetLocation);
-  let idx = insertIndex;
-  if (source === target && stepPath.index < insertIndex) {
-    idx -= 1;
-  }
-  target.splice(idx, 0, item);
-  markPipelineDirty();
-  setActiveLocation(targetLocation);
-}
-
-function removeStep(stepPath) {
-  removeStepByPath(stepPath);
-  markPipelineDirty();
-  resetContextStack();
-  renderSteps();
-  updatePipelinePreview();
-  log("已删除节点");
-}
-
-function openStepEditor(stepPath) {
-  state.editingPath = stepPath;
-  const step = getStepByPath(stepPath);
-  if (typeof step === "string") {
-    els.stepEditorValue.value = step;
-  } else {
-    els.stepEditorValue.value = JSON.stringify(step, null, 2);
-  }
-  els.stepEditor.hidden = false;
-}
-
-function closeStepEditor() {
-  state.editingPath = null;
-  els.stepEditor.hidden = true;
-  els.stepEditorValue.value = "";
-}
-
-function parseStepInput(raw) {
-  const trimmed = (raw || "").trim();
-  if (!trimmed) throw new Error("节点内容不能为空");
-  if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
-    return JSON.parse(trimmed);
-  }
-  return trimmed;
-}
-
+function removeStep(stepPath) { removeStepByPath(stepPath); markPipelineDirty(); resetContextStack(); renderSteps(); updatePipelinePreview(); }
+function openStepEditor(stepPath) { state.editingPath = stepPath; const step = getStepByPath(stepPath); els.stepEditorValue.value = typeof step === "string" ? step : JSON.stringify(step, null, 2); els.stepEditor.hidden = false; }
+function closeStepEditor() { state.editingPath = null; els.stepEditor.hidden = true; }
+function parseStepInput(raw) { const t = (raw||"").trim(); if (!t) throw new Error("Empty"); if ((t.startsWith("{")&&t.endsWith("}")) || (t.startsWith("[")&&t.endsWith("]"))) return JSON.parse(t); return t; }
 function createInsertControl(location, insertIndex, { prominent = false, compact = false } = {}) {
-  const holder = document.createElement("div");
-  holder.className = "flow-insert-control";
-  if (prominent) holder.classList.add("prominent");
-  if (compact) holder.classList.add("compact");
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "flow-insert-button";
-  button.innerHTML = '<span>+</span><span class="d-none d-sm-inline">添加</span>';
-  button.addEventListener("click", () => {
-    const pendingLocation = createLocation((location.segments || []).map((seg) => ({ ...seg })));
-    openNodePicker(pendingLocation, insertIndex);
-  });
-  holder.appendChild(button);
-  return holder;
+  const holder = document.createElement("div"); holder.className = "flow-insert-control"; if (prominent) holder.classList.add("prominent");
+  const button = document.createElement("button"); button.type = "button"; button.className = "flow-insert-button"; button.title = "Insert Node Here"; button.innerHTML = '<span>+</span><span>Add Node</span>';
+  button.addEventListener("click", () => { const pendingLocation = createLocation((location.segments || []).map((seg) => ({ ...seg }))); openNodePicker(pendingLocation, insertIndex); });
+  holder.appendChild(button); return holder;
 }
 
 function renderToolNode(identifier, stepPath) {
-  const card = document.createElement("div");
-  card.className = "flow-node card border-0 tool-node";
-  const body = document.createElement("div");
-  body.className = "card-body d-flex flex-column gap-2";
-
-  const header = document.createElement("div");
-  header.className = "flow-node-header";
-  const titleRow = document.createElement("div");
-  titleRow.className = "flow-node-title-row";
-  const title = document.createElement("h6");
-  title.className = "flow-node-title";
-  title.textContent = identifier;
-  const handle = document.createElement("span");
-  handle.className = "step-handle";
-  handle.textContent = "☰";
-  titleRow.append(title, handle);
-  header.appendChild(titleRow);
-
-  const preview = document.createElement("div");
-  preview.className = "flow-node-body";
-  preview.textContent = identifier;
-
-  const actions = document.createElement("div");
-  actions.className = "step-actions";
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "btn btn-outline-primary btn-sm";
-  editBtn.textContent = "编辑";
-  editBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openStepEditor(stepPath);
-  });
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn btn-outline-danger btn-sm";
-  removeBtn.textContent = "删除";
-  removeBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    removeStep(stepPath);
-  });
-  actions.append(editBtn, removeBtn);
-
-  body.append(header, preview, actions);
-  card.append(body);
-  return card;
+  const card = document.createElement("div"); card.className = "flow-node";
+  const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
+  const title = document.createElement("h6"); title.className = "flow-node-title"; title.textContent = identifier; header.appendChild(title);
+  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = identifier;
+  const actions = document.createElement("div"); actions.className = "step-actions";
+  const editBtn = document.createElement("button"); editBtn.className = "btn btn-outline-primary btn-sm me-1"; editBtn.textContent = "Edit"; editBtn.onclick = (e) => { e.stopPropagation(); openStepEditor(stepPath); };
+  const removeBtn = document.createElement("button"); removeBtn.className = "btn btn-outline-danger btn-sm"; removeBtn.textContent = "Delete"; removeBtn.onclick = (e) => { e.stopPropagation(); removeStep(stepPath); };
+  actions.append(editBtn, removeBtn); card.append(header, body, actions); return card;
 }
-
 function renderLoopNode(step, parentLocation, index) {
   const loopLocation = createLocation([...(parentLocation.segments || []), { type: "loop", index }]);
-  const container = document.createElement("div");
-  container.className = "loop-container card border-0";
-  const body = document.createElement("div");
-  body.className = "card-body d-flex flex-column gap-3";
-
-  const header = document.createElement("div");
-  header.className = "loop-header d-flex justify-content-between align-items-center";
-  const title = document.createElement("h6");
-  title.className = "mb-0";
-  title.textContent = `Loop (times: ${step.loop.times || 1})`;
-  const enterBtn = document.createElement("button");
-  enterBtn.type = "button";
-  enterBtn.className = "btn btn-link btn-sm text-decoration-none";
-  enterBtn.textContent = "进入";
-  enterBtn.addEventListener("click", () => setActiveLocation(loopLocation));
+  const container = document.createElement("div"); container.className = "loop-container";
+  const header = document.createElement("div"); header.className = "loop-header";
+  const title = document.createElement("h6"); title.textContent = `LOOP (${step.loop.times}x)`;
+  const enterBtn = document.createElement("button"); enterBtn.className = "btn btn-sm btn-link text-decoration-none p-0"; enterBtn.textContent = "Open Context →"; enterBtn.onclick = () => setActiveLocation(loopLocation);
   header.append(title, enterBtn);
-
-  const innerList = renderStepList(step.loop.steps || [], loopLocation, { placeholderText: "Loop 内暂无节点", compact: true });
-  const actions = document.createElement("div");
-  actions.className = "step-actions";
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "btn btn-outline-primary btn-sm";
-  editBtn.textContent = "编辑 Loop";
-  editBtn.addEventListener("click", () => openStepEditor(createStepPath(parentLocation, index)));
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn btn-outline-danger btn-sm";
-  removeBtn.textContent = "删除 Loop";
-  removeBtn.addEventListener("click", () => removeStep(createStepPath(parentLocation, index)));
-  actions.append(editBtn, removeBtn);
-
-  body.append(header, innerList, actions);
-  container.append(body);
-  if (locationsEqual(loopLocation, getActiveLocation())) {
-    container.classList.add("active");
-  }
-  return container;
+  const actions = document.createElement("div"); actions.className = "mt-2 d-flex justify-content-end gap-2";
+  const editBtn = document.createElement("button"); editBtn.className = "btn btn-sm btn-outline-secondary border-0"; editBtn.textContent = "Edit"; editBtn.onclick = () => openStepEditor(createStepPath(parentLocation, index));
+  const delBtn = document.createElement("button"); delBtn.className = "btn btn-sm btn-outline-danger border-0"; delBtn.textContent = "Delete"; delBtn.onclick = () => removeStep(createStepPath(parentLocation, index));
+  actions.append(editBtn, delBtn);
+  const list = renderStepList(step.loop.steps || [], loopLocation, { placeholderText: "Empty Loop", compact: true });
+  container.append(header, list, actions); if (locationsEqual(loopLocation, getActiveLocation())) container.classList.add("active"); return container;
 }
-
 function renderBranchNode(step, parentLocation, index) {
-  step.branch.router = step.branch.router || [];
-  step.branch.branches = step.branch.branches || {};
-  const branchBase = createLocation([...(parentLocation.segments || []), { type: "branch", index, section: "router" }]);
-
-  const container = document.createElement("div");
-  container.className = "branch-container card border-0";
-  const body = document.createElement("div");
-  body.className = "card-body d-flex flex-column gap-3";
-
-  const header = document.createElement("div");
-  header.className = "branch-header d-flex justify-content-between align-items-center";
-  const title = document.createElement("h6");
-  title.className = "mb-0";
-  title.textContent = "Branch";
-  const enterBtn = document.createElement("button");
-  enterBtn.type = "button";
-  enterBtn.className = "btn btn-link btn-sm text-decoration-none";
-  enterBtn.textContent = "进入 Router";
-  enterBtn.addEventListener("click", () => setActiveLocation(branchBase));
-  header.append(title, enterBtn);
-
-  const routerSection = document.createElement("div");
-  routerSection.className = "branch-router";
-  if (locationsEqual(branchBase, getActiveLocation())) {
-    routerSection.classList.add("active");
-  }
-  routerSection.append(renderStepList(step.branch.router, branchBase, { placeholderText: "Router 区域暂无节点", compact: true }));
-
-  const casesWrap = document.createElement("div");
-  casesWrap.className = "branch-cases";
-  Object.keys(step.branch.branches).forEach((caseKey) => {
-    const caseLocation = createLocation([
-      ...(parentLocation.segments || []),
-      { type: "branch", index, section: "branch", branchKey: caseKey },
-    ]);
-    const caseCard = document.createElement("div");
-    caseCard.className = "branch-case card border-0";
-    if (locationsEqual(caseLocation, getActiveLocation())) {
-      caseCard.classList.add("active");
-    }
-    const caseBody = document.createElement("div");
-    caseBody.className = "card-body";
-    const caseHeader = document.createElement("div");
-    caseHeader.className = "branch-case-header d-flex justify-content-between align-items-center";
-    const caseTitle = document.createElement("span");
-    caseTitle.textContent = caseKey;
-    const selectBtn = document.createElement("button");
-    selectBtn.type = "button";
-    selectBtn.className = "btn btn-link btn-sm text-decoration-none";
-    selectBtn.textContent = "进入";
-    selectBtn.addEventListener("click", () => setActiveLocation(caseLocation));
-    caseHeader.append(caseTitle, selectBtn);
-    caseBody.append(caseHeader, renderStepList(step.branch.branches[caseKey], caseLocation, {
-      placeholderText: `分支 ${caseKey} 暂无节点`,
-      compact: true,
-    }));
-    caseCard.append(caseBody);
-    casesWrap.append(caseCard);
-  });
-
-  const actions = document.createElement("div");
-  actions.className = "step-actions";
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "btn btn-outline-primary btn-sm";
-  editBtn.textContent = "编辑 Branch";
-  editBtn.addEventListener("click", () => openStepEditor(createStepPath(parentLocation, index)));
-  const addCaseBtn = document.createElement("button");
-  addCaseBtn.type = "button";
-  addCaseBtn.className = "btn btn-outline-primary btn-sm";
-  addCaseBtn.textContent = "新增分支";
-  addCaseBtn.addEventListener("click", () => addBranchCase(parentLocation, index));
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn btn-outline-danger btn-sm";
-  removeBtn.textContent = "删除 Branch";
-  removeBtn.addEventListener("click", () => removeStep(createStepPath(parentLocation, index)));
-  actions.append(editBtn, addCaseBtn, removeBtn);
-
-  body.append(header, routerSection, casesWrap, actions);
-  container.append(body);
-  return container;
+    step.branch.router = step.branch.router || []; step.branch.branches = step.branch.branches || {};
+    const branchBase = createLocation([...(parentLocation.segments || []), { type: "branch", index, section: "router" }]);
+    const container = document.createElement("div"); container.className = "branch-container";
+    const header = document.createElement("div"); header.className = "branch-header"; header.innerHTML = `<h6>BRANCH</h6>`;
+    const enterBtn = document.createElement("button"); enterBtn.className = "btn btn-sm btn-link text-decoration-none p-0"; enterBtn.textContent = "Open Router →";
+    enterBtn.onclick = () => setActiveLocation(branchBase); 
+    header.appendChild(enterBtn);
+    const routerDiv = document.createElement("div"); routerDiv.className = "branch-router " + (locationsEqual(branchBase, getActiveLocation()) ? "active" : "");
+    routerDiv.appendChild(renderStepList(step.branch.router, branchBase, { placeholderText: "Router Logic", compact: true }));
+    const casesDiv = document.createElement("div"); casesDiv.className = "branch-cases mt-3";
+    Object.keys(step.branch.branches).forEach(k => {
+        const loc = createLocation([...(parentLocation.segments||[]), { type: "branch", index, section: "branch", branchKey: k }]);
+        const cCard = document.createElement("div"); cCard.className = "branch-case " + (locationsEqual(loc, getActiveLocation()) ? "active" : "");
+        const cHeader = document.createElement("div"); cHeader.className = "d-flex justify-content-between mb-2";
+        const cTitle = document.createElement("span"); cTitle.className = "fw-bold text-xs text-uppercase"; cTitle.textContent = `Case: ${k}`;
+        const cBtn = document.createElement("button"); cBtn.className = "btn btn-link btn-sm p-0 text-decoration-none"; cBtn.textContent = "Open"; cBtn.onclick = () => setActiveLocation(loc);
+        cHeader.append(cTitle, cBtn); cCard.append(cHeader, renderStepList(step.branch.branches[k], loc, { placeholderText: "Empty Case", compact: true })); casesDiv.appendChild(cCard);
+    });
+    const actions = document.createElement("div"); actions.className = "mt-2 d-flex justify-content-end gap-2";
+    const addBtn = document.createElement("button"); addBtn.className = "btn btn-sm btn-light border"; addBtn.textContent = "+ Case"; addBtn.onclick = () => addBranchCase(parentLocation, index);
+    const delBtn = document.createElement("button"); delBtn.className = "btn btn-sm btn-text text-danger"; delBtn.textContent = "Delete Branch"; delBtn.onclick = () => removeStep(createStepPath(parentLocation, index));
+    actions.append(addBtn, delBtn); container.append(header, routerDiv, casesDiv, actions); return container;
 }
-
-function renderGenericNode(step, stepPath) {
-  const card = document.createElement("div");
-  card.className = "flow-node card border-0 generic-node";
-  const body = document.createElement("div");
-  body.className = "card-body d-flex flex-column gap-2";
-
-  const header = document.createElement("div");
-  header.className = "flow-node-header";
-  const title = document.createElement("h6");
-  title.className = "flow-node-title";
-  title.textContent = "自定义对象";
-  header.appendChild(title);
-
-  const preview = document.createElement("div");
-  preview.className = "flow-node-body";
-  preview.textContent = JSON.stringify(step, null, 2);
-
-  const actions = document.createElement("div");
-  actions.className = "step-actions";
-  const editBtn = document.createElement("button");
-  editBtn.type = "button";
-  editBtn.className = "btn btn-outline-primary btn-sm";
-  editBtn.textContent = "编辑";
-  editBtn.addEventListener("click", () => openStepEditor(stepPath));
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.className = "btn btn-outline-danger btn-sm";
-  removeBtn.textContent = "删除";
-  removeBtn.addEventListener("click", () => removeStep(stepPath));
-  actions.append(editBtn, removeBtn);
-
-  body.append(header, preview, actions);
-  card.append(body);
-  return card;
-}
-
 function renderStepNode(step, parentLocation, index) {
   const stepPath = createStepPath(parentLocation, index);
   if (typeof step === "string") return renderToolNode(step, stepPath);
   if (step && typeof step === "object" && step.loop) return renderLoopNode(step, parentLocation, index);
   if (step && typeof step === "object" && step.branch) return renderBranchNode(step, parentLocation, index);
-  return renderGenericNode(step, stepPath);
+  const card = renderToolNode("Custom Object", stepPath); card.querySelector(".flow-node-body").textContent = JSON.stringify(step); return card;
 }
-
 function renderStepList(steps, location, options = {}) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "step-list";
-  if (locationsEqual(location, getActiveLocation())) {
-    wrapper.classList.add("active-context");
-  }
+  const wrapper = document.createElement("div"); wrapper.className = "step-list";
   if (!steps.length) {
-    const placeholder = document.createElement("div");
-    placeholder.className = "flow-placeholder d-flex flex-column gap-3 align-items-center";
-    const message = document.createElement("span");
-    message.textContent = options.placeholderText || "点击 + 添加节点";
-    message.className = "text-muted";
-    placeholder.appendChild(message);
-    const control = createInsertControl(location, 0, { prominent: true });
-    placeholder.appendChild(control);
-    wrapper.appendChild(placeholder);
-    return wrapper;
+    const placeholder = document.createElement("div"); placeholder.className = "flow-placeholder";
+    const control = createInsertControl(location, 0, { prominent: true }); placeholder.appendChild(control); wrapper.appendChild(placeholder); return wrapper;
   }
-  steps.forEach((step, index) => {
-    wrapper.appendChild(createInsertControl(location, index, { compact: options.compact }));
-    wrapper.appendChild(renderStepNode(step, location, index));
-  });
-  wrapper.appendChild(createInsertControl(location, steps.length, { compact: options.compact }));
-  return wrapper;
+  steps.forEach((step, index) => { wrapper.appendChild(createInsertControl(location, index, { compact: options.compact })); wrapper.appendChild(renderStepNode(step, location, index)); });
+  wrapper.appendChild(createInsertControl(location, steps.length, { compact: options.compact })); return wrapper;
 }
-
-function renderSteps() {
-  els.flowCanvas.innerHTML = "";
-  const rootLocation = createLocation([]);
-  els.flowCanvas.appendChild(renderStepList(state.steps, rootLocation, { placeholderText: "点击 + 添加首个节点" }));
-}
-
-function ctxLabel(location, idx) {
-  if (idx === 0) return "根流程";
-  const segments = location.segments || [];
-  const last = segments[segments.length - 1];
-  if (!last) return "根流程";
-  if (last.type === "loop") {
-    const entry = getEntryForSegments(segments);
-    const times = entry && entry.loop ? entry.loop.times : null;
-    return times ? `Loop (times=${times})` : "Loop";
-  }
-  if (last.type === "branch") {
-    if (last.section === "router") return "Branch Router";
-    return `Branch ${last.branchKey}`;
-  }
-  return "节点";
-}
-
+function renderSteps() { els.flowCanvas.innerHTML = ""; const rootLocation = createLocation([]); els.flowCanvas.appendChild(renderStepList(state.steps, rootLocation)); }
 function renderContextControls() {
-  if (!els.contextControls) return;
-  els.contextControls.innerHTML = "";
-  ensureContextInitialized();
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "context-breadcrumb d-flex flex-wrap gap-2";
-
-  const rootBtn = document.createElement("button");
-  rootBtn.type = "button";
-  rootBtn.className = `btn btn-sm ${state.contextStack.length === 1 ? "btn-primary" : "btn-outline-secondary"}`;
-  rootBtn.textContent = "根流程";
-  rootBtn.addEventListener("click", () => setActiveLocation(createLocation([])));
-  breadcrumb.appendChild(rootBtn);
-
-  for (let idx = 1; idx < state.contextStack.length; idx += 1) {
-    const location = state.contextStack[idx];
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `btn btn-sm ${idx === state.contextStack.length - 1 ? "btn-primary" : "btn-outline-secondary"}`;
-    btn.textContent = ctxLabel(location, idx);
-    btn.addEventListener("click", () => setActiveLocation(createLocation(location.segments || [])));
-    breadcrumb.appendChild(btn);
-  }
-
+  if (!els.contextControls) return; els.contextControls.innerHTML = ""; ensureContextInitialized();
+  const breadcrumb = document.createElement("div"); breadcrumb.className = "context-breadcrumb d-flex flex-wrap gap-2 align-items-center";
+  state.contextStack.forEach((loc, idx) => {
+      const btn = document.createElement("button"); btn.className = `btn btn-sm rounded-pill ${idx === state.contextStack.length-1 ? "btn-dark" : "btn-light border"}`;
+      btn.textContent = ctxLabel(loc, idx); btn.onclick = () => setActiveLocation(createLocation(loc.segments || []));
+      breadcrumb.appendChild(btn); if (idx < state.contextStack.length - 1) { const sep = document.createElement("span"); sep.className = "text-muted small"; sep.textContent = "/"; breadcrumb.appendChild(sep); }
+  });
   els.contextControls.appendChild(breadcrumb);
-
-  const active = getActiveLocation();
-  const kind = getContextKind(active);
-  const actionRow = document.createElement("div");
-  actionRow.className = "context-actions d-flex flex-wrap gap-2 mt-2";
-
-  if (kind === "loop") {
-    const exitLoopBtn = document.createElement("button");
-    exitLoopBtn.type = "button";
-    exitLoopBtn.className = "btn btn-outline-danger btn-sm";
-    exitLoopBtn.textContent = "结束当前 Loop";
-    exitLoopBtn.addEventListener("click", endLoopContext);
-    actionRow.appendChild(exitLoopBtn);
-  } else if (kind === "branch-router" || kind === "branch-case") {
-    appendBranchControls(active, actionRow);
-  }
-
-  if (actionRow.children.length) {
-    els.contextControls.appendChild(actionRow);
+  const active = getActiveLocation(); const kind = getContextKind(active);
+  if (kind !== "root") {
+      const exitBtn = document.createElement("button"); exitBtn.className = "btn btn-sm btn-link text-danger text-decoration-none mt-2"; exitBtn.textContent = "Exit Context ✕";
+      exitBtn.onclick = () => { setActiveLocation(createLocation((active.segments||[]).slice(0, -1))); }; els.contextControls.appendChild(exitBtn);
   }
 }
-
-function endLoopContext() {
-  const active = getActiveLocation();
-  const segments = (active.segments || []).slice(0, -1);
-  setActiveLocation(createLocation(segments));
-  log("Loop 模式已结束");
+function ctxLabel(location, idx) {
+  if (idx === 0) return "Root"; const last = (location.segments||[])[location.segments.length - 1];
+  if (!last) return "Root"; if (last.type === "loop") return "Loop"; if (last.type === "branch") return last.section === "router" ? "Router" : `Case:${last.branchKey}`; return "Node";
 }
-
-function findBranchInfo(location) {
-  const segments = location.segments || [];
-  for (let i = segments.length - 1; i >= 0; i -= 1) {
-    if (segments[i].type === "branch") {
-      const parentSegments = segments.slice(0, i);
-      const branchSegment = segments[i];
-      const parentSteps = resolveSteps(createLocation(parentSegments));
-      const branchEntry = parentSteps[branchSegment.index];
-      if (!branchEntry || !branchEntry.branch) return null;
-      branchEntry.branch.router = branchEntry.branch.router || [];
-      branchEntry.branch.branches = branchEntry.branch.branches || {};
-      return { parentSegments, branchSegment, branchEntry };
-    }
-  }
-  return null;
-}
-
-function appendBranchControls(activeLocation, container) {
-  const info = findBranchInfo(activeLocation);
-  if (!info) return;
-  const { parentSegments, branchSegment, branchEntry } = info;
-  const routerBtn = document.createElement("button");
-  routerBtn.type = "button";
-  routerBtn.className = `btn btn-sm ${branchSegment.section === "router" ? "btn-primary" : "btn-outline-secondary"}`;
-  routerBtn.textContent = "Router";
-  routerBtn.addEventListener("click", () => switchBranchSection(parentSegments, branchSegment.index, "router"));
-  container.append(routerBtn);
-
-  Object.keys(branchEntry.branch.branches).forEach((caseKey) => {
-    const caseBtn = document.createElement("button");
-    caseBtn.type = "button";
-    const active = branchSegment.section === "branch" && branchSegment.branchKey === caseKey;
-    caseBtn.className = `btn btn-sm ${active ? "btn-primary" : "btn-outline-secondary"}`;
-    caseBtn.textContent = caseKey;
-    caseBtn.addEventListener("click", () => switchBranchSection(parentSegments, branchSegment.index, caseKey));
-    container.append(caseBtn);
-  });
-
-  const newCaseBtn = document.createElement("button");
-  newCaseBtn.type = "button";
-  newCaseBtn.className = "btn btn-outline-primary btn-sm";
-  newCaseBtn.textContent = "新增分支";
-  newCaseBtn.addEventListener("click", () => addBranchCase(createLocation(parentSegments), branchSegment.index));
-  container.append(newCaseBtn);
-
-  const exitBtn = document.createElement("button");
-  exitBtn.type = "button";
-  exitBtn.className = "btn btn-outline-danger btn-sm";
-  exitBtn.textContent = "结束当前 Branch";
-  exitBtn.addEventListener("click", () => {
-    setActiveLocation(createLocation(parentSegments));
-    log("Branch 模式已结束");
-  });
-  container.append(exitBtn);
-}
-
-function switchBranchSection(parentSegments, branchIndex, target) {
-  const branchLocation = createLocation([
-    ...parentSegments,
-    target === "router"
-      ? { type: "branch", index: branchIndex, section: "router" }
-      : { type: "branch", index: branchIndex, section: "branch", branchKey: target },
-  ]);
-  setActiveLocation(branchLocation);
-  log(target === "router" ? "已切换至 Branch Router" : `已切换至分支 ${target}`);
-}
-
 function addBranchCase(parentLocation, branchIndex) {
-  const steps = resolveSteps(parentLocation);
-  const entry = steps[branchIndex];
-  if (!entry || !entry.branch) return;
-  entry.branch.branches = entry.branch.branches || {};
-  let counter = Object.keys(entry.branch.branches).length + 1;
-  let newKey = `case${counter}`;
-  while (entry.branch.branches[newKey]) {
-    counter += 1;
-    newKey = `case${counter}`;
-  }
-  entry.branch.branches[newKey] = [];
-  markPipelineDirty();
-  switchBranchSection(parentLocation.segments || [], branchIndex, newKey);
-  log(`已新增分支 ${newKey}`);
+    const steps = resolveSteps(parentLocation); const entry = steps[branchIndex]; if (!entry?.branch) return;
+    entry.branch.branches = entry.branch.branches || {}; let c = Object.keys(entry.branch.branches).length + 1; let key = `case${c}`; while (entry.branch.branches[key]) { c++; key = `case${c}`; }
+    entry.branch.branches[key] = []; markPipelineDirty(); const segs = [...(parentLocation.segments||[]), { type: "branch", index: branchIndex, section: "branch", branchKey: key }]; setActiveLocation(createLocation(segs));
+}
+function enterStructureContext(type, stepPath, announce = true) {
+    if (!stepPath) return; const segs = [...(stepPath.parentSegments||[]), { type, index: stepPath.index, ...(type==="branch"?{section:"router"}:{}) }]; setActiveLocation(createLocation(segs));
 }
 
-function enterStructureContext(structureType, stepPath, announce = true) {
-  if (!stepPath) return;
-  if (structureType === "loop") {
-    const segments = [
-      ...(stepPath.parentSegments || []),
-      { type: "loop", index: stepPath.index },
-    ];
-    setActiveLocation(createLocation(segments));
-    if (announce) log("Loop 模式已开启，后续节点将加入 Loop");
-  } else if (structureType === "branch") {
-    const segments = [
-      ...(stepPath.parentSegments || []),
-      { type: "branch", index: stepPath.index, section: "router" },
-    ];
-    setActiveLocation(createLocation(segments));
-    if (announce) log("Branch 模式已开启，当前添加于 Router 区域");
-  }
-}
-
-function updatePipelineDropdownLabel() {
-  if (!els.pipelineDropdownBtn) return;
-  const label = state.selectedPipeline ? `Pipeline: ${state.selectedPipeline}` : "选择 Pipeline";
-  els.pipelineDropdownBtn.textContent = label;
-  setHeroPipelineLabel(state.selectedPipeline || "");
-}
-
+async function refreshPipelines() { const pipelines = await fetchJSON("/api/pipelines"); renderPipelineMenu(pipelines); }
 function renderPipelineMenu(items) {
-  els.pipelineMenu.innerHTML = "";
-  if (!items.length) {
-    const empty = document.createElement("li");
-    empty.innerHTML = '<span class="dropdown-item text-muted">暂无 Pipeline</span>';
-    els.pipelineMenu.appendChild(empty);
-    return;
-  }
-  items.forEach((item) => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "dropdown-item";
-    btn.textContent = item.name;
-    btn.addEventListener("click", () => loadPipeline(item.name));
-    li.appendChild(btn);
-    els.pipelineMenu.appendChild(li);
-  });
+    els.pipelineMenu.innerHTML = ""; if (!items.length) { const li = document.createElement("li"); li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>'; els.pipelineMenu.appendChild(li); return; }
+    items.forEach(i => {
+        const li = document.createElement("li"); const btn = document.createElement("button"); btn.type = "button"; btn.className = "dropdown-item small"; btn.textContent = i.name;
+        btn.onclick = () => { loadPipeline(i.name); btn.blur(); }; li.appendChild(btn); els.pipelineMenu.appendChild(li);
+    });
 }
-
-async function refreshPipelines() {
-  const pipelines = await fetchJSON("/api/pipelines");
-  renderPipelineMenu(pipelines);
-  if (state.selectedPipeline && !pipelines.some((p) => p.name === state.selectedPipeline)) {
-    state.selectedPipeline = null;
-  }
-  updatePipelineDropdownLabel();
-}
-
 async function loadPipeline(name) {
-  const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`);
-  state.selectedPipeline = name;
-  els.name.value = name;
-  setSteps(cfg.pipeline || []);
-  updatePipelineDropdownLabel();
-  log(`已加载 Pipeline ${name}`);
+    const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`); state.selectedPipeline = name; els.name.value = name; setSteps(cfg.pipeline || []);
+    if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name; setHeroPipelineLabel(name);
 }
-
-function handleSubmit(event) {
-  event.preventDefault();
-  const name = els.name.value.trim();
-  if (!name) {
-    log("Pipeline 名称不能为空");
-    return;
-  }
-  if (!state.steps.length) {
-    log("请先添加至少一个节点");
-    return;
-  }
-  const payload = {
-    name,
-    pipeline: cloneDeep(state.steps),
-  };
-  fetchJSON("/api/pipelines", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-    .then((saved) => {
-      state.selectedPipeline = saved.name || name;
-      updatePipelineDropdownLabel();
-      refreshPipelines();
-      log(`Pipeline ${state.selectedPipeline} 已保存`);
-    })
-    .catch((err) => log(err.message));
+function handleSubmit(e) {
+    e.preventDefault(); const name = els.name.value.trim(); if (!name) return log("Pipeline name is required");
+    fetchJSON("/api/pipelines", { method: "POST", body: JSON.stringify({ name, pipeline: cloneDeep(state.steps) }) })
+    .then(s => { state.selectedPipeline=s.name||name; refreshPipelines(); log("Pipeline saved."); loadPipeline(s.name||name); }).catch(e=>log(e.message));
 }
-
 function buildSelectedPipeline() {
-  if (!state.selectedPipeline) {
-    log("请先保存 Pipeline");
-    return;
-  }
-  fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
-    .then(() => {
-      state.isBuilt = true;
-      state.parametersReady = false;
-      updateActionButtons();
-      log(`Pipeline ${state.selectedPipeline} 构建完成`);
-      showParameterPanel(true);
-    })
-    .catch((err) => log(err.message));
+    if(!state.selectedPipeline) return log("Please save the pipeline first.");
+    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
+    .then(() => { state.isBuilt=true; state.parametersReady=false; updateActionButtons(); log("Pipeline built."); showParameterPanel(true); }).catch(e=>log(e.message));
 }
-
 function runSelectedPipeline() {
-  if (!state.selectedPipeline) {
-    log("请先保存 Pipeline");
-    return;
-  }
-  if (!state.parametersReady) {
-    log("请先配置并保存参数");
-    return;
-  }
-  stopRunLogStream();
-  resetLogView();
-  log(`已发送运行请求：${state.selectedPipeline}`);
-  fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/run`, { method: "POST" })
-    .then((resp) => {
-      if (resp && resp.run_id) {
-        log(`Pipeline ${state.selectedPipeline} 正在运行，run_id=${resp.run_id}`);
-        setHeroStatusLabel("running");
-        startRunLogStream(resp.run_id);
-      } else {
-        log("运行接口返回异常：缺少 run_id");
-      }
-      if (resp && resp.status && resp.status !== "started" && resp.status !== "running") {
-        state.logStream.status = resp.status;
-      }
-    })
-    .catch((err) => {
-      log(`运行失败：${err.message}`);
-      stopRunLogStream();
-    });
+    if(!state.selectedPipeline || !state.parametersReady) return log("Please configure parameters first.");
+    stopRunLogStream(); resetLogView(); setMode(Modes.RUN); log("Run initiated...");
+    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/run`, { method: "POST" })
+    .then(r => { if (r?.run_id) startRunLogStream(r.run_id); else log("No run_id returned"); }).catch(e=>log(e.message));
 }
-
 function deleteSelectedPipeline() {
-  if (!state.selectedPipeline) {
-    log("没有可删除的 Pipeline");
-    return;
-  }
-  if (!confirm(`确定删除 ${state.selectedPipeline}？`)) return;
-  fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}`, { method: "DELETE" })
-    .then(() => {
-      log(`已删除 Pipeline ${state.selectedPipeline}`);
-      state.selectedPipeline = null;
-      els.name.value = "";
-      setSteps([]);
-      updatePipelineDropdownLabel();
-      refreshPipelines();
-    })
-    .catch((err) => log(err.message));
+    if(!state.selectedPipeline || !confirm("Delete pipeline?")) return;
+    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}`, { method: "DELETE" })
+    .then(() => { state.selectedPipeline=null; els.name.value=""; setSteps([]); refreshPipelines(); }).catch(e=>log(e.message));
 }
-
 function flattenParameters(obj, prefix = "") {
-  const entries = [];
-  if (!obj || typeof obj !== "object") return entries;
-  Object.keys(obj)
-    .sort()
-    .forEach((key) => {
-      const path = prefix ? `${prefix}.${key}` : key;
-      const value = obj[key];
-      if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-        entries.push(...flattenParameters(value, path));
-      } else {
-        entries.push({ path, value, type: detectParamType(value) });
-      }
-    });
-  return entries;
+    const entries = []; if (!obj || typeof obj !== "object") return entries;
+    Object.keys(obj).sort().forEach(key => {
+        const path = prefix ? `${prefix}.${key}` : key; const val = obj[key];
+        if (val!==null && typeof val==="object" && !Array.isArray(val)) entries.push(...flattenParameters(val, path));
+        else entries.push({ path, value: val, type: Array.isArray(val) ? "array" : (val===null?"null":typeof val) });
+    }); return entries;
+}
+function setNestedValue(obj, path, val) {
+    const p = path.split("."); let c = obj; for (let i=0; i<p.length-1; i++) { if (!c[p[i]]) c[p[i]]={}; c=c[p[i]]; } c[p[p.length-1]] = val;
 }
 
-function detectParamType(value) {
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  return typeof value;
-}
-
-function setNestedValue(obj, path, newValue) {
-  const parts = path.split(".");
-  let current = obj;
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    const key = parts[i];
-    if (!current[key] || typeof current[key] !== "object") {
-      current[key] = {};
-    }
-    current = current[key];
-  }
-  current[parts[parts.length - 1]] = newValue;
-}
-
-function coerceParameterValue(raw, type, originalValue) {
-  const trimmed = raw.trim();
-  if (type === "number") {
-    const num = Number(trimmed);
-    if (!Number.isNaN(num)) return { success: true, value: num };
-    return { success: false, value: originalValue };
-  }
-  if (type === "boolean") {
-    if (["true", "false"].includes(trimmed.toLowerCase())) {
-      return { success: true, value: trimmed.toLowerCase() === "true" };
-    }
-    return { success: false, value: originalValue };
-  }
-  if (type === "null") {
-    if (!trimmed || trimmed.toLowerCase() === "null") {
-      return { success: true, value: null };
-    }
-    return { success: false, value: originalValue };
-  }
-  if (type === "array" || type === "object") {
-    try {
-      const parsed = JSON.parse(trimmed || "null");
-      if (type === "array" && !Array.isArray(parsed)) return { success: false, value: originalValue };
-      if (type === "object" && (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))) {
-        return { success: false, value: originalValue };
-      }
-      return { success: true, value: parsed };
-    } catch (err) {
-      return { success: false, value: originalValue };
-    }
-  }
-  return { success: true, value: trimmed };
-}
-
+// --- Updated Parameter Renderer ---
 function renderParameterForm() {
-  const container = els.parameterForm;
-  container.innerHTML = "";
-  if (!state.parameterData || typeof state.parameterData !== "object") {
-    container.innerHTML = '<p class="text-muted small">暂无可配置参数，请先执行构建。</p>';
-    return;
-  }
-  const entries = flattenParameters(state.parameterData);
-  if (!entries.length) {
-    container.innerHTML = '<p class="text-muted small">当前 Pipeline 无可编辑参数。</p>';
-    return;
-  }
-  entries.forEach((entry) => {
-    const row = document.createElement("div");
-    row.className = "row g-3 align-items-center parameter-row";
-    const labelCol = document.createElement("label");
-    labelCol.className = "col-sm-5 col-lg-4 col-form-label text-muted";
-    labelCol.textContent = entry.path;
-    const valueCol = document.createElement("div");
-    valueCol.className = "col-sm-7 col-lg-8";
-    let control;
-    if (entry.type === "array" || entry.type === "object") {
-      control = document.createElement("textarea");
-      control.rows = 3;
-      control.value = JSON.stringify(entry.value, null, 2);
-    } else {
-      control = document.createElement("input");
-      control.type = "text";
-      control.value = entry.value === undefined || entry.value === null ? "" : String(entry.value);
-    }
-    control.className = "form-control";
-    control.dataset.path = entry.path;
-    control.dataset.type = entry.type;
-    control.addEventListener("focus", () => control.classList.remove("is-invalid"));
-    control.addEventListener("change", (event) => {
-      const { success, value } = coerceParameterValue(event.target.value, entry.type, entry.value);
-      if (!success) {
-        control.classList.add("is-invalid");
-        log(`无法解析 ${entry.path}，已恢复原值`);
-        control.value = entry.type === "array" || entry.type === "object"
-          ? JSON.stringify(entry.value, null, 2)
-          : entry.value === undefined || entry.value === null
-            ? ""
-            : String(entry.value);
-        return;
-      }
-      control.classList.remove("is-invalid");
-      entry.value = value;
-      setNestedValue(state.parameterData, entry.path, value);
-      state.parametersReady = false;
-      updateActionButtons();
+    const container = els.parameterForm; container.innerHTML = "";
+    if (!state.parameterData || typeof state.parameterData !== "object") { container.innerHTML = '<div class="col-12"><p class="text-muted text-center">No parameters available for configuration.</p></div>'; return; }
+    const entries = flattenParameters(state.parameterData);
+    if (!entries.length) { container.innerHTML = '<div class="col-12"><p class="text-muted text-center">The current Pipeline has no editable parameters.</p></div>'; return; }
+    entries.forEach(e => {
+        const grp = document.createElement("div"); grp.className = "form-group-styled";
+        const isComplex = e.type === "array" || e.type === "object";
+        if (isComplex) grp.classList.add("full-width");
+        const label = document.createElement("label"); label.textContent = e.path;
+        let ctrl;
+        if (isComplex) { ctrl = document.createElement("textarea"); ctrl.rows = 4; ctrl.value = JSON.stringify(e.value, null, 2); }
+        else { ctrl = document.createElement("input"); ctrl.type = "text"; ctrl.value = String(e.value ?? ""); }
+        ctrl.className = "form-control code-font";
+        ctrl.onchange = (ev) => {
+            let val = ev.target.value;
+            if (e.type === "number") val = Number(val); if (e.type === "boolean") val = val.toLowerCase() === "true";
+            try { if (isComplex) val = JSON.parse(val); } catch (err) {}
+            e.value = val; setNestedValue(state.parameterData, e.path, val); state.parametersReady = false; updateActionButtons();
+        };
+        grp.append(label, ctrl); container.appendChild(grp);
     });
-    valueCol.appendChild(control);
-    row.append(labelCol, valueCol);
-    container.appendChild(row);
-  });
 }
-
-async function showParameterPanel(forceFetch = false) {
-  if (!state.selectedPipeline) {
-    log("请先保存并选择 Pipeline");
-    return;
-  }
-  if (!state.isBuilt) {
-    log("请先构建 Pipeline");
-    return;
-  }
-  if (forceFetch || !state.parameterData) {
-    try {
-      state.parameterData = cloneDeep(
-        await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/parameters`)
-      );
-      state.parametersReady = false;
-    } catch (err) {
-      log(`无法载入参数：${err.message}`);
-      return;
-    }
-  }
-  renderParameterForm();
-  setMode(Modes.PARAMETERS);
-  log("已进入参数配置视图");
-  updateActionButtons();
+async function showParameterPanel(force = false) {
+    if (!state.isBuilt) return log("Please build the pipeline first.");
+    if (force || !state.parameterData) { try { state.parameterData = cloneDeep(await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/parameters`)); } catch(e){ return log(e.message); } }
+    renderParameterForm(); setMode(Modes.PARAMETERS);
 }
-
-function saveParameterForm() {
-  if (!state.selectedPipeline) {
-    log("请先保存 Pipeline");
-    return;
-  }
-  if (!state.parameterData) {
-    log("无参数可保存");
-    return;
-  }
-  persistParameterData()
-    .catch((err) => log(err.message || err));
-}
-
-function clearSteps() {
-  if (!state.steps.length) return;
-  if (!confirm("确定清空所有节点？")) return;
-  setSteps([]);
-  log("已清空 Flow");
-}
-
+function saveParameterForm() { persistParameterData(); }
 async function refreshTools() {
-  const tools = await fetchJSON("/api/tools");
-  const grouped = {};
-  tools.forEach((tool) => {
-    const server = tool.server || "未命名";
-    if (!grouped[server]) grouped[server] = [];
-    grouped[server].push(tool);
-  });
-  Object.values(grouped).forEach((list) => list.sort((a, b) => a.tool.localeCompare(b.tool)));
-  state.toolCatalog = {
-    order: Object.keys(grouped).sort((a, b) => a.localeCompare(b)),
-    byServer: grouped,
-  };
-  nodePickerState.server = null;
-  nodePickerState.tool = null;
-  log("Server 工具元数据已加载");
+    const tools = await fetchJSON("/api/tools"); const grouped = {};
+    tools.forEach(t => { const s = t.server || "Unnamed"; if (!grouped[s]) grouped[s] = []; grouped[s].push(t); });
+    state.toolCatalog = { order: Object.keys(grouped).sort(), byServer: grouped }; nodePickerState.server = null;
 }
 
 function bindEvents() {
-  els.pipelineForm.addEventListener("submit", handleSubmit);
-  els.clearSteps.addEventListener("click", clearSteps);
-  els.buildPipeline.addEventListener("click", buildSelectedPipeline);
-  els.deletePipeline.addEventListener("click", deleteSelectedPipeline);
-  if (els.shutdownApp) {
-    els.shutdownApp.addEventListener("click", requestShutdown);
-  }
-  if (els.parameterSave) {
-    els.parameterSave.addEventListener("click", saveParameterForm);
-  }
-  if (els.parameterBack) {
-    els.parameterBack.addEventListener("click", () => {
-      setMode(Modes.BUILDER);
-      log("已返回流程画布");
-    });
-  }
-  if (els.parameterRun) {
-    els.parameterRun.addEventListener("click", runSelectedPipeline);
-  }
-  if (els.parameterChat) {
-    els.parameterChat.addEventListener("click", openChatView);
-  }
-  if (els.chatForm) {
-    els.chatForm.addEventListener("submit", handleChatSubmit);
-  }
-  if (els.chatBack) {
-    els.chatBack.addEventListener("click", () => {
-      setChatRunning(false);
-      setMode(Modes.PARAMETERS);
-      setChatStatus("准备就绪", "ready");
-      log("已返回参数配置");
-    });
-  }
-  els.refreshPipelines.addEventListener("click", () => refreshPipelines().catch((err) => log(err.message)));
-  els.name.addEventListener("input", updatePipelinePreview);
-  els.stepEditor.querySelector("#step-editor-save").addEventListener("click", () => {
-    if (!state.editingPath) return;
-    try {
-      const updated = parseStepInput(els.stepEditorValue.value);
-      setStepByPath(state.editingPath, updated);
-      closeStepEditor();
-      renderSteps();
-      updatePipelinePreview();
-      log("节点已更新");
-    } catch (err) {
-      log(`更新失败：${err.message}`);
-    }
-  });
-  els.stepEditor.querySelector("#step-editor-cancel").addEventListener("click", closeStepEditor);
-  Array.from(els.nodePickerTabs || []).forEach((tab) => {
-    tab.addEventListener("click", () => setNodePickerMode(tab.dataset.nodeMode));
-  });
-  if (els.nodePickerServer) {
-    els.nodePickerServer.addEventListener("change", () => {
-      nodePickerState.server = els.nodePickerServer.value || null;
-      populateNodePickerTools();
-    });
-  }
-  if (els.nodePickerTool) {
-    els.nodePickerTool.addEventListener("change", () => {
-      nodePickerState.tool = els.nodePickerTool.value || null;
-    });
-  }
-  if (els.nodePickerBranchCases) {
-    els.nodePickerBranchCases.addEventListener("input", () => {
-      nodePickerState.branchCases = els.nodePickerBranchCases.value;
-    });
-  }
-  if (els.nodePickerLoopTimes) {
-    els.nodePickerLoopTimes.addEventListener("input", () => {
-      nodePickerState.loopTimes = Math.max(1, Number(els.nodePickerLoopTimes.value || 1));
-    });
-  }
-  if (els.nodePickerCustom) {
-    els.nodePickerCustom.addEventListener("input", () => {
-      nodePickerState.customValue = els.nodePickerCustom.value;
-    });
-  }
-  if (els.nodePickerConfirm) {
-    els.nodePickerConfirm.addEventListener("click", handleNodePickerConfirm);
-  }
+    els.pipelineForm.addEventListener("submit", handleSubmit);
+    els.clearSteps.addEventListener("click", () => { if(confirm("Clear steps?")) setSteps([]); });
+    els.buildPipeline.addEventListener("click", buildSelectedPipeline);
+    els.deletePipeline.addEventListener("click", deleteSelectedPipeline);
+    if (els.newPipelineBtn) els.newPipelineBtn.addEventListener("click", createNewPipeline); 
+    if (els.shutdownApp) els.shutdownApp.onclick = requestShutdown;
+    
+    // Bind Back Buttons
+    if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
+    if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
+    if (els.parameterRun) els.parameterRun.onclick = runSelectedPipeline;
+    if (els.parameterChat) els.parameterChat.onclick = openChatView;
+    if (els.runBack) els.runBack.onclick = () => setMode(Modes.PARAMETERS);
+    
+    // Chat View
+    if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
+    if (els.chatBack) els.chatBack.onclick = () => { saveCurrentSession(true); setChatRunning(false); setMode(Modes.PARAMETERS); };
+    if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
+    
+    document.getElementById("step-editor-save").onclick = () => {
+        if (!state.editingPath) return;
+        try { setStepByPath(state.editingPath, parseStepInput(els.stepEditorValue.value)); closeStepEditor(); renderSteps(); updatePipelinePreview(); } catch(e){ log(e.message); }
+    };
+    document.getElementById("step-editor-cancel").onclick = closeStepEditor;
+    
+    els.refreshPipelines.onclick = refreshPipelines;
+    els.name.oninput = updatePipelinePreview;
+    
+    els.nodePickerTabs.forEach(t => t.onclick = () => setNodePickerMode(t.dataset.nodeMode));
+    if (els.nodePickerServer) els.nodePickerServer.onchange = () => { nodePickerState.server = els.nodePickerServer.value; populateNodePickerTools(); };
+    if (els.nodePickerTool) els.nodePickerTool.onchange = () => nodePickerState.tool = els.nodePickerTool.value;
+    if (els.nodePickerBranchCases) els.nodePickerBranchCases.oninput = (e) => nodePickerState.branchCases = e.target.value;
+    if (els.nodePickerLoopTimes) els.nodePickerLoopTimes.oninput = (e) => nodePickerState.loopTimes = e.target.value;
+    if (els.nodePickerCustom) els.nodePickerCustom.oninput = (e) => nodePickerState.customValue = e.target.value;
+    if (els.nodePickerConfirm) els.nodePickerConfirm.onclick = handleNodePickerConfirm;
 }
 
 async function bootstrap() {
-  setMode(Modes.BUILDER);
-  resetContextStack();
-  renderSteps();
-  updatePipelinePreview();
-  bindEvents();
-  updateActionButtons();
-  setHeroPipelineLabel(state.selectedPipeline || "");
-  setHeroStatusLabel("idle");
-  try {
-    await Promise.all([refreshPipelines(), refreshTools()]);
-    log("界面已准备就绪，点击 + 号开始搭建 UltraRAG Flow 吧！");
-  } catch (err) {
-    log(`初始化失败：${err.message}`);
-  }
+  setMode(Modes.BUILDER); resetContextStack(); renderSteps(); updatePipelinePreview(); bindEvents(); updateActionButtons();
+  setHeroPipelineLabel(state.selectedPipeline || ""); // Ensure label is set on load
+  try { await Promise.all([refreshPipelines(), refreshTools()]); log("UI Ready."); } catch (err) { log(`Initialization error: ${err.message}`); }
 }
 
 bootstrap();
