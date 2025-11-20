@@ -9,11 +9,9 @@ backend_configs:
   infinity:
     bettertransformer: false
     pooling_method: auto
-    device: cuda
     model_warmup: false
     trust_remote_code: true
   sentence_transformers:
-    device: cuda
     trust_remote_code: true
     sentence_transformers_encode:
       normalize_embeddings: false

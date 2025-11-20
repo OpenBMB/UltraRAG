@@ -91,10 +91,22 @@ class Retriever:
         cfg = self.backend_configs.get(self.backend, {})
         self.cfg = cfg
 
-        gpu_ids = str(gpu_ids)
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
-
-        self.device_num = len(gpu_ids.split(","))
+        if gpu_ids is None:
+            self.gpu_ids = None
+            self.device = "cpu"
+            self.device_num = 1
+            app.logger.info("[retriever] gpu_ids is None, treat as CPU-only mode.")
+        else:
+            gpu_ids = str(gpu_ids)
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
+            self.gpu_ids = gpu_ids
+            self.device = "cuda"
+            self.device_num = len(gpu_ids.split(","))
+            app.logger.info(
+                "[retriever] Set CUDA_VISIBLE_DEVICES=%s, device_num=%d",
+                gpu_ids,
+                self.device_num,
+            )
 
         if self.backend == "infinity":
             try:
@@ -104,24 +116,10 @@ class Retriever:
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
 
-            device = str(cfg.get("device", "")).strip().lower()
-            if not device:
-                warn_msg = f"[infinity] device is not set, default to `cpu`"
-                app.logger.warning(warn_msg)
-                device = "cpu"
-
-            if device == "cpu":
-                info_msg = "[infinity] device=cpu, gpu_ids is ignored"
-                app.logger.info(info_msg)
-                self.device_num = 1
-
-            app.logger.info(
-                f"[infinity] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
-            )
-
             infinity_engine_args = EngineArgs(
                 model_name_or_path=model_name_or_path,
                 batch_size=self.batch_size,
+                device=self.device,
                 **cfg,
             )
             self.model = AsyncEngineArray.from_args([infinity_engine_args])[0]
@@ -139,25 +137,9 @@ class Retriever:
             self.st_encode_params = cfg.get("sentence_transformers_encode", {}) or {}
             st_params = self._drop_keys(cfg, banned=["sentence_transformers_encode"])
 
-            device = str(cfg.get("device", "")).strip().lower()
-            if not device:
-                warn_msg = (
-                    f"[sentence_transformers] device is not set, default to `cpu`"
-                )
-                app.logger.warning(warn_msg)
-                device = "cpu"
-
-            if device == "cpu":
-                info_msg = "[sentence_transformers] device=cpu, gpu_ids is ignored"
-                app.logger.info(info_msg)
-                self.device_num = 1
-
-            app.logger.info(
-                f"[sentence_transformers] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
-            )
-
             self.model = SentenceTransformer(
                 model_name_or_path=model_name_or_path,
+                device=self.device,
                 **st_params,
             )
 
