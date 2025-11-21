@@ -67,7 +67,8 @@
                   "pages/cn/develop_guide/debug",
                   "pages/cn/develop_guide/case_study",
                   "pages/cn/develop_guide/dataset",
-                  "pages/cn/develop_guide/parallel"
+                  "pages/cn/develop_guide/parallel",
+                  "pages/cn/develop_guide/code_integration"
                 ]
               }
             ]
@@ -163,7 +164,8 @@
                   "pages/en/develop_guide/debug",
                   "pages/en/develop_guide/case_study",
                   "pages/en/develop_guide/dataset",
-                  "pages/en/develop_guide/parallel"
+                  "pages/en/develop_guide/parallel",
+                  "pages/en/develop_guide/code_integration"
                 ]
               }
             ]
