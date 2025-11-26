@@ -3,6 +3,7 @@
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
+collection_name: wiki
 
 backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
 backend_configs:
@@ -37,9 +38,11 @@ index_backend_configs:
   milvus:
     uri: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
     token: null
-    collection_name: ultrarag_embeddings
     id_field_name: id
     vector_field_name: vector
+    text_field_name: contents
+    id_max_length: 512
+    text_max_length: 60000
     metric_type: IP
     index_params:
       index_type: AUTOINDEX
@@ -57,3 +60,4 @@ is_multimodal: false
 overwrite: false
 retrieve_thread_num: 1
 retriever_url: "http://127.0.0.1:64501"
+is_demo: false

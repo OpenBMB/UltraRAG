@@ -95,6 +95,7 @@ class FaissIndexBackend(BaseIndexBackend):
         embeddings: np.ndarray,
         ids: np.ndarray,
         overwrite: bool = False,
+        **kwargs: Any,
     ) -> None:
 
         if not self.index_path.endswith(".index"):
@@ -152,6 +153,7 @@ class FaissIndexBackend(BaseIndexBackend):
         self,
         query_embeddings: np.ndarray,
         top_k: int,
+        **kwargs: Any,
     ) -> List[List[str]]:
         if self.index is None:
             raise RuntimeError(

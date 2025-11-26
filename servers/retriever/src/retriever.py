@@ -21,7 +21,7 @@ class Retriever:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
         mcp_inst.tool(
             self.retriever_init,
-            output="model_name_or_path,backend_configs,batch_size,corpus_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs->None",
+            output="model_name_or_path,backend_configs,batch_size,corpus_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs,is_demo,collection_name->None",
         )
         mcp_inst.tool(
             self.retriever_embed,
@@ -29,15 +29,15 @@ class Retriever:
         )
         mcp_inst.tool(
             self.retriever_index,
-            output="embedding_path,overwrite->None",
+            output="embedding_path,overwrite,collection_name,corpus_path->None",
+        )
+        mcp_inst.tool(
+            self.retriever_search,
+            output="q_ls,top_k,query_instruction,collection_name->ret_psg",
         )
         mcp_inst.tool(
             self.bm25_index,
             output="overwrite->None",
-        )
-        mcp_inst.tool(
-            self.retriever_search,
-            output="q_ls,top_k,query_instruction->ret_psg",
         )
         mcp_inst.tool(
             self.retriever_deploy_search,
@@ -78,18 +78,32 @@ class Retriever:
         backend: str = "sentence_transformers",
         index_backend: str = "faiss",
         index_backend_configs: Optional[Dict[str, Any]] = None,
+        is_demo: bool = False,
+        collection_name: str = "",
     ):
-
-        self.backend = backend.lower()
-        self.index_backend_name = index_backend.lower()
-        self.index_backend_configs = index_backend_configs or {}
-        self.index_backend: Optional[BaseIndexBackend] = None
-
+        self.is_demo = is_demo
         self.batch_size = batch_size
+        self.corpus_path = corpus_path
         self.backend_configs = backend_configs
+        self.index_backend_configs = index_backend_configs or {}
 
-        cfg = self.backend_configs.get(self.backend, {})
-        self.cfg = cfg
+        
+        if self.is_demo:
+            app.logger.info("[retriever] Initializing in DEMO mode.")
+            self.backend = "openai"
+            self.index_backend_name = "milvus"
+            
+            if "openai" not in self.backend_configs:
+                raise ValidationError("is_demo=True requires 'openai' in backend_configs.")
+            if "milvus" not in self.index_backend_configs:
+                raise ValidationError("is_demo=True requires 'milvus' in index_backend_configs.")
+                
+            app.logger.info("[retriever] Demo mode enforced: Backend=OpenAI, Index=Milvus.")
+        else:
+            self.backend = backend.lower()
+            self.index_backend_name = index_backend.lower()
+
+        self.cfg = self.backend_configs.get(self.backend, {})
 
         if gpu_ids is None:
             self.gpu_ids = None
@@ -120,7 +134,7 @@ class Retriever:
                 model_name_or_path=model_name_or_path,
                 batch_size=self.batch_size,
                 device=self.device,
-                **cfg,
+                **self.cfg,
             )
             self.model = AsyncEngineArray.from_args([infinity_engine_args])[0]
 
@@ -134,8 +148,8 @@ class Retriever:
                 )
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
-            self.st_encode_params = cfg.get("sentence_transformers_encode", {}) or {}
-            st_params = self._drop_keys(cfg, banned=["sentence_transformers_encode"])
+            self.st_encode_params = self.cfg.get("sentence_transformers_encode", {}) or {}
+            st_params = self._drop_keys(self.cfg, banned=["sentence_transformers_encode"])
 
             self.model = SentenceTransformer(
                 model_name_or_path=model_name_or_path,
@@ -154,9 +168,9 @@ class Retriever:
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
 
-            model_name = cfg.get("model_name")
-            base_url = cfg.get("base_url")
-            api_key = cfg.get("api_key") or os.environ.get("RETRIEVER_API_KEY")
+            model_name = self.cfg.get("model_name")
+            base_url = self.cfg.get("base_url")
+            api_key = self.cfg.get("api_key") or os.environ.get("RETRIEVER_API_KEY")
 
             if not model_name:
                 err_msg = "[openai] model_name is required"
@@ -196,7 +210,7 @@ class Retriever:
                 )
                 app.logger.warning(warn_msg)
                 self.model = bm25s.BM25(backend="numpy")
-            lang = cfg.get("lang", "en")
+            lang = self.cfg.get("lang", "en")
             try:
                 self.tokenizer = bm25s.tokenization.Tokenizer(stopwords=lang)
             except Exception as e:
@@ -214,54 +228,62 @@ class Retriever:
             raise ValueError(error_msg)
 
         self.contents = []
-        corpus_path_obj = Path(corpus_path)
-        corpus_dir = corpus_path_obj.parent
-        file_size = os.path.getsize(corpus_path)
+        if not self.is_demo and corpus_path and os.path.exists(corpus_path):
+            corpus_path_obj = Path(corpus_path)
+            corpus_dir = corpus_path_obj.parent
+            file_size = os.path.getsize(corpus_path)
 
-        with open(corpus_path, "rb") as f:
-            with tqdm(
-                total=file_size,
-                desc="Loading corpus",
-                unit="B",
-                unit_scale=True,
-                ncols=100,
-            ) as pbar:
-                bytes_read = 0
-                for i, line in enumerate(f):
-                    pbar.update(len(line))
-                    bytes_read += len(line)
-                    try:
-                        item = orjson.loads(line)
-                    except orjson.JSONDecodeError as e:
-                        raise ToolError(f"Invalid JSON on line {i}: {e}") from e
-                    if not is_multimodal or self.backend == "bm25":
-                        if "contents" not in item:
-                            error_msg = (
-                                f"Line {i}: missing key 'contents'. full item={item}"
-                            )
-                            app.logger.error(error_msg)
-                            raise ValueError(error_msg)
+            with open(corpus_path, "rb") as f:
+                with tqdm(
+                    total=file_size,
+                    desc="Loading corpus",
+                    unit="B",
+                    unit_scale=True,
+                    ncols=100,
+                ) as pbar:
+                    bytes_read = 0
+                    for i, line in enumerate(f):
+                        pbar.update(len(line))
+                        bytes_read += len(line)
+                        try:
+                            item = orjson.loads(line)
+                        except orjson.JSONDecodeError as e:
+                            raise ToolError(f"Invalid JSON on line {i}: {e}") from e
+                        if not is_multimodal or self.backend == "bm25":
+                            if "contents" not in item:
+                                error_msg = (
+                                    f"Line {i}: missing key 'contents'. full item={item}"
+                                )
+                                app.logger.error(error_msg)
+                                raise ValueError(error_msg)
 
-                        self.contents.append(item["contents"])
-                    else:
-                        if "image_path" not in item:
-                            error_msg = (
-                                f"Line {i}: missing key 'image_path'. full item={item}"
-                            )
-                            app.logger.error(error_msg)
-                            raise ValueError(error_msg)
+                            self.contents.append(item["contents"])
+                        else:
+                            if "image_path" not in item:
+                                error_msg = (
+                                    f"Line {i}: missing key 'image_path'. full item={item}"
+                                )
+                                app.logger.error(error_msg)
+                                raise ValueError(error_msg)
 
-                        rel = str(item["image_path"])
-                        abs_path = str((corpus_dir / rel).resolve())
-                        self.contents.append(abs_path)
-                if bytes_read < file_size:
-                    pbar.update(file_size - bytes_read)
-                pbar.refresh() 
+                            rel = str(item["image_path"])
+                            abs_path = str((corpus_dir / rel).resolve())
+                            self.contents.append(abs_path)
+                    if bytes_read < file_size:
+                        pbar.update(file_size - bytes_read)
+                    pbar.refresh() 
+        else:
+            app.logger.info("[retriever] Demo mode: Skipping full corpus load.")
 
+        self.index_backend: Optional[BaseIndexBackend] = None
         if self.backend in ["infinity", "sentence_transformers", "openai"]:
             index_backend_cfg = self.index_backend_configs.get(
                 self.index_backend_name, {}
             )
+
+            if self.index_backend_name == "milvus":
+                index_backend_cfg['collection_name'] = collection_name
+
             self.index_backend = create_index_backend(
                 name=self.index_backend_name,
                 contents=self.contents,
@@ -282,7 +304,7 @@ class Retriever:
                 app.logger.warning(warn_msg)
 
         elif self.backend == "bm25":
-            bm25_save_path = cfg.get("save_path", None)
+            bm25_save_path = self.cfg.get("save_path", None)
             if bm25_save_path and os.path.exists(bm25_save_path):
                 self.model = self.model.load(bm25_save_path, mmap=True, load_corpus=False)
                 self.tokenizer.load_stopwords(bm25_save_path)
@@ -304,6 +326,14 @@ class Retriever:
         overwrite: bool = False,
         is_multimodal: bool = False,
     ):
+        if getattr(self, "is_demo", False):
+            warn_msg = (
+                "[retriever] 'retriever_embed' is ignored in Demo mode. "
+                "Embeddings are generated on-the-fly during 'retriever_index'."
+            )
+            app.logger.warning(warn_msg)
+            return
+        
         embeddings = None
 
         if embedding_path is not None:
@@ -449,46 +479,147 @@ class Retriever:
         gc.collect()
         app.logger.info("embedding success")
 
-    def retriever_index(
+    async def retriever_index(
         self,
         embedding_path: str,
         overwrite: bool = False,
+        collection_name: str = "", 
+        corpus_path: str = ""
     ):
-        if self.backend == "bm25":
-            err_msg = "BM25 backend does not support vector index building via retriever_index."
-            app.logger.error(err_msg)
-            raise ValueError(err_msg)
-
-        if self.index_backend is None:
-            err_msg = (
-                "Vector index backend is not initialized. "
-                "Ensure retriever_init completed successfully."
-            )
-            app.logger.error(err_msg)
-            raise RuntimeError(err_msg)
-
-        if not os.path.exists(embedding_path):
-            app.logger.error(f"Embedding file not found: {embedding_path}")
-            raise NotFoundError(f"Embedding file not found: {embedding_path}")
-
-        embedding = np.load(embedding_path)
-        vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
         
-        try:
-            self.index_backend.build_index(
-                embeddings=embedding,
-                ids=vec_ids,
-                overwrite=overwrite,
-            )
-        except ValueError as exc:
-            raise ValidationError(str(exc)) from exc
-        finally:
-            del embedding
-            gc.collect()
+        target_collection = collection_name
 
-        
-        info_msg = f"[{self.index_backend_name}] Indexing success."
-        app.logger.info(info_msg)
+        if getattr(self, "is_demo", False):
+            target_path = corpus_path if corpus_path else getattr(self, "corpus_path", "")
+
+            if not target_path or not os.path.exists(target_path):
+                msg = f"[Demo] corpus_path is required. Please provide it in call or init."
+                if target_path:
+                    msg += f" (File not found: {target_path})"
+                raise ValidationError(msg)
+
+            if not target_path.endswith(".jsonl"):
+                raise ValidationError(f"[Demo] Corpus file must be a JSONL file (.jsonl). Got: {target_path}")
+
+            app.logger.info(f"[Demo] Indexing JSONL: {target_path} -> Collection: {target_collection}")
+
+
+            milvus_cfg = self.index_backend_configs.get("milvus", {})
+
+            configured_pk = milvus_cfg.get("id_field_name", "id")
+            configured_vec = milvus_cfg.get("vector_field_name", "vector")
+            configured_text = milvus_cfg.get("text_field_name", "contents") 
+            
+            banned_keys = {
+                # hard
+                "contents", "content", "text", "embedding", 
+                "id", "_id", "pk", "uuid",
+                # active
+                configured_pk, 
+                configured_vec, 
+                configured_text 
+            }
+
+            texts = []
+            metadatas = []
+            file_name = os.path.basename(target_path)
+
+            try:
+                with open(target_path, "rb") as f:
+                    for i, line in enumerate(f):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            item = orjson.loads(line)
+                        except orjson.JSONDecodeError:
+                            app.logger.warning(f"[Demo] Skipping invalid JSON on line {i}")
+                            continue
+                        
+                        content = item.get("contents")
+                        if content:
+                            texts.append(content)
+                            meta = {k: v for k, v in item.items() if k not in banned_keys}
+                            meta["file_name"] = file_name
+                            meta["segment_id"] = i
+                            metadatas.append(meta)
+            except Exception as e:
+                raise ValidationError(f"[Demo] Failed to read JSONL file: {e}")
+
+            if not texts:
+                app.logger.warning("[Demo] No valid text chunks found in file.")
+                return
+
+            app.logger.info(f"[Demo] Embedding {len(texts)} chunks...")
+            all_embeddings = []
+            
+            for start in tqdm(range(0, len(texts), self.batch_size), desc="[Demo] Embedding"):
+                batch = texts[start : start + self.batch_size]
+                try:
+                    resp = await self.model.embeddings.create(
+                        model=self.model_name,
+                        input=batch
+                    )
+                    batch_embs = [d.embedding for d in resp.data]
+                    all_embeddings.extend(batch_embs)
+                except Exception as e:
+                    raise ToolError(f"OpenAI embedding failed: {e}")
+
+            embeddings_np = np.array(all_embeddings, dtype=np.float32)
+
+            ids = np.array([f"{target_collection}_{file_name}_{i}" for i in range(len(texts))])
+
+            app.logger.info(f"[Demo] Inserting into collection '{target_collection}'...")
+            try:
+                self.index_backend.build_index(
+                    embeddings=embeddings_np,
+                    ids=ids,
+                    overwrite=overwrite,
+                    collection_name=target_collection,
+                    contents=texts,
+                    metadatas=metadatas
+                )
+            except Exception as e:
+                app.logger.error(f"[Demo] Indexing failed: {e}")
+                raise ToolError(f"Demo indexing failed: {e}")
+            
+            return 
+        else:
+            if self.backend == "bm25":
+                err_msg = "BM25 backend does not support vector index building via retriever_index."
+                app.logger.error(err_msg)
+                raise ValueError(err_msg)
+
+            if self.index_backend is None:
+                err_msg = (
+                    "Vector index backend is not initialized. "
+                    "Ensure retriever_init completed successfully."
+                )
+                app.logger.error(err_msg)
+                raise RuntimeError(err_msg)
+
+            if not os.path.exists(embedding_path):
+                app.logger.error(f"Embedding file not found: {embedding_path}")
+                raise NotFoundError(f"Embedding file not found: {embedding_path}")
+
+            embedding = np.load(embedding_path)
+            vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
+            
+            try:
+                self.index_backend.build_index(
+                    embeddings=embedding,
+                    ids=vec_ids,
+                    overwrite=overwrite,
+                )
+            except ValueError as exc:
+                raise ValidationError(str(exc)) from exc
+            finally:
+                del embedding
+                gc.collect()
+
+            
+            info_msg = f"[{self.index_backend_name}] Indexing success."
+            app.logger.info(info_msg)
 
     def bm25_index(
         self,
@@ -527,11 +658,17 @@ class Retriever:
         query_list: List[str],
         top_k: int = 5,
         query_instruction: str = "",
+        collection_name: str = "",
     ) -> Dict[str, List[List[str]]]:
 
         if isinstance(query_list, str):
             query_list = [query_list]
         queries = [f"{query_instruction}{query}" for query in query_list]
+
+
+        target_collection = collection_name
+        if getattr(self, "is_demo", False):
+            app.logger.info(f"[Demo] Searching query in collection: '{target_collection}'")
 
         if self.backend == "infinity":
             async with self.model:
@@ -600,8 +737,9 @@ class Retriever:
 
         query_embedding = np.array(query_embedding, dtype=np.float32)
 
-        info_msg = f"query embedding shape: {query_embedding.shape}"
-        app.logger.info(info_msg)
+        if not getattr(self, "is_demo", False):
+            info_msg = f"query embedding shape: {query_embedding.shape}"
+            app.logger.info(info_msg)
         
         if self.index_backend is None:
             err_msg = (
@@ -610,9 +748,13 @@ class Retriever:
             )
             app.logger.error(err_msg)
             raise RuntimeError(err_msg)
-
-        rets = self.index_backend.search(query_embedding, top_k)
-
+        
+        rets = self.index_backend.search(
+            query_embedding, 
+            top_k, 
+            collection_name=target_collection
+        )
+   
         return {"ret_psg": rets}
     
     async def retriever_deploy_search(

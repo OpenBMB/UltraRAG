@@ -32,6 +32,7 @@ class BaseIndexBackend(abc.ABC):
         index_path: Optional[str] = None,
         overwrite: bool = False,
         index_chunk_size: int = 50000,
+        **kwargs: Any,
     ) -> None:
         ...
 
@@ -40,6 +41,7 @@ class BaseIndexBackend(abc.ABC):
         self,
         query_embeddings: np.ndarray,
         top_k: int,
+        **kwargs: Any,
     ) -> List[List[str]]:
         ...
 
