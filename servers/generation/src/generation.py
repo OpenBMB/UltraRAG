@@ -435,7 +435,7 @@ class Generation:
                     if part.strip():
                         content.append({"type": "text", "text": part})
                     if j < actual_image_num:
-                        mp = pths[i]
+                        mp = pths[j]
                         if not mp:
                             continue
                         try:
