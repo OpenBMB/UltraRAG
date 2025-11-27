@@ -20,11 +20,15 @@ from ultrarag.mcp_exceptions import (
 )
 from ultrarag.mcp_logging import get_logger
 
-
 log_level = ""
 logger = None
 PipelineStep = Union[str, Dict[str, Any]]
 node_status = False
+
+class MockContent:
+    def __init__(self, text): self.text = text
+class MockResult:
+    def __init__(self, text_content): self.content = [MockContent(text_content)]
 
 
 def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
@@ -842,6 +846,7 @@ async def run(
     config_path: str,
     param_path: str | Path | None = None,
     return_all: bool = False,
+    is_demo: bool = False,
 ):
     cfg_path = Path(config_path)
     log_server_banner(cfg_path.stem)
@@ -930,6 +935,35 @@ async def run(
         config_path, server_configs=server_cfg, parameter_file=param_config_path
     )
 
+    generation_services_map = {}  
+    retriever_aliases = set() 
+
+    if is_demo:
+        for srv_name, srv_conf in server_cfg.items():
+            srv_path = str(srv_conf.get("path", "")).replace("\\", "/")
+            
+            if "servers/generation" in srv_path:
+                sys.path.append(os.getcwd())
+                try:
+                    from servers.generation.src.local_generation import LocalGenerationService
+                except ImportError:
+                    LocalGenerationService = None
+
+                if LocalGenerationService:
+                    gen_params = Data.local_vals.get(srv_name, {})
+                    try:
+                        service_instance = LocalGenerationService(
+                            backend_configs=gen_params.get("backend_configs", {}),
+                            sampling_params=gen_params.get("sampling_params", {}),
+                            backend="openai" 
+                        )
+                        generation_services_map[srv_name] = service_instance
+                    except Exception as e:
+                        logger.warning(f"Failed to init LocalGenerationService for '{srv_name}': {e}")
+            
+            elif "servers/retriever" in srv_path:
+                retriever_aliases.add(srv_name)
+
     async def execute_steps(
         steps: List[PipelineStep],
         depth: int = 0,
@@ -1014,6 +1048,41 @@ async def run(
                 concated, args_input, signal = Data.get_data(
                     server_name, tool_name, state, tool_value.get("input", {})
                 )
+                if is_demo:
+                    demo_target_retriever_tools = {
+                        "retriever_init",
+                    }
+                    if server_name in retriever_aliases and tool_name in demo_target_retriever_tools:
+                        args_input["is_demo"] = True
+
+                    demo_target_gen_tools = ["generate", "multimodal_generate"]
+
+                    if server_name in generation_services_map and tool_name in demo_target_gen_tools and not signal:
+                        local_service = generation_services_map[server_name] 
+                        
+                        full_content = ""
+                        try:
+                            stream_func = local_service.create_stream_function(**args_input)
+                            
+                            async for token in stream_func():
+                                print(token, end="", flush=True)
+                                full_content += token
+                                
+                        except Exception as e:
+                            logger.error(f"Stream Error: {e}")
+                        print("\n")
+
+                        mock_json = json.dumps({"ans_ls": [full_content]})
+                        Data.save_data(
+                            server_name, 
+                            tool_name, 
+                            MockResult(mock_json), 
+                            state, 
+                            tool_value.get("output", {})
+                        )
+                        if depth > 0: LoopTerminal[depth - 1] &= signal
+                        continue 
+
                 if depth > 0:
                     LoopTerminal[depth - 1] &= signal
                 if not signal:
@@ -1037,6 +1106,37 @@ async def run(
                 concated, args_input, signal = Data.get_data(
                     server_name, tool_name, state
                 )
+                if is_demo:
+                    demo_target_retriever_tools = {
+                        "retriever_init",
+                    }
+                    if server_name in retriever_aliases and tool_name in demo_target_retriever_tools:
+                        args_input["is_demo"] = True
+
+                    demo_target_gen_tools = ["generate", "multimodal_generate"]
+
+                    if server_name in generation_services_map and tool_name in demo_target_gen_tools and not signal:
+                        local_service = generation_services_map[server_name] 
+                        
+                        full_content = ""
+                        try:
+                            stream_func = local_service.create_stream_function(**args_input)
+                            
+                            async for token in stream_func():
+                                print(token, end="", flush=True)
+                                full_content += token
+                                
+                        except Exception as e:
+                            logger.error(f"Stream Error: {e}")
+                        print("\n")
+                        
+                        mock_json = json.dumps({"ans_ls": [full_content]})
+                        Data.save_data(server_name, tool_name, MockResult(mock_json), state)
+                       
+                        if depth > 0: LoopTerminal[depth - 1] = signal
+                        continue 
+
+
                 if depth > 0:
                     LoopTerminal[depth - 1] = signal
                 if not signal:
@@ -1123,6 +1223,11 @@ def main():
         default="info",
         help="Set the logging level (debug, info, warn, error)",
     )
+    p_run.add_argument(
+        "--is_demo",
+        action="store_true",
+        help="Enable Demo Mode",
+    )
     p_val.add_argument(
         "--log_level",
         type=str,
@@ -1152,7 +1257,7 @@ def main():
         log_server_banner("Building")
         asyncio.run(build(args.config))
     elif args.cmd == "run":
-        asyncio.run(run(args.config, args.param))
+        asyncio.run(run(args.config, args.param, is_demo=args.is_demo))
     elif args.cmd == "show":
         if args.show_target == "ui":
             launch_ui(host=args.host, port=args.port)
