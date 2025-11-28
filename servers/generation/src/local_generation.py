@@ -80,8 +80,7 @@ class LocalGenerationService:
         with open(s, "rb") as f:
             b64 = base64.b64encode(f.read()).decode("utf-8")
         return f"data:{mime};base64,{b64}"
-    
-    def create_stream_function(
+    async def generate_stream(
         self,
         prompt_ls: List[Union[str, Dict[str, Any]]],
         system_prompt: str = "",
@@ -89,71 +88,71 @@ class LocalGenerationService:
         image_tag: Optional[str] = None,         
         **kwargs
     ):
-        async def _stream_generator():
-            prompts = self._extract_text_prompts(prompt_ls)
-            if not prompts: 
-                return
+        prompts = self._extract_text_prompts(prompt_ls)
+        if not prompts: 
+            return
+        
+        p = prompts[0]
+
+        pths = []
+        if multimodal_path and len(multimodal_path) > 0:
+            entry = multimodal_path[0]
+            if isinstance(entry, (str, bytes)):
+                entry = [str(entry)]
+            elif not isinstance(entry, list):
+                entry = []
+            pths = [str(pth).strip() for pth in entry if str(pth).strip()]
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+
+        if not pths:
+            messages.append({"role": "user", "content": p})
+        else:
+            content: List[Dict[str, Any]] = []
             
-            p = prompts[0]
+            use_tag_mode = bool(image_tag) and bool(str(image_tag).strip())
+            tag = str(image_tag).strip() if use_tag_mode else None
 
-            pths = []
-            if multimodal_path and len(multimodal_path) > 0:
-                entry = multimodal_path[0]
-                if isinstance(entry, (str, bytes)):
-                    entry = [str(entry)]
-                elif not isinstance(entry, list):
-                    entry = []
-                pths = [str(pth).strip() for pth in entry if str(pth).strip()]
-
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-
-            if not pths:
-                messages.append({"role": "user", "content": p})
-            else:
-                content: List[Dict[str, Any]] = []
-                
-                use_tag_mode = bool(image_tag) and bool(str(image_tag).strip())
-                tag = str(image_tag).strip() if use_tag_mode else None
-
-                if use_tag_mode:
-                    parts = p.split(tag)
-                    for j, part in enumerate(parts):
-                        if part.strip():
-                            content.append({"type": "text", "text": part})
-                        if j < len(pths):
-                            img_url = self._to_data_url(pths[j])
-                            if img_url:
-                                content.append({"type": "image_url", "image_url": {"url": img_url}})
-                else:
-                    for mp in pths:
-                        img_url = self._to_data_url(mp)
+            if use_tag_mode:
+                parts = p.split(tag)
+                for j, part in enumerate(parts):
+                    if part.strip():
+                        content.append({"type": "text", "text": part})
+                    if j < len(pths):
+                        img_url = self._to_data_url(pths[j])
                         if img_url:
                             content.append({"type": "image_url", "image_url": {"url": img_url}})
-                    if p:
-                        content.append({"type": "text", "text": p})
+            else:
+                for mp in pths:
+                    img_url = self._to_data_url(mp)
+                    if img_url:
+                        content.append({"type": "image_url", "image_url": {"url": img_url}})
+                if p:
+                    content.append({"type": "text", "text": p})
 
-                messages.append({"role": "user", "content": content})
+            messages.append({"role": "user", "content": content})
 
-            try:
-                stream = await self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=messages,
-                    stream=True, 
-                    **self.sampling_params
-                )
-                
-                async for chunk in stream:
-                    if chunk.choices:
-                        content_delta = chunk.choices[0].delta.content or ""
-                        if content_delta:
-                            yield content_delta
-                        
-            except Exception as e:
-                print("\n❌ [LocalGen] Error Detected:")
-                traceback.print_exc()
-                yield f"\n[Error: {e}]"
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                stream=True, 
+                **self.sampling_params
+            )
+            
+            async for chunk in stream:
+                if chunk.choices:
+                    content_delta = chunk.choices[0].delta.content or ""
+                    if content_delta:
+                        yield content_delta
+                    
+        except Exception as e:
+            print("\n[LocalGen] Error Detected:")
+            traceback.print_exc()
+            yield f"\n[Error: {e}]"
+        
+    
 
-        return _stream_generator
         

@@ -8,18 +8,19 @@ const state = {
   isBuilt: false,
   parametersReady: false,
   mode: "builder",
-  logStream: { runId: null, lastId: -1, timer: null, status: "idle" },
-  shutdownScheduled: false,
-  // Updated Chat State, adding sessions and currentSessionId
+  
+  // [修改] 聊天状态管理
   chat: { 
     history: [], 
     running: false,
-    sessions: [], // Stores { id, title, messages: [] }
-    currentSessionId: null
+    sessions: [], 
+    currentSessionId: null,
+    
+    // 引擎连接状态
+    engineSessionId: null, // 对应后端的 session_id
+    demoLoading: false 
   },
 };
-
-const LOG_POLL_INTERVAL = 1500;
 
 const els = {
   // View Containers
@@ -27,12 +28,11 @@ const els = {
   pipelineForm: document.getElementById("pipeline-form"),
   parameterPanel: document.getElementById("parameter-panel"),
   chatView: document.getElementById("chat-view"),
-  runView: document.getElementById("run-view"),
+  // runView 已删除
   
   // Logs
   log: document.getElementById("log"),
-  runTerminal: document.getElementById("run-terminal"),
-  runSpinner: document.getElementById("run-spinner"),
+  // runTerminal, runSpinner 已删除
 
   // Controls
   name: document.getElementById("pipeline-name"),
@@ -57,13 +57,10 @@ const els = {
   parameterForm: document.getElementById("parameter-form"),
   parameterSave: document.getElementById("parameter-save"),
   parameterBack: document.getElementById("parameter-back"),
-  parameterRun: document.getElementById("parameter-run"),
+  // parameterRun 已删除
   parameterChat: document.getElementById("parameter-chat"),
   
-  // Run Back
-  runBack: document.getElementById("run-back"),
-  
-  // Chat Controls (Updated)
+  // Chat Controls
   chatPipelineName: document.getElementById("chat-pipeline-name"),
   chatBack: document.getElementById("chat-back"),
   chatHistory: document.getElementById("chat-history"),
@@ -71,10 +68,11 @@ const els = {
   chatInput: document.getElementById("chat-input"),
   chatStatus: document.getElementById("chat-status"),
   chatSend: document.getElementById("chat-send"),
-  chatNewBtn: document.getElementById("chat-new-btn"), // New
-  chatSessionList: document.getElementById("chat-session-list"), // New
+  chatNewBtn: document.getElementById("chat-new-btn"),
+  chatSessionList: document.getElementById("chat-session-list"),
+  demoToggleBtn: document.getElementById("demo-toggle-btn"), // 引擎开关
   
-  // Node Picker
+  // Node Picker (保留原样)
   nodePickerModal: document.getElementById("nodePickerModal"),
   nodePickerTabs: document.querySelectorAll("[data-node-mode]"),
   nodePickerServer: document.getElementById("node-picker-server"),
@@ -95,7 +93,6 @@ const els = {
 const Modes = {
   BUILDER: "builder",
   PARAMETERS: "parameters",
-  RUN: "run",
   CHAT: "chat",
 };
 
@@ -111,21 +108,22 @@ const nodePickerState = {
 let nodePickerModalInstance = null;
 let pendingInsert = null;
 
-// --- Logging ---
+// --- Utilities ---
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 function log(message) {
   const stamp = new Date().toLocaleTimeString();
   const msg = `> [${stamp}] ${message}`;
   if (els.log) { els.log.textContent += msg + "\n"; els.log.scrollTop = els.log.scrollHeight; }
-  if (state.mode === Modes.RUN && els.runTerminal) logToTerminal(msg); 
-  else console.log(msg);
-}
-function logToTerminal(msg) {
-    if (!els.runTerminal) return;
-    els.runTerminal.textContent += msg + "\n";
-    const container = els.runTerminal.parentElement;
-    if (container) container.scrollTop = container.scrollHeight;
+  console.log(msg);
 }
 
+// --- Lifecycle ---
 function createNewPipeline() {
   if (state.steps.length > 0) {
     if (!confirm("Create new pipeline? Unsaved changes will be lost.")) return;
@@ -137,85 +135,146 @@ function createNewPipeline() {
   log("Created new blank pipeline.");
 }
 
-// --- Chat Session Management ---
+// --- Demo Session / Engine Control ---
 
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+async function toggleDemoSession() {
+  if (state.chat.demoLoading) return;
+  
+  const pipelineName = state.selectedPipeline;
+  if (!pipelineName) return;
+
+  state.chat.demoLoading = true;
+  updateDemoControls();
+
+  try {
+    if (state.chat.engineSessionId) {
+      // STOP
+      const sid = state.chat.engineSessionId;
+      await fetchJSON(`/api/pipelines/demo/stop`, { 
+          method: "POST", 
+          body: JSON.stringify({ session_id: sid }) 
+      });
+      state.chat.engineSessionId = null;
+      setChatStatus("Offline", "info");
+      log("Demo engine stopped.");
+    } else {
+      // START
+      const newSid = uuidv4(); // 生成唯一的 Client ID
+      setChatStatus("Starting Engine...", "warn");
+      
+      await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
+          method: "POST",
+          body: JSON.stringify({ session_id: newSid })
+      });
+      
+      state.chat.engineSessionId = newSid;
+      setChatStatus("Engine Ready", "ready");
+      log(`Demo engine started (Session: ${newSid.slice(0,8)}...)`);
+    }
+  } catch (err) {
+    log(`Engine error: ${err.message}`);
+    setChatStatus("Error", "error");
+    // 重置状态以允许重试
+    if (!state.chat.engineSessionId) state.chat.engineSessionId = null;
+  } finally {
+    state.chat.demoLoading = false;
+    updateDemoControls();
+  }
 }
 
-function createNewChatSession() {
-    // If the current session is not empty, save it before creating a new one
-    if (state.chat.history.length > 0) {
-        saveCurrentSession(true); // Force save for existing, non-empty session
-    }
-    
-    state.chat.currentSessionId = generateId();
+function updateDemoControls() {
+  if (!els.demoToggleBtn) return;
+  const btn = els.demoToggleBtn;
+  const isActive = !!state.chat.engineSessionId;
+  
+  if (state.chat.demoLoading) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...`;
+    btn.className = "btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold";
+    return;
+  }
+
+  btn.disabled = false;
+  if (isActive) {
+    btn.className = "btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold";
+    btn.innerHTML = "■ Stop Engine";
+    if (els.chatInput) els.chatInput.disabled = state.chat.running; 
+    if (els.chatSend) els.chatSend.disabled = state.chat.running;
+  } else {
+    btn.className = "btn btn-sm btn-outline-success rounded-pill px-3 fw-bold";
+    btn.innerHTML = "▶ Start Engine";
+    if (els.chatInput) els.chatInput.disabled = true;
+    if (els.chatSend) els.chatSend.disabled = true;
+  }
+}
+
+// --- Chat Logic (Updated with Streaming) ---
+
+function resetChatSession() {
     state.chat.history = [];
-    renderChatHistory();
+    state.chat.running = false;
+    state.chat.currentSessionId = null;
+    
+    // 切换 Pipeline 时，清理掉旧的会话列表，防止混淆
+    state.chat.sessions = []; 
+    
+    // 关键：切换 Pipeline 后，之前的 Engine Session ID 失效，需要重新 Start
+    state.chat.engineSessionId = null;
+    
+    renderChatHistory(); 
     renderChatSidebar();
     setChatStatus("Ready", "ready");
-    if(els.chatInput) els.chatInput.focus();
-    log("Started new chat session.");
+    updateDemoControls(); // 重置 Start Engine 按钮状态
+}
+
+function generateChatId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+function createNewChatSession() {
+    if (state.chat.history.length > 0) saveCurrentSession(true);
+    state.chat.currentSessionId = generateChatId();
+    state.chat.history = [];
+    renderChatHistory(); renderChatSidebar();
+    setChatStatus("Ready", "ready");
+    if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
 }
 
 function loadChatSession(sessionId) {
-    if (state.chat.running) return; // Don't switch while generating
-    
-    // Save current session before loading a new one, in case it was modified
+    if (state.chat.running) return;
     saveCurrentSession(false); 
-    
     const session = state.chat.sessions.find(s => s.id === sessionId);
     if (!session) return;
-
     state.chat.currentSessionId = session.id;
-    state.chat.history = [...session.messages]; // Copy messages
-    renderChatHistory();
-    renderChatSidebar();
+    state.chat.history = [...session.messages];
+    renderChatHistory(); renderChatSidebar();
     setChatStatus("Ready", "ready");
-    log(`Loaded chat session: ${session.title}`);
 }
 
 function saveCurrentSession(force = false) {
     if (!state.chat.currentSessionId) return;
-
-    // Only save non-empty sessions, unless forced
     if (!force && state.chat.history.length === 0) {
-        // If an empty session exists in the list, remove it
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
-        renderChatSidebar();
-        return;
+        renderChatSidebar(); return;
     }
-    
     let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
-    
-    // Generate Title from first user message if it's a new session or title is default
     let title = "New Chat";
     const firstUserMsg = state.chat.history.find(m => m.role === 'user');
-    if (firstUserMsg) {
-        title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
-    }
+    if (firstUserMsg) title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
 
     if (!session) {
         session = { id: state.chat.currentSessionId, title: title, messages: [] };
-        state.chat.sessions.unshift(session); // Add to top
+        state.chat.sessions.unshift(session);
     } else {
-        // Update existing
-        // Move to top on update
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
         state.chat.sessions.unshift(session);
-        
-        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) {
-             session.title = title;
-        }
+        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) session.title = title;
     }
-    session.messages = [...state.chat.history]; // Update messages
+    session.messages = [...state.chat.history];
     renderChatSidebar();
 }
 
 function renderChatSidebar() {
     if (!els.chatSessionList) return;
     els.chatSessionList.innerHTML = "";
-    
     state.chat.sessions.forEach(session => {
         const btn = document.createElement("button");
         btn.className = `chat-session-item ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
@@ -225,34 +284,26 @@ function renderChatSidebar() {
     });
 }
 
-// --- Chat Logic ---
-function resetChatSession() {
-    // This is for pipeline reset, clears all chat data
-    state.chat.history = [];
-    state.chat.running = false;
-    state.chat.sessions = [];
-    state.chat.currentSessionId = null;
-    renderChatHistory(); 
-    renderChatSidebar();
-    setChatStatus("Ready", "ready");
-}
-
 function appendChatMessage(role, text, meta = {}) {
   const entry = { role, text, meta, timestamp: new Date().toISOString() };
   state.chat.history.push(entry);
   renderChatHistory();
-  
-  // Save to session list immediately
   saveCurrentSession(); 
 }
 
 function renderChatHistory() {
   if (!els.chatHistory) return;
   els.chatHistory.innerHTML = "";
-  if (state.chat.history.length === 0) { els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start a conversation.</p></div>'; return; }
+  if (state.chat.history.length === 0) { 
+      els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start.</p></div>'; 
+      return; 
+  }
   state.chat.history.forEach((entry) => {
     const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
-    const content = document.createElement("div"); content.textContent = entry.text; bubble.appendChild(content);
+    const content = document.createElement("div"); 
+    // 简单的 Markdown 处理 (如换行)
+    content.innerHTML = entry.text.replace(/\n/g, "<br>"); 
+    bubble.appendChild(content);
     if (entry.meta && entry.meta.hint) {
         const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
         metaLine.style.fontSize = "0.7em"; metaLine.textContent = entry.meta.hint; bubble.appendChild(metaLine);
@@ -261,90 +312,148 @@ function renderChatHistory() {
   });
   els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
+
 function setChatStatus(message, variant = "info") {
   if (!els.chatStatus) return;
   const badge = els.chatStatus;
   const variants = { info: "bg-light text-dark", ready: "bg-light text-dark", running: "bg-primary text-white", success: "bg-success text-white", warn: "bg-warning text-dark", error: "bg-danger text-white" };
   badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`; badge.textContent = message || "";
 }
+
 function setChatRunning(isRunning) {
   state.chat.running = isRunning;
-  if (els.chatInput) els.chatInput.disabled = isRunning;
-  if (els.chatSend) els.chatSend.disabled = isRunning;
-  if (els.chatBack) els.chatBack.disabled = isRunning;
-  if (isRunning) setChatStatus("Thinking...", "running"); else updateActionButtons();
+  updateDemoControls(); // Update input state
+  if (isRunning) setChatStatus("Thinking...", "running"); 
+  else updateActionButtons();
 }
+
 function canUseChat() { return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData); }
+
 function openChatView() {
   if (!canUseChat()) { log("Please build and save parameters first."); return; }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
   
-  // Initialize session if needed
-  if (!state.chat.currentSessionId) {
-      createNewChatSession();
-  }
+  if (!state.chat.currentSessionId) createNewChatSession();
   
   renderChatHistory();
-  renderChatSidebar(); // Render sidebar
+  renderChatSidebar();
   setMode(Modes.CHAT);
-  setChatRunning(state.chat.running);
   
-  if (!state.chat.running && state.chat.history.length === 0) setChatStatus("Ready", "ready");
-  if (!state.chat.running && els.chatInput) els.chatInput.focus();
+  // 检查引擎状态并更新UI
+  updateDemoControls();
+  if(!state.chat.engineSessionId) setChatStatus("Engine Offline", "info");
+  else setChatStatus("Ready", "ready");
 }
+
 async function handleChatSubmit(event) {
   event.preventDefault();
-  if (!canUseChat()) return; if (state.chat.running) return;
-  const question = (els.chatInput ? els.chatInput.value : "").trim(); if (!question) return;
+  if (!canUseChat()) return; 
+  if (state.chat.running) return;
+  
+  if (!state.chat.engineSessionId) {
+      alert("Please click 'Start Engine' first.");
+      return;
+  }
+
+  const question = (els.chatInput ? els.chatInput.value : "").trim(); 
+  if (!question) return;
   if (els.chatInput) els.chatInput.value = "";
-  appendChatMessage("user", question); setChatRunning(true);
+  
+  appendChatMessage("user", question); 
+  setChatRunning(true);
+  
   try {
     if (!state.parametersReady) await persistParameterData({ silent: true });
     
-    // Pass session history with request
+    // 准备请求
     const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
-    const body = JSON.stringify({ question, history: state.chat.history });
     
-    const resp = await fetchJSON(endpoint, { method: "POST", body: body });
-    const status = resp.status || "unknown"; const answer = resp.answer || resp.result || "No answer received";
-    const hints = []; if (resp.dataset_path) hints.push(`Dataset: ${resp.dataset_path}`); if (resp.memory_path) hints.push(`Memory: ${resp.memory_path}`);
-    appendChatMessage("assistant", answer, { hint: hints.join(" | ") });
-    if (status !== "succeeded") appendChatMessage("system", `Ended with status: ${status} ${resp.error || ''}`);
-    setChatStatus("Done", status === "succeeded" ? "success" : "warn");
-  } catch (err) { appendChatMessage("system", `Error: ${err.message || err}`); setChatStatus("Error", "error"); } finally { setChatRunning(false); }
+    // [动态参数] 如果未来有文件上传，在这里构造 dynamic_params
+    const dynamicParams = {}; 
+    
+    const body = JSON.stringify({ 
+        question, 
+        history: state.chat.history,
+        is_demo: true,
+        session_id: state.chat.engineSessionId,
+        dynamic_params: dynamicParams
+    });
+    
+    // 使用 fetch 获取流
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body
+    });
+
+    if (!response.ok) throw new Error(response.statusText);
+
+    // 预先添加 AI 回复气泡
+    const entryIndex = state.chat.history.length;
+    appendChatMessage("assistant", "...");
+    let currentText = "";
+    
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop(); 
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            if (data.type === "token") {
+              currentText += data.content;
+              state.chat.history[entryIndex].text = currentText;
+              // 简单全量刷新，对于 Demo 来说性能足够
+              renderChatHistory();
+            } else if (data.type === "final") {
+              // 最终结果包含 meta info
+              const final = data.data;
+              const hints = [];
+              if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
+              if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
+              
+              state.chat.history[entryIndex].meta = { hint: hints.join(" | ") };
+              // 确保文本一致
+              if(final.answer && final.answer !== "No answer") state.chat.history[entryIndex].text = final.answer;
+              renderChatHistory();
+              setChatStatus("Ready", "ready");
+            } else if (data.type === "error") {
+              appendChatMessage("system", `Error: ${data.message}`);
+              setChatStatus("Error", "error");
+            }
+          } catch (e) { console.error("Parse error", e); }
+        }
+      }
+    }
+
+  } catch (err) { 
+      console.error(err);
+      appendChatMessage("system", `Error: ${err.message}`); 
+      setChatStatus("Error", "error"); 
+  } finally { 
+      setChatRunning(false); 
+      saveCurrentSession();
+  }
 }
 
-// --- Status & Log Stream ---
-function resetLogView() { if (els.log) els.log.textContent = ""; if (els.runTerminal) els.runTerminal.textContent = ""; }
+// --- Common Logic (Mode Switching, Node Picker, etc.) ---
+function resetLogView() { if (els.log) els.log.textContent = ""; }
 function setHeroPipelineLabel(name) { if (els.heroSelectedPipeline) els.heroSelectedPipeline.textContent = name ? name : "No Pipeline Selected"; }
 function setHeroStatusLabel(status) {
   if (!els.heroStatus) return;
   els.heroStatus.dataset.status = status; els.heroStatus.textContent = status.toUpperCase();
-  if (els.runSpinner) { if (status === "running") els.runSpinner.classList.remove("d-none"); else els.runSpinner.classList.add("d-none"); }
 }
-function scheduleWindowClose() {
-  if (state.shutdownScheduled) return; state.shutdownScheduled = true; log("Shutdown command sent. Closing window...");
-  setTimeout(() => { try { window.close(); } catch (e) {} window.location.replace("about:blank"); }, 800);
-}
-function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; stopRunLogStream(); fetch("/api/system/shutdown", { method: "POST" }).finally(scheduleWindowClose); }
-function stopRunLogStream(finalStatus = "idle") {
-  if (state.logStream.timer) clearTimeout(state.logStream.timer);
-  state.logStream.timer = null; state.logStream.runId = null; state.logStream.lastId = -1; state.logStream.status = finalStatus;
-  setHeroStatusLabel(finalStatus);
-}
-async function pollRunLogs() {
-  if (!state.logStream.runId) return;
-  const params = new URLSearchParams(); params.set("since", String(state.logStream.lastId)); params.set("run_id", state.logStream.runId);
-  try {
-    const data = await fetchJSON(`/api/logs/run?${params.toString()}`);
-    if (data.reset) { resetLogView(); state.logStream.lastId = -1; }
-    const entries = data.entries || [];
-    entries.forEach((entry) => { state.logStream.lastId = Math.max(state.logStream.lastId, entry.id); if (entry.message) log(entry.message); });
-    const status = data.status || {}; const stateValue = status.state || "running"; state.logStream.status = stateValue; setHeroStatusLabel(stateValue);
-    if (stateValue === "running") { state.logStream.timer = window.setTimeout(pollRunLogs, LOG_POLL_INTERVAL); } else { stopRunLogStream(stateValue); }
-  } catch (err) { stopRunLogStream("failed"); }
-}
-function startRunLogStream(runId) { if (!runId) return; stopRunLogStream("idle"); state.logStream.runId = runId; state.logStream.lastId = -1; state.logStream.status = "running"; setHeroStatusLabel("running"); pollRunLogs(); }
+function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; fetch("/api/system/shutdown", { method: "POST" }); setTimeout(() => window.close(), 800); }
 
 async function fetchJSON(url, options = {}) {
   const resp = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
@@ -358,8 +467,9 @@ async function persistParameterData({ silent = false } = {}) {
   state.parametersReady = true; updateActionButtons(); if (!silent) log("Parameters saved.");
 }
 
-// --- Helpers ---
+// --- Action Helpers (Removed Run Logic) ---
 function cloneDeep(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+// ... (Location/Step Helpers stay same) ...
 function createLocation(segments = []) { return { segments: segments.map((seg) => ({ ...seg })) }; }
 function locationsEqual(a, b) { return JSON.stringify((a && a.segments) || []) === JSON.stringify((b && b.segments) || []); }
 function getContextKind(location) {
@@ -369,16 +479,34 @@ function getContextKind(location) {
   return "root";
 }
 function resolveSteps(location) {
-  let steps = state.steps; const segments = (location && location.segments) || [];
+  let steps = state.steps; 
+  const segments = (location && location.segments) || [];
+  
   for (const seg of segments) {
-    const entry = steps[seg.index]; if (!entry) return steps;
-    if (seg.type === "loop" && entry.loop) { entry.loop.steps = entry.loop.steps || []; steps = entry.loop.steps; }
+    if (!Array.isArray(steps)) return [];
+    
+    const entry = steps[seg.index]; 
+    if (!entry) return steps; // 或 return []
+    
+    if (seg.type === "loop" && entry.loop) { 
+        entry.loop.steps = entry.loop.steps || []; 
+        steps = entry.loop.steps; 
+    }
     else if (seg.type === "branch" && entry.branch) {
-      entry.branch.router = entry.branch.router || []; entry.branch.branches = entry.branch.branches || {};
-      if (seg.section === "router") steps = entry.branch.router; else if (seg.section === "branch") steps = entry.branch.branches[seg.branchKey] || [];
+      entry.branch.router = entry.branch.router || []; 
+      entry.branch.branches = entry.branch.branches || {};
+      
+      if (seg.section === "router") {
+          steps = entry.branch.router; 
+      } else if (seg.section === "branch") {
+          if (!entry.branch.branches[seg.branchKey]) {
+              entry.branch.branches[seg.branchKey] = [];
+          }
+          steps = entry.branch.branches[seg.branchKey];
+      }
     }
   }
-  return steps;
+  return Array.isArray(steps) ? steps : [];
 }
 function resolveParentSteps(stepPath) { return resolveSteps(createLocation(stepPath.parentSegments || [])); }
 function createStepPath(parentLocation, index) { return { parentSegments: (parentLocation.segments || []).map((seg) => ({ ...seg })), index }; }
@@ -394,7 +522,7 @@ function setActiveLocation(location) {
 }
 function resetContextStack() { state.contextStack = [createLocation([])]; renderContextControls(); }
 
-// --- YAML ---
+// ... (YAML Helpers stay same) ...
 function yamlScalar(value) {
     if (value === null || value === undefined) return "null";
     if (typeof value === "boolean") return value ? "true" : "false";
@@ -427,20 +555,17 @@ function buildServersMapping(steps) { const mapping = {}; collectServersFromStep
 function buildPipelinePayloadForPreview() { return { servers: buildServersMapping(state.steps), pipeline: cloneDeep(state.steps) }; }
 function updatePipelinePreview() { if (els.pipelinePreview) els.pipelinePreview.textContent = yamlStringify(buildPipelinePayloadForPreview()); }
 
-// --- View Switching ---
 function setMode(mode) {
   state.mode = mode;
   if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
   if (els.parameterPanel) els.parameterPanel.classList.toggle("d-none", mode !== Modes.PARAMETERS);
   if (els.chatView) els.chatView.classList.toggle("d-none", mode !== Modes.CHAT);
-  if (els.runView) els.runView.classList.toggle("d-none", mode !== Modes.RUN);
 }
 
-// --- Node Picker ---
+// ... (Node Picker Helpers - keep same) ...
 function getNodePickerModal() {
     const modalElement = els.nodePickerModal; if (!modalElement) return null;
     if (!nodePickerModalInstance) {
-        // Fallback for missing Bootstrap in environment
         if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
             nodePickerModalInstance = new window.bootstrap.Modal(modalElement, { backdrop: "static" });
             modalElement.addEventListener("hidden.bs.modal", () => { pendingInsert = null; clearNodePickerError(); });
@@ -514,11 +639,42 @@ function handleNodePickerConfirm() {
     } catch (e) { showNodePickerError(e.message); }
 }
 
-// --- Actions ---
-function markPipelineDirty() { stopRunLogStream(); state.isBuilt = false; state.parametersReady = false; if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); updateActionButtons(); }
-function setSteps(steps) { state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; state.parameterData = null; resetChatSession(); markPipelineDirty(); resetContextStack(); renderSteps(); updatePipelinePreview(); }
+function markPipelineDirty() { 
+    state.isBuilt = false; 
+    state.parametersReady = false; 
+    
+    if (state.chat.engineSessionId) {
+        log("Pipeline changed. Demo engine invalidated (requires restart).");
+        try {
+            const sid = state.chat.engineSessionId;
+            fetchJSON(`/api/pipelines/demo/stop`, { 
+                method: "POST", 
+                body: JSON.stringify({ session_id: sid }) 
+            }).catch(e => console.warn("Failed to stop invalidated session", e));
+        } catch(e) {}
+        
+        state.chat.engineSessionId = null;
+        updateDemoControls(); 
+    }
+
+    if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); 
+    updateActionButtons(); 
+}
+function setSteps(steps) { 
+    state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; 
+    
+    state.parameterData = null; 
+    state.isBuilt = false; 
+    state.parametersReady = false;
+
+    resetChatSession(); 
+    
+    resetContextStack(); 
+    renderSteps(); 
+    updatePipelinePreview(); 
+    updateActionButtons();
+}
 function updateActionButtons() {
-  if (els.parameterRun) els.parameterRun.disabled = !(state.isBuilt && state.parametersReady && state.selectedPipeline);
   if (els.parameterSave) els.parameterSave.disabled = !(state.isBuilt && state.selectedPipeline);
   if (els.parameterChat) els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
 }
@@ -537,6 +693,7 @@ function createInsertControl(location, insertIndex, { prominent = false, compact
   holder.appendChild(button); return holder;
 }
 
+// ... (Render Helpers - Tool/Loop/Branch Nodes - keep same) ...
 function renderToolNode(identifier, stepPath) {
   const card = document.createElement("div"); card.className = "flow-node";
   const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
@@ -548,6 +705,8 @@ function renderToolNode(identifier, stepPath) {
   actions.append(editBtn, removeBtn); card.append(header, body, actions); return card;
 }
 function renderLoopNode(step, parentLocation, index) {
+  const loopSteps = Array.isArray(step.loop.steps) ? step.loop.steps : [];
+
   const loopLocation = createLocation([...(parentLocation.segments || []), { type: "loop", index }]);
   const container = document.createElement("div"); container.className = "loop-container";
   const header = document.createElement("div"); header.className = "loop-header";
@@ -558,11 +717,15 @@ function renderLoopNode(step, parentLocation, index) {
   const editBtn = document.createElement("button"); editBtn.className = "btn btn-sm btn-outline-secondary border-0"; editBtn.textContent = "Edit"; editBtn.onclick = () => openStepEditor(createStepPath(parentLocation, index));
   const delBtn = document.createElement("button"); delBtn.className = "btn btn-sm btn-outline-danger border-0"; delBtn.textContent = "Delete"; delBtn.onclick = () => removeStep(createStepPath(parentLocation, index));
   actions.append(editBtn, delBtn);
-  const list = renderStepList(step.loop.steps || [], loopLocation, { placeholderText: "Empty Loop", compact: true });
+  
+  const list = renderStepList(loopSteps, loopLocation, { placeholderText: "Empty Loop", compact: true });
+  
   container.append(header, list, actions); if (locationsEqual(loopLocation, getActiveLocation())) container.classList.add("active"); return container;
 }
 function renderBranchNode(step, parentLocation, index) {
-    step.branch.router = step.branch.router || []; step.branch.branches = step.branch.branches || {};
+    step.branch.router = Array.isArray(step.branch.router) ? step.branch.router : [];
+    step.branch.branches = (step.branch.branches && typeof step.branch.branches === 'object') ? step.branch.branches : {};
+
     const branchBase = createLocation([...(parentLocation.segments || []), { type: "branch", index, section: "router" }]);
     const container = document.createElement("div"); container.className = "branch-container";
     const header = document.createElement("div"); header.className = "branch-header"; header.innerHTML = `<h6>BRANCH</h6>`;
@@ -593,15 +756,37 @@ function renderStepNode(step, parentLocation, index) {
   const card = renderToolNode("Custom Object", stepPath); card.querySelector(".flow-node-body").textContent = JSON.stringify(step); return card;
 }
 function renderStepList(steps, location, options = {}) {
-  const wrapper = document.createElement("div"); wrapper.className = "step-list";
-  if (!steps.length) {
-    const placeholder = document.createElement("div"); placeholder.className = "flow-placeholder";
-    const control = createInsertControl(location, 0, { prominent: true }); placeholder.appendChild(control); wrapper.appendChild(placeholder); return wrapper;
+  const safeSteps = Array.isArray(steps) ? steps : [];
+  
+  const wrapper = document.createElement("div"); 
+  wrapper.className = "step-list";
+  
+  if (!safeSteps.length) {
+    const placeholder = document.createElement("div"); 
+    placeholder.className = "flow-placeholder";
+    const control = createInsertControl(location, 0, { prominent: !options.compact }); 
+    placeholder.appendChild(control); 
+    wrapper.appendChild(placeholder); 
+    return wrapper;
   }
-  steps.forEach((step, index) => { wrapper.appendChild(createInsertControl(location, index, { compact: options.compact })); wrapper.appendChild(renderStepNode(step, location, index)); });
-  wrapper.appendChild(createInsertControl(location, steps.length, { compact: options.compact })); return wrapper;
+  
+  safeSteps.forEach((step, index) => { 
+      wrapper.appendChild(createInsertControl(location, index, { compact: options.compact })); 
+      wrapper.appendChild(renderStepNode(step, location, index)); 
+  });
+  
+  wrapper.appendChild(createInsertControl(location, safeSteps.length, { compact: options.compact })); 
+  return wrapper;
 }
-function renderSteps() { els.flowCanvas.innerHTML = ""; const rootLocation = createLocation([]); els.flowCanvas.appendChild(renderStepList(state.steps, rootLocation)); }
+function renderSteps() {
+  els.flowCanvas.innerHTML = "";
+  
+  const activeLocation = getActiveLocation();
+  
+  const currentSteps = resolveSteps(activeLocation);
+  
+  els.flowCanvas.appendChild(renderStepList(currentSteps, activeLocation));
+}
 function renderContextControls() {
   if (!els.contextControls) return; els.contextControls.innerHTML = ""; ensureContextInitialized();
   const breadcrumb = document.createElement("div"); breadcrumb.className = "context-breadcrumb d-flex flex-wrap gap-2 align-items-center";
@@ -639,8 +824,40 @@ function renderPipelineMenu(items) {
     });
 }
 async function loadPipeline(name) {
-    const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`); state.selectedPipeline = name; els.name.value = name; setSteps(cfg.pipeline || []);
-    if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name; setHeroPipelineLabel(name);
+    try {
+        const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`);
+        
+        state.selectedPipeline = name;
+        els.name.value = name;
+        
+
+        let safeSteps = [];
+        
+        if (Array.isArray(cfg)) {
+            safeSteps = cfg;
+        } else if (cfg && typeof cfg === 'object') {
+            if (Array.isArray(cfg.pipeline)) {
+                safeSteps = cfg.pipeline;
+            } else if (Array.isArray(cfg.steps)) {
+                safeSteps = cfg.steps;
+            }
+        }
+        
+        safeSteps = cloneDeep(safeSteps);
+        
+        if (safeSteps.length === 0) {
+            console.warn(`[Warn] Loaded pipeline '${name}' appears to be empty. Raw config:`, cfg);
+        }
+
+        setSteps(safeSteps);
+
+        if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name;
+        setHeroPipelineLabel(name);
+        
+    } catch (err) {
+        log(`Failed to load pipeline: ${err.message}`);
+        console.error(err);
+    }
 }
 function handleSubmit(e) {
     e.preventDefault(); const name = els.name.value.trim(); if (!name) return log("Pipeline name is required");
@@ -651,12 +868,6 @@ function buildSelectedPipeline() {
     if(!state.selectedPipeline) return log("Please save the pipeline first.");
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
     .then(() => { state.isBuilt=true; state.parametersReady=false; updateActionButtons(); log("Pipeline built."); showParameterPanel(true); }).catch(e=>log(e.message));
-}
-function runSelectedPipeline() {
-    if(!state.selectedPipeline || !state.parametersReady) return log("Please configure parameters first.");
-    stopRunLogStream(); resetLogView(); setMode(Modes.RUN); log("Run initiated...");
-    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/run`, { method: "POST" })
-    .then(r => { if (r?.run_id) startRunLogStream(r.run_id); else log("No run_id returned"); }).catch(e=>log(e.message));
 }
 function deleteSelectedPipeline() {
     if(!state.selectedPipeline || !confirm("Delete pipeline?")) return;
@@ -675,7 +886,6 @@ function setNestedValue(obj, path, val) {
     const p = path.split("."); let c = obj; for (let i=0; i<p.length-1; i++) { if (!c[p[i]]) c[p[i]]={}; c=c[p[i]]; } c[p[p.length-1]] = val;
 }
 
-// --- Updated Parameter Renderer ---
 function renderParameterForm() {
     const container = els.parameterForm; container.innerHTML = "";
     if (!state.parameterData || typeof state.parameterData !== "object") { container.innerHTML = '<div class="col-12"><p class="text-muted text-center">No parameters available for configuration.</p></div>'; return; }
@@ -719,24 +929,27 @@ function bindEvents() {
     if (els.newPipelineBtn) els.newPipelineBtn.addEventListener("click", createNewPipeline); 
     if (els.shutdownApp) els.shutdownApp.onclick = requestShutdown;
     
-    // Bind Back Buttons
     if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
-    if (els.parameterRun) els.parameterRun.onclick = runSelectedPipeline;
     if (els.parameterChat) els.parameterChat.onclick = openChatView;
-    if (els.runBack) els.runBack.onclick = () => setMode(Modes.PARAMETERS);
     
-    // Chat View
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
-    if (els.chatBack) els.chatBack.onclick = () => { saveCurrentSession(true); setChatRunning(false); setMode(Modes.PARAMETERS); };
+    if (els.chatBack) els.chatBack.onclick = async () => { 
+        saveCurrentSession(true);
+        if (state.chat.engineSessionId) {
+            if(confirm("Stop the backend engine?")) await toggleDemoSession();
+        }
+        setChatRunning(false); 
+        setMode(Modes.PARAMETERS); 
+    };
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
+    if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
     
     document.getElementById("step-editor-save").onclick = () => {
         if (!state.editingPath) return;
         try { setStepByPath(state.editingPath, parseStepInput(els.stepEditorValue.value)); closeStepEditor(); renderSteps(); updatePipelinePreview(); } catch(e){ log(e.message); }
     };
     document.getElementById("step-editor-cancel").onclick = closeStepEditor;
-    
     els.refreshPipelines.onclick = refreshPipelines;
     els.name.oninput = updatePipelinePreview;
     
@@ -751,7 +964,7 @@ function bindEvents() {
 
 async function bootstrap() {
   setMode(Modes.BUILDER); resetContextStack(); renderSteps(); updatePipelinePreview(); bindEvents(); updateActionButtons();
-  setHeroPipelineLabel(state.selectedPipeline || ""); // Ensure label is set on load
+  setHeroPipelineLabel(state.selectedPipeline || "");
   try { await Promise.all([refreshPipelines(), refreshTools()]); log("UI Ready."); } catch (err) { log(`Initialization error: ${err.message}`); }
 }
 
