@@ -72,6 +72,11 @@
         <div class="floating-actions">
           <button type="submit" id="save-pipeline" class="btn btn-dark btn-pill">Save Changes</button>
           <button type="button" id="build-pipeline" class="btn btn-light btn-pill border">Build</button>
+          
+          <button type="button" id="direct-chat-btn" class="btn btn-ai-gradient btn-pill ms-2 d-none">
+            ✨ Chat
+          </button>
+          
           <button type="button" id="delete-pipeline" class="btn btn-text text-danger ms-2">Delete</button>
         </div>
       </form>
@@ -107,7 +112,7 @@
 
           <div class="d-flex gap-3 justify-content-center pb-5">
             <button type="button" class="btn btn-dark btn-pill px-4 py-2" id="parameter-save">Save Parameters</button>
-            <button type="button" class="btn btn-primary btn-pill px-4 py-2" id="parameter-run">Run Test ▶</button>
+
             <div class="vr mx-2 opacity-25"></div>
             <button type="button" class="btn btn-ai-gradient btn-pill px-4 py-2" id="parameter-chat">✨ Enter Chat Mode</button>
           </div>
@@ -115,24 +120,6 @@
       </div>
     </div>
   </div>
-
-  <section id="run-view" class="view-overlay d-none">
-    <header class="view-header">
-      <div class="btn-back-wrapper">
-        <button type="button" id="run-back" class="btn-back" title="Return to Parameter Config">←</button>
-      </div>
-      <div class="text-center">
-        <span class="text-muted text-xs text-uppercase mb-1 d-block">Run Mode</span>
-        <h3 class="m-0 fs-5">Terminal Output</h3>
-      </div>
-      <div class="position-absolute end-0 me-4">
-         <div id="run-spinner" class="spinner-border spinner-border-sm text-primary" role="status"></div>
-      </div>
-    </header>
-    <div class="terminal-container">
-      <pre id="run-terminal" class="terminal-content"></pre>
-    </div>
-  </section>
 
   <section id="chat-view" class="view-overlay d-none">
   <div class="chat-layout">
@@ -145,29 +132,37 @@
       </div>
       
       <div class="sidebar-list">
-        <div class="sidebar-label">Recent History</div>
+        <div class="sidebar-label">Recent</div>
         <div id="chat-session-list" class="session-list"></div>
       </div>
 
       <div class="sidebar-footer">
         <button type="button" id="chat-back" class="btn btn-sidebar-action">
-          <span class="icon">←</span> Return to Parameters
+          <span class="icon">⛭</span> Configure Pipeline
         </button>
       </div>
     </aside>
 
     <div class="chat-main">
-      <header class="view-header border-bottom-0">
-        <div class="d-md-none position-absolute start-0 ms-3">
-           <button type="button" class="btn btn-icon" id="chat-mobile-back">←</button>
+      <header class="view-header border-bottom-0 justify-content-start gap-3">
+        <div class="d-md-none">
+           <button type="button" class="btn btn-icon" id="chat-mobile-menu">☰</button>
         </div>
         
-        <div class="text-center">
-          <span class="text-muted text-xs text-uppercase mb-1 d-block">Chat Mode</span>
-          <h3 class="m-0 fs-5" id="chat-pipeline-name">Pipeline</h3>
+        <div class="pipeline-selector-wrapper dropdown">
+          <button class="btn btn-pipeline-select dropdown-toggle" type="button" id="chatPipelineDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="fw-bold fs-6" id="chat-pipeline-label">Select Pipeline</span>
+            <span class="text-muted ms-1 small opacity-50">v1</span>
+          </button>
+          <ul class="dropdown-menu shadow-lg border-0 rounded-4 mt-2 p-2" id="chat-pipeline-menu" style="min-width: 240px;">
+            </ul>
         </div>
-        <div class="position-absolute end-0 me-4">
-          <span id="chat-status" class="badge rounded-pill bg-light text-dark border">Ready</span>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <button id="demo-toggle-btn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" style="font-size: 0.75rem;">
+            Loading...
+          </button>
+          <span id="chat-status" class="badge rounded-pill bg-light text-dark border">Offline</span>
         </div>
       </header>
 
@@ -175,8 +170,11 @@
         <div class="chat-scroll-area" id="chat-history"></div>
         <div class="chat-input-wrapper">
           <form id="chat-form" class="chat-input-container shadow-sm">
-            <input type="text" id="chat-input" class="form-control chat-input" placeholder="Send a message..." autocomplete="off" />
-            <button class="btn btn-send" type="submit" id="chat-send">↑</button>
+            <input type="text" id="chat-input" class="form-control chat-input" placeholder="Message UltraRAG..." autocomplete="off" />
+            
+            <button class="btn btn-send" type="button" id="chat-send">
+              <span id="chat-send-icon">↑</span>
+            </button>
           </form>
         </div>
       </div>

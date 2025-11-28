@@ -19,6 +19,7 @@ from ultrarag.mcp_exceptions import (
     NodeVersionTooLowError,
 )
 from ultrarag.mcp_logging import get_logger
+from typing import Callable, Awaitable
 
 log_level = ""
 logger = None
@@ -27,8 +28,11 @@ node_status = False
 
 class MockContent:
     def __init__(self, text): self.text = text
+
 class MockResult:
-    def __init__(self, text_content): self.content = [MockContent(text_content)]
+    def __init__(self, text_content): 
+        self.content = [MockContent(text_content)]
+        self.data = text_content
 
 
 def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
@@ -841,25 +845,21 @@ async def build(config_path: str):
         yaml.safe_dump(server_all, f)
     logger.info(f"All server configurations have been saved in {server_save_path}")
 
-
-async def run(
+def load_pipeline_context(
     config_path: str,
-    param_path: str | Path | None = None,
-    return_all: bool = False,
-    is_demo: bool = False,
-):
+    param_path: str | Path | None = None
+) -> Dict[str, Any]:
     cfg_path = Path(config_path)
-    log_server_banner(cfg_path.stem)
     logger.info(f"Executing pipeline with configuration {config_path}")
     cfg = Configuration()
     init_cfg = cfg.load_config(config_path)
     servers = init_cfg.get("servers", {})
-    pipeline_cfg: List[PipelineStep] = init_cfg.get("pipeline", [])
+    pipeline_cfg = init_cfg.get("pipeline", [])
     server_paths = servers
 
     cfg_name = cfg_path.stem
     root_path = cfg_path.parent
-
+    
     server_config_path = root_path / "server" / f"{cfg_name}_server.yaml"
     all_server_configs = cfg.load_config(server_config_path)
     server_cfg = {
@@ -885,6 +885,7 @@ async def run(
         param_config_path = param_config_path.resolve()
     else:
         param_config_path = root_path / "parameter" / f"{cfg_name}_parameter.yaml"
+    
     param_cfg = cfg.load_parameter_config(param_config_path)
     for srv_name in server_cfg.keys():
         server_cfg[srv_name]["parameter"] = param_cfg.get(srv_name, {})
@@ -929,14 +930,49 @@ async def run(
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 
-    logger.info("Initializing servers...")
-    client = Client(mcp_cfg)
+
+    return {
+        "config_path": config_path,
+        "param_config_path": param_config_path,
+        "cfg_name": cfg_name,
+        "mcp_cfg": mcp_cfg,
+        "server_cfg": server_cfg,
+        "pipeline_cfg": pipeline_cfg,
+        "init_cfg": init_cfg
+    }
+
+
+def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Client:
+    logger.info("Initializing MCP Client...")
+    return Client(mcp_cfg)
+
+async def execute_pipeline(
+    client: Client,
+    context: Dict[str, Any],
+    is_demo: bool = False,
+    return_all: bool = False,
+    stream_callback: Callable[[str], Awaitable[None]] = None,
+    override_params: Dict[str, Any] = None
+) -> Any:
+    
+    config_path = context["config_path"]
+    server_cfg = context["server_cfg"]
+    param_config_path = context["param_config_path"]
+    pipeline_cfg = context["pipeline_cfg"]
+    cfg_name = context["cfg_name"]
+
     Data: UltraData = UltraData(
         config_path, server_configs=server_cfg, parameter_file=param_config_path
     )
 
-    generation_services_map = {}  
-    retriever_aliases = set() 
+    if override_params:
+        for srv_name, params in override_params.items():
+            if srv_name in Data.local_vals:
+                Data.local_vals[srv_name].update(params)
+                logger.info(f"Dynamic Override applied for '{srv_name}': {params}")
+
+    generation_services_map = {}
+    retriever_aliases = set()
 
     if is_demo:
         for srv_name, srv_conf in server_cfg.items():
@@ -955,7 +991,7 @@ async def run(
                         service_instance = LocalGenerationService(
                             backend_configs=gen_params.get("backend_configs", {}),
                             sampling_params=gen_params.get("sampling_params", {}),
-                            backend="openai" 
+                            backend="openai"
                         )
                         generation_services_map[srv_name] = service_instance
                     except Exception as e:
@@ -964,7 +1000,7 @@ async def run(
             elif "servers/retriever" in srv_path:
                 retriever_aliases.add(srv_name)
 
-    async def execute_steps(
+    async def _execute_steps(
         steps: List[PipelineStep],
         depth: int = 0,
         state: str = ROOT,
@@ -982,7 +1018,7 @@ async def run(
                     raise ValueError(f"Invalid loop config: {loop_cfg}")
                 for st in range(times):
                     LoopTerminal[-1] = True
-                    await execute_steps(inner_steps, depth + 1, state)
+                    await _execute_steps(inner_steps, depth + 1, state)
                     logger.debug(
                         f"{indent}Loop iteration {st + 1}/{times} completed {LoopTerminal}"
                     )
@@ -999,7 +1035,7 @@ async def run(
                     raise ValueError(
                         f"Router not found in branch config: {branch_step}"
                     )
-                await execute_steps(
+                await _execute_steps(
                     router[:-1],
                     depth,
                     state,
@@ -1037,7 +1073,7 @@ async def run(
 
                     logger.debug(f"{indent}Processing branch: {branch_name}")
                     # branch_steps = branch_step["branches"][branch_name]``
-                    await execute_steps(
+                    await _execute_steps(
                         branch_step["branches"][branch_name],
                         depth,
                         f"{state}{SEP}branch{branch_depth}_{branch_name}",
@@ -1062,21 +1098,25 @@ async def run(
                         
                         full_content = ""
                         try:
-                            stream_func = local_service.create_stream_function(**args_input)
-                            
-                            async for token in stream_func():
+                            async for token in local_service.generate_stream(**args_input):                            
                                 print(token, end="", flush=True)
                                 full_content += token
+                                
+                                if stream_callback:
+                                    await stream_callback(token)
                                 
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
                         print("\n")
 
                         mock_json = json.dumps({"ans_ls": [full_content]})
+                        mock_result_obj = MockResult(mock_json)
+                        result = mock_result_obj
+
                         Data.save_data(
                             server_name, 
                             tool_name, 
-                            MockResult(mock_json), 
+                            mock_result_obj, 
                             state, 
                             tool_value.get("output", {})
                         )
@@ -1120,18 +1160,24 @@ async def run(
                         
                         full_content = ""
                         try:
-                            stream_func = local_service.create_stream_function(**args_input)
-                            
-                            async for token in stream_func():
+                            async for token in local_service.generate_stream(**args_input):                               
                                 print(token, end="", flush=True)
                                 full_content += token
+                                
+                                if stream_callback:
+                                    await stream_callback(token)
                                 
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
                         print("\n")
                         
                         mock_json = json.dumps({"ans_ls": [full_content]})
-                        Data.save_data(server_name, tool_name, MockResult(mock_json), state)
+
+                        mock_result_obj = MockResult(mock_json)
+                        result = mock_result_obj
+
+
+                        Data.save_data(server_name, tool_name, mock_result_obj, state)
                        
                         if depth > 0: LoopTerminal[depth - 1] = signal
                         continue 
@@ -1152,49 +1198,66 @@ async def run(
 
         return result
 
-    async with client:
-        tools = await client.list_tools()
-        tool_name_lst = [
-            tool.name
-            for tool in tools
-            if not tool.name.endswith("_build" if "_" in tool.name else "build")
-        ]
-        logger.info(f"Available tools: {tool_name_lst}")
+    tools = await client.list_tools()
+    tool_name_lst = [
+        tool.name for tool in tools
+        if not tool.name.endswith("_build" if "_" in tool.name else "build")
+    ]
+    logger.info(f"Available tools: {tool_name_lst}")
 
-        cleanup_tools = [
+    cleanup_tools = [
             tool.name for tool in tools if tool.name.endswith("vllm_shutdown")
         ]
 
-        result = None
-        try:
-            result = await execute_steps(pipeline_cfg)
-            logger.info("Pipeline execution completed.")
-        finally:
-            for tool_name in cleanup_tools:
-                try:
-                    logger.info(f"Invoking cleanup tool: {tool_name}")
-                    await client.call_tool(tool_name, {})
-                except Exception as exc:
-                    logger.warning(
-                        f"Cleanup tool {tool_name} raised {exc.__class__.__name__}: {exc}"
-                    )
+    result = None
+    try:
+        result = await _execute_steps(pipeline_cfg)
+        logger.info("Pipeline execution completed.")
+    finally:
+        for tool_name in cleanup_tools:
+            try:
+                logger.info(f"Invoking cleanup tool: {tool_name}")
+                await client.call_tool(tool_name, {})
+            except Exception as exc:
+                logger.warning(
+                    f"Cleanup tool {tool_name} raised {exc.__class__.__name__}: {exc}"
+                )
 
-        # save memory snapshots
-        Data.write_memory_output(cfg_name, datetime.now().strftime("%Y%m%d_%H%M%S"))
+    # save memory snapshots
+    Data.write_memory_output(cfg_name, datetime.now().strftime("%Y%m%d_%H%M%S"))
 
-        if return_all:
-            if result is None:
-                final = None
-            else:
-                final = result.data
-            return {
-                "final_result": final,
-                "all_results": Data.snapshots,
-            }
-
+    if return_all:
         if result is None:
-            return None
-        return result.data
+            final = None
+        else:
+            final = result.data
+        return {
+            "final_result": final,
+            "all_results": Data.snapshots,
+        }
+
+    if result is None:
+        return None
+    return result.data
+
+async def run(
+    config_path: str,
+    param_path: str | Path | None = None,
+    return_all: bool = False,
+    is_demo: bool = False,
+):
+
+    log_server_banner(Path(config_path).stem)
+
+    context = load_pipeline_context(config_path, param_path)
+    
+    client = create_mcp_client(context["mcp_cfg"])
+
+    async with client:
+        result = await execute_pipeline(client, context, is_demo, return_all)
+
+    return result
+
 
 
 logging.getLogger("mcp").setLevel(logging.WARNING)

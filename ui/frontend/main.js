@@ -8,18 +8,23 @@ const state = {
   isBuilt: false,
   parametersReady: false,
   mode: "builder",
-  logStream: { runId: null, lastId: -1, timer: null, status: "idle" },
-  shutdownScheduled: false,
-  // Updated Chat State, adding sessions and currentSessionId
+  
+  // [修改] 聊天状态管理
   chat: { 
     history: [], 
     running: false,
-    sessions: [], // Stores { id, title, messages: [] }
-    currentSessionId: null
+    sessions: [], 
+    currentSessionId: null,
+
+    controller: null,
+    
+    // 引擎连接状态
+    engineSessionId: null, // 当前选中的 Pipeline 对应的 SessionID
+    activeEngines: {},     // 映射表: { "pipelineName": "sessionId" }
+    
+    demoLoading: false
   },
 };
-
-const LOG_POLL_INTERVAL = 1500;
 
 const els = {
   // View Containers
@@ -27,12 +32,11 @@ const els = {
   pipelineForm: document.getElementById("pipeline-form"),
   parameterPanel: document.getElementById("parameter-panel"),
   chatView: document.getElementById("chat-view"),
-  runView: document.getElementById("run-view"),
+  // runView 已删除
   
   // Logs
   log: document.getElementById("log"),
-  runTerminal: document.getElementById("run-terminal"),
-  runSpinner: document.getElementById("run-spinner"),
+  // runTerminal, runSpinner 已删除
 
   // Controls
   name: document.getElementById("pipeline-name"),
@@ -52,18 +56,17 @@ const els = {
   shutdownApp: document.getElementById("shutdown-app"),
   heroSelectedPipeline: document.getElementById("hero-selected-pipeline"),
   heroStatus: document.getElementById("hero-status"),
+
+  directChatBtn: document.getElementById("direct-chat-btn"),
   
   // Parameter Controls
   parameterForm: document.getElementById("parameter-form"),
   parameterSave: document.getElementById("parameter-save"),
   parameterBack: document.getElementById("parameter-back"),
-  parameterRun: document.getElementById("parameter-run"),
+  // parameterRun 已删除
   parameterChat: document.getElementById("parameter-chat"),
   
-  // Run Back
-  runBack: document.getElementById("run-back"),
-  
-  // Chat Controls (Updated)
+  // Chat Controls
   chatPipelineName: document.getElementById("chat-pipeline-name"),
   chatBack: document.getElementById("chat-back"),
   chatHistory: document.getElementById("chat-history"),
@@ -71,10 +74,15 @@ const els = {
   chatInput: document.getElementById("chat-input"),
   chatStatus: document.getElementById("chat-status"),
   chatSend: document.getElementById("chat-send"),
-  chatNewBtn: document.getElementById("chat-new-btn"), // New
-  chatSessionList: document.getElementById("chat-session-list"), // New
+  chatNewBtn: document.getElementById("chat-new-btn"),
+  chatSessionList: document.getElementById("chat-session-list"),
+  demoToggleBtn: document.getElementById("demo-toggle-btn"), // 引擎开关
+
+  // [新增] Chat 顶部控件
+  chatPipelineLabel: document.getElementById("chat-pipeline-label"),
+  chatPipelineMenu: document.getElementById("chat-pipeline-menu"),
   
-  // Node Picker
+  // Node Picker (保留原样)
   nodePickerModal: document.getElementById("nodePickerModal"),
   nodePickerTabs: document.querySelectorAll("[data-node-mode]"),
   nodePickerServer: document.getElementById("node-picker-server"),
@@ -95,7 +103,6 @@ const els = {
 const Modes = {
   BUILDER: "builder",
   PARAMETERS: "parameters",
-  RUN: "run",
   CHAT: "chat",
 };
 
@@ -111,21 +118,22 @@ const nodePickerState = {
 let nodePickerModalInstance = null;
 let pendingInsert = null;
 
-// --- Logging ---
+// --- Utilities ---
+function uuidv4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 function log(message) {
   const stamp = new Date().toLocaleTimeString();
   const msg = `> [${stamp}] ${message}`;
   if (els.log) { els.log.textContent += msg + "\n"; els.log.scrollTop = els.log.scrollHeight; }
-  if (state.mode === Modes.RUN && els.runTerminal) logToTerminal(msg); 
-  else console.log(msg);
-}
-function logToTerminal(msg) {
-    if (!els.runTerminal) return;
-    els.runTerminal.textContent += msg + "\n";
-    const container = els.runTerminal.parentElement;
-    if (container) container.scrollTop = container.scrollHeight;
+  console.log(msg);
 }
 
+// --- Lifecycle ---
 function createNewPipeline() {
   if (state.steps.length > 0) {
     if (!confirm("Create new pipeline? Unsaved changes will be lost.")) return;
@@ -137,85 +145,241 @@ function createNewPipeline() {
   log("Created new blank pipeline.");
 }
 
-// --- Chat Session Management ---
+// --- Demo Session / Engine Control ---
 
-function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+async function toggleDemoSession() {
+  if (state.chat.demoLoading) return;
+  const pipelineName = state.selectedPipeline;
+  if (!pipelineName) return;
+
+  state.chat.demoLoading = true;
+  updateDemoControls();
+
+  try {
+    if (state.chat.engineSessionId) {
+      // === STOP ===
+      const sid = state.chat.engineSessionId;
+      await fetchJSON(`/api/pipelines/demo/stop`, { 
+          method: "POST", body: JSON.stringify({ session_id: sid }) 
+      });
+      state.chat.engineSessionId = null;
+      // [新增] 移除记录
+      delete state.chat.activeEngines[pipelineName];
+      
+      setChatStatus("Offline", "info");
+      log("Demo engine stopped.");
+    } else {
+      // === START ===
+      const newSid = uuidv4(); 
+      setChatStatus("Starting...", "warn");
+      
+      await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
+          method: "POST", body: JSON.stringify({ session_id: newSid })
+      });
+      
+      state.chat.engineSessionId = newSid;
+      // [新增] 添加记录
+      state.chat.activeEngines[pipelineName] = newSid;
+      
+      setChatStatus("Engine Ready", "ready");
+      log("Demo engine started.");
+    }
+  } catch (err) {
+    log(`Engine error: ${err.message}`);
+    setChatStatus("Error", "error");
+    if(!state.chat.engineSessionId) state.chat.engineSessionId = null;
+  } finally {
+    state.chat.demoLoading = false;
+    updateDemoControls();
+  }
 }
 
-function createNewChatSession() {
-    // If the current session is not empty, save it before creating a new one
-    if (state.chat.history.length > 0) {
-        saveCurrentSession(true); // Force save for existing, non-empty session
+function updateDemoControls() {
+  if (!els.demoToggleBtn) return;
+  const btn = els.demoToggleBtn;
+  const isActive = !!state.chat.engineSessionId;
+  
+  if (state.chat.demoLoading) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...`;
+    btn.className = "btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold";
+    return;
+  }
+
+  btn.disabled = false;
+  if (isActive) {
+    // 引擎已启动
+    btn.className = "btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold";
+    btn.innerHTML = "■ Stop Engine";
+    
+    // [修改] 移除对 chatInput 和 chatSend 的 running 状态干预
+    // 这里只负责“引擎在线就解锁输入框”，至于 running 时锁不锁，交给 setChatRunning 管
+    if (els.chatInput) els.chatInput.disabled = false; 
+    if (els.chatSend) els.chatSend.disabled = false;
+    
+  } else {
+    // 引擎未启动
+    btn.className = "btn btn-sm btn-outline-success rounded-pill px-3 fw-bold";
+    btn.innerHTML = "▶ Start Engine";
+    
+    // 引擎离线时，彻底锁死输入
+    if (els.chatInput) els.chatInput.disabled = true;
+    if (els.chatSend) els.chatSend.disabled = true;
+  }
+}
+
+// --- Chat Logic (Updated with Streaming) ---
+
+// [新增] 渲染 Pipeline 列表到下拉菜单
+async function renderChatPipelineMenu() {
+    if (!els.chatPipelineMenu) return;
+    
+    // 获取最新列表
+    const pipelines = await fetchJSON("/api/pipelines");
+    
+    els.chatPipelineMenu.innerHTML = "";
+    
+    // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline
+    const readyPipelines = pipelines.filter(p => p.is_ready);
+
+    if (readyPipelines.length === 0) {
+        els.chatPipelineMenu.innerHTML = '<li class="dropdown-item text-muted small">No ready pipelines</li>';
+        return;
     }
     
-    state.chat.currentSessionId = generateId();
+    readyPipelines.forEach(p => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        const isActive = p.name === state.selectedPipeline;
+        btn.className = `dropdown-item ${isActive ? 'active' : ''}`;
+        
+        btn.textContent = `${p.name}`;
+        
+        btn.onclick = () => switchChatPipeline(p.name);
+        
+        li.appendChild(btn);
+        els.chatPipelineMenu.appendChild(li);
+    });
+    
+    // 更新顶部 Label
+    if (els.chatPipelineLabel) {
+        els.chatPipelineLabel.textContent = state.selectedPipeline || "Select Pipeline";
+    }
+}
+
+// [新增] 切换 Pipeline (核心逻辑)
+async function switchChatPipeline(name) {
+    if (name === state.selectedPipeline) return;
+    if (state.chat.running) {
+        alert("Please wait for the current response to finish.");
+        return;
+    }
+    
+    log(`Switching context to ${name}...`);
+    
+    // 1. 保存旧会话
+    saveCurrentSession(true);
+    
+    // 2. 加载新 Pipeline 结构 (这会触发 setSteps -> resetChatSession)
+    await loadPipeline(name); 
+    
+    // 3. 关键：加载该 Pipeline 的参数到内存
+    // 这样 Chat 时 execute_pipeline 才能读到正确的配置
+    try {
+        state.parameterData = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}/parameters`);
+        state.parametersReady = true;
+    } catch (e) {
+        console.warn("Parameters not found for this pipeline.");
+        state.parametersReady = false;
+    }
+
+    // 4. 为新 Pipeline 创建一个空白聊天窗口 (或者恢复上次的？这里简化为新建)
+    createNewChatSession();
+    
+    // 5. 刷新 UI
+    renderChatPipelineMenu(); 
+    // updateDemoControls 已在 resetChatSession 中触发，但再调一次也无妨
+    updateDemoControls();
+}
+
+function resetChatSession() {
     state.chat.history = [];
-    renderChatHistory();
+    state.chat.running = false;
+    state.chat.currentSessionId = null;
+    
+    // 切换 Pipeline 时，清空旧的聊天列表显示 (不清除 activeEngines)
+    state.chat.sessions = []; 
+    
+    // [关键修改] 检查 activeEngines，恢复 Session ID
+    const currentName = state.selectedPipeline;
+    if (currentName && state.chat.activeEngines[currentName]) {
+        state.chat.engineSessionId = state.chat.activeEngines[currentName];
+        log(`Resumed active engine for ${currentName}`);
+    } else {
+        state.chat.engineSessionId = null;
+    }
+    
+    renderChatHistory(); 
     renderChatSidebar();
+    
+    // 更新状态显示
+    if (state.chat.engineSessionId) {
+        setChatStatus("Engine Ready", "ready");
+    } else {
+        setChatStatus("Engine Offline", "info");
+    }
+    
+    updateDemoControls(); 
+}
+
+function generateChatId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+function createNewChatSession() {
+    if (state.chat.history.length > 0) saveCurrentSession(true);
+    state.chat.currentSessionId = generateChatId();
+    state.chat.history = [];
+    renderChatHistory(); renderChatSidebar();
     setChatStatus("Ready", "ready");
-    if(els.chatInput) els.chatInput.focus();
-    log("Started new chat session.");
+    if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
 }
 
 function loadChatSession(sessionId) {
-    if (state.chat.running) return; // Don't switch while generating
-    
-    // Save current session before loading a new one, in case it was modified
+    if (state.chat.running) return;
     saveCurrentSession(false); 
-    
     const session = state.chat.sessions.find(s => s.id === sessionId);
     if (!session) return;
-
     state.chat.currentSessionId = session.id;
-    state.chat.history = [...session.messages]; // Copy messages
-    renderChatHistory();
-    renderChatSidebar();
+    state.chat.history = [...session.messages];
+    renderChatHistory(); renderChatSidebar();
     setChatStatus("Ready", "ready");
-    log(`Loaded chat session: ${session.title}`);
 }
 
 function saveCurrentSession(force = false) {
     if (!state.chat.currentSessionId) return;
-
-    // Only save non-empty sessions, unless forced
     if (!force && state.chat.history.length === 0) {
-        // If an empty session exists in the list, remove it
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
-        renderChatSidebar();
-        return;
+        renderChatSidebar(); return;
     }
-    
     let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
-    
-    // Generate Title from first user message if it's a new session or title is default
     let title = "New Chat";
     const firstUserMsg = state.chat.history.find(m => m.role === 'user');
-    if (firstUserMsg) {
-        title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
-    }
+    if (firstUserMsg) title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
 
     if (!session) {
         session = { id: state.chat.currentSessionId, title: title, messages: [] };
-        state.chat.sessions.unshift(session); // Add to top
+        state.chat.sessions.unshift(session);
     } else {
-        // Update existing
-        // Move to top on update
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
         state.chat.sessions.unshift(session);
-        
-        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) {
-             session.title = title;
-        }
+        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) session.title = title;
     }
-    session.messages = [...state.chat.history]; // Update messages
+    session.messages = [...state.chat.history];
     renderChatSidebar();
 }
 
 function renderChatSidebar() {
     if (!els.chatSessionList) return;
     els.chatSessionList.innerHTML = "";
-    
     state.chat.sessions.forEach(session => {
         const btn = document.createElement("button");
         btn.className = `chat-session-item ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
@@ -225,34 +389,26 @@ function renderChatSidebar() {
     });
 }
 
-// --- Chat Logic ---
-function resetChatSession() {
-    // This is for pipeline reset, clears all chat data
-    state.chat.history = [];
-    state.chat.running = false;
-    state.chat.sessions = [];
-    state.chat.currentSessionId = null;
-    renderChatHistory(); 
-    renderChatSidebar();
-    setChatStatus("Ready", "ready");
-}
-
 function appendChatMessage(role, text, meta = {}) {
   const entry = { role, text, meta, timestamp: new Date().toISOString() };
   state.chat.history.push(entry);
   renderChatHistory();
-  
-  // Save to session list immediately
   saveCurrentSession(); 
 }
 
 function renderChatHistory() {
   if (!els.chatHistory) return;
   els.chatHistory.innerHTML = "";
-  if (state.chat.history.length === 0) { els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start a conversation.</p></div>'; return; }
+  if (state.chat.history.length === 0) { 
+      els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start.</p></div>'; 
+      return; 
+  }
   state.chat.history.forEach((entry) => {
     const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
-    const content = document.createElement("div"); content.textContent = entry.text; bubble.appendChild(content);
+    const content = document.createElement("div"); 
+    // 简单的 Markdown 处理 (如换行)
+    content.innerHTML = entry.text.replace(/\n/g, "<br>"); 
+    bubble.appendChild(content);
     if (entry.meta && entry.meta.hint) {
         const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
         metaLine.style.fontSize = "0.7em"; metaLine.textContent = entry.meta.hint; bubble.appendChild(metaLine);
@@ -261,90 +417,249 @@ function renderChatHistory() {
   });
   els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
+
 function setChatStatus(message, variant = "info") {
   if (!els.chatStatus) return;
   const badge = els.chatStatus;
   const variants = { info: "bg-light text-dark", ready: "bg-light text-dark", running: "bg-primary text-white", success: "bg-success text-white", warn: "bg-warning text-dark", error: "bg-danger text-white" };
   badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`; badge.textContent = message || "";
 }
+
 function setChatRunning(isRunning) {
   state.chat.running = isRunning;
-  if (els.chatInput) els.chatInput.disabled = isRunning;
-  if (els.chatSend) els.chatSend.disabled = isRunning;
-  if (els.chatBack) els.chatBack.disabled = isRunning;
-  if (isRunning) setChatStatus("Thinking...", "running"); else updateActionButtons();
+  
+  // 1. 先更新引擎按钮状态 (但这会重置 input/send 的状态，所以要在下面覆盖)
+  updateDemoControls();
+  
+  const btn = els.chatSend;
+  const icon = document.getElementById("chat-send-icon");
+  
+  if (isRunning) {
+      setChatStatus("Thinking...", "running");
+      
+      // [修改] 生成中：输入框锁定，但按钮必须可用（为了点击停止）
+      if (els.chatInput) els.chatInput.disabled = true;
+      if (els.chatSend) els.chatSend.disabled = false; // <--- 关键！必须解开！
+
+      // 样式变为红色停止
+      if (btn) btn.classList.add("stop");
+      if (icon) {
+          icon.textContent = "";
+          icon.className = "icon-stop";
+      }
+  } else {
+      updateActionButtons();
+      
+      // 闲置状态：输入框解锁（前提是引擎在线，updateDemoControls 已处理）
+      // 样式变回箭头
+      if (btn) btn.classList.remove("stop");
+      if (icon) {
+          icon.className = "";
+          icon.textContent = "↑";
+      }
+  }
 }
+
 function canUseChat() { return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData); }
+
 function openChatView() {
   if (!canUseChat()) { log("Please build and save parameters first."); return; }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
+
+  renderChatPipelineMenu();
   
-  // Initialize session if needed
-  if (!state.chat.currentSessionId) {
-      createNewChatSession();
-  }
+  if (!state.chat.currentSessionId) createNewChatSession();
   
   renderChatHistory();
-  renderChatSidebar(); // Render sidebar
+  renderChatSidebar();
   setMode(Modes.CHAT);
-  setChatRunning(state.chat.running);
   
-  if (!state.chat.running && state.chat.history.length === 0) setChatStatus("Ready", "ready");
-  if (!state.chat.running && els.chatInput) els.chatInput.focus();
-}
-async function handleChatSubmit(event) {
-  event.preventDefault();
-  if (!canUseChat()) return; if (state.chat.running) return;
-  const question = (els.chatInput ? els.chatInput.value : "").trim(); if (!question) return;
-  if (els.chatInput) els.chatInput.value = "";
-  appendChatMessage("user", question); setChatRunning(true);
-  try {
-    if (!state.parametersReady) await persistParameterData({ silent: true });
-    
-    // Pass session history with request
-    const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
-    const body = JSON.stringify({ question, history: state.chat.history });
-    
-    const resp = await fetchJSON(endpoint, { method: "POST", body: body });
-    const status = resp.status || "unknown"; const answer = resp.answer || resp.result || "No answer received";
-    const hints = []; if (resp.dataset_path) hints.push(`Dataset: ${resp.dataset_path}`); if (resp.memory_path) hints.push(`Memory: ${resp.memory_path}`);
-    appendChatMessage("assistant", answer, { hint: hints.join(" | ") });
-    if (status !== "succeeded") appendChatMessage("system", `Ended with status: ${status} ${resp.error || ''}`);
-    setChatStatus("Done", status === "succeeded" ? "success" : "warn");
-  } catch (err) { appendChatMessage("system", `Error: ${err.message || err}`); setChatStatus("Error", "error"); } finally { setChatRunning(false); }
+  // 检查引擎状态并更新UI
+  updateDemoControls();
+  if(!state.chat.engineSessionId) setChatStatus("Engine Offline", "info");
+  else setChatStatus("Ready", "ready");
 }
 
-// --- Status & Log Stream ---
-function resetLogView() { if (els.log) els.log.textContent = ""; if (els.runTerminal) els.runTerminal.textContent = ""; }
+async function stopGeneration() {
+    if (!state.chat.running) return;
+
+    // 1. 前端断开连接 (停止接收数据流)
+    // 这会让 fetch 抛出 AbortError，跳到 catch 块
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+
+    // 2. 通知后端 Python 停止 Loop (释放 Session 锁)
+    try {
+        if (state.chat.engineSessionId) {
+            // 发送停止信号，但不等待返回，直接结束 UI 状态
+            fetchJSON(`/api/pipelines/chat/stop`, {
+                method: "POST",
+                body: JSON.stringify({ session_id: state.chat.engineSessionId })
+            }).catch(e => console.warn("Backend stop signal failed:", e));
+        }
+    } catch (e) { console.error(e); }
+
+    log("Generation stopped by user.");
+    
+    // UI 立即恢复
+    setChatRunning(false);
+    appendChatMessage("system", "Generation interrupted.");
+}
+
+async function handleChatSubmit(event) {
+  // 1. 防止表单默认提交刷新页面
+  if (event) event.preventDefault();
+  
+  // 2. [新增] 停止逻辑拦截
+  // 如果当前正在生成，再次点击按钮（此时按钮是红色停止状态）视为“停止”
+  if (state.chat.running) {
+      await stopGeneration();
+      return;
+  }
+
+  // 3. 基础校验
+  if (!canUseChat()) return;
+  
+  if (!state.chat.engineSessionId) {
+      alert("Please click 'Start Engine' first to initialize the backend.");
+      return;
+  }
+
+  const question = (els.chatInput ? els.chatInput.value : "").trim();
+  if (!question) return;
+  
+  // 清空输入框并显示用户提问
+  if (els.chatInput) els.chatInput.value = "";
+  appendChatMessage("user", question);
+  
+  // 设置 UI 为“运行中”状态
+  setChatRunning(true);
+  
+  // 4. [新增] 初始化 AbortController 用于中断请求
+  state.chat.controller = new AbortController();
+  
+  try {
+    // 确保参数已保存
+    if (!state.parametersReady) await persistParameterData({ silent: true });
+    
+    const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
+    
+    // 预留动态参数接口 (例如文件上传后的 collection_name)
+    const dynamicParams = {}; 
+    
+    const body = JSON.stringify({ 
+        question, 
+        history: state.chat.history,
+        is_demo: true,
+        session_id: state.chat.engineSessionId,
+        dynamic_params: dynamicParams
+    });
+    
+    // 5. [修改] 发送 Fetch 请求，绑定 signal
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body,
+        signal: state.chat.controller.signal // <--- 关键：绑定中断信号
+    });
+
+    if (!response.ok) throw new Error(response.statusText);
+
+    // 预先添加 AI 回复气泡 (占位)
+    const entryIndex = state.chat.history.length;
+    appendChatMessage("assistant", "...");
+    let currentText = "";
+    
+    // 准备流式读取
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    // 6. 读取流循环
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n\n"); // SSE 标准分隔符
+      buffer = lines.pop(); // 保留最后一行不完整的数据
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const jsonStr = line.slice(6);
+            const data = JSON.parse(jsonStr);
+            
+            if (data.type === "token") {
+              // --- 情况 A: 收到流式 Token ---
+              currentText += data.content;
+              state.chat.history[entryIndex].text = currentText;
+              renderChatHistory(); // 重新渲染列表以更新文本
+              
+            } else if (data.type === "final") {
+              // --- 情况 B: 收到最终结果包 (包含 Meta 信息) ---
+              const final = data.data;
+              
+              // 构造提示信息 (Dataset / Memory 路径)
+              const hints = [];
+              if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
+              if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
+              
+              // 更新状态
+              state.chat.history[entryIndex].meta = { hint: hints.join(" | ") };
+              
+              // 确保最终文本一致 (防止丢包)
+              if(final.answer && final.answer !== "No answer") {
+                  state.chat.history[entryIndex].text = final.answer;
+              }
+              
+              renderChatHistory();
+              setChatStatus("Ready", "ready");
+              
+            } else if (data.type === "error") {
+              // --- 情况 C: 后端报错 ---
+              appendChatMessage("system", `Backend Error: ${data.message}`);
+              setChatStatus("Error", "error");
+            }
+          } catch (e) { 
+            console.error("JSON Parse error", e); 
+          }
+        }
+      }
+    }
+
+  } catch (err) { 
+      // 7. [新增] 错误处理：忽略主动中断的错误
+      if (err.name === 'AbortError') {
+          console.log("Fetch aborted by user.");
+          return; // 直接退出，后续 UI 由 stopGeneration 处理
+      }
+      
+      console.error(err);
+      appendChatMessage("system", `Network Error: ${err.message}`); 
+      setChatStatus("Error", "error"); 
+      
+  } finally { 
+      // 8. 清理工作
+      // 如果 controller 还在（说明不是通过 stopGeneration 触发的中断），则正常重置状态
+      if (state.chat.controller) {
+          state.chat.controller = null;
+          setChatRunning(false);
+      }
+      saveCurrentSession();
+  }
+}
+
+// --- Common Logic (Mode Switching, Node Picker, etc.) ---
+function resetLogView() { if (els.log) els.log.textContent = ""; }
 function setHeroPipelineLabel(name) { if (els.heroSelectedPipeline) els.heroSelectedPipeline.textContent = name ? name : "No Pipeline Selected"; }
 function setHeroStatusLabel(status) {
   if (!els.heroStatus) return;
   els.heroStatus.dataset.status = status; els.heroStatus.textContent = status.toUpperCase();
-  if (els.runSpinner) { if (status === "running") els.runSpinner.classList.remove("d-none"); else els.runSpinner.classList.add("d-none"); }
 }
-function scheduleWindowClose() {
-  if (state.shutdownScheduled) return; state.shutdownScheduled = true; log("Shutdown command sent. Closing window...");
-  setTimeout(() => { try { window.close(); } catch (e) {} window.location.replace("about:blank"); }, 800);
-}
-function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; stopRunLogStream(); fetch("/api/system/shutdown", { method: "POST" }).finally(scheduleWindowClose); }
-function stopRunLogStream(finalStatus = "idle") {
-  if (state.logStream.timer) clearTimeout(state.logStream.timer);
-  state.logStream.timer = null; state.logStream.runId = null; state.logStream.lastId = -1; state.logStream.status = finalStatus;
-  setHeroStatusLabel(finalStatus);
-}
-async function pollRunLogs() {
-  if (!state.logStream.runId) return;
-  const params = new URLSearchParams(); params.set("since", String(state.logStream.lastId)); params.set("run_id", state.logStream.runId);
-  try {
-    const data = await fetchJSON(`/api/logs/run?${params.toString()}`);
-    if (data.reset) { resetLogView(); state.logStream.lastId = -1; }
-    const entries = data.entries || [];
-    entries.forEach((entry) => { state.logStream.lastId = Math.max(state.logStream.lastId, entry.id); if (entry.message) log(entry.message); });
-    const status = data.status || {}; const stateValue = status.state || "running"; state.logStream.status = stateValue; setHeroStatusLabel(stateValue);
-    if (stateValue === "running") { state.logStream.timer = window.setTimeout(pollRunLogs, LOG_POLL_INTERVAL); } else { stopRunLogStream(stateValue); }
-  } catch (err) { stopRunLogStream("failed"); }
-}
-function startRunLogStream(runId) { if (!runId) return; stopRunLogStream("idle"); state.logStream.runId = runId; state.logStream.lastId = -1; state.logStream.status = "running"; setHeroStatusLabel("running"); pollRunLogs(); }
+function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; fetch("/api/system/shutdown", { method: "POST" }); setTimeout(() => window.close(), 800); }
 
 async function fetchJSON(url, options = {}) {
   const resp = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
@@ -358,8 +673,9 @@ async function persistParameterData({ silent = false } = {}) {
   state.parametersReady = true; updateActionButtons(); if (!silent) log("Parameters saved.");
 }
 
-// --- Helpers ---
+// --- Action Helpers (Removed Run Logic) ---
 function cloneDeep(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
+// ... (Location/Step Helpers stay same) ...
 function createLocation(segments = []) { return { segments: segments.map((seg) => ({ ...seg })) }; }
 function locationsEqual(a, b) { return JSON.stringify((a && a.segments) || []) === JSON.stringify((b && b.segments) || []); }
 function getContextKind(location) {
@@ -369,16 +685,34 @@ function getContextKind(location) {
   return "root";
 }
 function resolveSteps(location) {
-  let steps = state.steps; const segments = (location && location.segments) || [];
+  let steps = state.steps; 
+  const segments = (location && location.segments) || [];
+  
   for (const seg of segments) {
-    const entry = steps[seg.index]; if (!entry) return steps;
-    if (seg.type === "loop" && entry.loop) { entry.loop.steps = entry.loop.steps || []; steps = entry.loop.steps; }
+    if (!Array.isArray(steps)) return [];
+    
+    const entry = steps[seg.index]; 
+    if (!entry) return steps; // 或 return []
+    
+    if (seg.type === "loop" && entry.loop) { 
+        entry.loop.steps = entry.loop.steps || []; 
+        steps = entry.loop.steps; 
+    }
     else if (seg.type === "branch" && entry.branch) {
-      entry.branch.router = entry.branch.router || []; entry.branch.branches = entry.branch.branches || {};
-      if (seg.section === "router") steps = entry.branch.router; else if (seg.section === "branch") steps = entry.branch.branches[seg.branchKey] || [];
+      entry.branch.router = entry.branch.router || []; 
+      entry.branch.branches = entry.branch.branches || {};
+      
+      if (seg.section === "router") {
+          steps = entry.branch.router; 
+      } else if (seg.section === "branch") {
+          if (!entry.branch.branches[seg.branchKey]) {
+              entry.branch.branches[seg.branchKey] = [];
+          }
+          steps = entry.branch.branches[seg.branchKey];
+      }
     }
   }
-  return steps;
+  return Array.isArray(steps) ? steps : [];
 }
 function resolveParentSteps(stepPath) { return resolveSteps(createLocation(stepPath.parentSegments || [])); }
 function createStepPath(parentLocation, index) { return { parentSegments: (parentLocation.segments || []).map((seg) => ({ ...seg })), index }; }
@@ -394,7 +728,7 @@ function setActiveLocation(location) {
 }
 function resetContextStack() { state.contextStack = [createLocation([])]; renderContextControls(); }
 
-// --- YAML ---
+// ... (YAML Helpers stay same) ...
 function yamlScalar(value) {
     if (value === null || value === undefined) return "null";
     if (typeof value === "boolean") return value ? "true" : "false";
@@ -427,20 +761,17 @@ function buildServersMapping(steps) { const mapping = {}; collectServersFromStep
 function buildPipelinePayloadForPreview() { return { servers: buildServersMapping(state.steps), pipeline: cloneDeep(state.steps) }; }
 function updatePipelinePreview() { if (els.pipelinePreview) els.pipelinePreview.textContent = yamlStringify(buildPipelinePayloadForPreview()); }
 
-// --- View Switching ---
 function setMode(mode) {
   state.mode = mode;
   if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
   if (els.parameterPanel) els.parameterPanel.classList.toggle("d-none", mode !== Modes.PARAMETERS);
   if (els.chatView) els.chatView.classList.toggle("d-none", mode !== Modes.CHAT);
-  if (els.runView) els.runView.classList.toggle("d-none", mode !== Modes.RUN);
 }
 
-// --- Node Picker ---
+// ... (Node Picker Helpers - keep same) ...
 function getNodePickerModal() {
     const modalElement = els.nodePickerModal; if (!modalElement) return null;
     if (!nodePickerModalInstance) {
-        // Fallback for missing Bootstrap in environment
         if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
             nodePickerModalInstance = new window.bootstrap.Modal(modalElement, { backdrop: "static" });
             modalElement.addEventListener("hidden.bs.modal", () => { pendingInsert = null; clearNodePickerError(); });
@@ -514,13 +845,57 @@ function handleNodePickerConfirm() {
     } catch (e) { showNodePickerError(e.message); }
 }
 
-// --- Actions ---
-function markPipelineDirty() { stopRunLogStream(); state.isBuilt = false; state.parametersReady = false; if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); updateActionButtons(); }
-function setSteps(steps) { state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; state.parameterData = null; resetChatSession(); markPipelineDirty(); resetContextStack(); renderSteps(); updatePipelinePreview(); }
+function markPipelineDirty() { 
+    state.isBuilt = false; 
+    state.parametersReady = false; 
+    
+    // [新增] 如果当前 Pipeline 被修改，强制废弃其 Engine Session
+    const currentName = state.selectedPipeline;
+    if (currentName && state.chat.activeEngines[currentName]) {
+        const sid = state.chat.activeEngines[currentName];
+        // 尝试后台停止
+        fetchJSON(`/api/pipelines/demo/stop`, { 
+            method: "POST", body: JSON.stringify({ session_id: sid }) 
+        }).catch(() => {});
+
+        delete state.chat.activeEngines[currentName];
+        if (state.chat.engineSessionId === sid) {
+            state.chat.engineSessionId = null;
+        }
+        log(`Pipeline '${currentName}' modified. Engine invalidated.`);
+    }
+
+    if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); 
+    updateActionButtons(); 
+}
+function setSteps(steps) { 
+    state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; 
+    
+    state.parameterData = null; 
+    state.isBuilt = false; 
+    state.parametersReady = false;
+
+    resetChatSession(); 
+    
+    resetContextStack(); 
+    renderSteps(); 
+    updatePipelinePreview(); 
+    updateActionButtons();
+}
 function updateActionButtons() {
-  if (els.parameterRun) els.parameterRun.disabled = !(state.isBuilt && state.parametersReady && state.selectedPipeline);
+  // 控制 Parameter 面板里的按钮 (保持不变)
   if (els.parameterSave) els.parameterSave.disabled = !(state.isBuilt && state.selectedPipeline);
   if (els.parameterChat) els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
+
+  // [新增] 控制 Builder 界面悬浮条里的 Chat 按钮
+  if (els.directChatBtn) {
+      // 只有当 Pipeline 已构建且参数已就绪时，才显示 Chat 按钮
+      if (state.isBuilt && state.parametersReady && state.selectedPipeline) {
+          els.directChatBtn.classList.remove("d-none");
+      } else {
+          els.directChatBtn.classList.add("d-none");
+      }
+  }
 }
 function insertStepAt(location, insertIndex, stepValue) {
   const stepsArray = resolveSteps(location); const index = Math.max(0, Math.min(insertIndex, stepsArray.length));
@@ -537,6 +912,7 @@ function createInsertControl(location, insertIndex, { prominent = false, compact
   holder.appendChild(button); return holder;
 }
 
+// ... (Render Helpers - Tool/Loop/Branch Nodes - keep same) ...
 function renderToolNode(identifier, stepPath) {
   const card = document.createElement("div"); card.className = "flow-node";
   const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
@@ -548,6 +924,8 @@ function renderToolNode(identifier, stepPath) {
   actions.append(editBtn, removeBtn); card.append(header, body, actions); return card;
 }
 function renderLoopNode(step, parentLocation, index) {
+  const loopSteps = Array.isArray(step.loop.steps) ? step.loop.steps : [];
+
   const loopLocation = createLocation([...(parentLocation.segments || []), { type: "loop", index }]);
   const container = document.createElement("div"); container.className = "loop-container";
   const header = document.createElement("div"); header.className = "loop-header";
@@ -558,11 +936,15 @@ function renderLoopNode(step, parentLocation, index) {
   const editBtn = document.createElement("button"); editBtn.className = "btn btn-sm btn-outline-secondary border-0"; editBtn.textContent = "Edit"; editBtn.onclick = () => openStepEditor(createStepPath(parentLocation, index));
   const delBtn = document.createElement("button"); delBtn.className = "btn btn-sm btn-outline-danger border-0"; delBtn.textContent = "Delete"; delBtn.onclick = () => removeStep(createStepPath(parentLocation, index));
   actions.append(editBtn, delBtn);
-  const list = renderStepList(step.loop.steps || [], loopLocation, { placeholderText: "Empty Loop", compact: true });
+  
+  const list = renderStepList(loopSteps, loopLocation, { placeholderText: "Empty Loop", compact: true });
+  
   container.append(header, list, actions); if (locationsEqual(loopLocation, getActiveLocation())) container.classList.add("active"); return container;
 }
 function renderBranchNode(step, parentLocation, index) {
-    step.branch.router = step.branch.router || []; step.branch.branches = step.branch.branches || {};
+    step.branch.router = Array.isArray(step.branch.router) ? step.branch.router : [];
+    step.branch.branches = (step.branch.branches && typeof step.branch.branches === 'object') ? step.branch.branches : {};
+
     const branchBase = createLocation([...(parentLocation.segments || []), { type: "branch", index, section: "router" }]);
     const container = document.createElement("div"); container.className = "branch-container";
     const header = document.createElement("div"); header.className = "branch-header"; header.innerHTML = `<h6>BRANCH</h6>`;
@@ -593,15 +975,37 @@ function renderStepNode(step, parentLocation, index) {
   const card = renderToolNode("Custom Object", stepPath); card.querySelector(".flow-node-body").textContent = JSON.stringify(step); return card;
 }
 function renderStepList(steps, location, options = {}) {
-  const wrapper = document.createElement("div"); wrapper.className = "step-list";
-  if (!steps.length) {
-    const placeholder = document.createElement("div"); placeholder.className = "flow-placeholder";
-    const control = createInsertControl(location, 0, { prominent: true }); placeholder.appendChild(control); wrapper.appendChild(placeholder); return wrapper;
+  const safeSteps = Array.isArray(steps) ? steps : [];
+  
+  const wrapper = document.createElement("div"); 
+  wrapper.className = "step-list";
+  
+  if (!safeSteps.length) {
+    const placeholder = document.createElement("div"); 
+    placeholder.className = "flow-placeholder";
+    const control = createInsertControl(location, 0, { prominent: !options.compact }); 
+    placeholder.appendChild(control); 
+    wrapper.appendChild(placeholder); 
+    return wrapper;
   }
-  steps.forEach((step, index) => { wrapper.appendChild(createInsertControl(location, index, { compact: options.compact })); wrapper.appendChild(renderStepNode(step, location, index)); });
-  wrapper.appendChild(createInsertControl(location, steps.length, { compact: options.compact })); return wrapper;
+  
+  safeSteps.forEach((step, index) => { 
+      wrapper.appendChild(createInsertControl(location, index, { compact: options.compact })); 
+      wrapper.appendChild(renderStepNode(step, location, index)); 
+  });
+  
+  wrapper.appendChild(createInsertControl(location, safeSteps.length, { compact: options.compact })); 
+  return wrapper;
 }
-function renderSteps() { els.flowCanvas.innerHTML = ""; const rootLocation = createLocation([]); els.flowCanvas.appendChild(renderStepList(state.steps, rootLocation)); }
+function renderSteps() {
+  els.flowCanvas.innerHTML = "";
+  
+  const activeLocation = getActiveLocation();
+  
+  const currentSteps = resolveSteps(activeLocation);
+  
+  els.flowCanvas.appendChild(renderStepList(currentSteps, activeLocation));
+}
 function renderContextControls() {
   if (!els.contextControls) return; els.contextControls.innerHTML = ""; ensureContextInitialized();
   const breadcrumb = document.createElement("div"); breadcrumb.className = "context-breadcrumb d-flex flex-wrap gap-2 align-items-center";
@@ -639,9 +1043,75 @@ function renderPipelineMenu(items) {
     });
 }
 async function loadPipeline(name) {
-    const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`); state.selectedPipeline = name; els.name.value = name; setSteps(cfg.pipeline || []);
-    if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name; setHeroPipelineLabel(name);
+    try {
+        console.log(`[UI] Loading pipeline: ${name}`);
+        const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`);
+        
+        state.selectedPipeline = name;
+        els.name.value = name;
+        
+
+        let safeSteps = [];
+        
+        if (Array.isArray(cfg)) {
+            safeSteps = cfg;
+        } else if (cfg && typeof cfg === 'object') {
+            if (Array.isArray(cfg.pipeline)) {
+                safeSteps = cfg.pipeline;
+            } else if (Array.isArray(cfg.steps)) {
+                safeSteps = cfg.steps;
+            }
+        }
+        
+        safeSteps = cloneDeep(safeSteps);
+        
+        if (safeSteps.length === 0) {
+            console.warn(`[Warn] Loaded pipeline '${name}' appears to be empty. Raw config:`, cfg);
+        }
+
+        setSteps(safeSteps);
+
+        if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name;
+        setHeroPipelineLabel(name);
+
+        // [新增] 自动检查是否 Ready (跳过 Build 的关键)
+        checkPipelineReadiness(name);
+        
+    } catch (err) {
+        log(`Failed to load pipeline: ${err.message}`);
+        console.error(err);
+    }
 }
+
+// [新增辅助函数] 检查 Pipeline 是否已配置参数
+async function checkPipelineReadiness(name) {
+    try {
+        // 尝试获取参数
+        // 注意：后端 get_parameters 如果文件不存在会报错，所以要 catch
+        // 或者我们可以直接利用 list_pipelines 返回的 is_ready 字段，但这里为了确保是最新的，发个请求也无妨
+        // 这里为了性能，也可以改用 list 接口查。但直接 fetch 参数最稳妥。
+        
+        const params = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}/parameters`);
+        
+        // 如果成功获取到参数
+        state.parameterData = params;
+        state.isBuilt = true;         // 视为已构建
+        state.parametersReady = true; // 视为参数已就绪
+        
+        log(`Pipeline '${name}' parameters loaded. Ready to Chat.`);
+        updateActionButtons(); // 这会点亮 "Enter Chat Mode" 按钮
+        
+    } catch (e) {
+        // 参数文件不存在，说明需要 Build
+        state.isBuilt = false;
+        state.parametersReady = false;
+        state.parameterData = null;
+        updateActionButtons(); // 禁用 Chat 按钮
+    }
+}
+
+
+
 function handleSubmit(e) {
     e.preventDefault(); const name = els.name.value.trim(); if (!name) return log("Pipeline name is required");
     fetchJSON("/api/pipelines", { method: "POST", body: JSON.stringify({ name, pipeline: cloneDeep(state.steps) }) })
@@ -651,12 +1121,6 @@ function buildSelectedPipeline() {
     if(!state.selectedPipeline) return log("Please save the pipeline first.");
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
     .then(() => { state.isBuilt=true; state.parametersReady=false; updateActionButtons(); log("Pipeline built."); showParameterPanel(true); }).catch(e=>log(e.message));
-}
-function runSelectedPipeline() {
-    if(!state.selectedPipeline || !state.parametersReady) return log("Please configure parameters first.");
-    stopRunLogStream(); resetLogView(); setMode(Modes.RUN); log("Run initiated...");
-    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/run`, { method: "POST" })
-    .then(r => { if (r?.run_id) startRunLogStream(r.run_id); else log("No run_id returned"); }).catch(e=>log(e.message));
 }
 function deleteSelectedPipeline() {
     if(!state.selectedPipeline || !confirm("Delete pipeline?")) return;
@@ -675,7 +1139,6 @@ function setNestedValue(obj, path, val) {
     const p = path.split("."); let c = obj; for (let i=0; i<p.length-1; i++) { if (!c[p[i]]) c[p[i]]={}; c=c[p[i]]; } c[p[p.length-1]] = val;
 }
 
-// --- Updated Parameter Renderer ---
 function renderParameterForm() {
     const container = els.parameterForm; container.innerHTML = "";
     if (!state.parameterData || typeof state.parameterData !== "object") { container.innerHTML = '<div class="col-12"><p class="text-muted text-center">No parameters available for configuration.</p></div>'; return; }
@@ -719,24 +1182,40 @@ function bindEvents() {
     if (els.newPipelineBtn) els.newPipelineBtn.addEventListener("click", createNewPipeline); 
     if (els.shutdownApp) els.shutdownApp.onclick = requestShutdown;
     
-    // Bind Back Buttons
     if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
-    if (els.parameterRun) els.parameterRun.onclick = runSelectedPipeline;
     if (els.parameterChat) els.parameterChat.onclick = openChatView;
-    if (els.runBack) els.runBack.onclick = () => setMode(Modes.PARAMETERS);
+
+    if (els.directChatBtn) els.directChatBtn.onclick = openChatView;
+
+    if (els.chatBack) {
+        els.chatBack.onclick = async () => {
+            // 1. 保存当前对话
+            try {
+                saveCurrentSession(true);
+            } catch (e) {
+                console.error(e);
+            }
+            
+            setChatRunning(false);
+            
+            // [关键修复] 不要直接 setMode，而是调用 showParameterPanel()
+            // 这个函数会负责：检查数据 -> 生成 HTML 表单 -> 切换视图
+            await showParameterPanel(); 
+        };
+    }
     
-    // Chat View
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
-    if (els.chatBack) els.chatBack.onclick = () => { saveCurrentSession(true); setChatRunning(false); setMode(Modes.PARAMETERS); };
+    if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
+
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
+    if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
     
     document.getElementById("step-editor-save").onclick = () => {
         if (!state.editingPath) return;
         try { setStepByPath(state.editingPath, parseStepInput(els.stepEditorValue.value)); closeStepEditor(); renderSteps(); updatePipelinePreview(); } catch(e){ log(e.message); }
     };
     document.getElementById("step-editor-cancel").onclick = closeStepEditor;
-    
     els.refreshPipelines.onclick = refreshPipelines;
     els.name.oninput = updatePipelinePreview;
     
@@ -751,7 +1230,7 @@ function bindEvents() {
 
 async function bootstrap() {
   setMode(Modes.BUILDER); resetContextStack(); renderSteps(); updatePipelinePreview(); bindEvents(); updateActionButtons();
-  setHeroPipelineLabel(state.selectedPipeline || ""); // Ensure label is set on load
+  setHeroPipelineLabel(state.selectedPipeline || "");
   try { await Promise.all([refreshPipelines(), refreshTools()]); log("UI Ready."); } catch (err) { log(`Initialization error: ${err.message}`); }
 }
 

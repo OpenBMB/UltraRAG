@@ -1,5 +1,3 @@
-"""Flask application exposing a lightweight UltraRAG orchestration API."""
-
 from __future__ import annotations
 
 import logging
@@ -8,7 +6,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 
 from . import pipeline_manager as pm
 
@@ -24,8 +22,13 @@ def create_app() -> Flask:
 
     @app.errorhandler(pm.PipelineManagerError)
     def handle_pipeline_error(err: pm.PipelineManagerError):
-        LOGGER.error("Pipeline manager error: %s", err)
+        LOGGER.error(f"Pipeline error: {err}")
         return jsonify({"error": str(err)}), 400
+
+    @app.errorhandler(Exception)
+    def handle_generic_error(err: Exception):
+        LOGGER.error(f"System error: {err}", exc_info=True)
+        return jsonify({"error": "Internal Server Error", "details": str(err)}), 500
 
     @app.route("/")
     def index():
@@ -33,15 +36,12 @@ def create_app() -> Flask:
 
     @app.route("/api/templates", methods=["GET"])
     def list_templates():
-        templates: list[dict[str, Any]] = []
-        for template_file in sorted(EXAMPLES_DIR.glob("*.yaml")):
-            with template_file.open("r", encoding="utf-8") as handle:
-                templates.append(
-                    {
-                        "name": template_file.stem,
-                        "content": handle.read(),
-                    }
-                )
+        templates = []
+        for f in sorted(EXAMPLES_DIR.glob("*.yaml")):
+            try:
+                templates.append({"name": f.stem, "content": f.read_text(encoding="utf-8")})
+            except Exception:
+                continue
         return jsonify(templates)
 
     @app.route("/api/servers", methods=["GET"])
@@ -50,7 +50,7 @@ def create_app() -> Flask:
 
     @app.route("/api/tools", methods=["GET"])
     def tools():
-        tool_payload = [
+        return jsonify([
             {
                 "id": tool.identifier,
                 "server": tool.server,
@@ -60,78 +60,95 @@ def create_app() -> Flask:
                 "output": tool.output_spec,
             }
             for tool in pm.list_server_tools()
-        ]
-        return jsonify(tool_payload)
+        ])
 
     @app.route("/api/pipelines", methods=["GET"])
-    def pipelines():
+    def list_pipelines():
         return jsonify(pm.list_pipelines())
 
     @app.route("/api/pipelines", methods=["POST"])
     def save_pipeline():
-        payload: Dict[str, Any] = request.get_json(force=True)  # type: ignore[assignment]
-        saved = pm.save_pipeline(payload)
-        return jsonify(saved)
+        payload = request.get_json(force=True)
+        return jsonify(pm.save_pipeline(payload))
 
     @app.route("/api/pipelines/<string:name>", methods=["GET"])
-    def load_pipeline(name: str):
-        config = pm.load_pipeline(name)
-        return jsonify(config)
+    def get_pipeline(name: str):
+        return jsonify(pm.load_pipeline(name))
 
     @app.route("/api/pipelines/<string:name>", methods=["DELETE"])
-    def remove_pipeline(name: str):
+    def delete_pipeline(name: str):
         pm.delete_pipeline(name)
         return jsonify({"status": "deleted"})
+
+    @app.route("/api/pipelines/<string:name>/parameters", methods=["GET"])
+    def get_parameters(name: str):
+        return jsonify(pm.load_parameters(name))
+
+    @app.route("/api/pipelines/<string:name>/parameters", methods=["PUT"])
+    def save_parameters(name: str):
+        payload = request.get_json(force=True)
+        pm.save_parameters(name, payload)
+        return jsonify({"status": "saved"})
 
     @app.route("/api/pipelines/<string:name>/build", methods=["POST"])
     def build_pipeline(name: str):
         return jsonify(pm.build(name))
 
-    @app.route("/api/pipelines/<string:name>/run", methods=["POST"])
-    def run_pipeline(name: str):
-        return jsonify(pm.run(name, wait=False))
+    @app.route("/api/pipelines/<string:name>/demo/start", methods=["POST"])
+    def start_demo_session(name: str):
+        payload = request.get_json(force=True) or {}
+        session_id = payload.get("session_id")
+        if not session_id:
+            return jsonify({"error": "session_id is required"}), 400
+        return jsonify(pm.start_demo_session(name, session_id))
+
+    @app.route("/api/pipelines/demo/stop", methods=["POST"])
+    def stop_demo_session():
+        payload = request.get_json(force=True) or {}
+        session_id = payload.get("session_id")
+        if not session_id:
+            return jsonify({"error": "session_id is required"}), 400
+        return jsonify(pm.stop_demo_session(session_id))
 
     @app.route("/api/pipelines/<string:name>/chat", methods=["POST"])
     def chat_pipeline(name: str):
-        payload: Dict[str, Any] = request.get_json(force=True)  # type: ignore[assignment]
-        question = payload.get("question", "") if isinstance(payload, dict) else ""
-        return jsonify(pm.chat(name, question))
+        payload = request.get_json(force=True)
+        question = payload.get("question", "")
+        session_id = payload.get("session_id")
+        dynamic_params = payload.get("dynamic_params", {})
 
-    @app.route("/api/logs/run", methods=["GET"])
-    def run_logs():
-        since = request.args.get("since", default=-1, type=int)
-        run_id = request.args.get("run_id") or None
-        payload = pm.fetch_run_logs(since=since, run_id=run_id)
-        return jsonify(payload)
+        if not session_id:
+            return jsonify({"error": "session_id missing. Please start engine first."}), 400
+        
+        return Response(
+            pm.chat_demo_stream(name, question, session_id, dynamic_params),
+            mimetype='text/event-stream'
+        )
+    
+    @app.route("/api/pipelines/chat/stop", methods=["POST"])
+    def stop_chat_generation():
+        payload = request.get_json(force=True) or {}
+        session_id = payload.get("session_id")
+        if not session_id:
+            return jsonify({"error": "session_id required"}), 400
+        return jsonify(pm.interrupt_chat(session_id))
 
     @app.route("/api/system/shutdown", methods=["POST"])
     def shutdown():
-        LOGGER.info("Shutdown requested via API")
+        LOGGER.info("Shutdown requested")
         func = request.environ.get("werkzeug.server.shutdown")
-        if func is None:
-            LOGGER.warning("Shutdown hook unavailable, falling back to os._exit")
-            threading.Timer(0.5, os._exit, args=(0,)).start()
-            return jsonify({"status": "shutting-down", "mode": "force"})
-        threading.Timer(0.2, func).start()
-        return jsonify({"status": "shutting-down", "mode": "graceful"})
+        if func:
+            threading.Timer(0.2, func).start()
+            return jsonify({"status": "shutting-down", "mode": "graceful"})
+        
+        threading.Timer(0.5, os._exit, args=(0,)).start()
+        return jsonify({"status": "shutting-down", "mode": "force"})
 
-    @app.route("/api/pipelines/<string:name>/parameters", methods=["GET"])
-    def get_parameters(name: str):
-        params = pm.load_parameters(name)
-        return jsonify(params)
-
-    @app.route("/api/pipelines/<string:name>/parameters", methods=["PUT"])
-    def save_parameters(name: str):
-        payload: Dict[str, Any] = request.get_json(force=True)  # type: ignore[assignment]
-        pm.save_parameters(name, payload)
-        return jsonify({"status": "saved"})
+    
 
     return app
 
-
-app = create_app()
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    app = create_app()
     app.run(host="0.0.0.0", port=5050, debug=True)
