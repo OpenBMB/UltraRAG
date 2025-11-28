@@ -124,6 +124,14 @@ def create_app() -> Flask:
             pm.chat_demo_stream(name, question, session_id, dynamic_params),
             mimetype='text/event-stream'
         )
+    
+    @app.route("/api/pipelines/chat/stop", methods=["POST"])
+    def stop_chat_generation():
+        payload = request.get_json(force=True) or {}
+        session_id = payload.get("session_id")
+        if not session_id:
+            return jsonify({"error": "session_id required"}), 400
+        return jsonify(pm.interrupt_chat(session_id))
 
     @app.route("/api/system/shutdown", methods=["POST"])
     def shutdown():
@@ -135,6 +143,8 @@ def create_app() -> Flask:
         
         threading.Timer(0.5, os._exit, args=(0,)).start()
         return jsonify({"status": "shutting-down", "mode": "force"})
+
+    
 
     return app
 

@@ -72,6 +72,11 @@
         <div class="floating-actions">
           <button type="submit" id="save-pipeline" class="btn btn-dark btn-pill">Save Changes</button>
           <button type="button" id="build-pipeline" class="btn btn-light btn-pill border">Build</button>
+          
+          <button type="button" id="direct-chat-btn" class="btn btn-ai-gradient btn-pill ms-2 d-none">
+            ✨ Chat
+          </button>
+          
           <button type="button" id="delete-pipeline" class="btn btn-text text-danger ms-2">Delete</button>
         </div>
       </form>
@@ -133,7 +138,7 @@
 
       <div class="sidebar-footer">
         <button type="button" id="chat-back" class="btn btn-sidebar-action">
-          <span class="icon">⚙️</span> Configure Pipeline
+          <span class="icon">⛭</span> Configure Pipeline
         </button>
       </div>
     </aside>
@@ -166,7 +171,10 @@
         <div class="chat-input-wrapper">
           <form id="chat-form" class="chat-input-container shadow-sm">
             <input type="text" id="chat-input" class="form-control chat-input" placeholder="Message UltraRAG..." autocomplete="off" />
-            <button class="btn btn-send" type="submit" id="chat-send">↑</button>
+            
+            <button class="btn btn-send" type="button" id="chat-send">
+              <span id="chat-send-icon">↑</span>
+            </button>
           </form>
         </div>
       </div>

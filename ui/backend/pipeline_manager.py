@@ -69,6 +69,7 @@ class DemoSession:
         self._context = None
         self._active = False
         self._thread.start()
+        self._current_future = None
 
     def _bg_loop(self):
         asyncio.set_event_loop(self._loop)
@@ -116,7 +117,7 @@ class DemoSession:
         if not self._active: raise PipelineManagerError("Session not active")
         
         funcs = _ensure_client_funcs()
-        return asyncio.run_coroutine_threadsafe(
+        self._current_future = asyncio.run_coroutine_threadsafe(
             funcs["exec_pipe"](
                 self._client, 
                 self._context, 
@@ -126,7 +127,21 @@ class DemoSession:
                 override_params=dynamic_params
             ),
             self._loop
-        ).result()
+        )
+        
+        try:
+            return self._current_future.result()
+        except asyncio.CancelledError:
+            LOGGER.info(f"Session {self.session_id} task cancelled by user.")
+            raise # 继续抛出，让外层捕获
+        finally:
+            self._current_future = None # 任务结束，清空引用
+    def interrupt_task(self):
+        if self._current_future and not self._current_future.done():
+            self._current_future.cancel()
+            LOGGER.info(f"Interrupt signal sent to session {self.session_id}")
+            return True
+        return False
 
 class SessionManager:
     def __init__(self):
@@ -223,7 +238,14 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
                 "memory_path": _as_project_relative(mem_file) if mem_file else None
             }
             token_queue.put({"type": "final", "data": final_data})
-            
+
+        except asyncio.CancelledError:
+            # [新增] 捕获 CancelledError，视为用户主动停止
+            # 不发送 error 消息，或者发送一个特定的 info
+            # 实际上由于前端已经 Abort 了，这里发什么前端都不收了，主要是为了后端日志干净
+            LOGGER.info("Chat background task cancelled.")
+            token_queue.put(None) # 结束队列
+            return   
         except Exception as e:
             LOGGER.error(f"Chat error: {e}")
             token_queue.put({"type": "error", "message": str(e)})
@@ -342,13 +364,24 @@ def list_server_tools() -> List[ServerTool]:
             res.append(ServerTool(srv, t, "prompt", m.get("input",{}), m.get("output",[])))
     return res
 
-def list_pipelines() -> List[Dict]:
+def list_pipelines() -> List[Dict[str, Any]]:
     res = []
     for d in [PIPELINES_DIR, LEGACY_PIPELINES_DIR]:
         if d.exists():
             for f in d.glob("*.yaml"):
                 if not any(r["name"] == f.stem for r in res):
-                    res.append({"name": f.stem, "config": yaml.safe_load(f.read_text(encoding="utf-8")) or {}})
+        
+                    param_path = d / "parameter" / f"{f.stem}_parameter.yaml"
+                    if not param_path.exists():
+                        param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
+                    
+                    is_ready = param_path.exists()
+
+                    res.append({
+                        "name": f.stem, 
+                        "config": yaml.safe_load(f.read_text(encoding="utf-8")) or {},
+                        "is_ready": is_ready 
+                    })
     return res
 
 def load_pipeline(name: str) -> Dict:
@@ -438,3 +471,10 @@ def _ensure_stub_module(name):
     if name not in sys.modules:
         m = ModuleType(name)
         sys.modules[name] = m
+
+def interrupt_chat(session_id: str):
+    session = SESSION_MANAGER.get(session_id)
+    if session:
+        success = session.interrupt_task()
+        return {"status": "interrupted", "active_task_cancelled": success}
+    return {"status": "session_not_found"}

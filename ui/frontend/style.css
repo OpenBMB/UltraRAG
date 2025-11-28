@@ -55,13 +55,21 @@ body {
   width: 100%;
 }
 
-/* Overlay System */
+/* 1. 恢复通用遮罩层的滚动能力 (修复参数页面) */
 .view-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: var(--bg-surface);
   z-index: 2000;
   display: flex; flex-direction: column;
-  overflow-y: auto;
+  
+  /* [修改] 改回 auto，让参数配置页可以滚动 */
+  overflow-y: auto; 
+}
+
+/* 2. 单独锁定 Chat 界面的外层滚动 (保持 Chat 布局正常) */
+#chat-view.view-overlay {
+  /* Chat 界面内部有自己的滚动条，所以外层必须锁死 */
+  overflow: hidden;
 }
 
 /* Headers */
@@ -178,13 +186,40 @@ body {
 .btn-text { border: none; background: transparent; font-weight: 500; font-size: 0.9rem; }
 .btn-ai-gradient { background: var(--gradient-ai); color: white; border: none; }
 
-.chat-container { max-width: 800px; width: 100%; margin: 0 auto; height: 100%; display: flex; flex-direction: column; }
-.chat-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.chat-container {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  /* [修改] 强制占满父容器高度 */
+  height: 100%; 
+  display: flex; 
+  flex-direction: column;
+  /* [新增] 关键：防止 Flex 子项无限撑大父容器 */
+  min-height: 0; 
+}
+.chat-scroll-area {
+  flex: 1;
+  /* [保持] 允许垂直滚动 */
+  overflow-y: auto; 
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* [新增] 优化滚动体验 */
+  scroll-behavior: smooth;
+}
 .chat-bubble { max-width: 85%; padding: 0; line-height: 1.6; font-size: 1rem; }
 .chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: var(--text-primary); padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
 .chat-bubble.assistant { align-self: flex-start; padding-right: 1rem; }
 .chat-bubble.assistant::before { content: 'AI'; display: block; font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.25rem; }
-.chat-input-wrapper { padding: 0 1rem 2rem 1rem; }
+.chat-input-wrapper {
+  padding: 0 1rem 2rem 1rem;
+  /* [新增] 防止空间不足时输入框被挤压 */
+  flex-shrink: 0; 
+  /* [新增] 确保背景不透明，且位于最上层 */
+  background: #fff; 
+  z-index: 10;
+}
 .chat-input-container { background: #f4f4f4; border-radius: 30px; padding: 0.5rem; display: flex; align-items: center; transition: background 0.2s, box-shadow 0.2s; border: 1px solid transparent; }
 .chat-input-container:focus-within { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--border-subtle); }
 .chat-input { background: transparent; border: none; padding: 0.6rem 1rem; font-size: 1rem; box-shadow: none !important; }
@@ -305,7 +340,10 @@ body {
   flex-direction: column;
   position: relative;
   background: #fff;
-  min-width: 0; /* Prevent flex overflow */
+  min-width: 0; 
+  /* [新增] 确保高度被限制，并处理溢出 */
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Mobile Responsive Adjustments */
@@ -321,4 +359,110 @@ body {
   
   /* Override header for mobile */
   .chat-main .view-header { padding-left: 1rem; }
+}
+
+/* --- Pipeline Selector (GPT Style) --- */
+.btn-pipeline-select {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  color: var(--text-primary);
+  transition: background 0.2s;
+}
+.btn-pipeline-select:hover, .btn-pipeline-select:focus {
+  background-color: #f0f0f0;
+  border: none; 
+  outline: none;
+}
+.btn-pipeline-select::after {
+  margin-left: 0.5rem;
+  opacity: 0.4;
+}
+
+/* Dropdown Styling */
+#chat-pipeline-menu .dropdown-item {
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+#chat-pipeline-menu .dropdown-item.active {
+  background-color: #f9f9f9; /* 浅色背景而非深蓝 */
+  color: var(--text-primary);
+}
+#chat-pipeline-menu .dropdown-item:hover {
+  background-color: #f3f3f3;
+}
+/* 选中时的对勾 */
+#chat-pipeline-menu .dropdown-item.active::after {
+  content: '✓';
+  color: var(--text-primary);
+  font-weight: bold;
+}
+
+/* --- 优化 Pipeline 下拉菜单 (限制高度 + 滚动) --- */
+
+/* [修改] 同时选中 Builder 界面和 Chat 界面的下拉菜单 */
+#pipeline-menu,
+#chat-pipeline-menu {
+  /* 1. 限制高度 */
+  max-height: 320px;  /* 限制最大高度，超过这个高度就截断 */
+  overflow-y: auto;   /* 开启垂直滚动 */
+  
+  /* 2. 防止滚动穿透 */
+  overscroll-behavior: contain; 
+  
+  /* 3. 视觉微调 */
+  padding-right: 4px;
+}
+
+/* 针对滚动条的美化 (同时应用于两个菜单) */
+#pipeline-menu::-webkit-scrollbar,
+#chat-pipeline-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+#pipeline-menu::-webkit-scrollbar-track,
+#chat-pipeline-menu::-webkit-scrollbar-track {
+  background: transparent; 
+  margin: 4px 0;
+}
+
+#pipeline-menu::-webkit-scrollbar-thumb,
+#chat-pipeline-menu::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+#pipeline-menu::-webkit-scrollbar-thumb:hover,
+#chat-pipeline-menu::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* --- 在文件末尾追加 --- */
+
+/* 停止按钮状态 */
+.btn-send.stop {
+  background-color: #ef4444 !important; /* 红色 */
+  transform: scale(1); /* 防止点击动画干扰 */
+}
+.btn-send.stop:hover {
+  background-color: #dc2626 !important;
+}
+
+/* 停止图标 (白色正方形) */
+.icon-stop {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  border-radius: 2px;
 }
