@@ -9,6 +9,7 @@ import orjson
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+import uuid
 
 from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
@@ -102,6 +103,9 @@ class Retriever:
         else:
             self.backend = backend.lower()
             self.index_backend_name = index_backend.lower()
+
+            if self.index_backend_name == "milvus":
+                app.logger.warning("[retriever] Using Milvus in non-demo mode is not recommended in this simplified architecture.")
 
         self.cfg = self.backend_configs.get(self.backend, {})
 
@@ -228,7 +232,13 @@ class Retriever:
             raise ValueError(error_msg)
 
         self.contents = []
-        if not self.is_demo and corpus_path and os.path.exists(corpus_path):
+
+        should_load_corpus_to_memory = (
+            (self.backend == "bm25") or 
+            (self.index_backend_name == "faiss")
+        )
+        if should_load_corpus_to_memory and corpus_path and os.path.exists(corpus_path):
+            app.logger.info(f"[retriever] Loading corpus to memory for {self.index_backend_name}/BM25...")
             corpus_path_obj = Path(corpus_path)
             corpus_dir = corpus_path_obj.parent
             file_size = os.path.getsize(corpus_path)
@@ -273,7 +283,10 @@ class Retriever:
                         pbar.update(file_size - bytes_read)
                     pbar.refresh() 
         else:
-            app.logger.info("[retriever] Demo mode: Skipping full corpus load.")
+            if self.is_demo:
+                app.logger.info("[retriever] Demo/Milvus mode: Skipping memory corpus load (Data stored in DB).")
+            elif not os.path.exists(corpus_path):
+                app.logger.warning(f"[retriever] Corpus path not found: {corpus_path}")
 
         self.index_backend: Optional[BaseIndexBackend] = None
         if self.backend in ["infinity", "sentence_transformers", "openai"]:
@@ -333,6 +346,10 @@ class Retriever:
             )
             app.logger.warning(warn_msg)
             return
+
+        if self.backend == "bm25":
+            app.logger.info("[retriever] BM25 backend does not support dense embedding generation. Skipping.")
+            return
         
         embeddings = None
 
@@ -390,12 +407,19 @@ class Retriever:
                 pbar.close()
 
         elif self.backend == "sentence_transformers":
-            if self.device_num == 1:
-                device_param = "cuda:0"
+            if self.device == "cpu":
+                device_param = "cpu"
+                is_multi_gpu = False
             else:
-                device_param = [f"cuda:{i}" for i in range(self.device_num)]
+                if self.device_num > 1:
+                    device_param = [f"cuda:{i}" for i in range(self.device_num)]
+                    is_multi_gpu = True
+                else:
+                    device_param = "cuda:0"
+                    is_multi_gpu = False
+
             normalize = bool(self.st_encode_params.get("normalize_embeddings", False))
-            csz = int(self.st_encode_params.get("encode_chunk_size", 10000))
+            csz = int(self.st_encode_params.get("encode_chunk_size", 256))
             psg_prompt_name = self.st_encode_params.get("psg_prompt_name", None)
             psg_task = self.st_encode_params.get("psg_task", None)
 
@@ -407,7 +431,8 @@ class Retriever:
             else:
                 data = self.contents
 
-            if isinstance(device_param, list) and len(device_param) > 1:
+            if is_multi_gpu:
+                app.logger.info(f"[st] Starting multi-process pool on {len(device_param)} devices...")
                 pool = self.model.start_multi_process_pool()
                 try:
 
@@ -536,7 +561,17 @@ class Retriever:
                             app.logger.warning(f"[Demo] Skipping invalid JSON on line {i}")
                             continue
                         
-                        content = item.get("contents")
+                        raw_content = item.get("contents")
+                        if raw_content is None:
+                            continue
+                            
+                        if not isinstance(raw_content, str):
+                            content = str(raw_content)
+                        else:
+                            content = raw_content
+                            
+                        if not content.strip():
+                            continue
                         if content:
                             texts.append(content)
                             meta = {k: v for k, v in item.items() if k not in banned_keys}
@@ -552,22 +587,33 @@ class Retriever:
 
             app.logger.info(f"[Demo] Embedding {len(texts)} chunks...")
             all_embeddings = []
-            
-            for start in tqdm(range(0, len(texts), self.batch_size), desc="[Demo] Embedding"):
-                batch = texts[start : start + self.batch_size]
+
+            cached_dim = None
+
+            for text in tqdm(texts, desc="[Demo] Processing"):
                 try:
                     resp = await self.model.embeddings.create(
                         model=self.model_name,
-                        input=batch
+                        input=[text] 
                     )
-                    batch_embs = [d.embedding for d in resp.data]
-                    all_embeddings.extend(batch_embs)
+                    
+                    vec = resp.data[0].embedding
+                    all_embeddings.append(vec)
+                    
+                    if cached_dim is None:
+                        cached_dim = len(vec)
+                        
                 except Exception as e:
-                    raise ToolError(f"OpenAI embedding failed: {e}")
+                    if cached_dim is not None:
+                        app.logger.warning(f"[Demo] Item failed. Filling with ZERO vector. Error: {str(e)[:100]}...")
+                        all_embeddings.append([0.0] * cached_dim)
+                    else:
+                        app.logger.error(f"[Demo] CRITICAL: First item failed! Cannot determine embedding dimension. Error: {e}")
+                        raise e
 
             embeddings_np = np.array(all_embeddings, dtype=np.float32)
 
-            ids = np.array([f"{target_collection}_{file_name}_{i}" for i in range(len(texts))])
+            ids = np.array([str(uuid.uuid4()) for _ in range(len(texts))])
 
             app.logger.info(f"[Demo] Inserting into collection '{target_collection}'...")
             try:
@@ -670,19 +716,29 @@ class Retriever:
         if getattr(self, "is_demo", False):
             app.logger.info(f"[Demo] Searching query in collection: '{target_collection}'")
 
+        
+        query_embedding = None
+
         if self.backend == "infinity":
             async with self.model:
                 query_embedding, _ = await self.model.embed(sentences=queries)
         elif self.backend == "sentence_transformers":
-            if self.device_num == 1:
-                device_param = "cuda:0"
+            if self.device == "cpu":
+                device_param = "cpu"
+                is_multi_gpu = False
             else:
-                device_param = [f"cuda:{i}" for i in range(self.device_num)]
+                if self.device_num > 1:
+                    device_param = [f"cuda:{i}" for i in range(self.device_num)]
+                    is_multi_gpu = True
+                else:
+                    device_param = "cuda:0"
+                    is_multi_gpu = False
+
             normalize = bool(self.st_encode_params.get("normalize_embeddings", False))
             q_prompt_name = self.st_encode_params.get("q_prompt_name", "")
-            q_task = self.st_encode_params.get("psg_task", None)
+            q_task = self.st_encode_params.get("q_task", None)
 
-            if isinstance(device_param, list) and len(device_param) > 1:
+            if is_multi_gpu:
                 pool = self.model.start_multi_process_pool()
                 try:
 

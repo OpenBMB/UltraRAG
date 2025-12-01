@@ -16,7 +16,7 @@ backend_configs:
     trust_remote_code: true
     sentence_transformers_encode:
       normalize_embeddings: false
-      encode_chunk_size: 10000
+      encode_chunk_size: 256
       q_prompt_name: query
       psg_prompt_name: document
       psg_task: null
@@ -33,7 +33,7 @@ index_backend: faiss # options: faiss, milvus
 index_backend_configs:
   faiss:
     index_use_gpu: True
-    index_chunk_size: 50000
+    index_chunk_size: 10000
     index_path: index/index.index
   milvus:
     uri: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
@@ -41,7 +41,7 @@ index_backend_configs:
     id_field_name: id
     vector_field_name: vector
     text_field_name: contents
-    id_max_length: 512
+    id_max_length: 64
     text_max_length: 60000
     metric_type: IP
     index_params:
@@ -50,11 +50,11 @@ index_backend_configs:
     search_params:
       metric_type: IP
       params: {}
-    index_chunk_size: 50000
+    index_chunk_size: 1000
 
 batch_size: 16
 top_k: 5
-gpu_ids: "0,1"
+gpu_ids: "1"
 query_instruction: ""
 is_multimodal: false
 overwrite: false
