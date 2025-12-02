@@ -466,3 +466,87 @@ body {
   background-color: white;
   border-radius: 2px;
 }
+
+/* --- 思考过程 (Thought Process) 样式 --- */
+.process-container {
+  margin-bottom: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  font-family: 'JetBrains Mono', monospace; /* 使用等宽字体 */
+  font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.process-header {
+  padding: 0.5rem 0.8rem;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  transition: background 0.2s;
+}
+.process-header:hover { background: #e5e7eb; }
+
+.process-body {
+  padding: 0.5rem;
+  display: flex; /* 默认展开 */
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px solid #e5e7eb;
+  max-height: 300px; /* 限制高度，防止太长 */
+  overflow-y: auto;
+}
+/* 折叠状态 */
+.process-container.collapsed .process-body {
+  display: none;
+}
+
+/* 单个步骤行 */
+.process-step {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.5rem;
+  border-left: 2px solid #d1d5db;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* 步骤详情 (Retriever 结果等) */
+.step-details {
+  margin-top: 4px;
+  margin-left: 1.2rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: pre-wrap;
+  background: #ffffff;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+
+/* 动画 Spinner */
+.step-spinner {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border: 2px solid #2563eb;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 主消息内容容器 (防止样式冲突) */
+.msg-content {
+  line-height: 1.6;
+}

@@ -215,8 +215,8 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
     # 2. Queue for async -> sync bridge
     token_queue = queue.Queue()
 
-    async def token_callback(token):
-        token_queue.put({"type": "token", "content": token})
+    async def token_callback(event):
+        token_queue.put(event)
 
     # 3. Background Task
     def run_bg():

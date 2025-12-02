@@ -508,12 +508,94 @@ async function stopGeneration() {
     appendChatMessage("system", "Generation interrupted.");
 }
 
+function updateProcessUI(entryIndex, eventData) {
+    // 1. 找到对应的 Chat Bubble (最后一个 assistant 气泡)
+    const container = document.getElementById("chat-history");
+    const bubbles = container.querySelectorAll(".chat-bubble.assistant");
+    const lastBubble = bubbles[bubbles.length - 1];
+    if (!lastBubble) return;
+
+    // 2. 检查或创建 Process Container
+    let procDiv = lastBubble.querySelector(".process-container");
+    if (!procDiv) {
+        procDiv = document.createElement("div");
+        procDiv.className = "process-container"; 
+        // 默认展开结构
+        procDiv.innerHTML = `
+            <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
+                <span>Show Thinking</span>
+                <span style="font-size:0.8em">▼</span>
+            </div>
+            <div class="process-body"></div>
+        `;
+        // 插在气泡最前面
+        lastBubble.insertBefore(procDiv, lastBubble.firstChild);
+    }
+    
+    const body = procDiv.querySelector(".process-body");
+
+    // 3. 处理不同事件
+    if (eventData.type === "step_start") {
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "process-step";
+        stepDiv.dataset.stepName = eventData.name;
+        stepDiv.innerHTML = `
+            <div class="step-title">
+                <span class="step-spinner"></span>
+                <span>${eventData.name}</span>
+            </div>
+            <div class="step-content-stream"></div> `;
+        body.appendChild(stepDiv);
+        // 自动滚动到底部
+        body.scrollTop = body.scrollHeight;
+
+    } else if (eventData.type === "token") {
+        // 如果 Token 不是 final 的，就显示在思考过程里 (作为详细日志)
+        // 找到当前正在运行的步骤
+        const steps = body.querySelectorAll(".process-step");
+        const currentStep = steps[steps.length - 1];
+        if (currentStep) {
+            const streamDiv = currentStep.querySelector(".step-content-stream");
+            if (streamDiv) {
+                // 简单的追加文本
+                const span = document.createElement("span");
+                span.textContent = eventData.content;
+                streamDiv.appendChild(span);
+            }
+        }
+
+    } else if (eventData.type === "step_end") {
+        const steps = body.querySelectorAll(".process-step");
+        const currentStep = steps[steps.length - 1];
+        
+        if (currentStep) {
+            // 1. Spinner -> Checkmark
+            const spinner = currentStep.querySelector(".step-spinner");
+            if (spinner) {
+                spinner.remove(); // 直接移除元素
+            }
+            
+            // 2. 显示摘要 (output)
+            // 如果之前有流式内容(step-content-stream)，可以选择保留或者被摘要覆盖
+            // 这里我们选择追加摘要作为总结
+            if (eventData.output) {
+                const details = document.createElement("div");
+                details.className = "step-details";
+                details.textContent = eventData.output;
+                currentStep.appendChild(details);
+                
+                // (可选) 隐藏流式过程，只看结果? 
+                // currentStep.querySelector(".step-content-stream").style.display = 'none';
+            }
+        }
+    }
+}
+
 async function handleChatSubmit(event) {
   // 1. 防止表单默认提交刷新页面
   if (event) event.preventDefault();
   
-  // 2. [新增] 停止逻辑拦截
-  // 如果当前正在生成，再次点击按钮（此时按钮是红色停止状态）视为“停止”
+  // 2. [停止拦截] 如果当前正在生成，再次点击按钮（此时按钮是红色停止状态）视为“停止”
   if (state.chat.running) {
       await stopGeneration();
       return;
@@ -537,7 +619,7 @@ async function handleChatSubmit(event) {
   // 设置 UI 为“运行中”状态
   setChatRunning(true);
   
-  // 4. [新增] 初始化 AbortController 用于中断请求
+  // 4. [初始化] 创建 AbortController 用于中断请求
   state.chat.controller = new AbortController();
   
   try {
@@ -557,7 +639,7 @@ async function handleChatSubmit(event) {
         dynamic_params: dynamicParams
     });
     
-    // 5. [修改] 发送 Fetch 请求，绑定 signal
+    // 5. [请求] 发送 Fetch 请求，绑定 signal
     const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -567,9 +649,20 @@ async function handleChatSubmit(event) {
 
     if (!response.ok) throw new Error(response.statusText);
 
-    // 预先添加 AI 回复气泡 (占位)
+    // [UI准备] 预先添加 Assistant 气泡 (占位)
     const entryIndex = state.chat.history.length;
-    appendChatMessage("assistant", "...");
+    // 推入空对象占位
+    state.chat.history.push({ role: "assistant", text: "", meta: {} });
+    
+    // 手动操作 DOM 添加气泡结构（包含消息内容容器 msg-content）
+    const chatContainer = document.getElementById("chat-history");
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble assistant";
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "msg-content";
+    bubble.appendChild(contentDiv);
+    chatContainer.appendChild(bubble);
+
     let currentText = "";
     
     // 准备流式读取
@@ -577,7 +670,7 @@ async function handleChatSubmit(event) {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    // 6. 读取流循环
+    // 6. [流式读取] 循环处理 SSE 数据
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -592,37 +685,51 @@ async function handleChatSubmit(event) {
             const jsonStr = line.slice(6);
             const data = JSON.parse(jsonStr);
             
-            if (data.type === "token") {
-              // --- 情况 A: 收到流式 Token ---
-              currentText += data.content;
-              state.chat.history[entryIndex].text = currentText;
-              renderChatHistory(); // 重新渲染列表以更新文本
-              
-            } else if (data.type === "final") {
-              // --- 情况 B: 收到最终结果包 (包含 Meta 信息) ---
-              const final = data.data;
-              
-              // 构造提示信息 (Dataset / Memory 路径)
-              const hints = [];
-              if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
-              if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
-              
-              // 更新状态
-              state.chat.history[entryIndex].meta = { hint: hints.join(" | ") };
-              
-              // 确保最终文本一致 (防止丢包)
-              if(final.answer && final.answer !== "No answer") {
-                  state.chat.history[entryIndex].text = final.answer;
-              }
-              
-              renderChatHistory();
-              setChatStatus("Ready", "ready");
-              
-            } else if (data.type === "error") {
-              // --- 情况 C: 后端报错 ---
-              appendChatMessage("system", `Backend Error: ${data.message}`);
-              setChatStatus("Error", "error");
+            // --- A. 思考过程事件 (Start / End) ---
+            if (data.type === "step_start" || data.type === "step_end") {
+                updateProcessUI(entryIndex, data);
             }
+            // --- B. Token 事件 ---
+            else if (data.type === "token") {
+                // 如果不是 Final Step，也可以选择在 Process 里显示日志（可选）
+                if (!data.is_final) {
+                    updateProcessUI(entryIndex, data);
+                }
+
+                // 只有 Final Step 的 Token 才上主屏幕
+                if (data.is_final) {
+                    currentText += data.content;
+                    // 更新 DOM (使用 replace 处理换行)
+                    contentDiv.innerHTML = currentText.replace(/\n/g, "<br>");
+                    // 滚动到底部
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            } 
+            // --- C. 最终结果汇总 ---
+            else if (data.type === "final") {
+                const final = data.data;
+                
+                // 更新 state 数据 (确保刷新页面后内容还在)
+                state.chat.history[entryIndex].text = currentText || final.answer;
+                
+                const hints = [];
+                if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
+                
+                state.chat.history[entryIndex].meta = { hint: hints.join(" | ") };
+                
+                // 思考过程折叠 (生成完了自动折叠，保持界面清爽)
+                const procDiv = bubble.querySelector(".process-container");
+                if (procDiv) procDiv.classList.add("collapsed");
+                
+                setChatStatus("Ready", "ready");
+                
+            } 
+            // --- D. 后端报错 ---
+            else if (data.type === "error") {
+                appendChatMessage("system", `Backend Error: ${data.message}`);
+                setChatStatus("Error", "error");
+            }
+
           } catch (e) { 
             console.error("JSON Parse error", e); 
           }
@@ -631,7 +738,7 @@ async function handleChatSubmit(event) {
     }
 
   } catch (err) { 
-      // 7. [新增] 错误处理：忽略主动中断的错误
+      // 7. [错误处理] 忽略用户主动中断的错误
       if (err.name === 'AbortError') {
           console.log("Fetch aborted by user.");
           return; // 直接退出，后续 UI 由 stopGeneration 处理
@@ -642,7 +749,7 @@ async function handleChatSubmit(event) {
       setChatStatus("Error", "error"); 
       
   } finally { 
-      // 8. 清理工作
+      // 8. [清理]
       // 如果 controller 还在（说明不是通过 stopGeneration 触发的中断），则正常重置状态
       if (state.chat.controller) {
           state.chat.controller = null;

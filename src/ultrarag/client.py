@@ -946,6 +946,56 @@ def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Client:
     logger.info("Initializing MCP Client...")
     return Client(mcp_cfg)
 
+def _summarize_step_result(step_name: str, result: Any) -> str:
+    try:
+        content = ""
+        if hasattr(result, "content") and result.content:
+            content = result.content[0].text
+        elif isinstance(result, str):
+            content = result
+        elif hasattr(result, "data"): # MockResult
+            content = result.data
+        else:
+            try:
+                content = json.dumps(result)
+            except:
+                return "Step completed."
+
+        try:
+            data = json.loads(content)
+        except:
+            return f"Output: {str(content)[:100]}..."
+
+
+        docs = data.get("ret_psg") 
+        
+        if docs and isinstance(docs, list):
+            if len(docs) > 0 and isinstance(docs[0], list):
+                docs = docs[0]
+            
+            summary = f"Retrieved {len(docs)} documents:\n"
+            
+            for i, doc in enumerate(docs): 
+                if isinstance(doc, str):
+                    pseudo_title = doc[:30]
+                    summary += f"{i+1}. [Text] {pseudo_title}...\n"
+                    
+            return summary.strip()
+
+        if "generate" in step_name.lower():
+            if "ans_ls" in data and data["ans_ls"]:
+                full_text = data["ans_ls"][0]
+                if len(full_text) > 500:
+                    return f"Generated:\n{full_text[:500]}...\n"
+                return f"Generated:\n{full_text}"
+
+        keys = list(data.keys())
+        return f"Output Keys: {keys}"
+
+    except Exception as e:
+        return f"Output: {str(content)[:100]}..."
+
+
 async def execute_pipeline(
     client: Client,
     context: Dict[str, Any],
@@ -1007,8 +1057,25 @@ async def execute_pipeline(
     ):
         indent = "  " * depth
         result = None
-        for step in steps:
+        for idx, step in enumerate(steps):
             logger.info(f"{indent}Executing step: {step}")
+
+            if isinstance(step, str):
+                current_step_name = step
+            elif isinstance(step, dict) and len(step) > 0:
+                current_step_name = list(step.keys())[0]
+            else:
+                current_step_name = "Unknown"
+            
+            is_final_step = (depth == 0 and idx == len(steps) - 1)
+
+            if stream_callback:
+                await stream_callback({
+                    "type": "step_start", 
+                    "name": current_step_name,
+                    "depth": depth
+                })
+
             if isinstance(step, dict) and "loop" in step:
                 LoopTerminal.append(True)
                 loop_cfg = step["loop"]
@@ -1098,12 +1165,18 @@ async def execute_pipeline(
                         
                         full_content = ""
                         try:
+                            step_identifier = f"{server_name}.{tool_name}"
                             async for token in local_service.generate_stream(**args_input):                            
                                 print(token, end="", flush=True)
                                 full_content += token
                                 
                                 if stream_callback:
-                                    await stream_callback(token)
+                                    await stream_callback({
+                                        "type": "token",
+                                        "content": token,
+                                        "step": step_identifier,
+                                        "is_final": is_final_step
+                                    })
                                 
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
@@ -1112,6 +1185,14 @@ async def execute_pipeline(
                         mock_json = json.dumps({"ans_ls": [full_content]})
                         mock_result_obj = MockResult(mock_json)
                         result = mock_result_obj
+
+                        if stream_callback:
+                            summary = _summarize_step_result(tool_name, mock_result_obj)
+                            await stream_callback({
+                                "type": "step_end",
+                                "name": current_step_name,
+                                "output": summary
+                            })
 
                         Data.save_data(
                             server_name, 
@@ -1130,6 +1211,15 @@ async def execute_pipeline(
                         result = await client.get_prompt(concated, args_input)
                     else:
                         result = await client.call_tool(concated, args_input)
+                    
+                    if stream_callback:
+                        summary = _summarize_step_result(current_step_name, result)
+                        await stream_callback({
+                            "type": "step_end",
+                            "name": current_step_name,
+                            "output": summary
+                        })
+                    
                     output_text = Data.save_data(
                         server_name,
                         tool_name,
@@ -1160,12 +1250,18 @@ async def execute_pipeline(
                         
                         full_content = ""
                         try:
+                            step_identifier = f"{server_name}.{tool_name}"
                             async for token in local_service.generate_stream(**args_input):                               
                                 print(token, end="", flush=True)
                                 full_content += token
                                 
                                 if stream_callback:
-                                    await stream_callback(token)
+                                    await stream_callback({
+                                        "type": "token",
+                                        "content": token,
+                                        "step": step_identifier,
+                                        "is_final": is_final_step
+                                    })
                                 
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
@@ -1175,6 +1271,14 @@ async def execute_pipeline(
 
                         mock_result_obj = MockResult(mock_json)
                         result = mock_result_obj
+
+                        if stream_callback:
+                            summary = _summarize_step_result(tool_name, mock_result_obj)
+                            await stream_callback({
+                                "type": "step_end",
+                                "name": current_step_name,
+                                "output": summary
+                            })
 
 
                         Data.save_data(server_name, tool_name, mock_result_obj, state)
@@ -1190,6 +1294,15 @@ async def execute_pipeline(
                         result = await client.get_prompt(concated, args_input)
                     else:
                         result = await client.call_tool(concated, args_input)
+
+                    if stream_callback:
+                        summary = _summarize_step_result(current_step_name, result)
+                        await stream_callback({
+                            "type": "step_end",
+                            "name": current_step_name,
+                            "output": summary
+                        })
+
                     output_text = Data.save_data(server_name, tool_name, result, state)
                     logger.debug(f"{indent}Result: {output_text}")
                     logger.debug(f"{indent}Updated var pool")
