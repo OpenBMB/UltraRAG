@@ -554,31 +554,83 @@ function appendChatMessage(role, text, meta = {}) {
   saveCurrentSession(); 
 }
 
+function formatCitationHtml(html) {
+    if (!html) return "";
+    // [关键修改] 增加 onclick="scrollToReference(1)"
+    // 注意：scrollToReference 函数必须挂在 window 上或定义在全局作用域
+    return html.replace(
+        /\[(\d+)\]/g, 
+        '<span class="citation-link" onclick="scrollToReference($1)">[$1]</span>'
+    );
+}
+
+// 2. [主函数] 修改后的 renderChatHistory
 function renderChatHistory() {
   if (!els.chatHistory) return;
   els.chatHistory.innerHTML = "";
+  
   if (state.chat.history.length === 0) { 
       els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start.</p></div>'; 
       return; 
   }
+
   state.chat.history.forEach((entry) => {
-    const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
+    const bubble = document.createElement("div"); 
+    bubble.className = `chat-bubble ${entry.role}`;
+    
     const content = document.createElement("div"); 
     content.className = "msg-content";
-    let textToRender = entry.text;
-    let mdOptions = {};
+
+    // --- 核心修改逻辑开始 ---
     if (entry.role === "assistant") {
-      textToRender = stripLeadingLanguageFence(textToRender, MARKDOWN_LANGS);
-      mdOptions = { unwrapLanguages: MARKDOWN_LANGS };
+        let textToRender = entry.text;
+        let mdOptions = {};
+        
+        // 1. 处理 Markdown 围栏 (保留原有逻辑)
+        if (typeof stripLeadingLanguageFence === 'function') {
+             textToRender = stripLeadingLanguageFence(textToRender, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
+             mdOptions = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
+        }
+        
+        // 2. 渲染 Markdown 为 HTML
+        let htmlContent = "";
+        if (typeof renderMarkdown === 'function') {
+            htmlContent = renderMarkdown(textToRender, mdOptions);
+        } else {
+            // 兜底：如果没有 renderMarkdown，直接显示文本
+            htmlContent = textToRender;
+        }
+
+        // 3. [新增] 在 HTML 中注入引用高亮
+        // 这一步把 [1] 变成蓝色的 <span class="citation-link">[1]</span>
+        content.innerHTML = formatCitationHtml(htmlContent);
+
+    } else {
+        // 用户消息：纯文本显示
+        content.textContent = entry.text;
     }
-    content.innerHTML = renderMarkdown(textToRender, mdOptions); 
+    // --- 核心修改逻辑结束 ---
+
     bubble.appendChild(content);
-    if (entry.meta && entry.meta.hint) {
-        const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
-        metaLine.style.fontSize = "0.7em"; metaLine.textContent = entry.meta.hint; bubble.appendChild(metaLine);
+
+    // 4. [新增] 如果有参考资料元数据，渲染到底部
+    if (entry.meta && entry.meta.sources) {
+        // 调用之前实现的 renderSources 函数
+        renderSources(bubble, entry.meta.sources);
     }
+
+    // 5. 渲染调试 Hint (保留原有逻辑)
+    if (entry.meta && entry.meta.hint) {
+        const metaLine = document.createElement("small"); 
+        metaLine.className = "text-muted d-block mt-1";
+        metaLine.style.fontSize = "0.7em"; 
+        metaLine.textContent = entry.meta.hint; 
+        bubble.appendChild(metaLine);
+    }
+
     els.chatHistory.appendChild(bubble);
   });
+  
   els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
 
@@ -670,6 +722,103 @@ async function stopGeneration() {
     // UI 立即恢复
     setChatRunning(false);
     appendChatMessage("system", "Generation interrupted.");
+}
+
+// [新增] 打开右侧详情栏
+function showSourceDetail(title, content) {
+    const panel = document.getElementById("source-detail-panel");
+    const contentDiv = document.getElementById("source-detail-content");
+    const titleDiv = panel.querySelector(".detail-title");
+
+    if (panel && contentDiv) {
+        // 填充内容
+        titleDiv.textContent = title || "Reference";
+        // 简单的文本处理，也可以用 renderMarkdown 渲染
+        contentDiv.innerText = content || "No content available."; 
+        
+        // 展开面板
+        panel.classList.add("show");
+    }
+}
+
+// [新增] 关闭右侧详情栏 (绑定到了 HTML 的 x 按钮)
+window.closeSourceDetail = function() {
+    const panel = document.getElementById("source-detail-panel");
+    if (panel) panel.classList.remove("show");
+};
+
+// [新增] 点击角标跳转函数
+window.scrollToReference = function(refId) {
+    const targetId = `ref-item-${refId}`;
+    // 查找当前可见的引用列表项 (倒序查找最近的)
+    const allRefs = document.querySelectorAll(`[id='${targetId}']`);
+    const target = allRefs[allRefs.length - 1];
+
+    if (target) {
+        // 1. 视觉反馈：闪烁一下底部的列表项，告诉用户对应关系
+        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        target.classList.remove("active-highlight");
+        void target.offsetWidth; 
+        target.classList.add("active-highlight");
+        
+        // 2. [新增] 打开右侧侧边栏显示详情
+        if (target._sourceData) {
+            const src = target._sourceData;
+            showSourceDetail(`Reference [${src.id}]`, src.content);
+        }
+    }
+};
+
+// [新增] 渲染参考资料列表
+function renderSources(bubble, sources) {
+    if (!bubble || !sources || sources.length === 0) return;
+
+    let refContainer = bubble.querySelector(".reference-container");
+    if (refContainer) refContainer.remove();
+
+    refContainer = document.createElement("div");
+    refContainer.className = "reference-container";
+    refContainer.innerHTML = `<div class="ref-header">📚 References</div>`;
+
+    const list = document.createElement("div");
+    list.className = "ref-list";
+
+    sources.forEach(src => {
+        const item = document.createElement("div");
+        item.className = "ref-item";
+        item.id = `ref-item-${src.id}`; // 保持 ID 用于查找
+        
+        // [关键] 将完整数据绑定到 DOM 元素属性上，方便后续读取
+        item._sourceData = src; 
+
+        // [修改] 点击列表项 -> 打开侧边栏
+        item.onclick = () => showSourceDetail(`Reference [${src.id}]`, src.content);
+        
+        item.innerHTML = `
+            <span class="ref-id">[${src.id}]</span>
+            <span class="ref-title">${src.title}</span>
+        `;
+        list.appendChild(item);
+    });
+
+    refContainer.appendChild(list);
+    bubble.appendChild(refContainer);
+}
+
+// [新增] 格式化正文文本 (高亮 [1])
+function formatMessageText(text) {
+    if (!text) return "";
+    // 先转义 HTML 防止注入
+    let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    
+    // 处理换行
+    safeText = safeText.replace(/\n/g, "<br>");
+    
+    // 正则替换 [数字] 为高亮标签
+    // 匹配 [1], [12], [1,2] 等格式
+    safeText = safeText.replace(/\[(\d+)\]/g, '<span class="citation-link">[$1]</span>');
+    
+    return safeText;
 }
 
 function updateProcessUI(entryIndex, eventData) {
@@ -792,7 +941,6 @@ async function handleChatSubmit(event) {
     
     const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
     
-    // 预留动态参数接口 (例如文件上传后的 collection_name)
     const dynamicParams = {}; 
     
     const body = JSON.stringify({ 
@@ -808,17 +956,17 @@ async function handleChatSubmit(event) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: body,
-        signal: state.chat.controller.signal // <--- 关键：绑定中断信号
+        signal: state.chat.controller.signal
     });
 
     if (!response.ok) throw new Error(response.statusText);
 
-    // [UI准备] 预先添加 Assistant 气泡 (占位)
+    // [UI准备] 预先添加 Assistant 气泡
     const entryIndex = state.chat.history.length;
-    // 推入空对象占位
+    // 推入空对象占位 (meta 初始化为空对象)
     state.chat.history.push({ role: "assistant", text: "", meta: {} });
     
-    // 手动操作 DOM 添加气泡结构（包含消息内容容器 msg-content）
+    // 手动操作 DOM 添加气泡结构
     const chatContainer = document.getElementById("chat-history");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble assistant";
@@ -849,53 +997,128 @@ async function handleChatSubmit(event) {
             const jsonStr = line.slice(6);
             const data = JSON.parse(jsonStr);
             
-            // --- A. 思考过程事件 (Start / End) ---
+            // --- A. 思考过程事件 ---
             if (data.type === "step_start" || data.type === "step_end") {
                 updateProcessUI(entryIndex, data);
             }
-            // --- B. Token 事件 ---
+            // --- B. 引用源数据事件 (关键新增) ---
+            else if (data.type === "sources") {
+                // 存入 State
+                if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
+                state.chat.history[entryIndex].meta.sources = data.data;
+                
+                // 渲染底部的参考资料卡片
+                renderSources(bubble, data.data);
+                
+                // 滚动防止遮挡
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            // --- C. Token 事件 ---
             else if (data.type === "token") {
-                // 如果不是 Final Step，也可以选择在 Process 里显示日志（可选）
+                // 如果不是 Final Step，显示在思考过程里
                 if (!data.is_final) {
                     updateProcessUI(entryIndex, data);
                 }
 
-                // 只有 Final Step 的 Token 才上主屏幕
+                // 只有 Final Step 才上主屏幕
                 if (data.is_final) {
                     currentText += data.content;
-                    if (isPendingLanguageFence(currentText, MARKDOWN_LANGS)) {
-                        contentDiv.innerHTML = "";
-                        continue;
+                    
+                    // [Markdown 流式优化] 如果检测到 Markdown 代码块未闭合，暂停渲染以防闪烁
+                    // (假设你已经定义了 MARKDOWN_LANGS 常量和 isPendingLanguageFence 函数)
+                    if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [])) {
+                        // 可选：显示一个光标或加载符
+                        continue; 
                     }
-                    const normalized = stripLeadingLanguageFence(currentText, MARKDOWN_LANGS);
-                    contentDiv.innerHTML = renderMarkdown(normalized, { unwrapLanguages: MARKDOWN_LANGS });
+                    
+                    // 1. 处理 Markdown 围栏
+                    let normalized = currentText;
+                    let mdOpts = {};
+                    if (typeof stripLeadingLanguageFence === 'function') {
+                         normalized = stripLeadingLanguageFence(currentText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
+                         mdOpts = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
+                    }
+                    
+                    // 2. 渲染 Markdown -> HTML
+                    let html = "";
+                    if (typeof renderMarkdown === 'function') {
+                        html = renderMarkdown(normalized, mdOpts);
+                    } else {
+                        html = normalized;
+                    }
+
+                    // 3. [关键] 应用引用高亮 (把 [1] 变成蓝色链接)
+                    contentDiv.innerHTML = formatCitationHtml(html);
+                    
                     // 滚动到底部
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
             } 
-            // --- C. 最终结果汇总 ---
+            // --- D. 最终结果汇总 ---
             else if (data.type === "final") {
                 const final = data.data;
                 
-                // 更新 state 数据 (确保刷新页面后内容还在)
+                // 最终文本定格
                 let finalText = currentText || final.answer || "";
-                finalText = stripLeadingLanguageFence(finalText, MARKDOWN_LANGS);
-                state.chat.history[entryIndex].text = finalText;
-                contentDiv.innerHTML = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
                 
+                // 最终渲染一遍 Markdown + 高亮，确保闭合
+                let normalized = finalText;
+                let mdOpts = {};
+                if (typeof stripLeadingLanguageFence === 'function') {
+                     normalized = stripLeadingLanguageFence(finalText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
+                     mdOpts = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
+                }
+                
+                let html = "";
+                if (typeof renderMarkdown === 'function') {
+                    html = renderMarkdown(normalized, mdOpts);
+                } else {
+                    html = normalized;
+                }
+
+                contentDiv.innerHTML = formatCitationHtml(html);
+                state.chat.history[entryIndex].text = finalText;
+
+                // [新增] 引用过滤逻辑：把没用到的变灰
+                // 1. 提取文本中出现过的所有 [x]
+                const usedIds = new Set();
+                const regex = /\[(\d+)\]/g;
+                let match;
+                while ((match = regex.exec(finalText)) !== null) {
+                    usedIds.add(match[1]); // 存入 "1", "2"
+                }
+
+                // 2. 遍历最后一个气泡里的所有参考资料
+                // 找到刚才创建的 bubble
+                const refItems = bubble.querySelectorAll(".ref-item");
+                refItems.forEach(item => {
+                    // item.id 格式为 "ref-item-1"
+                    const idStr = item.id.replace("ref-item-", "");
+                    
+                    if (usedIds.has(idStr)) {
+                        item.classList.remove("unused");
+                    } else {
+                        // 没用到的加 unused 类 (CSS里设置半透明)
+                        item.classList.add("unused");
+                    }
+                });
+                
+                // 处理 Meta 信息
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
+                if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
                 
-                state.chat.history[entryIndex].meta = { hint: hints.join(" | ") };
+                if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
+                state.chat.history[entryIndex].meta.hint = hints.join(" | ");
                 
-                // 思考过程折叠 (生成完了自动折叠，保持界面清爽)
+                // 思考过程自动折叠
                 const procDiv = bubble.querySelector(".process-container");
                 if (procDiv) procDiv.classList.add("collapsed");
                 
                 setChatStatus("Ready", "ready");
                 
             } 
-            // --- D. 后端报错 ---
+            // --- E. 后端报错 ---
             else if (data.type === "error") {
                 appendChatMessage("system", `Backend Error: ${data.message}`);
                 setChatStatus("Error", "error");
@@ -912,7 +1135,7 @@ async function handleChatSubmit(event) {
       // 7. [错误处理] 忽略用户主动中断的错误
       if (err.name === 'AbortError') {
           console.log("Fetch aborted by user.");
-          return; // 直接退出，后续 UI 由 stopGeneration 处理
+          return; // 直接退出
       }
       
       console.error(err);
@@ -921,7 +1144,6 @@ async function handleChatSubmit(event) {
       
   } finally { 
       // 8. [清理]
-      // 如果 controller 还在（说明不是通过 stopGeneration 触发的中断），则正常重置状态
       if (state.chat.controller) {
           state.chat.controller = null;
           setChatRunning(false);

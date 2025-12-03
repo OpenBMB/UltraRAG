@@ -1211,6 +1211,37 @@ async def execute_pipeline(
                         result = await client.get_prompt(concated, args_input)
                     else:
                         result = await client.call_tool(concated, args_input)
+
+                    if stream_callback and server_name in retriever_aliases:
+                        try:
+                            content_str = ""
+                            if hasattr(result, "content") and result.content:
+                                content_str = result.content[0].text
+                            elif isinstance(result, str): content_str = result
+                            
+                            data = json.loads(content_str)
+
+                            raw_docs = data.get("ret_psg")
+                            
+                            if raw_docs and isinstance(raw_docs, list):
+                                if len(raw_docs) > 0 and isinstance(raw_docs[0], list):
+                                    raw_docs = raw_docs[0]
+                                
+                                sources = []
+                                for i, doc in enumerate(raw_docs):
+                                    text = str(doc)
+                                    lines = text.strip().split('\n')
+                                    title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                    
+                                    sources.append({
+                                        "id": i + 1,
+                                        "title": title,
+                                        "content": text
+                                    })
+                                
+                                await stream_callback({"type": "sources", "data": sources})
+                        except Exception as e:
+                            logger.warning(f"Failed to extract sources: {e}")
                     
                     if stream_callback:
                         summary = _summarize_step_result(current_step_name, result)
@@ -1294,6 +1325,32 @@ async def execute_pipeline(
                         result = await client.get_prompt(concated, args_input)
                     else:
                         result = await client.call_tool(concated, args_input)
+
+                    if stream_callback and server_name in retriever_aliases:
+                        try:
+                            content_str = ""
+                            if hasattr(result, "content") and result.content:
+                                content_str = result.content[0].text
+                            elif isinstance(result, str): content_str = result
+                            data = json.loads(content_str)
+                            raw_docs = data.get("ret_psg")
+                            
+                            if raw_docs and isinstance(raw_docs, list):
+                                if len(raw_docs) > 0 and isinstance(raw_docs[0], list):
+                                    raw_docs = raw_docs[0]
+                                sources = []
+                                for i, doc in enumerate(raw_docs):
+                                    text = str(doc)
+                                    lines = text.strip().split('\n')
+                                    title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                    sources.append({
+                                        "id": i + 1,
+                                        "title": title,
+                                        "content": text
+                                    })
+                                await stream_callback({"type": "sources", "data": sources})
+                        except Exception as e:
+                            logger.warning(f"Failed to extract sources: {e}")
 
                     if stream_callback:
                         summary = _summarize_step_result(current_step_name, result)

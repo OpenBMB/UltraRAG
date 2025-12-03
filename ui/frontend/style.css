@@ -641,3 +641,172 @@ body {
 .msg-content {
   line-height: 1.6;
 }
+
+
+/* --- 引用溯源 (Source Attribution) 样式 --- */
+
+/* 1. 参考资料容器 */
+.reference-container {
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid #e5e5e5;
+  font-size: 0.85rem;
+  background-color: #fff; /* 确保背景干净 */
+  border-radius: 0 0 4px 20px; /* 配合气泡圆角 */
+}
+
+.ref-header {
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* 2. 参考列表 */
+.ref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* 单个参考项 */
+.ref-item {
+  display: flex;
+  align-items: flex-start; /* 顶部对齐 */
+  gap: 0.6rem;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 6px;
+  color: #374151;
+  cursor: help; /* 鼠标放上去显示问号，提示可查看详情 */
+  transition: all 0.2s;
+  line-height: 1.4;
+}
+
+.ref-item:hover {
+  background: #eff6ff; /* 悬浮变蓝 */
+  border-color: #bfdbfe;
+}
+
+/* 编号 [1] */
+.ref-id {
+  color: #2563eb;
+  font-weight: bold;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  min-width: 24px;
+  margin-top: 1px;
+}
+
+/* 标题 */
+.ref-title {
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 最多显示2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 3. 正文中的引用高亮 */
+.citation-link {
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 2px;
+  font-size: 0.85em;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 0 3px;
+  border-radius: 4px;
+  vertical-align: 1px;
+}
+.citation-link:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* --- 引用交互样式 --- */
+
+/* 1. 闪烁动画 (点击角标后，对应的文档卡片闪烁一下) */
+@keyframes flash-highlight {
+  0% { background-color: rgba(37, 99, 235, 0.3); }
+  100% { background-color: #f9fafb; }
+}
+
+.ref-item.active-highlight {
+  animation: flash-highlight 2s ease-out;
+  border-color: #2563eb;
+}
+
+/* 2. 未被引用的文档 (变灰/半透明) */
+.ref-item.unused {
+  opacity: 0.5;
+  order: 99; /* 把没用到的排到后面去 (Flex布局特性) */
+  background-color: #f3f4f6;
+}
+
+/* 3. 鼠标放上去时恢复显示 */
+.ref-item.unused:hover {
+  opacity: 1;
+}
+
+
+/* --- 右侧详情栏样式 --- */
+
+.chat-detail-sidebar {
+  width: 0; /* 默认收起 */
+  background-color: #fff;
+  border-left: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 展开状态 */
+.chat-detail-sidebar.show {
+  width: 400px; /* 展开宽度 */
+  box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+}
+
+.detail-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9f9fa;
+}
+
+.detail-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.detail-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #374151;
+  white-space: pre-wrap; /* 保留换行 */
+}
+
+/* 针对移动端的适配 */
+@media (max-width: 992px) {
+  .chat-detail-sidebar.show {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 85%;
+    z-index: 2060;
+  }
+}
