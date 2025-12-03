@@ -133,6 +133,21 @@ function log(message) {
   console.log(msg);
 }
 
+// Markdown 渲染（带简单降级）
+let markdownConfigured = false;
+function renderMarkdown(text) {
+  if (!text) return "";
+  if (window.marked) {
+    if (!markdownConfigured) {
+      window.marked.setOptions({ breaks: true, gfm: true });
+      markdownConfigured = true;
+    }
+    const rawHtml = window.marked.parse(text);
+    return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+  }
+  return text.replace(/\n/g, "<br>");
+}
+
 // --- Lifecycle ---
 function createNewPipeline() {
   if (state.steps.length > 0) {
@@ -406,8 +421,8 @@ function renderChatHistory() {
   state.chat.history.forEach((entry) => {
     const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
     const content = document.createElement("div"); 
-    // 简单的 Markdown 处理 (如换行)
-    content.innerHTML = entry.text.replace(/\n/g, "<br>"); 
+    content.className = "msg-content";
+    content.innerHTML = renderMarkdown(entry.text); 
     bubble.appendChild(content);
     if (entry.meta && entry.meta.hint) {
         const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
@@ -699,8 +714,7 @@ async function handleChatSubmit(event) {
                 // 只有 Final Step 的 Token 才上主屏幕
                 if (data.is_final) {
                     currentText += data.content;
-                    // 更新 DOM (使用 replace 处理换行)
-                    contentDiv.innerHTML = currentText.replace(/\n/g, "<br>");
+                    contentDiv.innerHTML = renderMarkdown(currentText);
                     // 滚动到底部
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
@@ -710,7 +724,9 @@ async function handleChatSubmit(event) {
                 const final = data.data;
                 
                 // 更新 state 数据 (确保刷新页面后内容还在)
-                state.chat.history[entryIndex].text = currentText || final.answer;
+                const finalText = currentText || final.answer || "";
+                state.chat.history[entryIndex].text = finalText;
+                contentDiv.innerHTML = renderMarkdown(finalText);
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
