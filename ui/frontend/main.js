@@ -135,6 +135,8 @@ function log(message) {
 
 // Markdown 渲染（带简单降级）
 let markdownConfigured = false;
+const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
+
 function escapeHtml(str) {
   return str
     .replace(/&/g, "&amp;")
@@ -242,14 +244,35 @@ function basicMarkdown(text, { allowCodeBlock } = { allowCodeBlock: true }) {
 
 function unwrapLanguageBlocks(text, languages = []) {
   if (!languages.length) return text;
-  const pattern = new RegExp("```\\s*(" + languages.join("|") + ")\\s*\\n([\\s\\S]*?)```", "gi");
+  const pattern = new RegExp("```\\s*(" + languages.join("|") + ")\\s*(?:\\r?\\n)([\\s\\S]*?)```", "gi");
   return text.replace(pattern, (_, __, body) => body.trim());
 }
 
-function renderMarkdown(text, { allowCodeBlock = true } = {}) {
+function stripLeadingLanguageFence(text, languages = []) {
+  if (!languages.length || !text) return text;
+  const startPattern = new RegExp("^\\s*```\\s*(?:" + languages.join("|") + ")\\s*(?:\\r?\\n)?", "i");
+  let stripped = text;
+  if (startPattern.test(stripped)) {
+    stripped = stripped.replace(startPattern, "");
+    stripped = stripped.replace(/\r?\n?```\s*$/i, "");
+  }
+  return stripped;
+}
+
+function isPendingLanguageFence(text, languages = []) {
+  if (!languages.length || !text) return false;
+  const trimmed = text.trimStart().toLowerCase();
+  if (!trimmed.startsWith("```")) return false;
+  const newlineIndex = trimmed.indexOf("\n");
+  if (newlineIndex !== -1) return false;
+  const langFragment = trimmed.slice(3).trim();
+  return languages.some(lang => lang.startsWith(langFragment));
+}
+
+function renderMarkdown(text, { allowCodeBlock = true, unwrapLanguages = [] } = {}) {
   if (!text) return "";
-  if (!allowCodeBlock) {
-    text = unwrapLanguageBlocks(text, ["markdown", "md", "mdx"]);
+  if (unwrapLanguages.length) {
+    text = unwrapLanguageBlocks(text, unwrapLanguages);
   }
   if (window.marked) {
     if (!markdownConfigured) {
@@ -542,8 +565,13 @@ function renderChatHistory() {
     const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
     const content = document.createElement("div"); 
     content.className = "msg-content";
-    const allowCodeBlock = entry.role !== "assistant";
-    content.innerHTML = renderMarkdown(entry.text, { allowCodeBlock }); 
+    let textToRender = entry.text;
+    let mdOptions = {};
+    if (entry.role === "assistant") {
+      textToRender = stripLeadingLanguageFence(textToRender, MARKDOWN_LANGS);
+      mdOptions = { unwrapLanguages: MARKDOWN_LANGS };
+    }
+    content.innerHTML = renderMarkdown(textToRender, mdOptions); 
     bubble.appendChild(content);
     if (entry.meta && entry.meta.hint) {
         const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
@@ -835,7 +863,12 @@ async function handleChatSubmit(event) {
                 // 只有 Final Step 的 Token 才上主屏幕
                 if (data.is_final) {
                     currentText += data.content;
-                    contentDiv.innerHTML = renderMarkdown(currentText, { allowCodeBlock: false });
+                    if (isPendingLanguageFence(currentText, MARKDOWN_LANGS)) {
+                        contentDiv.innerHTML = "";
+                        continue;
+                    }
+                    const normalized = stripLeadingLanguageFence(currentText, MARKDOWN_LANGS);
+                    contentDiv.innerHTML = renderMarkdown(normalized, { unwrapLanguages: MARKDOWN_LANGS });
                     // 滚动到底部
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
@@ -845,9 +878,10 @@ async function handleChatSubmit(event) {
                 const final = data.data;
                 
                 // 更新 state 数据 (确保刷新页面后内容还在)
-                const finalText = currentText || final.answer || "";
+                let finalText = currentText || final.answer || "";
+                finalText = stripLeadingLanguageFence(finalText, MARKDOWN_LANGS);
                 state.chat.history[entryIndex].text = finalText;
-                contentDiv.innerHTML = renderMarkdown(finalText, { allowCodeBlock: false });
+                contentDiv.innerHTML = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
