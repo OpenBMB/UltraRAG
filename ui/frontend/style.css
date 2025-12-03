@@ -212,6 +212,70 @@ body {
 .chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: var(--text-primary); padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
 .chat-bubble.assistant { align-self: flex-start; padding-right: 1rem; }
 .chat-bubble.assistant::before { content: 'AI'; display: block; font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.25rem; }
+.chat-bubble .msg-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.chat-bubble .msg-content > :first-child { margin-top: 0; }
+.chat-bubble .msg-content > :last-child { margin-bottom: 0; }
+.chat-bubble .msg-content p { margin: 0 0 0.85rem; }
+.chat-bubble .msg-content h1,
+.chat-bubble .msg-content h2,
+.chat-bubble .msg-content h3,
+.chat-bubble .msg-content h4,
+.chat-bubble .msg-content h5,
+.chat-bubble .msg-content h6 {
+  margin: 1rem 0 0.5rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+}
+.chat-bubble .msg-content h1 { font-size: 1.4rem; }
+.chat-bubble .msg-content h2 { font-size: 1.25rem; }
+.chat-bubble .msg-content h3 { font-size: 1.15rem; }
+.chat-bubble .msg-content h4 { font-size: 1.05rem; }
+.chat-bubble .msg-content ul,
+.chat-bubble .msg-content ol {
+  margin: 0 0 1rem 1.25rem;
+  padding-left: 0.25rem;
+}
+.chat-bubble .msg-content li { margin: 0.2rem 0; }
+.chat-bubble .msg-content code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: #f7f7fb;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+}
+.chat-bubble .msg-content pre {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+}
+.chat-bubble .msg-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.chat-bubble .msg-content blockquote {
+  margin: 0 0 1rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--accent-blue);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+.chat-bubble .msg-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.2rem 0;
+}
 .chat-input-wrapper {
   padding: 0 1rem 2rem 1rem;
   /* [新增] 防止空间不足时输入框被挤压 */
