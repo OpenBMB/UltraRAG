@@ -135,17 +135,137 @@ function log(message) {
 
 // Markdown 渲染（带简单降级）
 let markdownConfigured = false;
-function renderMarkdown(text) {
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderInlineMarkdown(str) {
+  let text = escapeHtml(str);
+  text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+  text = text.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  text = text.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  text = text.replace(/_([^_]+)_/g, "<em>$1</em>");
+  text = text.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+  return text;
+}
+
+function basicMarkdown(text, { allowCodeBlock } = { allowCodeBlock: true }) {
+  const lines = text.split(/\r?\n/);
+  let html = "";
+  let inCode = false;
+  let codeBuffer = [];
+  let paragraph = [];
+  let listType = null;
+  const closeList = () => {
+    if (listType) { html += `</${listType}>`; listType = null; }
+  };
+  const flushParagraph = () => {
+    if (paragraph.length) {
+      const para = paragraph.join(" ").trim();
+      if (para) html += `<p>${renderInlineMarkdown(para)}</p>`;
+      paragraph = [];
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\s+$/, "");
+    if (line.trim().startsWith("```")) {
+      if (inCode) {
+        const codeHtml = codeBuffer.map(escapeHtml).join("\n");
+        if (allowCodeBlock) {
+          html += `<pre><code>${codeHtml}</code></pre>`;
+        } else {
+          html += `<p>${codeHtml.replace(/\n/g, "<br>")}</p>`;
+        }
+        codeBuffer = [];
+        inCode = false;
+      } else {
+        flushParagraph(); closeList();
+        inCode = true;
+      }
+      continue;
+    }
+    if (inCode) { codeBuffer.push(line); continue; }
+
+    if (/^#{1,6}\s/.test(line)) {
+      flushParagraph(); closeList();
+      const level = line.match(/^#{1,6}/)[0].length;
+      const content = line.slice(level).trim();
+      html += `<h${level}>${renderInlineMarkdown(content)}</h${level}>`;
+      continue;
+    }
+    if (/^([-*_])\1{2,}\s*$/.test(line.trim())) {
+      flushParagraph(); closeList();
+      html += "<hr>";
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      flushParagraph(); closeList();
+      const content = line.replace(/^>\s?/, "");
+      html += `<blockquote>${renderInlineMarkdown(content)}</blockquote>`;
+      continue;
+    }
+    if (/^(\*|-|\+)\s+/.test(line)) {
+      flushParagraph();
+      if (listType !== "ul") { closeList(); listType = "ul"; html += "<ul>"; }
+      const content = line.replace(/^(\*|-|\+)\s+/, "");
+      html += `<li>${renderInlineMarkdown(content)}</li>`;
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      flushParagraph();
+      if (listType !== "ol") { closeList(); listType = "ol"; html += "<ol>"; }
+      const content = line.replace(/^\d+\.\s+/, "");
+      html += `<li>${renderInlineMarkdown(content)}</li>`;
+      continue;
+    }
+    if (/^\s*$/.test(line)) {
+      flushParagraph(); closeList();
+      continue;
+    }
+    paragraph.push(line);
+  }
+  flushParagraph(); closeList();
+  if (inCode) {
+    const codeHtml = codeBuffer.map(escapeHtml).join("\n");
+    if (allowCodeBlock) html += `<pre><code>${codeHtml}</code></pre>`;
+    else html += `<p>${codeHtml.replace(/\n/g, "<br>")}</p>`;
+  }
+  return html || escapeHtml(text).replace(/\n/g, "<br>");
+}
+
+function unwrapLanguageBlocks(text, languages = []) {
+  if (!languages.length) return text;
+  const pattern = new RegExp("```\\s*(" + languages.join("|") + ")\\s*\\n([\\s\\S]*?)```", "gi");
+  return text.replace(pattern, (_, __, body) => body.trim());
+}
+
+function renderMarkdown(text, { allowCodeBlock = true } = {}) {
   if (!text) return "";
+  if (!allowCodeBlock) {
+    text = unwrapLanguageBlocks(text, ["markdown", "md", "mdx"]);
+  }
   if (window.marked) {
     if (!markdownConfigured) {
       window.marked.setOptions({ breaks: true, gfm: true });
       markdownConfigured = true;
     }
-    const rawHtml = window.marked.parse(text);
+    let rendererOptions = undefined;
+    if (!allowCodeBlock && window.marked) {
+      const renderer = new window.marked.Renderer();
+      renderer.code = (code) => `<p>${escapeHtml(code).replace(/\n/g, "<br>")}</p>`;
+      rendererOptions = { renderer };
+    }
+    const rawHtml = window.marked.parse(text, rendererOptions);
     return window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
   }
-  return text.replace(/\n/g, "<br>");
+  return basicMarkdown(text, { allowCodeBlock });
 }
 
 // --- Lifecycle ---
@@ -422,7 +542,8 @@ function renderChatHistory() {
     const bubble = document.createElement("div"); bubble.className = `chat-bubble ${entry.role}`;
     const content = document.createElement("div"); 
     content.className = "msg-content";
-    content.innerHTML = renderMarkdown(entry.text); 
+    const allowCodeBlock = entry.role !== "assistant";
+    content.innerHTML = renderMarkdown(entry.text, { allowCodeBlock }); 
     bubble.appendChild(content);
     if (entry.meta && entry.meta.hint) {
         const metaLine = document.createElement("small"); metaLine.className = "text-muted d-block mt-1";
@@ -714,7 +835,7 @@ async function handleChatSubmit(event) {
                 // 只有 Final Step 的 Token 才上主屏幕
                 if (data.is_final) {
                     currentText += data.content;
-                    contentDiv.innerHTML = renderMarkdown(currentText);
+                    contentDiv.innerHTML = renderMarkdown(currentText, { allowCodeBlock: false });
                     // 滚动到底部
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
@@ -726,7 +847,7 @@ async function handleChatSubmit(event) {
                 // 更新 state 数据 (确保刷新页面后内容还在)
                 const finalText = currentText || final.answer || "";
                 state.chat.history[entryIndex].text = finalText;
-                contentDiv.innerHTML = renderMarkdown(finalText);
+                contentDiv.innerHTML = renderMarkdown(finalText, { allowCodeBlock: false });
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
