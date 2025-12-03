@@ -465,10 +465,13 @@ function resetChatSession() {
     state.chat.running = false;
     state.chat.currentSessionId = null;
     
-    // 切换 Pipeline 时，清空旧的聊天列表显示 (不清除 activeEngines)
-    state.chat.sessions = []; 
+    // [严重错误修复] 删除下面这行！切换 Pipeline 不应该清空所有会话列表！
+    // state.chat.sessions = [];  <-- 删除它
     
-    // [关键修改] 检查 activeEngines，恢复 Session ID
+    // [新增] 应该只清除当前显示的会话，而不是所有会话数据
+    // 但为了 UI 逻辑简单，这里什么都不做，renderChatSidebar 会自动处理显示
+    
+    // [检查 activeEngines] 恢复 Session ID
     const currentName = state.selectedPipeline;
     if (currentName && state.chat.activeEngines[currentName]) {
         state.chat.engineSessionId = state.chat.activeEngines[currentName];
@@ -502,49 +505,150 @@ function createNewChatSession() {
 }
 
 function loadChatSession(sessionId) {
-    if (state.chat.running) return;
+    if (state.chat.running) return; // 正在生成时不许切
+    
+    // 先保存当前正在进行的会话
     saveCurrentSession(false); 
+    
     const session = state.chat.sessions.find(s => s.id === sessionId);
     if (!session) return;
+
     state.chat.currentSessionId = session.id;
-    state.chat.history = [...session.messages];
-    renderChatHistory(); renderChatSidebar();
+    state.chat.history = cloneDeep(session.messages || []); // 深拷贝恢复
+    
+    // [可选] 如果你想做的更高级：
+    // 如果这个历史会话是属于另一个 Pipeline 的 (session.pipeline)，
+    // 你可以在这里自动调用 switchChatPipeline(session.pipeline) 来切换上下文。
+    // 但为了简单起见，目前只加载文本内容即可。
+    
+    renderChatHistory();
+    renderChatSidebar();
     setChatStatus("Ready", "ready");
+    
+    // 移动端适配：加载后自动收起侧边栏
+    const sidebar = document.querySelector('.chat-sidebar');
+    if (window.innerWidth < 768 && sidebar) {
+        sidebar.classList.remove('show');
+    }
 }
 
 function saveCurrentSession(force = false) {
     if (!state.chat.currentSessionId) return;
+    
+    // 如果当前没有任何消息，且不是强制保存，则不保存（避免产生大量空会话）
     if (!force && state.chat.history.length === 0) {
+        // 从列表中移除当前空会话
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
-        renderChatSidebar(); return;
+        // 更新 UI 和 本地存储
+        renderChatSidebar();
+        localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+        return;
     }
+    
     let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
+    
+    // 生成标题：取第一条用户消息的前20个字
     let title = "New Chat";
     const firstUserMsg = state.chat.history.find(m => m.role === 'user');
-    if (firstUserMsg) title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
+    if (firstUserMsg) {
+        title = firstUserMsg.text.slice(0, 20) + (firstUserMsg.text.length > 20 ? "..." : "");
+    }
 
     if (!session) {
-        session = { id: state.chat.currentSessionId, title: title, messages: [] };
-        state.chat.sessions.unshift(session);
+        // 新建会话对象
+        session = { 
+            id: state.chat.currentSessionId, 
+            title: title, 
+            messages: cloneDeep(state.chat.history), // 深拷贝防止引用问题
+            pipeline: state.selectedPipeline,        // [新增] 记录是用哪个 Pipeline 聊的
+            timestamp: Date.now()                    // [新增] 记录时间
+        };
+        state.chat.sessions.unshift(session); // 加到最前面
     } else {
+        // 更新现有会话
+        // 先移除旧位置，再插到最前面（置顶）
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
+        session.messages = cloneDeep(state.chat.history);
+        session.timestamp = Date.now();
+        
+        // 如果是默认标题，尝试更新为新标题
+        if (session.title === "New Chat" || session.title === "Untitled Chat") {
+             session.title = title;
+        }
         state.chat.sessions.unshift(session);
-        if (session.title === "New Chat" || (session.messages.length === 0 && firstUserMsg)) session.title = title;
     }
-    session.messages = [...state.chat.history];
+
+    // [关键] 渲染侧边栏 并 持久化到 LocalStorage
     renderChatSidebar();
+    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+
+    // [补全] 记录当前活跃的会话 ID，以便刷新后恢复
+    if (state.chat.currentSessionId) {
+        localStorage.setItem("ultrarag_last_active_id", state.chat.currentSessionId);
+    }
 }
 
 function renderChatSidebar() {
     if (!els.chatSessionList) return;
     els.chatSessionList.innerHTML = "";
+
+    const displaySessions = state.chat.sessions.filter(s => 
+        !s.pipeline || s.pipeline === state.selectedPipeline
+    );
+    
+    if (state.chat.sessions.length === 0) {
+        els.chatSessionList.innerHTML = '<div class="text-muted small px-2">No history</div>';
+        return;
+    }
+    
     state.chat.sessions.forEach(session => {
-        const btn = document.createElement("button");
-        btn.className = `chat-session-item ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
-        btn.textContent = session.title || "Untitled Chat";
-        btn.onclick = () => loadChatSession(session.id);
-        els.chatSessionList.appendChild(btn);
+        // 容器
+        const itemDiv = document.createElement("div");
+        itemDiv.className = `chat-session-item d-flex justify-content-between align-items-center ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
+        
+        // 标题按钮 (点击加载)
+        const titleBtn = document.createElement("span");
+        titleBtn.className = "text-truncate flex-grow-1";
+        titleBtn.style.cursor = "pointer";
+        titleBtn.textContent = session.title || "Untitled Chat";
+        titleBtn.onclick = (e) => {
+            e.stopPropagation(); // 防止冒泡
+            loadChatSession(session.id);
+        };
+        
+        // 删除按钮 (小垃圾桶)
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-sm btn-icon text-muted ms-2";
+        delBtn.innerHTML = "×"; // 或者用图标
+        delBtn.title = "Delete Chat";
+        delBtn.style.width = "20px";
+        delBtn.style.height = "20px";
+        delBtn.style.lineHeight = "1";
+        delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteChatSession(session.id);
+        };
+
+        itemDiv.appendChild(titleBtn);
+        itemDiv.appendChild(delBtn);
+        els.chatSessionList.appendChild(itemDiv);
     });
+}
+
+// [新增] 删除会话辅助函数
+function deleteChatSession(sessionId) {
+    if (!confirm("Delete this chat?")) return;
+    
+    state.chat.sessions = state.chat.sessions.filter(s => s.id !== sessionId);
+    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    
+    // [补全] 如果删除了当前会话，清理 last_active_id
+    if (state.chat.currentSessionId === sessionId) {
+        localStorage.removeItem("ultrarag_last_active_id"); // 清理
+        createNewChatSession();
+    } else {
+        renderChatSidebar();
+    }
 }
 
 function appendChatMessage(role, text, meta = {}) {
@@ -1729,9 +1833,54 @@ function bindEvents() {
 }
 
 async function bootstrap() {
-  setMode(Modes.BUILDER); resetContextStack(); renderSteps(); updatePipelinePreview(); bindEvents(); updateActionButtons();
-  setHeroPipelineLabel(state.selectedPipeline || "");
-  try { await Promise.all([refreshPipelines(), refreshTools()]); log("UI Ready."); } catch (err) { log(`Initialization error: ${err.message}`); }
+  setMode(Modes.BUILDER); 
+  resetContextStack(); 
+  renderSteps(); 
+  updatePipelinePreview(); 
+  bindEvents(); 
+  updateActionButtons();
+  
+  // 1. 先加载基础数据
+  try { 
+      await Promise.all([refreshPipelines(), refreshTools()]); 
+      log("UI Ready."); 
+  } catch (err) { 
+      log(`Initialization error: ${err.message}`); 
+  }
+
+  // 2. [修改] 数据加载完后，再恢复历史会话和选中状态
+  const savedSessions = localStorage.getItem("ultrarag_sessions");
+  if (savedSessions) {
+      try {
+          state.chat.sessions = JSON.parse(savedSessions);
+          state.chat.sessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          
+          // 恢复上一次活跃的会话
+          const lastId = localStorage.getItem("ultrarag_last_active_id");
+          if (lastId) {
+              const session = state.chat.sessions.find(s => s.id === lastId);
+              if (session) {
+                  state.chat.currentSessionId = session.id;
+                  state.chat.history = cloneDeep(session.messages || []);
+                  
+                  // [关键] 如果上次有选中的 Pipeline，自动加载它
+                  if (session.pipeline) {
+                      // 此时 refreshPipelines 已完成，UI 是安全的
+                      loadPipeline(session.pipeline); 
+                  } else {
+                      // 如果没有 pipeline 记录，只设置 label
+                      setHeroPipelineLabel(state.selectedPipeline || "");
+                  }
+                  log(`Restored last session: ${session.title}`);
+              }
+          }
+      } catch (e) {
+          console.warn("Failed to load history:", e);
+          state.chat.sessions = [];
+      }
+  } else {
+      setHeroPipelineLabel(state.selectedPipeline || "");
+  }
 }
 
 bootstrap();
