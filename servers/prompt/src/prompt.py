@@ -236,6 +236,36 @@ def webnote_fill_page(
         all_prompts.append(p)
     return all_prompts
 
+@app.prompt(
+    output="q_ls,plan_ls,page_ls,subq_ls,psg_ls,webnote_fill_page_template->prompt_ls"
+)
+def webnote_fill_page_cited(
+    q_ls: List[str],
+    plan_ls: List[str],
+    page_ls: List[str],
+    subq_ls: List[str],
+    psg_ls: List[Any],
+    template: str | Path,
+) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    all_prompts = []
+
+    for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
+        cited_passages = []
+        for idx, passage in enumerate(psg, start=1):
+            cited_passages.append(f"[{idx}] {passage}")
+        docs_text = "\n".join(cited_passages)
+        p = template.render(
+            question=q,
+            plan=plan,
+            sub_question=subq,
+            docs_text=docs_text,
+            page=page,
+        )
+        all_prompts.append(p)
+
+    return all_prompts
+
 
 @app.prompt(output="q_ls,page_ls,webnote_gen_answer_template->prompt_ls")
 def webnote_gen_answer(
