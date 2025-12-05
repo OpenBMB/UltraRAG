@@ -61,6 +61,23 @@ def qa_rag_boxed(
         ret.append(p)
     return ret
 
+# prompt for QA RAG with citation
+@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
+def qa_rag_cited(
+    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+) -> list[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q, psg in zip(q_ls, ret_psg):
+        cited_passages = []
+        for idx, passage in enumerate(psg, start=1):
+            cited_passages.append(f"[{idx}] {passage}")
+
+        passage_text = "\n".join(cited_passages)
+        p = template.render(question=q, documents=passage_text)
+        ret.append(p)
+
+    return ret
 
 # prompt for QA RAG boxed with multiple choice
 @app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
