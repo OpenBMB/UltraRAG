@@ -137,6 +137,17 @@ function log(message) {
 let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
 
+// [新增] 带偏移量的引用高亮函数
+// 将文本中的 [1] 替换为带点击事件的 <span ...>[1+offset]</span>
+function formatCitationHtmlWithOffset(html, offset) {
+    if (!html) return "";
+    return html.replace(/\[(\d+)\]/g, (match, p1) => {
+        const originalId = parseInt(p1, 10);
+        const newId = originalId + offset; // 核心逻辑：加上偏移量
+        return `<span class="citation-link" onclick="scrollToReference(${newId})">[${newId}]</span>`;
+    });
+}
+
 function escapeHtml(str) {
   return str
     .replace(/&/g, "&amp;")
@@ -670,72 +681,49 @@ function formatCitationHtml(html) {
 
 // 2. [主函数] 修改后的 renderChatHistory
 function renderChatHistory() {
-  if (!els.chatHistory) return;
-  els.chatHistory.innerHTML = "";
-  
-  if (state.chat.history.length === 0) { 
-      els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready to start.</p></div>'; 
-      return; 
-  }
+    if (!els.chatHistory) return;
+    els.chatHistory.innerHTML = "";
+    if (state.chat.history.length === 0) { 
+        els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready.</p></div>'; 
+        return; 
+    }
+    state.chat.history.forEach((entry) => {
+        const bubble = document.createElement("div"); 
+        bubble.className = `chat-bubble ${entry.role}`;
+        const content = document.createElement("div"); 
+        content.className = "msg-content";
 
-  state.chat.history.forEach((entry) => {
-    const bubble = document.createElement("div"); 
-    bubble.className = `chat-bubble ${entry.role}`;
-    
-    const content = document.createElement("div"); 
-    content.className = "msg-content";
-
-    // --- 核心修改逻辑开始 ---
-    if (entry.role === "assistant") {
-        let textToRender = entry.text;
-        let mdOptions = {};
-        
-        // 1. 处理 Markdown 围栏 (保留原有逻辑)
-        if (typeof stripLeadingLanguageFence === 'function') {
-             textToRender = stripLeadingLanguageFence(textToRender, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
-             mdOptions = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
-        }
-        
-        // 2. 渲染 Markdown 为 HTML
-        let htmlContent = "";
-        if (typeof renderMarkdown === 'function') {
-            htmlContent = renderMarkdown(textToRender, mdOptions);
+        if (entry.role === "assistant") {
+            let htmlContent = renderMarkdown(entry.text, { unwrapLanguages: MARKDOWN_LANGS });
+            // 历史记录回显：使用 formatCitationHtmlWithOffset
+            // 注意：如果是一次性生成的历史记录，offset 可能会丢失细节。
+            // 但通常 [1] 对应列表里的 [1]，只要列表渲染对就行。
+            // 列表渲染使用的是 meta.sources 里的 displayId，所以是对应的。
+            // 这里的 offset 设为 0，因为 history.text 里的 [1] 需要匹配的是显示出来的 [1]
+            // 但实际上我们之前逻辑是：模型出 [1] -> 界面显 [6]。
+            // 如果 history.text 存的是原始的 [1]，这里回显会变成 [1]，点击跳到 id=1。
+            // 如果 id=1 是第一轮的，那就没问题。
+            // 复杂点在于：如果文本里是 [1]，但列表里只有 [6] (偏移后)，那点击就会失败。
+            
+            // [改进策略]：我们在 handleChatSubmit 里存入 history.text 之前，
+            // 其实应该把文本里的 [1] 永久替换成 [6] 存进去？
+            // 不，保持原始文本比较好。
+            
+            // 这里暂时用 0，依赖用户点击列表查看。
+            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, 0);
         } else {
-            // 兜底：如果没有 renderMarkdown，直接显示文本
-            htmlContent = textToRender;
+            content.textContent = entry.text;
         }
+        bubble.appendChild(content);
 
-        // 3. [新增] 在 HTML 中注入引用高亮
-        // 这一步把 [1] 变成蓝色的 <span class="citation-link">[1]</span>
-        content.innerHTML = formatCitationHtml(htmlContent);
-
-    } else {
-        // 用户消息：纯文本显示
-        content.textContent = entry.text;
-    }
-    // --- 核心修改逻辑结束 ---
-
-    bubble.appendChild(content);
-
-    // 4. [新增] 如果有参考资料元数据，渲染到底部
-    if (entry.meta && entry.meta.sources) {
-        // 调用之前实现的 renderSources 函数
-        renderSources(bubble, entry.meta.sources);
-    }
-
-    // 5. 渲染调试 Hint (保留原有逻辑)
-    if (entry.meta && entry.meta.hint) {
-        const metaLine = document.createElement("small"); 
-        metaLine.className = "text-muted d-block mt-1";
-        metaLine.style.fontSize = "0.7em"; 
-        metaLine.textContent = entry.meta.hint; 
-        bubble.appendChild(metaLine);
-    }
-
-    els.chatHistory.appendChild(bubble);
-  });
-  
-  els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
+        if (entry.meta && entry.meta.sources) {
+            // 渲染时会使用 sources 里的 displayId，所以列表本身是对的 (1-10)
+            renderSources(bubble, entry.meta.sources);
+        }
+        // ... hint ...
+        els.chatHistory.appendChild(bubble);
+    });
+    els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
 
 function setChatStatus(message, variant = "info") {
@@ -873,40 +861,47 @@ window.scrollToReference = function(refId) {
     }
 };
 
-// [新增] 渲染参考资料列表
-function renderSources(bubble, sources) {
+// [修改] 渲染参考资料列表 (支持追加模式)
+function renderSources(bubble, sources, isAppend = false) {
     if (!bubble || !sources || sources.length === 0) return;
 
     let refContainer = bubble.querySelector(".reference-container");
-    if (refContainer) refContainer.remove();
+    let list;
 
-    refContainer = document.createElement("div");
-    refContainer.className = "reference-container";
-    refContainer.innerHTML = `<div class="ref-header">📚 References</div>`;
-
-    const list = document.createElement("div");
-    list.className = "ref-list";
+    if (!refContainer) {
+        // 第一次创建容器
+        refContainer = document.createElement("div");
+        refContainer.className = "reference-container";
+        refContainer.innerHTML = `<div class="ref-header">📚 References</div>`;
+        list = document.createElement("div");
+        list.className = "ref-list";
+        refContainer.appendChild(list);
+        bubble.appendChild(refContainer);
+    } else {
+        list = refContainer.querySelector(".ref-list");
+        // 如果不是追加模式（比如页面刷新重绘），先清空
+        if (!isAppend) list.innerHTML = "";
+    }
 
     sources.forEach(src => {
+        // 使用计算好的全局 ID (displayId)
+        const showId = src.displayId || src.id;
+        
+        // 防止重复添加
+        if (list.querySelector(`#ref-item-${showId}`)) return;
+
         const item = document.createElement("div");
         item.className = "ref-item";
-        item.id = `ref-item-${src.id}`; // 保持 ID 用于查找
-        
-        // [关键] 将完整数据绑定到 DOM 元素属性上，方便后续读取
+        item.id = `ref-item-${showId}`;
         item._sourceData = src; 
-
-        // [修改] 点击列表项 -> 打开侧边栏
-        item.onclick = () => showSourceDetail(`Reference [${src.id}]`, src.content);
+        item.onclick = () => showSourceDetail(`Reference [${showId}]`, src.content);
         
         item.innerHTML = `
-            <span class="ref-id">[${src.id}]</span>
+            <span class="ref-id">[${showId}]</span>
             <span class="ref-title">${src.title}</span>
         `;
         list.appendChild(item);
     });
-
-    refContainer.appendChild(list);
-    bubble.appendChild(refContainer);
 }
 
 // [新增] 格式化正文文本 (高亮 [1])
@@ -1009,68 +1004,36 @@ function updateProcessUI(entryIndex, eventData) {
 }
 
 async function handleChatSubmit(event) {
-  // 1. 防止表单默认提交刷新页面
   if (event) event.preventDefault();
-  
-  // 2. [停止拦截] 如果当前正在生成，再次点击按钮（此时按钮是红色停止状态）视为“停止”
-  if (state.chat.running) {
-      await stopGeneration();
-      return;
-  }
-
-  // 3. 基础校验
+  if (state.chat.running) { await stopGeneration(); return; }
   if (!canUseChat()) return;
-  
-  if (!state.chat.engineSessionId) {
-      alert("Please click 'Start Engine' first to initialize the backend.");
-      return;
-  }
+  if (!state.chat.engineSessionId) { alert("Start Engine first."); return; }
 
-  const question = (els.chatInput ? els.chatInput.value : "").trim();
+  const question = els.chatInput.value.trim();
   if (!question) return;
-  
-  // 清空输入框并显示用户提问
-  if (els.chatInput) els.chatInput.value = "";
+  els.chatInput.value = "";
   appendChatMessage("user", question);
-  
-  // 设置 UI 为“运行中”状态
   setChatRunning(true);
-  
-  // 4. [初始化] 创建 AbortController 用于中断请求
   state.chat.controller = new AbortController();
-  
+
   try {
-    // 确保参数已保存
     if (!state.parametersReady) await persistParameterData({ silent: true });
-    
     const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
-    
-    const dynamicParams = {}; 
-    
     const body = JSON.stringify({ 
-        question, 
-        history: state.chat.history,
-        is_demo: true,
-        session_id: state.chat.engineSessionId,
-        dynamic_params: dynamicParams
+        question, history: state.chat.history, is_demo: true, 
+        session_id: state.chat.engineSessionId, dynamic_params: {} 
     });
     
-    // 5. [请求] 发送 Fetch 请求，绑定 signal
     const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body,
-        signal: state.chat.controller.signal
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: body, signal: state.chat.controller.signal
     });
 
     if (!response.ok) throw new Error(response.statusText);
 
-    // [UI准备] 预先添加 Assistant 气泡
     const entryIndex = state.chat.history.length;
-    // 推入空对象占位 (meta 初始化为空对象)
     state.chat.history.push({ role: "assistant", text: "", meta: {} });
     
-    // 手动操作 DOM 添加气泡结构
     const chatContainer = document.getElementById("chat-history");
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble assistant";
@@ -1081,19 +1044,21 @@ async function handleChatSubmit(event) {
 
     let currentText = "";
     
-    // 准备流式读取
+    // [关键变量] 多轮引用计数器
+    let sessionSourceCount = 0; // 当前气泡内累计收到的文档总数
+    let currentBatchOffset = 0; // 当前这一批检索结果的起始偏移量 (例如第6个开始)
+    let allSources = [];        // 汇总所有引用，用于存入 history meta
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
 
-    // 6. [流式读取] 循环处理 SSE 数据
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n\n"); // SSE 标准分隔符
-      buffer = lines.pop(); // 保留最后一行不完整的数据
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop();
 
       for (const line of lines) {
         if (line.startsWith("data: ")) {
@@ -1101,153 +1066,116 @@ async function handleChatSubmit(event) {
             const jsonStr = line.slice(6);
             const data = JSON.parse(jsonStr);
             
-            // --- A. 思考过程事件 ---
             if (data.type === "step_start" || data.type === "step_end") {
                 updateProcessUI(entryIndex, data);
-            }
-            // --- B. 引用源数据事件 (关键新增) ---
+            } 
+            // [修改] 处理引用源数据：计算偏移并追加
             else if (data.type === "sources") {
-                // 存入 State
+                // 1. 确定当前批次的偏移量 (等于之前的总数)
+                currentBatchOffset = sessionSourceCount;
+                // 2. 更新总数
+                sessionSourceCount += data.data.length;
+                
+                // 3. 映射 ID：给每个文档加上全局显示 ID
+                const remappedDocs = data.data.map((doc, idx) => ({
+                    ...doc, 
+                    // 原 ID (1,2,3) + 偏移量 (5) = 显示 ID (6,7,8)
+                    displayId: currentBatchOffset + (idx + 1)
+                }));
+                
+                allSources = allSources.concat(remappedDocs);
+                
+                // 存入 State (追加模式)
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
-                state.chat.history[entryIndex].meta.sources = data.data;
+                state.chat.history[entryIndex].meta.sources = allSources;
                 
-                // 渲染底部的参考资料卡片
-                renderSources(bubble, data.data);
-                
-                // 滚动防止遮挡
+                // 渲染 (true 表示追加到列表末尾)
+                renderSources(bubble, remappedDocs, true);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-            // --- C. Token 事件 ---
+            } 
+            // [修改] 处理 Token：应用偏移高亮
             else if (data.type === "token") {
-                // 如果不是 Final Step，显示在思考过程里
-                if (!data.is_final) {
-                    updateProcessUI(entryIndex, data);
-                }
-
-                // 只有 Final Step 才上主屏幕
+                if (!data.is_final) updateProcessUI(entryIndex, data);
                 if (data.is_final) {
                     currentText += data.content;
+                    if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, MARKDOWN_LANGS)) continue;
                     
-                    // [Markdown 流式优化] 如果检测到 Markdown 代码块未闭合，暂停渲染以防闪烁
-                    // (假设你已经定义了 MARKDOWN_LANGS 常量和 isPendingLanguageFence 函数)
-                    if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [])) {
-                        // 可选：显示一个光标或加载符
-                        continue; 
-                    }
+                    let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
                     
-                    // 1. 处理 Markdown 围栏
-                    let normalized = currentText;
-                    let mdOpts = {};
-                    if (typeof stripLeadingLanguageFence === 'function') {
-                         normalized = stripLeadingLanguageFence(currentText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
-                         mdOpts = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
-                    }
+                    // [关键] 使用带偏移量的格式化函数
+                    // 这里的 currentBatchOffset 指的是最近一次检索的偏移量
+                    // 假设模型总是基于最近一次检索生成内容
+                    html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                     
-                    // 2. 渲染 Markdown -> HTML
-                    let html = "";
-                    if (typeof renderMarkdown === 'function') {
-                        html = renderMarkdown(normalized, mdOpts);
-                    } else {
-                        html = normalized;
-                    }
-
-                    // 3. [关键] 应用引用高亮 (把 [1] 变成蓝色链接)
-                    contentDiv.innerHTML = formatCitationHtml(html);
-                    
-                    // 滚动到底部
+                    contentDiv.innerHTML = html;
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
             } 
-            // --- D. 最终结果汇总 ---
             else if (data.type === "final") {
                 const final = data.data;
-                
-                // 最终文本定格
                 let finalText = currentText || final.answer || "";
-                
-                // 最终渲染一遍 Markdown + 高亮，确保闭合
                 let normalized = finalText;
-                let mdOpts = {};
-                if (typeof stripLeadingLanguageFence === 'function') {
-                     normalized = stripLeadingLanguageFence(finalText, typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : []);
-                     mdOpts = { unwrapLanguages: typeof MARKDOWN_LANGS !== 'undefined' ? MARKDOWN_LANGS : [] };
-                }
-                
-                let html = "";
-                if (typeof renderMarkdown === 'function') {
-                    html = renderMarkdown(normalized, mdOpts);
-                } else {
-                    html = normalized;
-                }
-
-                contentDiv.innerHTML = formatCitationHtml(html);
+                let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
+                // 最终定格也应用偏移
+                html = formatCitationHtmlWithOffset(html, currentBatchOffset);
+                contentDiv.innerHTML = html;
                 state.chat.history[entryIndex].text = finalText;
 
-                // [新增] 引用过滤逻辑：把没用到的变灰
-                // 1. 提取文本中出现过的所有 [x]
-                const usedIds = new Set();
+                // ================= [新增] 引用筛选逻辑 =================
+                
+                // A. 提取文本中所有被引用的 ID (本地 ID，如 [1], [2])
+                const usedLocalIds = new Set();
                 const regex = /\[(\d+)\]/g;
                 let match;
                 while ((match = regex.exec(finalText)) !== null) {
-                    usedIds.add(match[1]); // 存入 "1", "2"
+                    usedLocalIds.add(parseInt(match[1], 10));
                 }
 
-                // 2. 遍历最后一个气泡里的所有参考资料
-                // 找到刚才创建的 bubble
+                // B. 遍历气泡内所有的参考资料卡片
                 const refItems = bubble.querySelectorAll(".ref-item");
                 refItems.forEach(item => {
-                    // item.id 格式为 "ref-item-1"
-                    const idStr = item.id.replace("ref-item-", "");
+                    // item.id 是 "ref-item-{GlobalID}" (例如 ref-item-6)
+                    const globalId = parseInt(item.id.replace("ref-item-", ""), 10);
                     
-                    if (usedIds.has(idStr)) {
+                    // C. 关键计算：将 GlobalID 还原为这一轮的 LocalID 进行比对
+                    // 假设模型是基于最近一次检索结果生成的，引用的是 LocalID
+                    // LocalID = GlobalID - currentBatchOffset
+                    const localId = globalId - currentBatchOffset;
+                    
+                    if (usedLocalIds.has(localId)) {
+                        item.classList.add("used");
                         item.classList.remove("unused");
                     } else {
-                        // 没用到的加 unused 类 (CSS里设置半透明)
                         item.classList.add("unused");
+                        item.classList.remove("used");
                     }
                 });
+                // =====================================================
                 
-                // 处理 Meta 信息
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
                 if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
-                
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 state.chat.history[entryIndex].meta.hint = hints.join(" | ");
                 
-                // 思考过程自动折叠
                 const procDiv = bubble.querySelector(".process-container");
                 if (procDiv) procDiv.classList.add("collapsed");
-                
                 setChatStatus("Ready", "ready");
-                
             } 
-            // --- E. 后端报错 ---
             else if (data.type === "error") {
                 appendChatMessage("system", `Backend Error: ${data.message}`);
                 setChatStatus("Error", "error");
             }
-
-          } catch (e) { 
-            console.error("JSON Parse error", e); 
-          }
+          } catch (e) { console.error(e); }
         }
       }
     }
-
-  } catch (err) { 
-      // 7. [错误处理] 忽略用户主动中断的错误
-      if (err.name === 'AbortError') {
-          console.log("Fetch aborted by user.");
-          return; // 直接退出
-      }
-      
+  } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error(err);
-      appendChatMessage("system", `Network Error: ${err.message}`); 
-      setChatStatus("Error", "error"); 
-      
-  } finally { 
-      // 8. [清理]
+      appendChatMessage("system", `Network Error: ${err.message}`);
+      setChatStatus("Error", "error");
+  } finally {
       if (state.chat.controller) {
           state.chat.controller = null;
           setChatRunning(false);

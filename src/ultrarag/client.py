@@ -1049,12 +1049,16 @@ async def execute_pipeline(
             
             elif "servers/retriever" in srv_path:
                 retriever_aliases.add(srv_name)
-
+    
+    doc_id_counter = 0
+    doc_content_to_id = {}
+    
     async def _execute_steps(
         steps: List[PipelineStep],
         depth: int = 0,
         state: str = ROOT,
     ):
+        nonlocal doc_id_counter
         indent = "  " * depth
         result = None
         for idx, step in enumerate(steps):
@@ -1232,9 +1236,17 @@ async def execute_pipeline(
                                     text = str(doc)
                                     lines = text.strip().split('\n')
                                     title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+
+                                    doc_hash = text.strip()
+                                    if doc_hash in doc_content_to_id:
+                                        current_id = doc_content_to_id[doc_hash]
+                                    else:
+                                        doc_id_counter += 1
+                                        current_id = doc_id_counter
+                                        doc_content_to_id[doc_hash] = current_id
                                     
                                     sources.append({
-                                        "id": i + 1,
+                                        "id": current_id,
                                         "title": title,
                                         "content": text
                                     })
@@ -1343,8 +1355,17 @@ async def execute_pipeline(
                                     text = str(doc)
                                     lines = text.strip().split('\n')
                                     title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+
+                                    doc_hash = text.strip()
+                                    if doc_hash in doc_content_to_id:
+                                        current_id = doc_content_to_id[doc_hash]
+                                    else:
+                                        doc_id_counter += 1
+                                        current_id = doc_id_counter
+                                        doc_content_to_id[doc_hash] = current_id
+
                                     sources.append({
-                                        "id": i + 1,
+                                        "id": current_id,
                                         "title": title,
                                         "content": text
                                     })

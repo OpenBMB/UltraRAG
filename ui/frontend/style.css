@@ -599,20 +599,37 @@ body {
   margin-bottom: 0.25rem;
 }
 
+/* [增强] 思考过程流式内容的显示 */
 .step-content-stream {
   display: block;
   font-size: 0.82rem;
   color: #374151;
   line-height: 1.5;
+  margin-top: 4px;
+  padding-left: 1.2rem;
+  border-left: 2px solid #e2e8f0;
+  margin-left: 5px;
+  white-space: pre-wrap; /* 确保换行 */
 }
+
 .step-content-stream span {
-  display: inline;
-  background: #eef2ff;
-  border-radius: 4px;
-  padding: 0.1rem 0.35rem;
-  margin-right: 0.2rem;
-  color: #3730a3;
+  /* 移除之前的背景色，保持干净的文本流 */
+  background: transparent; 
+  color: #4b5563; 
+  font-family: 'JetBrains Mono', monospace; 
 }
+
+/* [新增] 正在生成时的光标动画 (Typewriter Cursor) */
+.step-content-stream::after {
+  content: "▋";
+  display: inline-block;
+  vertical-align: bottom;
+  animation: blink 1s step-start infinite;
+  color: var(--accent-blue);
+  margin-left: 2px;
+  font-size: 0.8rem;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
 .step-details {
   margin-top: 0.4rem;
@@ -713,21 +730,27 @@ body {
   overflow: hidden;
 }
 
-/* 3. 正文中的引用高亮 */
+/* [合并与增强] 引用角标样式 */
+/* 删除之前的 .citation-link 定义，只保留这个增强版 */
 .citation-link {
   color: #2563eb;
   font-weight: 600;
   cursor: pointer;
   margin: 0 2px;
-  font-size: 0.85em;
-  background: rgba(37, 99, 235, 0.1);
-  padding: 0 3px;
+  font-size: 0.85em; /* 稍微大一点点更清晰 */
+  background: rgba(37, 99, 235, 0.08);
+  padding: 1px 5px; /* 加宽一点 */
   border-radius: 4px;
   vertical-align: 1px;
+  transition: all 0.2s;
+  border: 1px solid transparent;
 }
 .citation-link:hover {
   background: #2563eb;
   color: #fff;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 /* --- 引用交互样式 --- */
@@ -743,17 +766,7 @@ body {
   border-color: #2563eb;
 }
 
-/* 2. 未被引用的文档 (变灰/半透明) */
-.ref-item.unused {
-  opacity: 0.5;
-  order: 99; /* 把没用到的排到后面去 (Flex布局特性) */
-  background-color: #f3f4f6;
-}
 
-/* 3. 鼠标放上去时恢复显示 */
-.ref-item.unused:hover {
-  opacity: 1;
-}
 
 
 /* --- 右侧详情栏样式 --- */
@@ -795,10 +808,21 @@ body {
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
-  font-size: 0.9rem;
+  font-size: 0.92rem; /* 稍微大一点 */
   line-height: 1.7;
-  color: #374151;
-  white-space: pre-wrap; /* 保留换行 */
+  color: #1f2937; /* 更深的颜色 */
+  white-space: pre-wrap; 
+  font-family: var(--font-sans); /* 使用无衬线字体阅读更舒适 */
+}
+
+.detail-content pre {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0; /* 增加边框 */
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
 }
 
 /* 针对移动端的适配 */
@@ -809,4 +833,47 @@ body {
     width: 85%;
     z-index: 2060;
   }
+}
+
+/* [新增] 引用分组样式 (配合 main.js 的 ref-group) */
+.ref-group {
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px dashed #e5e7eb; /* 虚线分隔 */
+}
+.ref-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* [新增] 引用分组标题 (可选，比如 "Round 1") */
+.ref-group-title {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  padding-left: 4px;
+}
+
+/* 未被引用的文档：变灰、变淡 */
+.ref-item.unused {
+  opacity: 0.5;
+  background-color: #f1f5f9; /* 更淡的背景 */
+  border-color: transparent;
+  order: 10; /* (可选) 利用 Flexbox 让未引用的排到后面去 */
+}
+
+/* 鼠标悬浮时恢复，方便用户查看 */
+.ref-item.unused:hover {
+  opacity: 1;
+  background-color: #fff;
+  border-color: #e2e8f0;
+}
+
+/* 被引用的文档：加个强调色边框 */
+.ref-item.used {
+  border-left: 3px solid #2563eb;
+  background-color: #fff;
 }

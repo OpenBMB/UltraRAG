@@ -216,8 +216,13 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
     # 2. Queue for async -> sync bridge
     token_queue = queue.Queue()
 
-    async def token_callback(event):
-        token_queue.put(event)
+    async def token_callback(event_data):
+        if isinstance(event_data, dict):
+            # client.py 发来的结构化事件 (step_start, sources, step_end, token字典)
+            token_queue.put(event_data)
+        else:
+            # 兼容旧逻辑：如果是纯字符串，视为普通 token
+            token_queue.put({"type": "token", "content": str(event_data)})
 
     # 3. Background Task
     def run_bg():
