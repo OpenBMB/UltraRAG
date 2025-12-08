@@ -288,40 +288,70 @@ def search_o1_init(
         ret.append(p)
     return ret
 
-
 @app.prompt(
-    output="prompt_ls,extract_query_list,ret_psg,searcho1_refine_template->prompt_ls"
+    output="extract_query_list, ret_psg, total_reason_list, searcho1_refine_template -> prompt_ls"
 )
-def searcho1_reasoning_indocument(
-    prompt_ls: List[PromptMessage],
-    extract_query_list: List[str],
-    ret_psg: List[str | Any],
+def search_o1_reasoning_indocument(
+    extract_query_list: List[str], 
+    ret_psg: List[List[str]],       
+    total_reason_list: List[List[str]], 
     template: str | Path,
 ) -> List[PromptMessage]:
     template: Template = load_prompt_template(template)
     ret = []
-    for prompt, squery, psg in zip(prompt_ls, extract_query_list, ret_psg):
-        passage_text = "\n".join(psg)
-        _pro = prompt.content.text
+
+    for squery, psg_list, history_steps in zip(extract_query_list, ret_psg, total_reason_list):
+
+        passage_text = "\n".join(psg_list)
+
+        if len(history_steps) <= 3:
+            selected_history = history_steps[:]  
+        else:
+            selected_history = [history_steps[0]] + history_steps[-3:]
+
+        formatted_history_parts = [
+            f"Step {i}: {reason}"
+            for i, reason in enumerate(selected_history, 1)
+        ]
+        formatted_history_str = "\n\n".join(formatted_history_parts)
+
         p = template.render(
-            prev_reasoning=_pro, search_query=squery, document=passage_text
+            prev_reasoning=formatted_history_str, 
+            search_query=squery, 
+            document=passage_text
         )
         ret.append(p)
+
     return ret
 
-
-@app.prompt(output="prompt_ls,ans_ls->prompt_ls")
+@app.prompt(output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls") 
 def search_o1_insert(
-    prompt_ls: List[PromptMessage],
-    ans_ls: List[str],
+    q_ls: List[str],
+    total_subq_list: List[List[str]], 
+    total_final_info_list: List[List[str]],
+    template: str | Path,
 ) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    prompt_ls = []
+    for q in q_ls:
+        p = template.render(question=q)
+        prompt_ls.append(p)
+    
     ret = []
-    for prompt, ans in zip(prompt_ls, ans_ls):
-        _pro = prompt.content.text
-        p = _pro + "<|begin_search_result|>" + ans + "<|end_search_result|>"
-        ret.append(p)
+    for prompt, sub_queries, sub_reasons in zip(prompt_ls, total_subq_list, total_final_info_list):
+        
+        
+        for query, reason in zip(sub_queries, sub_reasons):
+            part = (
+                "<|begin_search_query|>" + str(query) + "<|end_search_query|>" + 
+                '\n' + 
+                "<|begin_search_result|>" + str(reason) + "<|end_search_result|>"
+            )
+            prompt += part
+        
+        ret.append(prompt)
+        
     return ret
-
 
 # prompt for loop and branch demo
 @app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")

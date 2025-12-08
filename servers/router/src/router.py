@@ -1,5 +1,4 @@
-from typing import List, Dict
-
+from typing import List, Dict, Any
 from ultrarag.server import UltraRAG_MCP_Server
 
 
@@ -105,24 +104,49 @@ def r1_searcher_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     return {"ans_ls": ans_ls}
 
 
-@app.tool(output="ans_ls->ans_ls")
-def search_o1_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
-    def get_eos(text):
-        if "<|im_end|>" in text:
-            return True               
-        elif "<|end_search_query|>" in text:
-            return False              
-        else:
-            return True  
+@app.tool(
+    output=("ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list->ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list")
+)
+def search_o1_check(
+    ans_ls: List[str],
+    q_ls: List[str],
+    total_subq_list: List[List[Any]],
+    total_reason_list: List[List[Any]],
+    total_final_info_list: List[List[Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
 
-    ans_ls = [
-        {
-            "data": answer,
-            "state": "stop" if get_eos(answer) else "retrieve",
-        }
-        for answer in ans_ls
-    ]
-    return {"ans_ls": ans_ls}
+    def get_eos(text: str) -> bool:
+        if "<|im_end|>" in text:
+            return True
+        elif "<|end_search_query|>" in text:
+            return False
+        else:
+            return True
+
+    ans_out: List[Dict[str, Any]] = []
+    q_out: List[Dict[str, Any]] = []
+    subq_out: List[Dict[str, Any]] = []
+    reason_out: List[Dict[str, Any]] = []
+    info_out: List[Dict[str, Any]] = []
+
+    for ans, q, subq, reason, info in zip(
+        ans_ls, q_ls, total_subq_list, total_reason_list, total_final_info_list
+    ):
+        state = "stop" if get_eos(ans) else "retrieve"
+
+        ans_out.append({"data": ans, "state": state})
+        q_out.append({"data": q, "state": state})
+        subq_out.append({"data": subq, "state": state})
+        reason_out.append({"data": reason, "state": state})
+        info_out.append({"data": info, "state": state})
+
+    return {
+        "ans_ls": ans_out,
+        "q_ls": q_out,
+        "total_subq_list": subq_out,
+        "total_reason_list": reason_out,
+        "total_final_info_list": info_out,
+    }
 
 
 @app.tool(output="ans_ls->ans_ls")

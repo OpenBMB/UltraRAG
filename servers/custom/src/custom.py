@@ -119,6 +119,46 @@ def ircot_extract_ans(ans_ls: List[str]) -> Dict[str, List[str]]:
     return {"pred_ls": ret}
 
 
+@app.tool(output="q_ls->total_subq_list,total_reason_list,total_final_info_list")
+def search_o1_init_list(q_ls: List[str]) -> Dict[str, List[Any]]:
+    n = len(q_ls)
+
+    return {
+        "total_subq_list": [["<PAD>"] for _ in range(n)],
+        "total_reason_list": [["<PAD>"] for _ in range(n)],
+        "total_final_info_list": [["<PAD>"] for _ in range(n)],
+    }
+
+@app.tool(
+    output="total_subq_list, extract_query_list, total_reason_list, extract_reason_list"
+           "->total_subq_list, total_reason_list"
+)
+def search_o1_combine_list(
+    total_subq_list: List[List[Any]],
+    extract_query_list: List[str],
+    total_reason_list: List[List[Any]],
+    extract_reason_list: List[str],
+) -> Dict[str, List[Any]]:
+    
+    PAD = "<PAD>"
+
+    for q, bucket in zip(extract_query_list, total_subq_list):
+        if len(bucket) == 1 and bucket[0] == PAD:
+            bucket[0] = q            
+        else:
+            bucket.append(q)
+
+    for c, bucket in zip(extract_reason_list, total_reason_list):
+        if len(bucket) == 1 and bucket[0] == PAD:
+            bucket[0] = c           
+        else:
+            bucket.append(c)
+
+    return {
+        "total_subq_list": total_subq_list,
+        "total_reason_list": total_reason_list,
+    }
+
 @app.tool(output="ans_ls->extract_query_list")
 def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     import re
@@ -138,6 +178,58 @@ def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     query = [get_query(answer) for answer in ans_ls]
 
     return {"extract_query_list": query}
+
+@app.tool(output="ans_ls->extract_reason_list")
+def search_o1_reasoning_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
+
+    BEGIN = "<|begin_search_query|>"
+
+    def get_content_before(text):
+        if BEGIN not in text:
+            return text.strip()
+        
+
+        return text.split(BEGIN, 1)[0].strip()
+
+    content_list = [get_content_before(answer) for answer in ans_ls]
+
+    return {"extract_reason_list": content_list}
+
+@app.tool(output="ans_ls->extract_final_infor_list")
+def search_o1_extract_final_information(ans_ls: List[str]) -> Dict[str, List[str]]:
+
+    BEGIN = "**Final Information**"
+
+    def get_content_after(text):
+        if BEGIN not in text:
+            return ""
+    
+        return BEGIN + "\n" + text.split(BEGIN, 1)[1].strip()
+
+    content_list = [get_content_after(answer) for answer in ans_ls]
+
+    return {"extract_final_infor_list": content_list}
+
+@app.tool(output="total_final_info_list, extract_final_infor_list->total_final_info_list")
+def search_o1_combine_final_information(
+    total_final_info_list: List[List[str]],
+    extract_final_infor_list: List[str],
+) -> Dict[str, List[Any]]:
+    
+    PAD = "<PAD>"
+
+    for c, bucket in zip(extract_final_infor_list, total_final_info_list):
+        if len(bucket) == 1 and bucket[0] == PAD:
+            bucket[0] = c           
+        else:
+            bucket.append(c)
+
+    app.logger.warning(f"len total_final_info_list: {len(total_final_info_list)}")
+    app.logger.warning(f"total_final_info_list: {total_final_info_list}")
+
+    return {
+        "total_final_info_list": total_final_info_list,
+    }
 
 @app.tool(output="temp_psg,ret_psg->ret_psg")
 def merge_passages(
