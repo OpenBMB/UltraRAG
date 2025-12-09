@@ -15,6 +15,7 @@ pipeline:
 - benchmark.get_data
 - retriever.retriever_init
 - generation.generation_init
+- custom.search_o1_init_list
 - prompt.search_o1_init
 - generation.generate
 - loop:
@@ -29,8 +30,12 @@ pipeline:
           - retriever.retriever_search:
               input:
                 query_list: extract_query_list
-          - prompt.searcho1_reasoning_indocument
+          - custom.search_o1_reasoning_extract
+          - custom.search_o1_combine_list
+          - prompt.search_o1_reasoning_indocument
           - generation.generate
+          - custom.search_o1_extract_final_information
+          - custom.search_o1_combine_final_information
           - prompt.search_o1_insert
           - generation.generate
           stop: []   
