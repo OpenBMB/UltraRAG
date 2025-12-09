@@ -78,6 +78,12 @@ const els = {
   chatSessionList: document.getElementById("chat-session-list"),
   demoToggleBtn: document.getElementById("demo-toggle-btn"), // 引擎开关
 
+  // [新增] 视图容器
+  chatMainView: document.getElementById("chat-main-view"),
+  kbMainView: document.getElementById("kb-main-view"),
+  // [新增] 按钮
+  kbBtn: document.getElementById("kb-btn"),
+
   // [新增] Chat 顶部控件
   chatPipelineLabel: document.getElementById("chat-pipeline-label"),
   chatPipelineMenu: document.getElementById("chat-pipeline-menu"),
@@ -399,6 +405,35 @@ function updateDemoControls() {
 
 // --- Chat Logic (Updated with Streaming) ---
 
+// [新增] 切换到知识库视图
+function openKBView() {
+    if (!els.chatMainView || !els.kbMainView) return;
+    
+    // 隐藏聊天，显示知识库
+    els.chatMainView.classList.add("d-none");
+    els.kbMainView.classList.remove("d-none");
+    
+    // 更新按钮状态
+    if (els.kbBtn) els.kbBtn.classList.add("active");
+    
+    // 取消所有 Session 列表的高亮 (视觉上告诉用户现在没在聊任何会话)
+    const items = document.querySelectorAll(".chat-session-item");
+    items.forEach(el => el.classList.remove("active"));
+}
+
+// [新增] 切换回聊天视图 (复位)
+function backToChatView() {
+    if (!els.chatMainView || !els.kbMainView) return;
+
+    els.kbMainView.classList.add("d-none");
+    els.chatMainView.classList.remove("d-none");
+    
+    if (els.kbBtn) els.kbBtn.classList.remove("active");
+    
+    // 重新渲染侧边栏以恢复当前会话的高亮状态
+    renderChatSidebar(); 
+}
+
 // [新增] 渲染 Pipeline 列表到下拉菜单
 async function renderChatPipelineMenu() {
     if (!els.chatPipelineMenu) return;
@@ -513,6 +548,7 @@ function createNewChatSession() {
     renderChatHistory(); renderChatSidebar();
     setChatStatus("Ready", "ready");
     if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
+    backToChatView();
 }
 
 function loadChatSession(sessionId) {
@@ -541,6 +577,8 @@ function loadChatSession(sessionId) {
     if (window.innerWidth < 768 && sidebar) {
         sidebar.classList.remove('show');
     }
+
+    backToChatView();
 }
 
 function saveCurrentSession(force = false) {
@@ -786,6 +824,8 @@ function openChatView() {
   updateDemoControls();
   if(!state.chat.engineSessionId) setChatStatus("Engine Offline", "info");
   else setChatStatus("Ready", "ready");
+
+  backToChatView();
 }
 
 async function stopGeneration() {
@@ -1720,6 +1760,10 @@ function bindEvents() {
 
     if (els.directChatBtn) els.directChatBtn.onclick = openChatView;
 
+    if (els.kbBtn) {
+        els.kbBtn.onclick = openKBView;
+    }
+
     if (els.chatBack) {
         els.chatBack.onclick = async () => {
             // 1. 保存当前对话
@@ -1742,6 +1786,8 @@ function bindEvents() {
 
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
     if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
+
+    if (els.kbBtn) els.kbBtn.onclick = openKBView;
     
     document.getElementById("step-editor-save").onclick = () => {
         if (!state.editingPath) return;

@@ -335,12 +335,32 @@ body {
   color: var(--text-primary);
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  /* [新增] 确保文字左对齐 */
+  justify-content: flex-start; 
 }
+
 .btn-new-chat:hover {
   background: #f0f0f0;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-.btn-new-chat .icon { font-size: 1.2rem; line-height: 1; font-weight: 300; }
+
+/* [新增] 激活状态 (用于知识库按钮选中时) */
+.btn-new-chat.active {
+  background: #e0e7ff;       /* 浅蓝色背景 */
+  color: var(--accent-blue); /* 深蓝色文字 */
+  border-color: var(--accent-blue);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.btn-new-chat .icon { 
+  font-size: 1.1rem; 
+  line-height: 1; 
+  font-weight: 400; 
+  /* [新增] 固定图标宽度，保证对齐 */
+  width: 20px; 
+  text-align: center;
+}
 
 .sidebar-list {
   flex: 1;
@@ -876,4 +896,23 @@ body {
 .ref-item.used {
   border-left: 3px solid #2563eb;
   background-color: #fff;
+}
+
+
+/* 知识库主视图容器 (复用 chat-main 的大部分属性) */
+.kb-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: #fff;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fcfcfc; /* 稍微给点背景色区分 */
+}
+
+.kb-container {
+  flex: 1;
+  overflow-y: auto;
 }

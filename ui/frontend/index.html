@@ -126,9 +126,13 @@
     
     <aside class="chat-sidebar">
       <div class="sidebar-header">
+        <div class="sidebar-label mb-2 mt-0 px-2">Feature</div>
         <button type="button" id="chat-new-btn" class="btn btn-new-chat">
           <span class="icon">+</span> New Chat
         </button>
+        <button type="button" id="kb-btn" class="btn btn-new-chat">
+              <span class="icon">+</span> Knowledge Base
+            </button>
       </div>
       
       <div class="sidebar-list">
@@ -143,7 +147,7 @@
       </div>
     </aside>
 
-    <div class="chat-main">
+    <div class="chat-main" id="chat-main-view">
       <header class="view-header border-bottom-0 justify-content-start gap-3">
         <div class="d-md-none">
            <button type="button" class="btn btn-icon" id="chat-mobile-menu">☰</button>
@@ -178,6 +182,22 @@
           </form>
         </div>
       </div>
+    </div>
+
+    <div class="kb-main d-none" id="kb-main-view">
+        <header class="view-header border-bottom">
+            <h3 class="m-0 fs-5 fw-bold">Knowledge Base Management</h3>
+        </header>
+        
+        <div class="kb-container p-4">
+            <!-- 空白占位 -->
+            <div class="text-center mt-5 pt-5 text-muted">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🗂️</div>
+                <h5>Knowledge Base Content</h5>
+                <p>Upload and manage your documents here.</p>
+                <button class="btn btn-primary mt-3" disabled>Upload Files (Coming Soon)</button>
+            </div>
+        </div>
     </div>
 
     <aside class="chat-detail-sidebar" id="source-detail-panel">
