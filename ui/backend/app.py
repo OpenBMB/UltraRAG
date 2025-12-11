@@ -10,12 +10,36 @@ from flask import Flask, jsonify, request, send_from_directory, Response
 
 from . import pipeline_manager as pm
 
+import uuid
+import threading
+from datetime import datetime
+
 LOGGER = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
+KB_TASKS = {}
 
+def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode):
+    LOGGER.info(f"Task {task_id} started: {pipeline_name}")
+    try:
+        result = pm.run_kb_pipeline_tool(
+            pipeline_name=pipeline_name,
+            target_file_path=target_file,
+            output_dir=output_dir,
+            collection_name=collection_name,
+            index_mode=index_mode
+        )
+        KB_TASKS[task_id]["status"] = "success"
+        KB_TASKS[task_id]["result"] = result
+        KB_TASKS[task_id]["completed_at"] = datetime.now().isoformat()
+        LOGGER.info(f"Task {task_id} completed successfully.")
+        
+    except Exception as e:
+        LOGGER.error(f"Task {task_id} failed: {e}", exc_info=True)
+        KB_TASKS[task_id]["status"] = "failed"
+        KB_TASKS[task_id]["error"] = str(e)
 
 def create_app() -> Flask:
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
@@ -144,7 +168,83 @@ def create_app() -> Flask:
         threading.Timer(0.5, os._exit, args=(0,)).start()
         return jsonify({"status": "shutting-down", "mode": "force"})
 
-    
+    @app.route("/api/kb/files", methods=["GET"])
+    def list_kb_files():
+        return jsonify(pm.list_kb_files())
+
+    @app.route("/api/kb/upload", methods=["POST"])
+    def upload_kb_file():
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+            
+        try:
+            result = pm.upload_kb_file(file)
+            return jsonify(result)
+        except Exception as e:
+            LOGGER.error(f"Upload failed: {e}")
+            return jsonify({"error": str(e)}), 500
+        
+    @app.route("/api/kb/files/<string:category>/<string:filename>", methods=["DELETE"])
+    def delete_kb_file(category: str, filename: str):
+        if category not in ["raw", "corpus", "chunks"]:
+            return jsonify({"error": "Invalid category"}), 400
+        
+        try:
+            return jsonify(pm.delete_kb_file(category, filename))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/kb/run", methods=["POST"])
+    def run_kb_task():
+        payload = request.get_json(force=True)
+        pipeline_name = payload.get("pipeline_name")
+        target_file = payload.get("target_file") 
+        
+        collection_name = payload.get("collection_name")
+        index_mode = payload.get("index_mode", "append")
+
+        if not pipeline_name or not target_file:
+            return jsonify({"error": "Missing pipeline_name or target_file"}), 400
+
+        output_dir = ""
+        if pipeline_name == "build_text_corpus":
+            output_dir = str(pm.KB_CORPUS_DIR)
+        elif pipeline_name == "corpus_chunk":
+            output_dir = str(pm.KB_CHUNKS_DIR)
+        elif pipeline_name == "milvus_index":
+            output_dir = "" 
+        
+        task_id = str(uuid.uuid4())
+        KB_TASKS[task_id] = {
+            "status": "running",
+            "pipeline": pipeline_name,
+            "created_at": datetime.now().isoformat()
+        }
+
+        thread = threading.Thread(
+            target=_run_kb_background,
+            args=(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode),
+            daemon=True # 设置为守护线程，主程序退出时它也会自动退出，防止挂起
+        )
+        thread.start()
+
+        return jsonify({
+            "status": "submitted",
+            "task_id": task_id,
+            "message": "Task started in background"
+        }), 202
+
+    @app.route("/api/kb/status/<string:task_id>", methods=["GET"])
+    def get_kb_task_status(task_id: str):
+        task = KB_TASKS.get(task_id)
+        if not task:
+            return jsonify({"error": "Task not found"}), 404
+        
+        return jsonify(task)
 
     return app
 

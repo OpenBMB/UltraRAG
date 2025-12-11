@@ -20,6 +20,7 @@ logs/
 test/
 corpora/
 data/chat_sessions/
+data/knowledge_base/
 # Environment variables and secrets
 .env
 

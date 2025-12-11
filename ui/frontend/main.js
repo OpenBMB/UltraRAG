@@ -104,6 +104,21 @@ const els = {
   },
   nodePickerError: document.getElementById("node-picker-error"),
   nodePickerConfirm: document.getElementById("nodePickerConfirm"),
+
+  // --- [Start] Knowledge Base Elements ---
+  listRaw: document.getElementById("list-raw"),
+  listCorpus: document.getElementById("list-corpus"),
+  listChunks: document.getElementById("list-chunks"),
+  // 文件上传 input (虽然是隐藏的，但我们需要引用它来绑定事件或触发点击)
+  fileUpload: document.getElementById("file-upload"),
+  // 状态条
+  taskStatusBar: document.getElementById("task-status-bar"),
+  taskMsg: document.getElementById("task-msg"),
+  // Milvus 弹窗相关
+  milvusDialog: document.getElementById("milvus-dialog"),
+  idxCollection: document.getElementById("idx-collection"),
+  idxMode: document.getElementById("idx-mode"),
+  // --- [End] Knowledge Base Elements ---
 };
 
 const Modes = {
@@ -123,6 +138,176 @@ const nodePickerState = {
 
 let nodePickerModalInstance = null;
 let pendingInsert = null;
+
+// ==========================================
+// --- Knowledge Base Logic (New) ---
+// ==========================================
+
+let currentTargetFile = null; // 暂存当前正在操作的文件路径
+
+// 1. 刷新文件列表
+async function refreshKBFiles() {
+    try {
+        const data = await fetchJSON('/api/kb/files');
+        // 渲染三列
+        renderKBList(els.listRaw, data.raw, 'build_text_corpus', 'Clean');
+        renderKBList(els.listCorpus, data.corpus, 'corpus_chunk', 'Chunk');
+        renderKBList(els.listChunks, data.chunks, 'milvus_index', 'Index');
+    } catch (e) {
+        console.error("Failed to load KB files:", e);
+    }
+}
+
+// 2. 渲染列表辅助函数
+function renderKBList(container, files, nextPipeline, actionLabel) {
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (!files || files.length === 0) {
+        container.innerHTML = '<div class="text-muted small text-center mt-4">Empty</div>';
+        return;
+    }
+
+    files.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        // 注意：这里使用了 window.handleKBAction，确保全局可访问
+        div.innerHTML = `
+            <div class="file-name" title="${f.name}">${f.name}</div>
+            <button class="btn-action" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">
+                ${actionLabel}
+            </button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// 3. 处理操作按钮点击 (挂载到 window 以便 HTML onclick 调用)
+window.handleKBAction = function(filePath, pipelineName) {
+    currentTargetFile = filePath;
+    
+    // 如果是建索引，需要弹窗配置
+    if (pipelineName === 'milvus_index') {
+        if (els.milvusDialog) els.milvusDialog.showModal();
+        return;
+    }
+    
+    // 其他任务直接开始
+    runKBTask(pipelineName, filePath);
+};
+
+// 4. 处理文件上传 (挂载到 window)
+window.handleFileUpload = async function(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    updateKBStatus(true, 'Uploading...');
+    try {
+        const res = await fetch('/api/kb/upload', { method: 'POST', body: formData });
+        if (res.ok) {
+            await refreshKBFiles(); // 刷新列表
+            updateKBStatus(false);
+        } else {
+            alert('Upload failed');
+            updateKBStatus(false);
+        }
+    } catch (e) {
+        console.error(e);
+        updateKBStatus(false);
+        alert("Upload error: " + e.message);
+    } finally {
+        input.value = ''; // 重置 input，允许重复上传同名文件
+    }
+};
+
+// 5. 确认建索引 (Modal Confirm) (挂载到 window)
+window.confirmIndexTask = function() {
+    const collName = els.idxCollection.value;
+    const mode = els.idxMode.value;
+    
+    // 关闭弹窗
+    if (els.milvusDialog) els.milvusDialog.close();
+    
+    // 发起任务
+    runKBTask('milvus_index', currentTargetFile, {
+        collection_name: collName,
+        index_mode: mode
+    });
+};
+
+// 6. 核心：提交任务并轮询
+async function runKBTask(pipelineName, filePath, extraParams = {}) {
+    updateKBStatus(true, `Running ${pipelineName}...`);
+    
+    try {
+        // A. 提交任务
+        const res = await fetch('/api/kb/run', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                pipeline_name: pipelineName,
+                target_file: filePath,
+                ...extraParams
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.status === 202) {
+            // B. 开始轮询
+            pollTaskStatus(data.task_id);
+        } else {
+            throw new Error(data.error || 'Task start failed');
+        }
+    } catch (e) {
+        alert(e.message);
+        updateKBStatus(false);
+    }
+}
+
+// 7. 轮询逻辑
+function pollTaskStatus(taskId) {
+    const interval = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/kb/status/${taskId}`);
+            const task = await res.json();
+            
+            if (task.status === 'success') {
+                clearInterval(interval);
+                updateKBStatus(false);
+                refreshKBFiles(); // 任务完成，刷新列表显示新生成的文件
+                console.log('Task Result:', task.result);
+            } else if (task.status === 'failed') {
+                clearInterval(interval);
+                updateKBStatus(false);
+                alert(`Task Failed: ${task.error}`);
+            } else {
+                // still running...
+                console.log('Task running...');
+            }
+        } catch (e) {
+            clearInterval(interval);
+            updateKBStatus(false);
+        }
+    }, 1500); // 每 1.5 秒查一次
+}
+
+// UI 工具：显示/隐藏状态条
+function updateKBStatus(show, msg = '') {
+    if (!els.taskStatusBar || !els.taskMsg) return;
+    if (show) {
+        els.taskStatusBar.classList.remove('hidden');
+        els.taskMsg.textContent = msg;
+    } else {
+        els.taskStatusBar.classList.add('hidden');
+    }
+}
+
+// ==========================================
+// --- End Knowledge Base Logic ---
+// ==========================================
 
 // --- Utilities ---
 function uuidv4() {
@@ -408,6 +593,9 @@ function updateDemoControls() {
 // [新增] 切换到知识库视图
 function openKBView() {
     if (!els.chatMainView || !els.kbMainView) return;
+
+    // 刷新数据 [新增]
+    refreshKBFiles();
     
     // 隐藏聊天，显示知识库
     els.chatMainView.classList.add("d-none");

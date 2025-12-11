@@ -916,3 +916,183 @@ body {
   flex: 1;
   overflow-y: auto;
 }
+
+/* =========================================
+   Knowledge Base (KB) Manager Styles
+   ========================================= */
+
+/* 1. 主卡片容器 */
+.apple-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  max-width: 1100px;
+  margin: 20px auto;
+  height: calc(100% - 40px); /* 适应高度 */
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* 2. 三栏布局 */
+.kb-columns {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0; /* 防止溢出 */
+}
+
+.kb-col {
+  flex: 1;
+  background: #f8fafc; /* 浅灰色背景 */
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+}
+
+.col-header {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding-left: 4px;
+}
+
+.col-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px; /* 给滚动条留点位置 */
+}
+
+/* 3. 箭头分隔符 */
+.kb-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  font-weight: bold;
+  font-size: 1.2rem;
+  padding-top: 20px; /* 视觉上稍微下沉一点对齐内容 */
+}
+
+/* 4. 文件列表项 */
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.file-item:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+}
+
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px; /* 限制文件名宽度 */
+  font-weight: 500;
+}
+
+/* 列表项中的操作按钮 */
+.btn-action {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action:hover {
+  background: var(--text-primary); /* 黑/深灰色 */
+  color: #fff;
+}
+
+/* 5. 状态通知条 */
+.status-bar {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-out;
+}
+.status-bar.hidden { display: none; }
+
+/* Loading Spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #93c5fd;
+  border-top: 2px solid #1d4ed8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 6. Dialog Modal (Milvus 配置弹窗) */
+.apple-modal {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 28px;
+  width: 380px;
+  max-width: 90vw;
+  background: #fff;
+  color: var(--text-primary);
+}
+
+.apple-modal::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+}
+
+/* 弹窗打开时的动画 */
+.apple-modal[open] {
+  animation: modal-in 0.3s ease-out;
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 滚动条美化 (针对文件列表) */
+.col-list::-webkit-scrollbar { width: 4px; }
+.col-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.col-list::-webkit-scrollbar-track { background: transparent; }

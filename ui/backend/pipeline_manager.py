@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from types import ModuleType
 import yaml
 import ast
+import os
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,8 +29,15 @@ LEGACY_PIPELINES_DIR = BASE_DIR / "pipelines"
 CHAT_DATASET_DIR = PROJECT_ROOT / "data" / "chat_sessions"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
-for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR]:
+KB_ROOT = PROJECT_ROOT / "data" / "knowledge_base"
+KB_RAW_DIR = KB_ROOT / "raw"       
+KB_CORPUS_DIR = KB_ROOT / "corpus" 
+KB_CHUNKS_DIR = KB_ROOT / "chunks" 
+
+for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+
+
 
 class PipelineManagerError(RuntimeError):
     pass
@@ -647,3 +655,138 @@ def interrupt_chat(session_id: str):
         success = session.interrupt_task()
         return {"status": "interrupted", "active_task_cancelled": success}
     return {"status": "session_not_found"}
+
+def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
+    def _scan(d: Path, category: str):
+        return [
+            {
+                "name": f.name, 
+                "path": _as_project_relative(f), 
+                "size": f.stat().st_size,
+                "mtime": f.stat().st_mtime,
+                "category": category
+            }
+            for f in sorted(d.glob("*")) if f.is_file() and not f.name.startswith(".")
+        ]
+    
+    return {
+        "raw": _scan(KB_RAW_DIR, "raw"),
+        "corpus": _scan(KB_CORPUS_DIR, "corpus"),
+        "chunks": _scan(KB_CHUNKS_DIR, "chunks")
+    }
+
+def upload_kb_file(file_obj) -> Dict[str, Any]:
+    from werkzeug.utils import secure_filename
+    filename = secure_filename(file_obj.filename)
+    save_path = KB_RAW_DIR / filename
+    file_obj.save(save_path)
+    LOGGER.info(f"File uploaded: {save_path}")
+    return {
+        "name": filename,
+        "path": _as_project_relative(save_path),
+        "size": save_path.stat().st_size
+    }
+
+def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
+    """删除指定文件"""
+    target_dir = {
+        "raw": KB_RAW_DIR,
+        "corpus": KB_CORPUS_DIR,
+        "chunks": KB_CHUNKS_DIR
+    }.get(category)
+    
+    if not target_dir:
+        raise PipelineManagerError("Invalid category")
+    
+    file_path = target_dir / filename
+    if file_path.exists():
+        file_path.unlink()
+        LOGGER.info(f"File deleted: {file_path}")
+    return {"status": "deleted"}
+
+def run_kb_pipeline_tool(
+    pipeline_name: str, 
+    target_file_path: str,
+    output_dir: str,
+    collection_name: Optional[str] = None,
+    index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖), 'new' (新建/如果存在则报错或兼容)
+) -> Dict[str, Any]:
+
+    pipeline_cfg = load_pipeline(pipeline_name)
+    if not pipeline_cfg:
+        raise PipelineManagerError(f"Pipeline '{pipeline_name}' not found. Please create it in Builder.")
+        
+    base_params = load_parameters(pipeline_name) 
+    if not base_params:
+        raise PipelineManagerError(f"Pipeline '{pipeline_name}' parameters not found. Please Build & Save first.")
+    
+    target_file = Path(target_file_path)
+    stem = target_file.stem
+    override_params = {}
+    
+    if pipeline_name == "build_text_corpus":
+        out_path = os.path.join(output_dir, f"{stem}.jsonl")
+        override_params = {
+            "corpus": {
+                "parse_file_path": str(target_file),
+                "text_corpus_save_path": out_path,
+            }
+        }
+
+    elif pipeline_name == "corpus_chunk":
+        out_path = os.path.join(output_dir, f"{stem}.jsonl")
+        override_params = {
+            "corpus": {
+                "raw_chunk_path": str(target_file),
+                "chunk_path": out_path
+            }
+        }
+        
+    elif pipeline_name == "milvus_index":
+        final_collection_name = collection_name if collection_name else stem
+
+        is_overwrite = (index_mode == "overwrite")
+
+        override_params = {
+            "retriever": {
+                "corpus_path": str(target_file),
+                "collection_name": final_collection_name,
+                "overwrite": is_overwrite,
+                "index_backend": "milvus"
+            }
+        }
+
+    else:
+        raise PipelineManagerError(f"Unsupported KB Pipeline: {pipeline_name}")
+
+    funcs = _ensure_client_funcs()
+    config_file = str(_find_pipeline_file(pipeline_name))
+    param_file = str(_resolve_parameter_path(pipeline_name))
+
+    async def _async_task():
+        context = funcs["load_ctx"](config_file, param_file)
+        
+        client = funcs["create_client"](context["mcp_cfg"])
+        
+        async with client:
+            return await funcs["exec_pipe"](
+                client, 
+                context, 
+                is_demo=True, 
+                return_all=True,
+                override_params=override_params 
+            )
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            raw_result = loop.run_until_complete(_async_task())
+        finally:
+            loop.close()
+            
+        return {"status": "success", "result": _extract_result(raw_result)}
+        
+    except Exception as e:
+        LOGGER.error(f"KB Task Failed: {e}")
+        raise e
