@@ -1096,3 +1096,71 @@ body {
 .col-list::-webkit-scrollbar { width: 4px; }
 .col-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .col-list::-webkit-scrollbar-track { background: transparent; }
+
+
+/* =========================================
+   KB Global Config & Collection List Styles (Final)
+   ========================================= */
+
+/* 1. DB 状态指示灯（用于底部分割线之上） */
+.kb-index-section {
+    /* 确保配置按钮和状态灯对齐 */
+    display: flex;
+    flex-direction: column;
+}
+
+.kb-index-section .col-header {
+    /* 避免与上面的 col-header 样式冲突，保证字体大小一致 */
+    font-size: 0.75rem; 
+}
+
+/* 2. Collection 列表容器 */
+.index-grid {
+  /* 使用 Flex 布局代替 Grid，因为 Collection 数量不固定，堆叠更自然 */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 3. 单个 Collection 卡片 */
+.index-card-group {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.index-card-group:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.05);
+}
+
+/* 4. 集合标签样式 */
+.coll-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.index-card-group .index-icon {
+    font-size: 1.3rem;
+    color: var(--accent-blue);
+}
+
+/* 5. 模态框修正 */
+#db-config-modal .form-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+#milvus-dialog .alert strong {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+}

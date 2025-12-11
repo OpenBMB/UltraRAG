@@ -168,6 +168,19 @@ def create_app() -> Flask:
         threading.Timer(0.5, os._exit, args=(0,)).start()
         return jsonify({"status": "shutting-down", "mode": "force"})
 
+    @app.route("/api/kb/config", methods=["GET"])
+    def get_kb_config():
+        return jsonify(pm.load_kb_config())
+    
+    @app.route("/api/kb/config", methods=["POST"])
+    def save_kb_config():
+        try:
+            payload = request.get_json(force=True)
+            pm.save_kb_config(payload)
+            return jsonify({"status": "saved"})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
     @app.route("/api/kb/files", methods=["GET"])
     def list_kb_files():
         return jsonify(pm.list_kb_files())
@@ -187,10 +200,10 @@ def create_app() -> Flask:
         except Exception as e:
             LOGGER.error(f"Upload failed: {e}")
             return jsonify({"error": str(e)}), 500
-        
+                
     @app.route("/api/kb/files/<string:category>/<string:filename>", methods=["DELETE"])
     def delete_kb_file(category: str, filename: str):
-        if category not in ["raw", "corpus", "chunks"]:
+        if category not in ["raw", "corpus", "chunks", "collection", "index"]:
             return jsonify({"error": "Invalid category"}), 400
         
         try:

@@ -189,43 +189,60 @@
             <h3 class="m-0 fs-5 fw-bold">Knowledge Base Management</h3>
         </header>
         
-        <div class="kb-wrapper p-4"> <div class="kb-container apple-card">
-            <div class="kb-header">
-                <h5 class="m-0">Document Pipeline</h5>
-                <input type="file" id="file-upload" hidden onchange="handleFileUpload(this)">
-                <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="document.getElementById('file-upload').click()">
-                    + Upload Document
-                </button>
-            </div>
+        <div class="kb-wrapper p-4">
+            <div class="kb-container apple-card">
+                <div class="kb-header">
+                    <h5 class="m-0">Document Pipeline</h5>
+                    <input type="file" id="file-upload" hidden onchange="handleFileUpload(this)">
+                    <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="document.getElementById('file-upload').click()">
+                        + Upload Document
+                    </button>
+                </div>
 
-            <div id="task-status-bar" class="status-bar hidden">
-                <span class="spinner"></span>
-                <span id="task-msg">Processing...</span>
-            </div>
+                <div id="task-status-bar" class="status-bar hidden">
+                    <span class="spinner"></span>
+                    <span id="task-msg">Processing...</span>
+                </div>
 
-            <div class="kb-columns">
-                <div class="kb-col">
-                    <div class="col-header">Raw Documents</div>
-                    <div class="col-list" id="list-raw">
+                <div class="kb-columns">
+                    <div class="kb-col">
+                        <div class="col-header">Raw Documents</div>
+                        <div class="col-list" id="list-raw"></div>
+                    </div>
+
+                    <div class="kb-arrow">→</div>
+
+                    <div class="kb-col">
+                        <div class="col-header">Text Corpus</div>
+                        <div class="col-list" id="list-corpus"></div>
+                    </div>
+
+                    <div class="kb-arrow">→</div>
+
+                    <div class="kb-col">
+                        <div class="col-header">Chunks</div>
+                        <div class="col-list" id="list-chunks"></div>
+                    </div>
+                </div>
+                
+                <div class="kb-index-section mt-4 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="col-header m-0">Embedding Collections</div>
+                            <span id="db-connection-status" class="badge rounded-pill bg-secondary">Offline</span>
+                            <small class="text-muted ms-2" id="db-uri-display" style="font-size: 0.75rem; font-family: monospace;"></small>
+                        </div>
+                        <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openDbConfigModal()">
+                            Configure DataBase
+                        </button>
+                    </div>
+                    
+                    <div class="index-grid" id="list-indexes">
                         </div>
                 </div>
 
-                <div class="kb-arrow">→</div>
-
-                <div class="kb-col">
-                    <div class="col-header">Text Corpus</div>
-                    <div class="col-list" id="list-corpus"></div>
-                </div>
-
-                <div class="kb-arrow">→</div>
-
-                <div class="kb-col">
-                    <div class="col-header">Chunks</div>
-                    <div class="col-list" id="list-chunks"></div>
-                </div>
             </div>
         </div>
-    </div>
     </div>
 
     <aside class="chat-detail-sidebar" id="source-detail-panel">
@@ -296,6 +313,10 @@
   <dialog id="milvus-dialog" class="apple-modal">
     <h5 class="mb-3 fw-bold">Build Vector Index</h5>
     
+    <div class="alert alert-light border mb-3 p-2 small">
+        Target: <strong id="modal-target-db">Loading Configuration...</strong>
+    </div>
+    
     <div class="mb-3">
         <label class="form-label small text-muted text-uppercase fw-bold">Collection Name</label>
         <input type="text" id="idx-collection" class="form-control" placeholder="e.g. wiki_v1">
@@ -304,9 +325,8 @@
     <div class="mb-4">
         <label class="form-label small text-muted text-uppercase fw-bold">Mode</label>
         <select id="idx-mode" class="form-select">
-            <option value="append">Append (Default)</option>
-            <option value="overwrite">Overwrite (Drop old)</option>
-            <option value="new">New</option>
+            <option value="append">Append (Add Data)</option>
+            <option value="overwrite">Overwrite (Drop Collection)</option>
         </select>
     </div>
     
@@ -314,6 +334,26 @@
         <button class="btn btn-light border btn-sm" onclick="document.getElementById('milvus-dialog').close()">Cancel</button>
         <button class="btn btn-dark btn-sm" onclick="confirmIndexTask()">Start Indexing</button>
     </div>
+  </dialog>
+
+  <dialog id="db-config-modal" class="apple-modal">
+      <h5 class="mb-3 fw-bold">Database Settings</h5>
+      
+      <div class="mb-3">
+          <label class="form-label small text-muted text-uppercase fw-bold">Milvus URI</label>
+          <input type="text" id="cfg-uri" class="form-control" placeholder="path/to/local.db OR http://localhost:19530">
+          <div class="form-text">Supports local file paths or remote HTTP/TCP connections.</div>
+      </div>
+      
+      <div class="mb-4">
+          <label class="form-label small text-muted text-uppercase fw-bold">Token (Optional)</label>
+          <input type="password" id="cfg-token" class="form-control" placeholder="API Key or user:password">
+      </div>
+      
+      <div class="modal-actions d-flex justify-content-end gap-2">
+          <button class="btn btn-light border btn-sm" onclick="document.getElementById('db-config-modal').close()">Cancel</button>
+          <button class="btn btn-dark btn-sm" onclick="saveDbConfig()">Save & Connect</button>
+      </div>
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

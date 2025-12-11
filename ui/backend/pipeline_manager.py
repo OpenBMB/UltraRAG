@@ -15,6 +15,11 @@ import yaml
 import ast
 import os
 
+try:
+    from pymilvus import MilvusClient
+except ImportError:
+    MilvusClient = None
+
 LOGGER = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -33,8 +38,10 @@ KB_ROOT = PROJECT_ROOT / "data" / "knowledge_base"
 KB_RAW_DIR = KB_ROOT / "raw"       
 KB_CORPUS_DIR = KB_ROOT / "corpus" 
 KB_CHUNKS_DIR = KB_ROOT / "chunks" 
+KB_INDEX_DIR = KB_ROOT / "index"
+KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
 
-for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR]:
+for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR, KB_INDEX_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
 
@@ -656,23 +663,113 @@ def interrupt_chat(session_id: str):
         return {"status": "interrupted", "active_task_cancelled": success}
     return {"status": "session_not_found"}
 
+# Knowledge Base Management
+def load_kb_config() -> Dict[str, str]:
+    default_config = {
+        "uri": str(KB_INDEX_DIR / "default.db"), 
+        "token": ""
+    }
+    if not KB_CONFIG_PATH.exists():
+        return default_config
+    try:
+        return json.loads(KB_CONFIG_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return default_config
+    
+def load_kb_config() -> Dict[str, Any]:
+    default_config = {
+        "milvus": {
+            "uri": str(KB_INDEX_DIR / "default.db"),
+            "token": "",
+            "id_field_name": "id",
+            "vector_field_name": "vector",
+            "text_field_name": "contents",
+            "id_max_length": 64,
+            "text_max_length": 60000,
+            "metric_type": "IP",
+            "index_params": {
+                "index_type": "AUTOINDEX",
+                "metric_type": "IP"
+            },
+            "search_params": {
+                "metric_type": "IP",
+                "params": {}
+            },
+            "index_chunk_size": 1000
+        }
+    }
+    
+    if not KB_CONFIG_PATH.exists():
+        return default_config
+        
+    try:
+        saved = json.loads(KB_CONFIG_PATH.read_text(encoding="utf-8"))
+        if "milvus" not in saved: 
+            return default_config
+        
+        full_cfg = default_config["milvus"].copy()
+        full_cfg.update(saved["milvus"])
+        return {"milvus": full_cfg}
+        
+    except Exception:
+        return default_config
+    
+def save_kb_config(config: Dict[str, str]):
+    KB_CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+def _get_milvus_client():
+    cfg = load_kb_config()
+    try:
+        milvus_cfg = cfg.get("milvus", {})
+        uri = milvus_cfg.get("uri", "")
+        
+        if not uri: raise ValueError("URI is empty")
+
+        if not uri.startswith("http") and not Path(uri).is_absolute():
+            pass 
+            
+        return MilvusClient(uri=uri, token=milvus_cfg.get("token", ""))
+    except Exception as e:
+        LOGGER.error(f"Failed to connect to Milvus: {e}")
+        raise e
+
 def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
-    def _scan(d: Path, category: str):
+    def _scan_files(d: Path, category: str):
         return [
             {
-                "name": f.name, 
-                "path": _as_project_relative(f), 
-                "size": f.stat().st_size,
-                "mtime": f.stat().st_mtime,
+                "name": f.name, "path": _as_project_relative(f), 
+                "size": f.stat().st_size, "mtime": f.stat().st_mtime, 
                 "category": category
             }
             for f in sorted(d.glob("*")) if f.is_file() and not f.name.startswith(".")
         ]
     
+    collections = []
+    db_status = "unknown"
+    try:
+        client = _get_milvus_client()
+        names = client.list_collections()
+        for name in names:
+            res = client.get_collection_stats(name)
+            count = res.get("row_count", 0)
+            collections.append({
+                "name": name,
+                "count": count,
+                "category": "collection"
+            })
+        client.close()
+        db_status = "connected"
+    except Exception as e:
+        LOGGER.warning(f"Milvus connection failed: {e}")
+        db_status = "error"
+
     return {
-        "raw": _scan(KB_RAW_DIR, "raw"),
-        "corpus": _scan(KB_CORPUS_DIR, "corpus"),
-        "chunks": _scan(KB_CHUNKS_DIR, "chunks")
+        "raw": _scan_files(KB_RAW_DIR, "raw"),
+        "corpus": _scan_files(KB_CORPUS_DIR, "corpus"),
+        "chunks": _scan_files(KB_CHUNKS_DIR, "chunks"),
+        "index": collections,
+        "db_status": db_status, 
+        "db_config": load_kb_config() 
     }
 
 def upload_kb_file(file_obj) -> Dict[str, Any]:
@@ -688,28 +785,31 @@ def upload_kb_file(file_obj) -> Dict[str, Any]:
     }
 
 def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
-    """删除指定文件"""
-    target_dir = {
-        "raw": KB_RAW_DIR,
-        "corpus": KB_CORPUS_DIR,
-        "chunks": KB_CHUNKS_DIR
-    }.get(category)
+    if category == "collection" or category == "index":
+        try:
+            client = _get_milvus_client()
+            if client.has_collection(filename):
+                client.drop_collection(filename)
+            client.close()
+            LOGGER.info(f"Collection dropped: {filename}")
+            return {"status": "dropped"}
+        except Exception as e:
+            raise PipelineManagerError(f"Failed to drop collection: {e}")
+
+    target_dir = {"raw": KB_RAW_DIR, "corpus": KB_CORPUS_DIR, "chunks": KB_CHUNKS_DIR}.get(category)
+    if target_dir:
+        file_path = target_dir / Path(filename).name
+        if file_path.exists(): file_path.unlink()
+        return {"status": "deleted"}
     
-    if not target_dir:
-        raise PipelineManagerError("Invalid category")
-    
-    file_path = target_dir / filename
-    if file_path.exists():
-        file_path.unlink()
-        LOGGER.info(f"File deleted: {file_path}")
-    return {"status": "deleted"}
+    raise PipelineManagerError("Invalid category")
 
 def run_kb_pipeline_tool(
     pipeline_name: str, 
     target_file_path: str,
     output_dir: str,
     collection_name: Optional[str] = None,
-    index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖), 'new' (新建/如果存在则报错或兼容)
+    index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖)
 ) -> Dict[str, Any]:
 
     pipeline_cfg = load_pipeline(pipeline_name)
@@ -747,12 +847,21 @@ def run_kb_pipeline_tool(
 
         is_overwrite = (index_mode == "overwrite")
 
+        full_kb_cfg = load_kb_config()
+        milvus_config_dict = full_kb_cfg["milvus"] 
+        
+        # 确保父目录存在
+        KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
         override_params = {
             "retriever": {
                 "corpus_path": str(target_file),
                 "collection_name": final_collection_name,
                 "overwrite": is_overwrite,
-                "index_backend": "milvus"
+                "index_backend": "milvus",
+                "index_backend_configs": {
+                    "milvus": milvus_config_dict
+                }
             }
         }
 
