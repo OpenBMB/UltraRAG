@@ -5,6 +5,9 @@ import os
 import shutil
 from typing import Any, Dict, Iterable, List, Optional
 from pathlib import Path
+import copy
+import re
+import random
 
 from fastmcp.exceptions import ToolError
 from PIL import Image
@@ -641,6 +644,529 @@ async def chunk_documents(
             current_chunk_id += 1
 
     _save_jsonl(chunked_documents, chunk_path)
+
+@app.tool(output="input_file_path,input_one_two_label_path->q_ls,label_len,label_str")
+async def load_onelabel_data(
+    input_file_path: str,
+    input_one_two_label_path: str
+) -> Dict[str, Any]:
+
+    documents = _load_jsonl(input_file_path)
+    labels = _load_jsonl(input_one_two_label_path)
+    
+    doc_content_list = []
+    for doc_obj in documents:
+        doc_content_list.append(doc_obj['content'])
+    
+    one_label_list = []
+    for label_obj in labels:
+        if label_obj['one_label'] not in one_label_list:
+            one_label_list.append(label_obj['one_label'])
+    label_len = str(len(one_label_list))
+    label_str = ';'.join(one_label_list)
+
+    data = {'q_ls': doc_content_list, 'label_len': label_len, 'label_str':label_str}
+    return data
+
+@app.tool(output="input_file_path,input_one_two_label_path,output_onelabel_file_path,ans_ls->q_ls,label_len_list,label_str_list")
+async def load_twolabel_data(
+    input_file_path: str,
+    input_one_two_label_path: str,
+    output_onelabel_file_path: str,
+    ans_ls: List[str]
+) -> Dict[str, List[str]]:
+
+    onelabel_pre_list = []
+    for onelabel_pre in ans_ls:
+        onelabel_pre_list.append(onelabel_pre.strip())
+        
+    documents = _load_jsonl(input_file_path)
+    labels = _load_jsonl(input_one_two_label_path)
+    
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+    
+    doc_content_list = []
+    two_label_len_list = []
+    two_label_str_list = []
+    raws = []
+    for doci, onelabel in enumerate(onelabel_pre_list):
+        not_continue_flag = True
+        if onelabel in onelabel_list:
+            not_continue_flag = False
+        else:
+            for origin_onelabel in onelabel_list:
+                if origin_onelabel.find(onelabel) != -1 or onelabel.find(origin_onelabel) != -1:
+                    onelabel = origin_onelabel
+                    not_continue_flag = False
+        if not_continue_flag:
+            continue
+        two_label_list = onelabel_has_two_label_dict[onelabel]
+        two_label_len_list.append(str(len(two_label_list)))
+        two_label_str_list.append(';'.join(two_label_list))
+        content = documents[doci]['content']
+        del documents[doci]['content']
+        doc_content_list.append(content)
+        documents[doci]["id"] = str(doci)
+        documents[doci]["contents"] = content
+        documents[doci]['one_label'] = onelabel
+        documents[doci]['one_label_desc'] = onelabel_desc_dict[onelabel]
+        raws.append(documents[doci])
+    out_path = os.path.abspath(output_onelabel_file_path)
+    _save_jsonl(raws, out_path)
+
+    data = {'q_ls': doc_content_list, 'label_len_list': two_label_len_list, 'label_str_list':two_label_str_list}
+    return data
+    
+@app.tool(output="input_one_two_label_path,output_onelabel_file_path,ans_ls->q_ls,onelabel_prompt_list,onelabel_desc_list")
+async def twolabel_result_pro(
+    input_one_two_label_path: str,
+    output_onelabel_file_path: str,
+    ans_ls: List[str]
+) -> Dict[str, List[str]]:
+    
+    # info_msg = (
+    #     f"twolabel_result_pro ans_ls: {ans_ls} "
+    # )
+    # app.logger.info(info_msg)
+
+    twolabel_pre_list = []
+    for twolabel_pre in ans_ls:
+        twolabel_pre_list.append(twolabel_pre.strip())
+
+    labels = _load_jsonl(input_one_two_label_path)
+    documents = _load_jsonl(output_onelabel_file_path)
+    
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+    
+    doc_content_list = []
+    onelabel_prompt_list = []
+    onelabel_desc_list = []
+    raws = []
+    for doc_i, doc_obj in enumerate(documents):
+        one_label = doc_obj['one_label']
+        two_label_list = onelabel_has_two_label_dict[one_label]
+
+        two_label_flag = True
+        twolabel_pre = twolabel_pre_list[doc_i]
+        if twolabel_pre in two_label_list:
+            doc_obj['two_label'] = twolabel_pre
+            doc_obj['two_label_desc'] = twolabel_desc_dict[twolabel_pre]
+            doc_obj['two_label_flag'] = 'right'
+            two_label_flag = False
+        else:
+            for origin_twolabel in two_label_list:
+                if origin_twolabel.find(twolabel_pre) != -1 or twolabel_pre.find(origin_twolabel) != -1:
+                    twolabel_pre = origin_twolabel
+                    doc_obj['two_label'] = twolabel_pre
+                    doc_obj['two_label_desc'] = twolabel_desc_dict[twolabel_pre]
+                    doc_obj['two_label_flag'] = 'right'
+                    two_label_flag = False
+        if two_label_flag:
+            doc_obj['two_label'] = 'No label'
+            doc_obj['two_label_desc'] = 'No label'
+            doc_obj['two_label_flag'] = 'error'
+            doc_content_list.append(doc_obj['contents'])
+            onelabel_prompt_list.append(one_label)
+            onelabel_desc_list.append(onelabel_desc_dict[one_label])
+        raws.append(doc_obj)
+    
+    out_path = os.path.abspath(output_onelabel_file_path)
+    _save_jsonl(raws, out_path)
+    
+    data = {'q_ls': doc_content_list, 'onelabel_prompt_list': onelabel_prompt_list, 'onelabel_desc_list':onelabel_desc_list}
+    return data
+
+
+@app.tool(output="input_one_two_label_path,output_onelabel_file_path,ans_ls->tag_len_list,tag_str_list")
+async def twolabel_new_result_pro(
+    input_one_two_label_path: str,
+    output_onelabel_file_path: str,
+    ans_ls: List[str]
+) -> Dict[str, List[str]]:
+    twolabel_new_list = []
+    for twolabel_new in ans_ls:
+        twolabel_new_list.append(twolabel_new.strip())
+    
+    labels = _load_jsonl(input_one_two_label_path)
+    documents = _load_jsonl(output_onelabel_file_path)
+    
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+    
+    raws = []
+    error_num = 0
+    onelabel_has_two_label_dict_new = copy.deepcopy(onelabel_has_two_label_dict)
+    for doc_i, doc_obj in enumerate(documents):
+        one_label = doc_obj['one_label']
+        two_label_list = onelabel_has_two_label_dict[one_label]
+        if doc_obj['two_label_flag'] == 'error':
+            error_num += 1
+            new_twolabel = twolabel_new_list[error_num-1]
+            if new_twolabel in two_label_list:
+                doc_obj['two_label'] = new_twolabel
+                doc_obj['two_label_desc'] = twolabel_desc_dict[new_twolabel]
+                doc_obj['two_label_flag'] = 'right'
+            else:
+                if new_twolabel not in onelabel_has_two_label_dict_new[one_label]:
+                    onelabel_has_two_label_dict_new[one_label].append(new_twolabel)
+        raws.append(doc_obj)
+    
+    tag_len_list = []
+    tag_str_list = []
+    for onelabel_kv in onelabel_has_two_label_dict:
+        if len(onelabel_has_two_label_dict[onelabel_kv]) != len(onelabel_has_two_label_dict_new[onelabel_kv]):
+            tag_list = onelabel_has_two_label_dict_new[onelabel_kv]
+            tag_len = len(tag_list)
+            tag_str = ';'.join(tag_list)
+            tag_len_list.append(str(tag_len))
+            tag_str_list.append(tag_str)
+    
+    out_path = os.path.abspath(output_onelabel_file_path)
+    _save_jsonl(raws, out_path)
+
+    data = {'tag_len_list': tag_len_list, 'tag_str_list':tag_str_list}
+    return data
+
+@app.tool(output="input_one_two_label_path,output_onelabel_file_path,output_generate_twolabel_file_path,ans_ls->prompt_twolabel_list,prompt_onelabel_list,prompt_onelabel_desc_list")
+async def twolabel_merge_result_pro(
+    input_one_two_label_path: str,
+    output_onelabel_file_path: str,
+    output_generate_twolabel_file_path: str,
+    ans_ls: List[str]
+) -> Dict[str, List[str]]:
+    merge_label_json_list = []
+    for merge_label_json in ans_ls:
+        result = merge_label_json.strip()
+        json_match = re.search(r'```(?:json)?\s*(\[{.*?}\]|{.*?})\s*```', result, re.DOTALL)
+        if json_match:
+            result = json_match.group(1)
+        result = result.replace("'", '"')
+        result = result.replace('\"s ', '\'s ')
+        merge_label_json_list.append(result)
+
+    labels = _load_jsonl(input_one_two_label_path)
+    documents = _load_jsonl(output_onelabel_file_path)
+    
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+
+    error_onelabel_list = []
+    for doc_i, doc_obj in enumerate(documents):
+        one_label = doc_obj['one_label']
+        if doc_obj['two_label_flag'] == 'error':
+            if one_label not in error_onelabel_list:
+                error_onelabel_list.append(one_label)
+    
+    onelabel_has_two_label_dict_new = copy.deepcopy(onelabel_has_two_label_dict)
+
+    raws = []
+    onelabel_result_json_dict = {}
+    for doc_i, doc_obj in enumerate(documents):
+        one_label = doc_obj['one_label']
+        two_label = doc_obj['two_label']
+        if one_label not in error_onelabel_list:
+            raws.append(doc_obj)
+            continue
+        one_label_index = error_onelabel_list.index(one_label)
+        if one_label_index >= 0:
+            result = merge_label_json_list[one_label_index]
+            try:
+                result_json = json.loads(result)
+            except Exception as e:
+                result_json = 'Exception_None'
+            if result_json != 'Exception_None':
+                del onelabel_has_two_label_dict_new[one_label]
+                all_new_twolabel_list = []
+                exit_new_twolabel_list = []
+                no_exit_new_twolabel_list = []
+                onelabel_result_json_dict[one_label] = result_json
+                for origin_twolabel_kv in result_json:
+                    if result_json[origin_twolabel_kv] not in all_new_twolabel_list:
+                        all_new_twolabel_list.append(result_json[origin_twolabel_kv])
+                        if result_json[origin_twolabel_kv] in twolabel_desc_dict:
+                            exit_new_twolabel_list.append(result_json[origin_twolabel_kv])
+                        else:
+                            no_exit_new_twolabel_list.append(result_json[origin_twolabel_kv])
+                onelabel_has_two_label_dict_new[one_label] = all_new_twolabel_list
+                if two_label in result_json:
+                    new_twolabel = result_json[two_label]
+                    if new_twolabel in twolabel_desc_dict:
+                        doc_obj['two_label'] = new_twolabel
+                        doc_obj['two_label_desc'] = twolabel_desc_dict[new_twolabel]
+                        doc_obj['two_label_flag'] = 'right'
+                    else:
+                        doc_obj['two_label'] = new_twolabel
+                        doc_obj['two_label_desc'] = 'None_Desc'
+                        doc_obj['two_label_flag'] = 'update'
+                else:
+                    label_res = random.choice(all_new_twolabel_list)
+                    doc_obj['two_label'] = label_res
+                    if label_res in twolabel_desc_dict:
+                        doc_obj['two_label_desc'] = twolabel_desc_dict[label_res]
+                    else:
+                        doc_obj['two_label_desc'] = 'None_Desc'
+                    doc_obj['two_label_flag'] = 'random_not_in'
+            else:
+                two_label_list = onelabel_has_two_label_dict[one_label]
+                label_res = random.choice(two_label_list)
+                doc_obj['two_label'] = label_res
+                doc_obj['two_label_desc'] = twolabel_desc_dict[label_res]
+                doc_obj['two_label_flag'] = 'random_no_result'
+            raws.append(doc_obj)
+    
+    prompt_twolabel_list = []
+    prompt_onelabel_list = []
+    prompt_onelabel_desc_list = []
+
+    result_list = []
+    for onelabel in onelabel_list:
+        for temp_two_label in onelabel_has_two_label_dict_new[onelabel]:
+            new_obj = {}
+            new_obj['one_label'] = onelabel
+            new_obj['one_label_desc'] = onelabel_desc_dict[onelabel]
+            new_obj['two_label'] = temp_two_label
+            if temp_two_label not in twolabel_desc_dict:
+                new_obj['two_label_desc'] = 'None_Desc'
+                prompt_twolabel_list.append(temp_two_label)
+                prompt_onelabel_list.append(onelabel)
+                prompt_onelabel_desc_list.append(onelabel_desc_dict[onelabel])
+            else:
+                new_obj['two_label_desc'] = twolabel_desc_dict[temp_two_label]
+            result_list.append(new_obj)
+    
+    if len(onelabel_result_json_dict) > 0:
+        new_two_label_list = []
+        for onelabel in onelabel_result_json_dict:
+            result_json = json.loads(result)
+            for origin_kv in result_json:
+                temp_obj = {}
+                temp_obj['one_label'] = onelabel
+                temp_obj['origin_two_label'] = origin_kv
+                temp_obj['new_two_label'] = result_json[origin_kv]
+                new_two_label_list.append(temp_obj)
+        out_new_twolabel_path = os.path.abspath(output_generate_twolabel_file_path)
+        _save_jsonl(new_two_label_list, out_new_twolabel_path)
+
+    out_path = os.path.abspath(output_onelabel_file_path)
+    _save_jsonl(raws, out_path)
+
+    input_path = os.path.abspath(input_one_two_label_path)
+    _save_jsonl(result_list, input_path)
+
+    # info_msg = (
+    #         f"twolabel_merge_result_pro prompt_twolabel_list prompt_onelabel_list : {prompt_twolabel_list} {prompt_onelabel_list}"
+    #     )
+    # app.logger.info(info_msg)
+
+    data = {'prompt_twolabel_list': prompt_twolabel_list, 'prompt_onelabel_list': prompt_onelabel_list, 'prompt_onelabel_desc_list': prompt_onelabel_desc_list}
+
+    return data
+
+@app.tool(output="input_one_two_label_path,output_onelabel_file_path,ans_ls->None")
+async def twolabel_desc_result_pro(
+    input_one_two_label_path: str,
+    output_onelabel_file_path: str,
+    ans_ls: List[str]
+) -> None:
+
+    desc_data_list = []
+    for desc_data in ans_ls:
+        desc_data_list.append(desc_data.strip())
+    
+    labels = _load_jsonl(input_one_two_label_path)
+    documents = _load_jsonl(output_onelabel_file_path)
+    
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    none_desc_num = 0
+    twolabel_in_onelabel_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        if label_obj['two_label_desc'] == 'None_Desc':
+            none_desc_num += 1
+            label_obj['two_label_desc'] = desc_data_list[none_desc_num-1]
+            
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+        if label_obj['two_label'] in twolabel_in_onelabel_dict:
+            if label_obj['one_label'] not in twolabel_in_onelabel_dict[label_obj['two_label']]:
+                twolabel_in_onelabel_dict[label_obj['two_label']].append(label_obj['one_label'])
+        else:
+            twolabel_in_onelabel_dict[label_obj['two_label']] = [label_obj['one_label']]
+    
+    change_twolabel_dict = {}
+    for twolabel_temp in twolabel_in_onelabel_dict:
+        change_twolabel_dict[twolabel_temp] = twolabel_in_onelabel_dict[twolabel_temp][0]
+    
+    raws = []
+    for doc_i, doc_obj in enumerate(documents):
+        two_label = doc_obj['two_label']
+        two_label_desc = doc_obj['two_label_desc']
+        del doc_obj['two_label_flag']
+        if two_label in change_twolabel_dict:
+            if doc_obj['one_label'] != change_twolabel_dict[two_label]:
+                doc_obj['one_label'] = change_twolabel_dict[two_label]
+                doc_obj['one_label_desc'] = onelabel_desc_dict[doc_obj['one_label']]
+        if two_label_desc == 'None_Desc':
+            doc_obj['two_label_desc'] = twolabel_desc_dict[two_label]
+        raws.append(doc_obj)
+    
+    result_list = []
+    for onelabel in onelabel_list:
+        for temp_two_label in onelabel_has_two_label_dict[onelabel]:
+            new_obj = {}
+            no_onelabel_change_flag = True
+            if temp_two_label in change_twolabel_dict:
+                if onelabel != change_twolabel_dict[temp_two_label]:
+                    no_onelabel_change_flag = False
+                    new_obj['one_label'] = change_twolabel_dict[temp_two_label]
+                    new_obj['one_label_desc'] = onelabel_desc_dict[change_twolabel_dict[temp_two_label]]
+                    new_obj['two_label'] = temp_two_label
+                    new_obj['two_label_desc'] = twolabel_desc_dict[temp_two_label]
+            if no_onelabel_change_flag:
+                new_obj['one_label'] = onelabel
+                new_obj['one_label_desc'] = onelabel_desc_dict[onelabel]
+                new_obj['two_label'] = temp_two_label
+                new_obj['two_label_desc'] = twolabel_desc_dict[temp_two_label]
+            result_list.append(new_obj)
+
+    out_path = os.path.abspath(output_onelabel_file_path)
+    _save_jsonl(raws, out_path)
+
+    input_path = os.path.abspath(input_one_two_label_path)
+    _save_jsonl(result_list, input_path)
+
+@app.tool(output="input_one_two_label_path,input_old_data_file_path,output_onelabel_file_path,output_generate_twolabel_file_path->None")
+async def merge_new_old_data_pro(
+    input_one_two_label_path: str,
+    input_old_data_file_path: str,
+    output_onelabel_file_path: str,
+    output_generate_twolabel_file_path: str
+) -> None:
+
+    labels = _load_jsonl(input_one_two_label_path)
+    update_labels = _load_jsonl(output_generate_twolabel_file_path)
+    documents = _load_jsonl(output_onelabel_file_path)
+    old_documents = _load_jsonl(input_old_data_file_path)
+
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    twolabel_in_onelabel_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+        if label_obj['two_label'] in twolabel_in_onelabel_dict:
+            if label_obj['one_label'] not in twolabel_in_onelabel_dict[label_obj['two_label']]:
+                twolabel_in_onelabel_dict[label_obj['two_label']].append(label_obj['one_label'])
+        else:
+            twolabel_in_onelabel_dict[label_obj['two_label']] = [label_obj['one_label']]
+    
+    change_twolabel_dict = {}
+    for twolabel_temp in twolabel_in_onelabel_dict:
+        change_twolabel_dict[twolabel_temp] = twolabel_in_onelabel_dict[twolabel_temp][0]
+
+    onelabel_twolabel_json_dict = {}
+    onelabel_new_twolabel_dict = {}
+    for update_label_obj in update_labels:
+        if update_label_obj['one_label'] not in onelabel_twolabel_json_dict:
+            onelabel_twolabel_json_dict[update_label_obj['one_label']] = {}
+            onelabel_twolabel_json_dict[update_label_obj['one_label']][update_label_obj['origin_two_label']] = update_label_obj['new_two_label']
+        else:
+            onelabel_twolabel_json_dict[update_label_obj['one_label']][update_label_obj['origin_two_label']] = update_label_obj['new_two_label']
+        if update_label_obj['one_label'] not in onelabel_new_twolabel_dict:
+            onelabel_new_twolabel_dict[update_label_obj['one_label']] = []
+            if update_label_obj['new_two_label'] not in onelabel_new_twolabel_dict[update_label_obj['one_label']]:
+                onelabel_new_twolabel_dict[update_label_obj['one_label']].append(update_label_obj['new_two_label'])
+    
+    raws = []
+    for old_data in old_documents:
+        if old_data['one_label'] in onelabel_new_twolabel_dict:
+            replace_two_label = onelabel_twolabel_json_dict[old_data['one_label']]
+            if old_data['two_label'] in replace_two_label:
+                old_data['two_label'] = replace_two_label[old_data['two_label']]
+                old_data['two_label_desc'] = twolabel_desc_dict[old_data['two_label']]
+            else:
+                label_res = random.choice(onelabel_new_twolabel_dict[old_data['one_label']])
+                old_data['two_label'] = label_res
+                old_data['two_label_desc'] = twolabel_desc_dict[old_data['two_label']]
+        
+        if old_data['two_label'] in change_twolabel_dict:
+            if old_data['one_label'] != change_twolabel_dict[old_data['two_label']]:
+                old_data['one_label'] = change_twolabel_dict[old_data['two_label']]
+                old_data['one_label_desc'] = onelabel_desc_dict[old_data['one_label']]
+
+        raws.append(old_data)
+    raws.extend(documents)
+
+    out_path = os.path.abspath(input_old_data_file_path)
+    _save_jsonl(raws, out_path)
 
 
 if __name__ == "__main__":

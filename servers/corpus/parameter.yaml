@@ -3,6 +3,13 @@ parse_file_path: data/UltraRAG.pdf
 text_corpus_save_path: corpora/text.jsonl
 image_corpus_save_path: corpora/image.jsonl
 
+# label update
+input_file_path: data/label_update/origin_data/part_data.json
+input_one_two_label_path: data/label_update/origin_data/origin_one_two_label.json
+input_old_data_file_path: data/label_update/update_data/update_onelabel_data_old.json
+output_onelabel_file_path: data/label_update/update_data/update_onelabel_data.json
+output_generate_twolabel_file_path: data/label_update/update_data/update_generate_twolabel_data.json
+
 # mineru
 mineru_dir: corpora/
 mineru_extra_params:

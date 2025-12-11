@@ -396,5 +396,53 @@ def evisrag_vqa(
         ret.append(p)
     return ret
 
+
+@app.prompt(output="q_ls,label_len,label_str,lable_classify_template->prompt_ls")
+def onelabel_classify(q_ls: List[str], label_len: str, label_str: str, template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q in q_ls:
+        p = template.render(content=q, label_len=label_len, label_str=label_str)
+        ret.append(p)
+    return ret
+
+@app.prompt(output="q_ls,label_len_list,label_str_list,lable_classify_template->prompt_ls")
+def twolabel_classify(q_ls: List[str], label_len_list: List[str], label_str_list: List[str], template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q_i, q in enumerate(q_ls):
+        p = template.render(content=q, label_len=label_len_list[q_i], label_str=label_str_list[q_i])
+        ret.append(p)
+    return ret
+
+@app.prompt(output="q_ls,onelabel_prompt_list,onelabel_desc_list,lable_new_classify_template->prompt_ls")
+def twolabel_new_classify(q_ls: List[str], onelabel_prompt_list: List[str], onelabel_desc_list: List[str], template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q_i, q in enumerate(q_ls):
+        p = template.render(content=q, one_label=onelabel_prompt_list[q_i], one_label_desc=onelabel_desc_list[q_i])
+        ret.append(p)
+    return ret
+
+@app.prompt(output="tag_len_list,tag_str_list,label_merge_template->prompt_ls")
+def twolabel_merge(tag_len_list: List[str], tag_str_list: List[str], template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    if len(tag_len_list) > 0:
+        for t_i, tag_len in enumerate(tag_len_list):
+            p = template.render(tag_len=tag_len, tag_str=tag_str_list[t_i])
+            ret.append(p)
+    return ret
+
+@app.prompt(output="prompt_twolabel_list,prompt_onelabel_list,prompt_onelabel_desc_list,label_desc_template->prompt_ls")
+def twolabel_desc(prompt_twolabel_list: List[str], prompt_onelabel_list: List[str], prompt_onelabel_desc_list: List[str], template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    if len(prompt_twolabel_list) > 0:
+        for p_i, prompt_twolabel in enumerate(prompt_twolabel_list):
+            p = template.render(prompt_twolabel=prompt_twolabel, prompt_onelabel=prompt_onelabel_list[p_i], onelabel_desc=prompt_onelabel_desc_list[p_i])
+            ret.append(p)
+    return ret
+    
 if __name__ == "__main__":
     app.run(transport="stdio")
