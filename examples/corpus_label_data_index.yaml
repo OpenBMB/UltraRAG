@@ -1,0 +1,10 @@
+# Corpus Label Data Index
+
+# MCP Servers
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.chunk_documents
+
