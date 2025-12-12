@@ -1,0 +1,39 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0066FF"/>
+      <stop offset="100%" stop-color="#00C6FF"/>
+    </linearGradient>
+    
+    <linearGradient id="coverGradient" x1="20" y1="15" x2="44" y2="45" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F0F5FF"/>
+    </linearGradient>
+
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feOffset dx="0" dy="2" result="offsetBlur"/>
+      <feFlood flood-color="#002266" flood-opacity="0.3"/>
+      <feComposite in2="offsetBlur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="64" height="64" rx="16" ry="16" fill="url(#bgGradient)"/>
+
+  <g transform="translate(11, 9)" filter="url(#dropShadow)">
+    <path d="M6 8 L38 8 C40.2 8, 42 9.8, 42 12 L42 40 C42 42.2, 40.2 44, 38 44 L6 44" fill="#DDEEFF"/>
+    
+    <path d="M6 10 L38 10 C39.1 10, 40 10.9, 40 12 L40 38 C40 39.1, 39.1 40, 38 40 L6 40 Z" fill="#FFFFFF"/>
+    <path d="M40 14 L42 14 M40 18 L42 18 M40 22 L42 22 M40 26 L42 26 M40 30 L42 30 M40 34 L42 34" stroke="#C0D0E0" stroke-width="1"/>
+
+    <path d="M6 8 L38 8 C40.2 8, 42 9.8, 42 12 L42 40 C42 42.2, 40.2 44, 38 44 L6 44 C3.8 44, 2 42.2, 2 40 L2 12 C2 9.8, 3.8 8, 6 8 Z" fill="url(#coverGradient)"/>
+    
+    <path d="M6 8 L6 44" stroke="#E0E8F5" stroke-width="1.5"/>
+    
+    <path d="M12 20 L32 20 M12 26 L26 26" stroke="#D0E0F0" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>

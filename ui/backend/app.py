@@ -54,6 +54,10 @@ def create_app() -> Flask:
         LOGGER.error(f"System error: {err}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "details": str(err)}), 500
 
+    @app.route("/favicon.svg")
+    def favicon():
+        return send_from_directory(os.path.join(app.static_folder), "favicon.svg", mimetype="image/svg+xml")
+
     @app.route("/")
     def index():
         return send_from_directory(app.static_folder, "index.html")
