@@ -127,6 +127,8 @@ const els = {
   milvusDialog: document.getElementById("milvus-dialog"),
   idxCollection: document.getElementById("idx-collection"),
   idxMode: document.getElementById("idx-mode"),
+  // [新增] 刷新按钮
+  refreshCollectionsBtn: document.getElementById("refresh-collections-btn"),
   // --- [End] Knowledge Base Elements ---
 };
 
@@ -2092,6 +2094,24 @@ function bindEvents() {
 
     if (els.kbBtn) {
         els.kbBtn.onclick = openKBView; 
+    }
+
+    if (els.refreshCollectionsBtn) {
+        els.refreshCollectionsBtn.onclick = async () => {
+            log("Manually refreshing collections...");
+            
+            // 增加视觉反馈 (可选)
+            els.refreshCollectionsBtn.disabled = true;
+            els.refreshCollectionsBtn.innerHTML = '⟳'; // 用一个旋转图标代替
+
+            try {
+                await refreshKBFiles(); // 调用已包含同步逻辑的刷新函数
+            } finally {
+                // 恢复按钮状态
+                els.refreshCollectionsBtn.disabled = false;
+                els.refreshCollectionsBtn.innerHTML = '↻';
+            }
+        };
     }
 
     if (els.chatBack) {

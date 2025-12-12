@@ -227,15 +227,19 @@
                 
                 <div class="kb-index-section mt-4 pt-3 border-top">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="col-header m-0">Embedding Collections</div>
-                            <span id="db-connection-status" class="badge rounded-pill bg-secondary">Offline</span>
-                            <small class="text-muted ms-2" id="db-uri-display" style="font-size: 0.75rem; font-family: monospace;"></small>
-                        </div>
-                        <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openDbConfigModal()">
-                            Configure DataBase
-                        </button>
-                    </div>
+                      <div class="d-flex align-items-center gap-2">
+                          <div class="col-header m-0">Collections</div>
+                          <span id="db-connection-status" class="badge rounded-pill bg-secondary">Offline</span>
+                          <small class="text-muted ms-2" id="db-uri-display" style="font-size: 0.75rem; font-family: monospace;"></small>
+                      </div>
+                      
+                      <div class="d-flex align-items-center gap-2">
+                          <button class="btn btn-icon" id="refresh-collections-btn" title="Refresh Collections">↻</button>
+                          <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openDbConfigModal()">
+                              Configure DB
+                          </button>
+                      </div>
+                  </div>
                     
                     <div class="index-grid" id="list-indexes">
                         </div>
