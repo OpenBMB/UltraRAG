@@ -667,7 +667,7 @@ def interrupt_chat(session_id: str):
 def load_kb_config() -> Dict[str, Any]:
     default_config = {
         "milvus": {
-            "uri": str(KB_INDEX_DIR / "default.db"),
+            "uri": "tcp://127.0.0.1:19530",
             "token": "",
             "id_field_name": "id",
             "vector_field_name": "vector",

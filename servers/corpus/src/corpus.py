@@ -628,7 +628,7 @@ async def chunk_documents(
 
         for chunk in chunks:
             if use_title:
-                contents = title + "\n" + chunk.text
+                contents = f"Title:\n{title}\n\nContent:\n{chunk.text}"
             else:
                 contents = chunk.text
             meta_chunk = {
