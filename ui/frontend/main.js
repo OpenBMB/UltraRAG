@@ -188,20 +188,84 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
     files.forEach(f => {
         const div = document.createElement('div');
         div.className = 'file-item';
-        // 注意：这里使用了 window.handleKBAction，确保全局可访问
-        div.innerHTML = `
-            <div class="file-name" title="${f.name}">${f.name}</div>
-            <button class="btn-action" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">
-                ${actionLabel}
-            </button>
-        `;
-        // [新增] 添加删除按钮 (用于原始文件)
-        if (f.category !== 'collection') {
-            div.innerHTML += `<button class="btn btn-sm btn-icon text-danger ms-2 p-0" onclick="deleteKBFile('${f.category}', '${f.name}')" title="Delete File">×</button>`;
+        
+        // [新增] 1. 图标判断 (后端需要返回 type: 'folder' | 'file')
+        // 如果后端没返回 type，默认 fallback 到 '📄'
+        const icon = f.type === 'folder' ? '📂' : '📄';
+
+        // [新增] 2. 查看详情按钮 (只有文件夹才显示)
+        let viewBtn = '';
+        if (f.type === 'folder') {
+            // 使用 window.inspectFolder (稍后需要在 main.js 实现这个函数)
+            viewBtn = `<button class="btn btn-sm btn-icon text-secondary me-1" 
+                        onclick="window.inspectFolder('${f.category}', '${f.name}')" 
+                        title="View Contents">👁️</button>`;
         }
+
+        // [保留] 3. 删除按钮逻辑
+        let deleteBtn = '';
+        if (f.category !== 'collection') {
+            deleteBtn = `<button class="btn btn-sm btn-icon text-danger ms-2 p-0" 
+                          onclick="deleteKBFile('${f.category}', '${f.name}')" 
+                          title="Delete">×</button>`;
+        }
+
+        // [布局优化] 使用 Flex 分隔左右
+        div.innerHTML = `
+            <div class="d-flex align-items-center flex-grow-1 overflow-hidden me-2">
+                <span class="me-2" style="font-size: 1.1em; opacity: 0.8;">${icon}</span>
+                <div class="file-name text-truncate" title="${f.name}">${f.name}</div>
+                ${f.type === 'folder' && f.file_count ? `<span class="badge bg-light text-secondary border ms-2" style="font-size:0.65rem">${f.file_count} files</span>` : ''}
+            </div>
+            
+            <div class="d-flex align-items-center flex-shrink-0">
+                ${viewBtn}
+                <button class="btn-action" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">
+                    ${actionLabel}
+                </button>
+                ${deleteBtn}
+            </div>
+        `;
+        
         container.appendChild(div);
     });
 }
+
+// 2. 新增查看函数 (挂载到 window)
+window.inspectFolder = async function(category, folderName) {
+    const modal = document.getElementById('folder-detail-modal');
+    const listContainer = document.getElementById('folder-detail-list');
+    const title = document.getElementById('folder-detail-title');
+    
+    // 设置标题
+    if (title) title.textContent = folderName;
+    
+    // 显示 Loading
+    if (listContainer) listContainer.innerHTML = '<div class="text-center text-muted p-3">Loading...</div>';
+    
+    // 打开弹窗
+    if (modal) modal.showModal();
+
+    try {
+        const res = await fetch(`/api/kb/files/inspect?category=${category}&name=${encodeURIComponent(folderName)}`);
+        
+        const data = await res.json();
+
+        if (data.files && data.files.length > 0) {
+            listContainer.innerHTML = data.files.map(f => `
+                <div class="folder-file-row">
+                    <span>📄 ${f.name}</span>
+                    <span class="text-muted">${(f.size/1024).toFixed(1)} KB</span>
+                </div>
+            `).join('');
+        } else {
+            listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty Folder</div>';
+        }
+    } catch (e) {
+        if (listContainer) listContainer.innerHTML = `<div class="text-danger small p-2">Error: ${e.message}</div>`;
+        console.error(e);
+    }
+};
 
 // 3. 渲染 Collection 列表 (新增)
 function renderCollectionList(container, collections) {
@@ -340,7 +404,9 @@ window.handleFileUpload = async function(input) {
     if (!input.files.length) return;
     const file = input.files[0];
     const formData = new FormData();
-    formData.append('file', file);
+    for (let i = 0; i < input.files.length; i++) {
+        formData.append('file', input.files[i]);
+    }
 
     updateKBStatus(true, 'Uploading...');
     try {

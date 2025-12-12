@@ -723,14 +723,29 @@ def _get_milvus_client():
 
 def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
     def _scan_files(d: Path, category: str):
-        return [
-            {
-                "name": f.name, "path": _as_project_relative(f), 
-                "size": f.stat().st_size, "mtime": f.stat().st_mtime, 
-                "category": category
-            }
-            for f in sorted(d.glob("*")) if f.is_file() and not f.name.startswith(".")
-        ]
+        items = []
+        if not d.exists(): return items
+        
+        for f in sorted(d.glob("*")):
+            if f.name.startswith("."): continue
+
+            is_dir = f.is_dir()
+            
+            size = 0
+            if is_dir:
+                size = sum(p.stat().st_size for p in f.rglob('*') if p.is_file())
+            else:
+                size = f.stat().st_size
+
+            items.append({
+                "name": f.name, 
+                "path": _as_project_relative(f), 
+                "size": size,
+                "mtime": f.stat().st_mtime,
+                "category": category,
+                "type": "folder" if is_dir else "file" 
+            })
+        return items
     
     collections = []
     db_status = "unknown"
@@ -760,17 +775,59 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         "db_config": load_kb_config() 
     }
 
-def upload_kb_file(file_obj) -> Dict[str, Any]:
-    from werkzeug.utils import secure_filename
-    filename = secure_filename(file_obj.filename)
-    save_path = KB_RAW_DIR / filename
-    file_obj.save(save_path)
-    LOGGER.info(f"File uploaded: {save_path}")
-    return {
-        "name": filename,
-        "path": _as_project_relative(save_path),
-        "size": save_path.stat().st_size
-    }
+def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
+    import uuid
+    import shutil
+    from datetime import datetime
+
+    if not file_objs:
+        return {"error": "No files provided"}
+
+    session_id = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{str(uuid.uuid4())[:8]}"
+    session_dir = KB_RAW_DIR / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    saved_files = []
+    total_size = 0
+
+    try:
+        for file_obj in file_objs:
+
+            from werkzeug.utils import secure_filename
+            original_name = file_obj.filename
+            safe_name = secure_filename(original_name) 
+            if not safe_name: 
+                safe_name = f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
+          
+            save_path = session_dir / safe_name
+            
+            counter = 1
+            while save_path.exists():
+                stem = Path(safe_name).stem
+                suffix = Path(safe_name).suffix
+                save_path = session_dir / f"{stem}_{counter}{suffix}"
+                counter += 1
+
+            file_obj.save(save_path)
+            
+            saved_files.append(safe_name)
+            total_size += save_path.stat().st_size
+
+        LOGGER.info(f"Created upload session: {session_dir} with {len(saved_files)} files.")
+
+        return {
+            "name": session_id,  
+            "path": _as_project_relative(session_dir), 
+            "size": total_size,
+            "type": "folder",    
+            "file_count": len(saved_files),
+            "mtime": session_dir.stat().st_mtime
+        }
+
+    except Exception as e:
+        if session_dir.exists():
+            shutil.rmtree(session_dir)
+        raise e
 
 def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
     if category == "collection" or category == "index":

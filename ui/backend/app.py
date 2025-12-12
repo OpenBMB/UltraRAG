@@ -185,17 +185,44 @@ def create_app() -> Flask:
     def list_kb_files():
         return jsonify(pm.list_kb_files())
 
+    @app.route("/api/kb/files/inspect", methods=["GET"])
+    def inspect_kb_folder():
+        category = request.args.get("category", "raw") #
+        folder_name = request.args.get("name")
+        
+        if not folder_name:
+            return jsonify({"error": "Folder name required"}), 400
+            
+        base_dir = {
+            "raw": pm.KB_RAW_DIR,
+            "corpus": pm.KB_CORPUS_DIR, 
+            "chunks": pm.KB_CHUNKS_DIR
+        }.get(category)
+        
+        target_path = base_dir / folder_name
+        
+        if not target_path.exists() or not target_path.is_dir():
+            return jsonify({"error": "Folder not found"}), 404
+            
+        files = []
+        for f in sorted(target_path.glob("*")):
+            if f.is_file() and not f.name.startswith("."):
+                files.append({
+                    "name": f.name,
+                    "size": f.stat().st_size
+                })
+                
+        return jsonify({"files": files})
+
     @app.route("/api/kb/upload", methods=["POST"])
     def upload_kb_file():
-        if 'file' not in request.files:
-            return jsonify({"error": "No file part"}), 400
+        files = request.files.getlist('file') 
         
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
+        if not files or files[0].filename == '':
+            return jsonify({"error": "No selected files"}), 400
             
         try:
-            result = pm.upload_kb_file(file)
+            result = pm.upload_kb_files_batch(files)
             return jsonify(result)
         except Exception as e:
             LOGGER.error(f"Upload failed: {e}")

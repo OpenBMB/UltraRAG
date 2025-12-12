@@ -898,28 +898,39 @@ body {
   background-color: #fff;
 }
 
+/* =========================================
+   Knowledge Base (KB) Manager Styles
+   ========================================= */
 
 /* 知识库主视图容器 (复用 chat-main 的大部分属性) */
 .kb-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  position: relative;
-  background: #fff;
-  min-width: 0;
   height: 100%;
-  overflow: hidden;
-  background-color: #fcfcfc; /* 稍微给点背景色区分 */
+  overflow: hidden; /* 关键：防止双重滚动条 */
+  background-color: #fcfcfc;
+}
+
+.kb-wrapper {
+  flex: 1;
+  display: flex;        /* 关键：启用 Flex */
+  flex-direction: column;
+  min-height: 0;        /* 关键：允许子元素小于内容高度 (防止 Flex 溢出) */
+  padding: 1.5rem;      /* 保持你的 Padding */
+  overflow: hidden;     /* 自身不滚动 */
 }
 
 .kb-container {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: auto;     /* 开启垂直滚动 */
+  overflow-x: hidden;
+  padding-right: 5px;   /* 防止滚动条盖住内容 */
+  
+  /* 优化滚动体验 */
+  scroll-behavior: smooth;
 }
 
-/* =========================================
-   Knowledge Base (KB) Manager Styles
-   ========================================= */
 
 /* 1. 主卡片容器 */
 .apple-card {
@@ -929,8 +940,11 @@ body {
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   max-width: 1100px;
-  margin: 20px auto;
-  height: calc(100% - 40px); /* 适应高度 */
+  margin: 0 auto;       /* 移除上下 margin，防止滚动条顶部有空隙 */
+  
+  /* [核心修复] 解锁高度，让它被垂直布局的内容撑开 */
+  height: auto !important; 
+  min-height: auto !important;
   display: flex;
   flex-direction: column;
 }
@@ -947,27 +961,38 @@ body {
 /* 2. 三栏布局 */
 .kb-columns {
   display: flex;
-  gap: 16px;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0; /* 防止溢出 */
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px; /* 底部留白 */
+  
+  /* 移除任何可能限制高度的属性 */
+  flex: none; 
+  height: auto;
+  overflow: visible;
 }
 
 .kb-col {
-  flex: 1;
-  background: #f8fafc; /* 浅灰色背景 */
+  width: 100%; /* [修改] 占满全宽 */
+  background: #f8fafc;
   border-radius: 12px;
-  padding: 12px;
+  padding: 16px;
   border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
+  
+  /* [关键] 限制每一层的高度，防止某一层撑爆屏幕，同时也让长列表可滚动 */
+  min-height: 140px; 
+  max-height: 350px; 
+  flex-shrink: 0; /* 防止被挤压变形 */
 }
 
 .col-header {
   font-size: 0.75rem;
   text-transform: uppercase;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0; /* [修改] 增加下划线区分 Header 和列表 */
   font-weight: 700;
   letter-spacing: 0.05em;
   padding-left: 4px;
@@ -976,7 +1001,8 @@ body {
 .col-list {
   flex: 1;
   overflow-y: auto;
-  padding-right: 4px; /* 给滚动条留点位置 */
+  padding-right: 6px;
+  margin-top: 8px;
 }
 
 /* 3. 箭头分隔符 */
@@ -987,7 +1013,8 @@ body {
   color: #cbd5e1;
   font-weight: bold;
   font-size: 1.2rem;
-  padding-top: 20px; /* 视觉上稍微下沉一点对齐内容 */
+  height: 24px; /* 限制高度 */
+  margin: -4px 0; /* 拉近上下间距 */
 }
 
 /* 4. 文件列表项 */
@@ -1013,11 +1040,11 @@ body {
 }
 
 .file-name {
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 140px; /* 限制文件名宽度 */
-  font-weight: 500;
+  max-width: none; /* [确认] 取消宽度限制 */
+  flex-grow: 1;    /* [新增] 自动占据剩余空间 */
 }
 
 /* 列表项中的操作按钮 */
@@ -1164,3 +1191,12 @@ body {
     font-family: var(--font-mono);
     color: var(--text-primary);
 }
+
+.folder-file-row {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+}
+.folder-file-row:last-child { border-bottom: none; }
