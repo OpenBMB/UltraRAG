@@ -663,19 +663,7 @@ def interrupt_chat(session_id: str):
         return {"status": "interrupted", "active_task_cancelled": success}
     return {"status": "session_not_found"}
 
-# Knowledge Base Management
-def load_kb_config() -> Dict[str, str]:
-    default_config = {
-        "uri": str(KB_INDEX_DIR / "default.db"), 
-        "token": ""
-    }
-    if not KB_CONFIG_PATH.exists():
-        return default_config
-    try:
-        return json.loads(KB_CONFIG_PATH.read_text(encoding="utf-8"))
-    except Exception:
-        return default_config
-    
+# Knowledge Base Management   
 def load_kb_config() -> Dict[str, Any]:
     default_config = {
         "milvus": {
