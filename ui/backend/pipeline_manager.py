@@ -14,6 +14,9 @@ from types import ModuleType
 import yaml
 import ast
 import os
+import uuid
+import shutil
+from datetime import datetime
 
 try:
     from pymilvus import MilvusClient
@@ -776,9 +779,6 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
     }
 
 def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
-    import uuid
-    import shutil
-    from datetime import datetime
 
     if not file_objs:
         return {"error": "No files provided"}
@@ -830,24 +830,54 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
         raise e
 
 def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
-    if category == "collection" or category == "index":
-        try:
-            client = _get_milvus_client()
-            if client.has_collection(filename):
-                client.drop_collection(filename)
-            client.close()
-            LOGGER.info(f"Collection dropped: {filename}")
-            return {"status": "dropped"}
-        except Exception as e:
-            raise PipelineManagerError(f"Failed to drop collection: {e}")
-
-    target_dir = {"raw": KB_RAW_DIR, "corpus": KB_CORPUS_DIR, "chunks": KB_CHUNKS_DIR}.get(category)
-    if target_dir:
-        file_path = target_dir / Path(filename).name
-        if file_path.exists(): file_path.unlink()
-        return {"status": "deleted"}
+    base_dir = None
+    if category == "raw":
+        base_dir = KB_RAW_DIR
+    elif category == "corpus":
+        base_dir = KB_CORPUS_DIR
+    elif category == "chunks":
+        base_dir = KB_CHUNKS_DIR
+    elif category == "collection":
+        return _delete_milvus_collection(filename)
+    elif category == "index":
+        return _delete_milvus_collection(filename)
+        
+    if not base_dir:
+        raise ValueError("Invalid category")
     
-    raise PipelineManagerError("Invalid category")
+    target_path = base_dir / filename
+    
+    if not str(target_path.resolve()).startswith(str(base_dir.resolve())):
+         raise ValueError("Invalid filename path")
+
+    if not target_path.exists():
+        raise FileNotFoundError(f"File or directory not found: {filename}")
+
+    try:
+        if target_path.is_dir():
+            shutil.rmtree(target_path)
+            LOGGER.info(f"Deleted folder: {target_path}")
+        else:
+            target_path.unlink()
+            LOGGER.info(f"Deleted file: {target_path}")
+            
+        return {"status": "deleted", "file": filename}
+        
+    except Exception as e:
+        LOGGER.error(f"Failed to delete {filename}: {e}")
+        raise e
+
+def _delete_milvus_collection(name: str):
+    try:
+        client = _get_milvus_client() 
+        if client.has_collection(name):
+            client.drop_collection(name)
+            LOGGER.info(f"Dropped collection: {name}")
+        client.close()
+        return {"status": "deleted", "collection": name}
+    except Exception as e:
+        LOGGER.error(f"Failed to drop collection {name}: {e}")
+        raise e
 
 def run_kb_pipeline_tool(
     pipeline_name: str, 
