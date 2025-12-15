@@ -813,7 +813,7 @@ async function renderChatCollectionOptions() {
         const data = await fetchJSON('/api/kb/files');
         const collections = data.index || []; // data.index 存放的是 collection 列表
         
-        els.chatCollectionSelect.innerHTML = '<option value="">⚪ No Knowledge Base</option>';
+        els.chatCollectionSelect.innerHTML = '<option value="">No Knowledge Base</option>';
         
         collections.forEach(c => {
             const opt = document.createElement("option");
@@ -1156,7 +1156,7 @@ function renderChatHistory() {
     if (!els.chatHistory) return;
     els.chatHistory.innerHTML = "";
     if (state.chat.history.length === 0) { 
-        els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Ready.</p></div>'; 
+        els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Hi! Where should we start?</p></div>'; 
         return; 
     }
     state.chat.history.forEach((entry) => {
@@ -1349,7 +1349,7 @@ function renderSources(bubble, sources, isAppend = false) {
         // 第一次创建容器
         refContainer = document.createElement("div");
         refContainer.className = "reference-container";
-        refContainer.innerHTML = `<div class="ref-header">📚 References</div>`;
+        refContainer.innerHTML = `<div class="ref-header">References</div>`;
         list = document.createElement("div");
         list.className = "ref-list";
         refContainer.appendChild(list);

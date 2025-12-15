@@ -112,12 +112,35 @@ body {
 /* Parameter Form Grid */
 .parameter-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
+  /* [核心修改] 使用 auto-fit + minmax 代替固定的 1fr 1fr */
+  /* 意思是：每列至少 350px，空间不够就自动换行变成一列，空间够就平分 */
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  width: 100%;
 }
-@media (min-width: 992px) {
-  .parameter-grid { grid-template-columns: 1fr 1fr; }
-  .parameter-grid .full-width { grid-column: span 2; }
+
+/* 针对参数名 label 的样式 */
+.parameter-grid label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+  
+  /* [核心修改] 强制长单词换行，防止撑开容器 */
+  word-break: break-all; 
+  white-space: normal;
+}
+
+/* 针对输入框的容器 */
+.parameter-grid .form-control {
+  width: 100%; /* 确保输入框不超出格子 */
+}
+
+/* 如果你的参数项是包裹在一个 div 里的，确保它也有样式 */
+.param-item {
+  min-width: 0; /* [关键] Grid 子项需要这个属性来允许内容压缩 */
 }
 
 /* Styled Form Groups */
@@ -320,36 +343,42 @@ body {
   transition: margin-left 0.3s ease;
 }
 
-.sidebar-header { padding: 1.2rem; }
+.sidebar-header {
+  padding: 1.2rem 0.8rem; 
+}
 
+/* 修改后：透明、无边框 (Clean Style) */
 .btn-new-chat {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #fff;
-  border: 1px solid var(--border-subtle);
-  border-radius: 99px; /* Pill shape */
-  padding: 0.6rem 1rem;
+  
+  /* [核心修改] 去掉背景和边框，使其融入侧边栏 */
+  background: transparent; 
+  border: 1px solid transparent; 
+  
+  border-radius: 8px; /* 改小圆角，或者保持 99px 也可以，看你喜好，推荐 8px 更像菜单项 */
+  padding: 0.6rem 0.8rem;
   font-size: 0.9rem;
   color: var(--text-primary);
   transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  /* [新增] 确保文字左对齐 */
+  box-shadow: none; /* 去掉阴影 */
   justify-content: flex-start; 
 }
 
+/* [修改] 悬停效果：只在鼠标放上去时显示浅灰色背景 */
 .btn-new-chat:hover {
-  background: #f0f0f0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05); /* 淡淡的灰色 */
+  border-color: transparent;
+  box-shadow: none;
 }
 
-/* [新增] 激活状态 (用于知识库按钮选中时) */
+/* [保持] 激活状态 (Knowledge Base 被选中时) */
 .btn-new-chat.active {
-  background: #e0e7ff;       /* 浅蓝色背景 */
-  color: var(--accent-blue); /* 深蓝色文字 */
-  border-color: var(--accent-blue);
-  box-shadow: none;
+  background: #e0e7ff;       
+  color: var(--accent-blue); 
+  border-color: transparent; /* 去掉边框 */
   font-weight: 600;
 }
 
@@ -639,17 +668,7 @@ body {
   font-family: 'JetBrains Mono', monospace; 
 }
 
-/* [新增] 正在生成时的光标动画 (Typewriter Cursor) */
-.step-content-stream::after {
-  content: "▋";
-  display: inline-block;
-  vertical-align: bottom;
-  animation: blink 1s step-start infinite;
-  color: var(--accent-blue);
-  margin-left: 2px;
-  font-size: 0.8rem;
-}
-@keyframes blink { 50% { opacity: 0; } }
+
 
 .step-details {
   margin-top: 0.4rem;
