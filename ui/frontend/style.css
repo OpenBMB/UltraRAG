@@ -1334,3 +1334,22 @@ body {
     justify-content: center; /* 移动端居中排列建议 */
   }
 }
+
+/* =========================================
+   Hide Scrollbar for Chat History
+   ========================================= */
+
+#chat-history {
+  /* Firefox */
+  scrollbar-width: none;
+  
+  /* IE 10+ */
+  -ms-overflow-style: none;  
+}
+
+/* Chrome, Safari, Edge */
+#chat-history::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
