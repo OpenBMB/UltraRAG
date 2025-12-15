@@ -1155,8 +1155,37 @@ function formatCitationHtml(html) {
 function renderChatHistory() {
     if (!els.chatHistory) return;
     els.chatHistory.innerHTML = "";
+    // [核心修改] 仿 Gemini 空白欢迎页
     if (state.chat.history.length === 0) { 
-        els.chatHistory.innerHTML = '<div class="text-center mt-5 pt-5 text-muted small"><p>Hi! Where should we start?</p></div>'; 
+        els.chatHistory.innerHTML = `
+            <div class="empty-state-wrapper fade-in-up">
+                <div class="greeting-section">
+                    <div class="greeting-text">
+                        <span class="greeting-gradient">Hi there</span>
+                    </div>
+                    <h1 class="greeting-title">Where should we start?</h1>
+                </div>
+                
+                <div class="suggestion-chips">
+                    <button class="chip-btn" onclick="setQuickPrompt('Summarize this document')">
+                        <span class="chip-icon">📝</span>
+                        <span>Research</span>
+                    </button>
+                    <button class="chip-btn" onclick="setQuickPrompt('Write a Python script for RAG')">
+                        <span class="chip-icon">💻</span>
+                        <span>Write Code</span>
+                    </button>
+                    <button class="chip-btn" onclick="setQuickPrompt('Explain quantum computing')">
+                        <span class="chip-icon">💡</span>
+                        <span>Learn Concept</span>
+                    </button>
+                    <button class="chip-btn" onclick="setQuickPrompt('Brainstorm marketing ideas')">
+                        <span class="chip-icon">🤯</span>
+                        <span>Brainstorm</span>
+                    </button>
+                </div>
+            </div>
+        `;
         return; 
     }
     state.chat.history.forEach((entry) => {
@@ -1197,6 +1226,16 @@ function renderChatHistory() {
     });
     els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
 }
+
+// [新增] 快速填入提示词的辅助函数 (加在 main.js 任意位置)
+window.setQuickPrompt = function(text) {
+    if (els.chatInput) {
+        els.chatInput.value = text;
+        els.chatInput.focus();
+        // 可选：如果想点击直接发送，取消下面这行的注释
+        // els.chatSend.click();
+    }
+};
 
 function setChatStatus(message, variant = "info") {
   if (!els.chatStatus) return;

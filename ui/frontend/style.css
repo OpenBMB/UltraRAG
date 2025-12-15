@@ -1241,3 +1241,96 @@ body {
   border-color: var(--accent-blue);
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
+
+/* =========================================
+   Gemini-style Empty State
+   ========================================= */
+
+/* 1. 容器布局：垂直居中，稍微偏上一点 */
+.empty-state-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; /* 关键：水平居中 */
+  height: 100%;
+  padding-bottom: 100px; /* 视觉重心上移 */
+  gap: 40px;
+}
+
+/* 2. 问候语区域 */
+.greeting-section {
+  text-align: left; /* 保持左对齐或居中看你喜好，Gemini 主要是左对齐，但居中更适合你的布局 */
+  width: 100%;
+  max-width: 800px;
+  padding: 0 1rem;
+}
+
+/* 渐变文字 "Hello, Human" */
+.greeting-gradient {
+  font-size: 3rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4285f4, #d96570, #9b72cb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+/* 大标题 "Where should we start?" */
+.greeting-title {
+  font-size: 3rem;
+  font-weight: 600;
+  color: #c4c7c5; /* 这种浅灰色是精髓 */
+  margin: 0;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* 3. 建议胶囊 (Chips) 容器 */
+.suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 800px;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* 胶囊按钮本体 */
+.chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0f4f9; /* 极浅的蓝灰色背景 */
+  border: none;
+  border-radius: 16px; /* 稍微大一点的圆角 */
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: #1f1f1f;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+
+.chip-btn:hover {
+  background: #e2e7eb; /* 悬停加深 */
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.chip-icon {
+  font-size: 1.1rem;
+  filter: grayscale(0.2);
+}
+
+/* 移动端适配：字体改小 */
+@media (max-width: 768px) {
+  .greeting-gradient, .greeting-title {
+    font-size: 2.2rem;
+  }
+  .suggestion-chips {
+    justify-content: center; /* 移动端居中排列建议 */
+  }
+}
