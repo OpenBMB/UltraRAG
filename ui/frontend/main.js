@@ -1562,6 +1562,22 @@ async function handleChatSubmit(event) {
     state.chat.history.push({ role: "assistant", text: "", meta: {} });
     
     const chatContainer = document.getElementById("chat-history");
+
+    // [核心优化] 定义一个标志位：默认为 true (一开始就自动跟随)
+    let shouldAutoScroll = true;
+
+    // [核心优化] 监听用户的滚动行为
+    // 只要用户一旦发生滚动，就立即计算：我现在是不是在底部？
+    // 如果不在底部，shouldAutoScroll 就会变成 false，生成循环就不会再打扰用户了。
+    const handleScroll = () => {
+        const threshold = 30; // 只要距离底部超过 30px，就认为用户在“往上看”
+        const distance = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+        shouldAutoScroll = distance <= threshold;
+    };
+    
+    // 绑定监听
+    chatContainer.addEventListener('scroll', handleScroll);
+
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble assistant";
     const contentDiv = document.createElement("div");
@@ -1618,7 +1634,11 @@ async function handleChatSubmit(event) {
                 
                 // 渲染 (true 表示追加到列表末尾)
                 renderSources(bubble, remappedDocs, true);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                // [修改] 只有当标志位允许时，才滚动
+                 if (shouldAutoScroll) {
+                     chatContainer.scrollTop = chatContainer.scrollHeight;
+                 }
             } 
             // [修改] 处理 Token：应用偏移高亮
             else if (data.type === "token") {
@@ -1635,7 +1655,10 @@ async function handleChatSubmit(event) {
                     html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                     
                     contentDiv.innerHTML = html;
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    // [修改] 只有当标志位允许时，才滚动
+                    if (shouldAutoScroll) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
                 }
             } 
             else if (data.type === "final") {
@@ -1646,6 +1669,10 @@ async function handleChatSubmit(event) {
                 // 最终定格也应用偏移
                 html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                 contentDiv.innerHTML = html;
+                // [新增] 最终渲染完后，如果原本就在底部，也要自动滚到底
+                if (shouldAutoScroll) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
                 state.chat.history[entryIndex].text = finalText;
 
                 // ================= [新增] 引用筛选逻辑 =================
