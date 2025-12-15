@@ -77,6 +77,7 @@ const els = {
   chatNewBtn: document.getElementById("chat-new-btn"),
   chatSessionList: document.getElementById("chat-session-list"),
   demoToggleBtn: document.getElementById("demo-toggle-btn"), // 引擎开关
+  chatCollectionSelect: document.getElementById("chat-collection-select"),
 
   // [新增] 视图容器
   chatMainView: document.getElementById("chat-main-view"),
@@ -800,6 +801,41 @@ function updateDemoControls() {
 
 // --- Chat Logic (Updated with Streaming) ---
 
+// [新增] 渲染聊天界面的 Collection 下拉选项
+async function renderChatCollectionOptions() {
+    if (!els.chatCollectionSelect) return;
+    
+    // 保存当前选中的值，以免刷新后重置
+    const currentVal = els.chatCollectionSelect.value;
+    
+    try {
+        // 复用后端的列表接口
+        const data = await fetchJSON('/api/kb/files');
+        const collections = data.index || []; // data.index 存放的是 collection 列表
+        
+        els.chatCollectionSelect.innerHTML = '<option value="">⚪ No Knowledge Base</option>';
+        
+        collections.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.name;
+            // 显示名字和数据量
+            opt.textContent = `${c.name} (${c.count || 0})`;
+            els.chatCollectionSelect.appendChild(opt);
+        });
+        
+        // 尝试恢复选中状态
+        if (currentVal) {
+            // 检查新列表里是否还有这个值
+            const exists = collections.find(c => c.name === currentVal);
+            if (exists) els.chatCollectionSelect.value = currentVal;
+        }
+        
+    } catch (e) {
+        console.error("Failed to load collections for chat:", e);
+        // 出错时不覆盖默认选项，或者显示错误
+    }
+}
+
 // [新增] 切换到知识库视图
 function openKBView() {
     if (!els.chatMainView || !els.kbMainView) return;
@@ -1211,6 +1247,9 @@ function openChatView() {
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
 
   renderChatPipelineMenu();
+
+  // [新增] 进入聊天时，加载最新的 Collection 列表
+  renderChatCollectionOptions();
   
   if (!state.chat.currentSessionId) createNewChatSession();
   
@@ -1456,10 +1495,21 @@ async function handleChatSubmit(event) {
 
   try {
     if (!state.parametersReady) await persistParameterData({ silent: true });
+
+    const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : "";
+    
+    const dynamicParams = {};
+    if (selectedCollection) {
+        dynamicParams["collection_name"] = selectedCollection;
+    }
+
     const endpoint = `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat`;
     const body = JSON.stringify({ 
-        question, history: state.chat.history, is_demo: true, 
-        session_id: state.chat.engineSessionId, dynamic_params: {} 
+        question, 
+        history: state.chat.history, 
+        is_demo: true, 
+        session_id: state.chat.engineSessionId, 
+        dynamic_params: dynamicParams
     });
     
     const response = await fetch(endpoint, {

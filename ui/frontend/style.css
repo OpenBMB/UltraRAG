@@ -1200,3 +1200,25 @@ body {
     justify-content: space-between;
 }
 .folder-file-row:last-child { border-bottom: none; }
+
+/* Chat Context Selector */
+#chat-collection-select {
+  border-color: var(--border-subtle);
+  cursor: pointer;
+  padding-left: 12px;
+  padding-right: 32px; /* 留出箭头空间 */
+  font-weight: 500;
+  color: var(--text-primary);
+  box-shadow: none;
+  transition: all 0.2s;
+}
+
+#chat-collection-select:hover {
+  background-color: #fff;
+  border-color: var(--accent-blue);
+}
+
+#chat-collection-select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}

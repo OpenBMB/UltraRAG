@@ -145,6 +145,31 @@ def create_app() -> Flask:
         session_id = payload.get("session_id")
         dynamic_params = payload.get("dynamic_params", {})
 
+        selected_collection = dynamic_params.get("collection_name")
+
+        try:
+            kb_config = pm.load_kb_config()
+            milvus_global_config = kb_config.get("milvus", {})
+            
+            retriever_params = {
+                "index_backend": "milvus", 
+                "index_backend_configs": {
+                    "milvus": milvus_global_config 
+                }
+            }
+            
+            if selected_collection:
+                retriever_params["collection_name"] = selected_collection
+                print(f"debug: Chat using collection override: {selected_collection}")
+            
+            dynamic_params["retriever"] = retriever_params
+            
+            if "collection_name" in dynamic_params:
+                del dynamic_params["collection_name"]
+                
+        except Exception as e:
+            print(f"Warning: Failed to construct retriever config: {e}")
+
         if not session_id:
             return jsonify({"error": "session_id missing. Please start engine first."}), 400
         
