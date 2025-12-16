@@ -1381,6 +1381,38 @@ async function stopGeneration() {
     appendChatMessage("system", "Generation interrupted.");
 }
 
+// [新增] 辅助函数：清洗 PDF 提取文本中的脏格式
+function cleanPDFText(text) {
+    if (!text) return "";
+
+    let clean = text;
+
+    // 1. 统一换行符
+    clean = clean.replace(/\r\n/g, '\n');
+
+    // 2. 修复单词断行 (Hyphenation)
+    // 例如: "communi-\ncation" -> "communication"
+    // 逻辑: 字母 + 连字符 + 换行 + 字母 -> 直接合并
+    clean = clean.replace(/([a-zA-Z])-\n([a-zA-Z])/g, '$1$2');
+
+    // 3. 智能合并硬换行 (Unwrap Lines)
+    // PDF 解析出来的文本通常每一行都有 \n，我们需要把它们合并成一个段落
+    // 策略：
+    // a. 先把真正的段落 (\n\n) 保护起来，替换成一个特殊占位符
+    clean = clean.replace(/\n\s*\n/g, '___PARAGRAPH_BREAK___');
+    
+    // b. 把剩下的单个 \n (通常是 PDF 的硬换行) 替换成空格
+    clean = clean.replace(/\n/g, ' ');
+    
+    // c. 把多余的空格合并 (多个空格变一个)
+    clean = clean.replace(/  +/g, ' ');
+
+    // d. 把特殊占位符还原为 Markdown 的标准段落换行 (\n\n)
+    clean = clean.replace(/___PARAGRAPH_BREAK___/g, '\n\n');
+
+    return clean;
+}
+
 // [新增] 打开右侧详情栏
 function showSourceDetail(title, content) {
     const panel = document.getElementById("source-detail-panel");
@@ -1390,8 +1422,20 @@ function showSourceDetail(title, content) {
     if (panel && contentDiv) {
         // 填充内容
         titleDiv.textContent = title || "Reference";
-        // 简单的文本处理，也可以用 renderMarkdown 渲染
-        contentDiv.innerText = content || "No content available."; 
+
+        // 2. 清洗文本 (处理 PDF 乱码)
+        const rawText = content || "No content available.";
+        const cleanedText = cleanPDFText(rawText);
+
+        if (typeof renderMarkdown === 'function') {
+            contentDiv.innerHTML = renderMarkdown(cleanedText);
+        } else {
+            // 降级处理：直接显示清洗后的纯文本，也比之前好读很多
+            contentDiv.innerText = cleanedText;
+        }
+
+        // 4. 滚动回顶部 (防止上次看到底部，这次打开还在底部)
+        contentDiv.scrollTop = 0;
         
         // 展开面板
         panel.classList.add("show");

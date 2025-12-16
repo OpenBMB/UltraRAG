@@ -826,60 +826,134 @@ body {
 
 
 
-/* --- 右侧详情栏样式 --- */
+/* =========================================
+   Detail Sidebar (Reader Mode)
+   ========================================= */
 
 .chat-detail-sidebar {
   width: 0; /* 默认收起 */
-  background-color: #fff;
+  background-color: #ffffff;
   border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   flex-shrink: 0;
+  
+  /* [修改] 增加更明显的阴影，营造悬浮层级感 */
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  z-index: 100; /* 确保在最上层 */
 }
 
 /* 展开状态 */
 .chat-detail-sidebar.show {
-  width: 400px; /* 展开宽度 */
-  box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+  width: 450px; /* [修改] 稍微加宽一点，阅读体验更好 */
 }
 
 .detail-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 1.2rem 1.5rem; /* [修改] 增加头部高度 */
+  border-bottom: 1px solid #f3f4f6; /* 更淡的分割线 */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f9f9fa;
+  background: #ffffff; /* [修改] 纯白背景更干净 */
 }
 
 .detail-title {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
+  /* 限制标题行数 */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* --- 内容区域 (核心阅读优化) --- */
 .detail-content {
-  padding: 1.5rem;
-  overflow-y: auto;
   flex: 1;
-  font-size: 0.92rem; /* 稍微大一点 */
-  line-height: 1.7;
-  color: #1f2937; /* 更深的颜色 */
-  white-space: pre-wrap; 
-  font-family: var(--font-sans); /* 使用无衬线字体阅读更舒适 */
+  overflow-y: auto;
+  padding: 2rem 2.5rem; /* [修改] 像 A4 纸一样的宽敞留白 */
+  
+  /* [关键修改] 去掉 pre-wrap，让 HTML 标签控制排版 */
+  white-space: normal; 
+  word-wrap: break-word;
+  
+  /* 字体优化 */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1rem;      /* 字号加大 */
+  line-height: 1.75;    /* 行高加大，呼吸感 */
+  color: #374151;       /* 深灰字色，对比度适中 */
+  background-color: #fff;
 }
 
+/* --- Markdown 元素样式 (新增) --- */
+/* 因为现在我们渲染 HTML 了，必须给标签加样式 */
+
+.detail-content p {
+  margin-bottom: 1.5em; /* 段落间距 */
+  text-align: left;     /* 保持左对齐，阅读更轻松 */
+}
+
+.detail-content h1, 
+.detail-content h2, 
+.detail-content h3 {
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  color: #111827; /* 标题用纯黑 */
+  line-height: 1.3;
+}
+
+.detail-content ul, 
+.detail-content ol {
+  margin-bottom: 1.5em;
+  padding-left: 1.5em;
+  color: #4b5563;
+}
+
+.detail-content li {
+  margin-bottom: 0.5em;
+}
+
+.detail-content strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 引用块优化 */
+.detail-content blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  color: #6b7280;
+  font-style: italic;
+  background: #f9fafb; /* 淡淡的背景 */
+  padding: 1rem;
+  border-radius: 0 8px 8px 0;
+}
+
+/* 代码块优化 */
 .detail-content pre {
-  background: #f8fafc;
+  background: #1e1e1e; /* 深色背景代码块，对比明显 */
+  color: #e5e5e5;
   padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #e2e8f0; /* 增加边框 */
   overflow-x: auto;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
+  margin-bottom: 1.5em;
+}
+
+.detail-content code {
+  font-family: 'JetBrains Mono', monospace;
+  background: #f3f4f6;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #c2410c; /* 橙红色高亮行内代码 */
 }
 
 /* 针对移动端的适配 */
@@ -887,16 +961,20 @@ body {
   .chat-detail-sidebar.show {
     position: absolute;
     right: 0; top: 0; bottom: 0;
-    width: 85%;
+    width: 90%; /* 移动端占宽一点 */
+    box-shadow: -10px 0 30px rgba(0,0,0,0.15);
     z-index: 2060;
+  }
+  .detail-content {
+    padding: 1.5rem; /* 移动端留白减小 */
   }
 }
 
-/* [新增] 引用分组样式 (配合 main.js 的 ref-group) */
+/* [保留] 引用分组样式 (配合 main.js 的 ref-group) */
 .ref-group {
   margin-bottom: 0.8rem;
   padding-bottom: 0.8rem;
-  border-bottom: 1px dashed #e5e7eb; /* 虚线分隔 */
+  border-bottom: 1px dashed #e5e7eb;
 }
 .ref-group:last-child {
   border-bottom: none;
@@ -904,7 +982,6 @@ body {
   padding-bottom: 0;
 }
 
-/* [新增] 引用分组标题 (可选，比如 "Round 1") */
 .ref-group-title {
   font-size: 0.7rem;
   color: #9ca3af;
@@ -914,25 +991,25 @@ body {
   padding-left: 4px;
 }
 
-/* 未被引用的文档：变灰、变淡 */
+/* 未被引用的文档 */
 .ref-item.unused {
-  opacity: 0.5;
-  background-color: #f1f5f9; /* 更淡的背景 */
+  opacity: 0.6; /* 稍微提高一点透明度，别太淡 */
+  background-color: #f8fafc;
   border-color: transparent;
-  order: 10; /* (可选) 利用 Flexbox 让未引用的排到后面去 */
+  order: 10;
 }
 
-/* 鼠标悬浮时恢复，方便用户查看 */
 .ref-item.unused:hover {
   opacity: 1;
   background-color: #fff;
   border-color: #e2e8f0;
 }
 
-/* 被引用的文档：加个强调色边框 */
+/* 被引用的文档 */
 .ref-item.used {
   border-left: 3px solid #2563eb;
   background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 加一点微阴影 */
 }
 
 /* =========================================
