@@ -286,7 +286,7 @@ function renderCollectionList(container, collections) {
         container.innerHTML = '<div class="text-muted small mt-3">No collections found in this database.</div>';
         return;
     }
-    
+
     const svgCollection = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`;
 
     collections.forEach(c => {
@@ -508,7 +508,12 @@ function pollTaskStatus(taskId) {
             if (task.status === 'success') {
                 clearInterval(interval);
                 updateKBStatus(false);
-                refreshKBFiles(); // 任务完成，刷新列表显示新生成的文件
+                // 1. 刷新 KB 管理界面的列表
+                refreshKBFiles(); 
+                
+                // [新增] 2. 同时也刷新 Chat 界面的下拉菜单
+                // 这样当你建好索引后，聊天框里马上就能选到了
+                renderChatCollectionOptions();
                 console.log('Task Result:', task.result);
             } else if (task.status === 'failed') {
                 clearInterval(interval);
@@ -849,6 +854,12 @@ async function renderChatCollectionOptions() {
             const exists = collections.find(c => c.name === currentVal);
             if (exists) els.chatCollectionSelect.value = currentVal;
         }
+
+        // 渲染完 options 后，手动触发一次视觉更新
+        // 确保 "Knowledge Base" 这里的文字显示正确（比如维持之前选中的状态）
+        if (window.updateKbLabel && els.chatCollectionSelect) {
+            window.updateKbLabel(els.chatCollectionSelect);
+        }
         
     } catch (e) {
         console.error("Failed to load collections for chat:", e);
@@ -885,6 +896,7 @@ function backToChatView() {
     if (els.kbBtn) els.kbBtn.classList.remove("active");
     
     // 重新渲染侧边栏以恢复当前会话的高亮状态
+    renderChatCollectionOptions();
     renderChatSidebar(); 
 }
 
