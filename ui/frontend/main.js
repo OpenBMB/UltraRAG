@@ -743,85 +743,94 @@ function createNewPipeline() {
 
 // --- Demo Session / Engine Control ---
 
-async function toggleDemoSession() {
-  if (state.chat.demoLoading) return;
-  const pipelineName = state.selectedPipeline;
-  if (!pipelineName) return;
-
-  state.chat.demoLoading = true;
-  updateDemoControls();
-
-  try {
-    if (state.chat.engineSessionId) {
-      // === STOP ===
-      const sid = state.chat.engineSessionId;
-      await fetchJSON(`/api/pipelines/demo/stop`, { 
-          method: "POST", body: JSON.stringify({ session_id: sid }) 
-      });
-      state.chat.engineSessionId = null;
-      // [新增] 移除记录
-      delete state.chat.activeEngines[pipelineName];
-      
-      setChatStatus("Offline", "info");
-      log("Demo engine stopped.");
-    } else {
-      // === START ===
-      const newSid = uuidv4(); 
-      setChatStatus("Starting...", "warn");
-      
-      await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
-          method: "POST", body: JSON.stringify({ session_id: newSid })
-      });
-      
-      state.chat.engineSessionId = newSid;
-      // [新增] 添加记录
-      state.chat.activeEngines[pipelineName] = newSid;
-      
-      setChatStatus("Engine Ready", "ready");
-      log("Demo engine started.");
+// 1. 启动引擎 (幂等操作：如果已启动则忽略)
+async function startEngine(pipelineName) {
+    if (!pipelineName) return;
+    
+    // 如果当前已经有正在运行且是同一个 Pipeline，直接返回
+    if (state.chat.engineSessionId && state.chat.activeEngines[pipelineName] === state.chat.engineSessionId) {
+        return;
     }
-  } catch (err) {
-    log(`Engine error: ${err.message}`);
-    setChatStatus("Error", "error");
-    if(!state.chat.engineSessionId) state.chat.engineSessionId = null;
-  } finally {
-    state.chat.demoLoading = false;
+
+    // 如果有别的引擎在跑，先停掉
+    if (state.chat.engineSessionId) {
+        await stopEngine();
+    }
+
+    state.chat.demoLoading = true;
+    updateDemoControls(); // 更新 UI 显示 "Loading..."
+    setChatStatus("Initializing...", "warn");
+
+    try {
+        const newSid = uuidv4();
+        
+        // 调用后端启动
+        await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
+             method: "POST", body: JSON.stringify({ session_id: newSid })
+        });
+        
+        state.chat.engineSessionId = newSid;
+        state.chat.activeEngines[pipelineName] = newSid;
+        
+        setChatStatus("Ready", "ready");
+        log(`Engine started for ${pipelineName}`);
+        
+    } catch (err) {
+        console.error(err);
+        setChatStatus("Engine Error", "error");
+        state.chat.engineSessionId = null;
+    } finally {
+        state.chat.demoLoading = false;
+        updateDemoControls();
+    }
+}
+
+// 2. 停止引擎
+async function stopEngine() {
+    if (!state.chat.engineSessionId) return;
+
+    const sid = state.chat.engineSessionId;
+    const currentName = Object.keys(state.chat.activeEngines).find(key => state.chat.activeEngines[key] === sid);
+    
+    try {
+        await fetchJSON(`/api/pipelines/demo/stop`, { 
+             method: "POST", body: JSON.stringify({ session_id: sid }) 
+        });
+    } catch (e) {
+        console.warn("Stop engine failed (maybe already stopped)", e);
+    }
+    
+    state.chat.engineSessionId = null;
+    if (currentName) delete state.chat.activeEngines[currentName];
+    
+    setChatStatus("Offline", "info");
     updateDemoControls();
-  }
+}
+
+// 3. 原来的 toggle 函数保留作为兼容，或者直接废弃
+// (这里留着是为了防止 HTML 里有 onclick 报错，但实际上我们不再点它了)
+async function toggleDemoSession() {
+    if (state.chat.engineSessionId) await stopEngine();
+    else await startEngine(state.selectedPipeline);
 }
 
 function updateDemoControls() {
-  if (!els.demoToggleBtn) return;
-  const btn = els.demoToggleBtn;
-  const isActive = !!state.chat.engineSessionId;
-  
-  if (state.chat.demoLoading) {
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...`;
-    btn.className = "btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold";
-    return;
-  }
+    // 1. 总是启用输入框 (只要不是 loading)
+    // 因为我们希望用户随时能输入，如果引擎没好，点击发送时再提示或者自动等待
+    if (els.chatInput) els.chatInput.disabled = state.chat.demoLoading;
+    if (els.chatSend) els.chatSend.disabled = state.chat.demoLoading;
 
-  btn.disabled = false;
-  if (isActive) {
-    // 引擎已启动
-    btn.className = "btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold";
-    btn.innerHTML = "■ Stop Engine";
-    
-    // [修改] 移除对 chatInput 和 chatSend 的 running 状态干预
-    // 这里只负责“引擎在线就解锁输入框”，至于 running 时锁不锁，交给 setChatRunning 管
-    if (els.chatInput) els.chatInput.disabled = false; 
-    if (els.chatSend) els.chatSend.disabled = false;
-    
-  } else {
-    // 引擎未启动
-    btn.className = "btn btn-sm btn-outline-success rounded-pill px-3 fw-bold";
-    btn.innerHTML = "▶ Start Engine";
-    
-    // 引擎离线时，彻底锁死输入
-    if (els.chatInput) els.chatInput.disabled = true;
-    if (els.chatSend) els.chatSend.disabled = true;
-  }
+    // 2. 隐藏或改变按钮文本
+    if (els.demoToggleBtn) {
+        if (state.chat.demoLoading) {
+            els.demoToggleBtn.innerHTML = "Connecting...";
+            els.demoToggleBtn.disabled = true;
+            els.demoToggleBtn.classList.remove("d-none"); // 加载时显示一下
+        } else {
+            // 加载完了就隐藏按钮，因为是自动的，不需要用户点
+            els.demoToggleBtn.classList.add("d-none"); 
+        }
+    }
 }
 
 // --- Chat Logic (Updated with Streaming) ---
@@ -945,31 +954,35 @@ async function switchChatPipeline(name) {
         return;
     }
     
-    log(`Switching context to ${name}...`);
-    
     // 1. 保存旧会话
     saveCurrentSession(true);
     
-    // 2. 加载新 Pipeline 结构 (这会触发 setSteps -> resetChatSession)
+    // 2. 停止旧引擎 (为了节省资源，切换时先停掉上一个)
+    // 如果你想保留后台运行，可以去掉这行，但推荐停掉以防端口冲突或资源占用
+    await stopEngine(); 
+
+    // 3. 加载新 Pipeline 结构
     await loadPipeline(name); 
     
-    // 3. 关键：加载该 Pipeline 的参数到内存
-    // 这样 Chat 时 execute_pipeline 才能读到正确的配置
+    // 4. 加载参数
     try {
         state.parameterData = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}/parameters`);
         state.parametersReady = true;
     } catch (e) {
-        console.warn("Parameters not found for this pipeline.");
+        console.warn("Parameters not found.");
         state.parametersReady = false;
     }
 
-    // 4. 为新 Pipeline 创建一个空白聊天窗口 (或者恢复上次的？这里简化为新建)
+    // 5. 新建会话 UI
     createNewChatSession();
-    
-    // 5. 刷新 UI
     renderChatPipelineMenu(); 
-    // updateDemoControls 已在 resetChatSession 中触发，但再调一次也无妨
-    updateDemoControls();
+    
+    // [核心新增] 6. 自动启动新引擎！
+    if (state.parametersReady) {
+        await startEngine(name);
+    } else {
+        setChatStatus("Params Missing", "error");
+    }
 }
 
 function resetChatSession() {
@@ -1327,13 +1340,17 @@ function openChatView() {
   renderChatHistory();
   renderChatSidebar();
   setMode(Modes.CHAT);
-  
-  // 检查引擎状态并更新UI
-  updateDemoControls();
-  if(!state.chat.engineSessionId) setChatStatus("Engine Offline", "info");
-  else setChatStatus("Ready", "ready");
 
   backToChatView();
+  
+  // [核心新增] 进入界面时，如果没有引擎在跑，就自动跑起来
+    if (!state.chat.engineSessionId && state.selectedPipeline) {
+        startEngine(state.selectedPipeline);
+    } else {
+        // 如果已经在跑，更新一下 UI 状态
+        updateDemoControls();
+    }
+
 }
 
 async function stopGeneration() {
