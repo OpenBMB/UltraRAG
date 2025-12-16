@@ -210,25 +210,27 @@ body {
 .btn-ai-gradient { background: var(--gradient-ai); color: white; border: none; }
 
 .chat-container {
-  max-width: 800px;
+  /* [修改] 改为 100% 以便让滚动条贴到屏幕最右边 */
+  max-width: 100%; 
+  margin: 0; 
+  
+  /* [保持原样] */
   width: 100%;
-  margin: 0 auto;
-  /* [修改] 强制占满父容器高度 */
-  height: 100%; 
+  height: 100%;
   display: flex; 
   flex-direction: column;
-  /* [新增] 关键：防止 Flex 子项无限撑大父容器 */
   min-height: 0; 
 }
-.chat-scroll-area {
+
+#chat-history {
+  padding: 2rem max(1rem, calc(50% - 400px));
+  
+  /* [保持原样] */
   flex: 1;
-  /* [保持] 允许垂直滚动 */
   overflow-y: auto; 
-  padding: 2rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  /* [新增] 优化滚动体验 */
   scroll-behavior: smooth;
 }
 .chat-bubble { max-width: 85%; padding: 0; line-height: 1.6; font-size: 1rem; }
@@ -300,14 +302,30 @@ body {
   margin: 1.2rem 0;
 }
 .chat-input-wrapper {
+  /* [新增] 确保输入框居中 */
+  display: flex;
+  justify-content: center;
+  
+  /* [保持原样 - 这里的背景色千万不能丢] */
   padding: 0 1rem 2rem 1rem;
-  /* [新增] 防止空间不足时输入框被挤压 */
   flex-shrink: 0; 
-  /* [新增] 确保背景不透明，且位于最上层 */
-  background: #fff; 
+  background: #fff; /* <--- 之前丢失的就是这个！ */
   z-index: 10;
+  width: 100%;
 }
-.chat-input-container { background: #f4f4f4; border-radius: 30px; padding: 0.5rem; display: flex; align-items: center; transition: background 0.2s, box-shadow 0.2s; border: 1px solid transparent; }
+.chat-input-container {
+  /* [新增] 限制输入框最大宽度，与气泡对齐 */
+  width: 100%;
+  max-width: 800px;
+  
+  /* [保持原样] */
+  background: #f4f4f4;
+  border-radius: 30px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s, box-shadow 0.2s; border: 1px solid transparent;
+}
 .chat-input-container:focus-within { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--border-subtle); }
 .chat-input { background: transparent; border: none; padding: 0.6rem 1rem; font-size: 1rem; box-shadow: none !important; }
 .btn-send { width: 40px; height: 40px; border-radius: 50%; background: var(--text-primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; }
@@ -1248,12 +1266,17 @@ body {
 
 /* 1. 容器布局：垂直居中，稍微偏上一点 */
 .empty-state-wrapper {
+  /* [新增] 确保空状态内容也居中 */
+  max-width: 800px;
+  margin: 0 auto;
+  
+  /* [保持原样] */
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center; /* 关键：水平居中 */
+  align-items: center;
   height: 100%;
-  padding-bottom: 100px; /* 视觉重心上移 */
+  padding-bottom: 100px;
   gap: 40px;
 }
 
@@ -1340,16 +1363,264 @@ body {
    ========================================= */
 
 #chat-history {
-  /* Firefox */
-  scrollbar-width: none;
-  
-  /* IE 10+ */
-  -ms-overflow-style: none;  
+  scrollbar-width: thin;
+  /* 平时透明，悬停时或许无法像 Chrome 那样完美变色，但可以设为极浅 */
+  scrollbar-color: transparent transparent; 
+}
+#chat-history:hover {
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
 }
 
-/* Chrome, Safari, Edge */
+/* Chrome, Safari, Edge 适配 */
 #chat-history::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
+  display: block; /* 恢复显示 */
+  width: 8px;     /* 滚动条宽度 */
+  height: 8px;
+}
+
+/* 轨道：完全透明 */
+#chat-history::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 滑块：默认透明 (看起来像隐藏) */
+#chat-history::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  border: 2px solid transparent; /* 增加透明边框让滑块显得更细 */
+  background-clip: content-box;
+  transition: background-color 0.3s;
+}
+
+/* 交互：只有鼠标悬停在聊天区域时，滑块才变色 */
+#chat-history:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1); /* 浅灰色 */
+}
+
+/* 交互：鼠标抓取滑块时，稍微加深 */
+#chat-history::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+/* =========================================
+   Embedded KB Selector (Gemini Style)
+   ========================================= */
+
+/* 1. 胶囊容器：嵌在输入框左侧 */
+.kb-selector-pill {
+  display: flex;
+  align-items: center;
+  background: #ffffff;       /* 白色背景，与灰色输入框形成对比 */
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 10px;       /* 圆润的角 */
+  padding: 4px 8px 4px 10px;
+  margin-right: 8px;         /* 与输入框的间距 */
+  height: 32px;
+  flex-shrink: 0;            /* 防止被挤压 */
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+.kb-selector-pill:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* 2. 重置 Select 样式：去掉默认边框和背景，让它充满胶囊 */
+.kb-select-reset {
+  appearance: none;          /* 去掉默认下拉箭头 */
+  -webkit-appearance: none;
+  background: transparent;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0 8px;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+  max-width: 140px;          /* 限制最大宽度，防止名字太长 */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 3. 左侧固定图标 */
+.kb-icon {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+/* 4. 右侧刷新按钮 */
+.btn-kb-refresh {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  padding: 0 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+.btn-kb-refresh:hover {
+  color: var(--accent-blue);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* 5. 调整输入框容器的 Padding，使其紧凑 */
+.chat-input-container {
+  padding: 0.4rem 0.6rem; /* 稍微减小一点原本的 padding */
+  gap: 0;                 /* 使用 margin 控制间距 */
+}
+
+/* 6. 移动端适配：屏幕太窄时缩短选择器 */
+@media (max-width: 576px) {
+  .kb-select-reset {
+    max-width: 80px;
+  }
+}
+
+/* =========================================
+   Gemini-Style Input Container
+   ========================================= */
+
+/* 1. 大容器：圆润的浅灰色卡片 */
+/* 1. 大容器：圆润的浅灰色卡片 */
+.chat-input-container {
+  display: flex;
+  flex-direction: column;
+  
+  /* [核心修改] 始终白色背景，不再是浅灰 */
+  background: #ffffff;    
+  
+  /* [核心修改] 始终显示边框和阴影 */
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+  border-radius: 28px;
+  padding: 12px 12px 12px 20px; 
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+}
+
+/* 聚焦时：稍微加深一点阴影或边框颜色，增强交互感 */
+.chat-input-container:focus-within {
+  border-color: var(--accent-blue); /* 聚焦变蓝边框 */
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+
+/* 2. 输入框：占满上层 */
+.chat-input {
+  background: transparent;
+  border: none;
+  padding: 4px 0 12px 0;  /* 底部留点空隙给操作栏 */
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  width: 100%;
+  outline: none;
+  box-shadow: none !important;
+}
+.chat-input:focus { background: transparent; }
+.chat-input::placeholder { color: #8e918f; }
+
+/* [新增] 修复引擎未启动时的输入框样式 */
+.chat-input:disabled {
+  background-color: transparent !important; /* 强制去背景 */
+  color: var(--text-secondary); /* 文字稍微变灰 */
+  opacity: 1; /* 防止浏览器默认的半透明让字看不清 */
+  cursor: not-allowed;
+}
+
+
+/* 3. 操作栏：核心布局修复 */
+.actions-row {
+  display: flex;
+  justify-content: space-between; /* [关键] 左一个，右一个 */
+  align-items: center;            /* 垂直居中 */
+  width: 100%;                    /* [关键] 必须占满容器宽度 */
+  margin-top: 4px;
+}
+
+/* 左侧区域 */
+.left-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 右侧区域 */
+.right-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* 4. 知识库工具按钮 */
+.kb-tool-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.kb-visual-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 99px; /* 胶囊形状 */
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #444746;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+}
+
+.kb-tool-wrapper:hover .kb-visual-btn {
+  background: rgba(0, 0, 0, 0.06); /* 悬停微灰 */
+  color: #1f1f1f;
+}
+
+/* 图标样式修复 */
+.kb-icon-svg {
+  flex-shrink: 0; /* 防止被挤压 */
+  color: inherit;
+}
+
+/* 隐形 Select */
+.kb-select-hidden {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; z-index: 2;
+}
+
+/* 5. 发送按钮 */
+.btn-send {
+  width: 40px; 
+  height: 40px; 
+  border-radius: 50%;
+  background: #1a1a1a; /* 黑色背景 */
+  color: #fff;
+  border: none;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+  padding: 0;
+}
+
+.btn-send:hover {
+  transform: scale(1.05);
+  background: #000;
+}
+
+.btn-send:disabled {
+  background-color: #f3f4f6; /* 浅灰底 */
+  color: #d1d5db; /* 浅灰图标 */
+  cursor: not-allowed;
+  opacity: 1; /* 覆盖默认透明度 */
 }

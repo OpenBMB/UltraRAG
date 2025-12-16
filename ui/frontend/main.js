@@ -1161,9 +1161,9 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">Hi there</span>
+                        <span class="greeting-gradient">Welcome back.</span>
                     </div>
-                    <h1 class="greeting-title">Where should we start?</h1>
+                    <h1 class="greeting-title">Ready when you are.</h1>
                 </div>
                 
                 <div class="suggestion-chips">
@@ -2337,6 +2337,34 @@ function bindEvents() {
     if (els.nodePickerCustom) els.nodePickerCustom.oninput = (e) => nodePickerState.customValue = e.target.value;
     if (els.nodePickerConfirm) els.nodePickerConfirm.onclick = handleNodePickerConfirm;
 }
+
+// [新增] 更新知识库选择器的显示文本
+window.updateKbLabel = function(selectEl) {
+    const label = document.getElementById('kb-label-text');
+    const visualBtn = document.querySelector('.kb-visual-btn');
+    if (!label || !visualBtn) return;
+    
+    // 获取选中的文本
+    const selectedText = selectEl.options[selectEl.selectedIndex].text;
+    const selectedVal = selectEl.value;
+
+    if (!selectedVal) {
+        // 没选时，显示默认
+        label.textContent = "Knowledge Base";
+        label.style.color = ""; 
+        visualBtn.style.background = ""; // 恢复默认背景
+    } else {
+        // 选中时，显示具体名字
+        // 我们可以只显示名字部分，去掉括号里的数量，让它更像 Tag
+        // 例如 "wiki_v1 (50)" -> "wiki_v1"
+        const cleanName = selectedText.split('(')[0].trim();
+        label.textContent = cleanName;
+        
+        // 可选：选中后给个高亮背景，表示“已激活”
+        visualBtn.style.background = "#e0e7ff"; 
+        label.style.color = "#2563eb";
+    }
+};
 
 async function bootstrap() {
   setMode(Modes.BUILDER); 

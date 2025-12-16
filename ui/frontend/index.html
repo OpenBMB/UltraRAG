@@ -191,22 +191,37 @@
       <div class="chat-container">
         <div class="chat-scroll-area" id="chat-history"></div>
         <div class="chat-input-wrapper">
-          <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-             <div class="d-flex align-items-center gap-2">
-                <select id="chat-collection-select" class="form-select form-select-sm" style="width: auto; border-radius: 20px; font-size: 0.8rem; background-color: #f8f9fa;">
-                   <option value="" selected>No Knowledge Base</option>
-                   </select>
-                <button class="btn btn-sm btn-icon text-muted" onclick="renderChatCollectionOptions()" title="Refresh Collections">↻</button>
-             </div>
-             <span class="text-xs text-muted" id="chat-kb-status"></span>
-          </div>
-
           <form id="chat-form" class="chat-input-container shadow-sm">
+            
             <input type="text" id="chat-input" class="form-control chat-input" placeholder="Ask UltraRAG" autocomplete="off" />
             
-            <button class="btn btn-send" type="button" id="chat-send">
-              <span id="chat-send-icon">↑</span>
-            </button>
+            <div class="actions-row">
+                
+                <div class="left-actions">
+                    <div class="kb-tool-wrapper">
+                         <div class="kb-visual-btn">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="kb-icon-svg">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                             </svg>
+                             <span id="kb-label-text">Knowledge Base</span>
+                         </div>
+                         
+                         <select id="chat-collection-select" class="kb-select-hidden" onchange="updateKbLabel(this)">
+                             <option value="" selected>No Knowledge Base</option>
+                         </select>
+                    </div>
+                </div>
+
+                <div class="right-actions">
+                    <button class="btn btn-send" type="button" id="chat-send">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                      </svg>
+                    </button>
+                </div>
+            </div>
           </form>
         </div>
       </div>
