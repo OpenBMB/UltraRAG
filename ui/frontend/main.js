@@ -1641,6 +1641,9 @@ async function handleChatSubmit(event) {
     let currentBatchOffset = 0; // 当前这一批检索结果的起始偏移量 (例如第6个开始)
     let allSources = [];        // 汇总所有引用，用于存入 history meta
 
+    // [新增] 暂存这一轮检索到的 sources，不立即渲染
+    let pendingRenderSources = [];
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -1676,18 +1679,10 @@ async function handleChatSubmit(event) {
                 }));
                 
                 allSources = allSources.concat(remappedDocs);
-                
-                // 存入 State (追加模式)
-                if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
-                state.chat.history[entryIndex].meta.sources = allSources;
-                
-                // 渲染 (true 表示追加到列表末尾)
-                renderSources(bubble, remappedDocs, true);
 
-                // [修改] 只有当标志位允许时，才滚动
-                 if (shouldAutoScroll) {
-                     chatContainer.scrollTop = chatContainer.scrollHeight;
-                 }
+                // [修改] 存入待渲染列表，但暂不执行 renderSources
+                pendingRenderSources = pendingRenderSources.concat(remappedDocs);
+                
             } 
             // [修改] 处理 Token：应用偏移高亮
             else if (data.type === "token") {
@@ -1718,6 +1713,16 @@ async function handleChatSubmit(event) {
                 // 最终定格也应用偏移
                 html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                 contentDiv.innerHTML = html;
+
+                // =====================================================
+                // [核心修改] 2. 正文生成结束后，统一渲染暂存的 Reference
+                // =====================================================
+                if (pendingRenderSources && pendingRenderSources.length > 0) {
+                    // 调用 renderSources 把卡片一次性加到底部
+                    // true 参数表示 append，防止覆盖掉之前的（如果有的话）
+                    renderSources(bubble, pendingRenderSources, true);
+                }
+
                 // [新增] 最终渲染完后，如果原本就在底部，也要自动滚到底
                 if (shouldAutoScroll) {
                     chatContainer.scrollTop = chatContainer.scrollHeight;
