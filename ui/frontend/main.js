@@ -190,33 +190,42 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
         const div = document.createElement('div');
         div.className = 'file-item';
         
-        // [新增] 1. 图标判断 (后端需要返回 type: 'folder' | 'file')
-        // 如果后端没返回 type，默认 fallback 到 '📄'
-        const icon = f.type === 'folder' ? '📂' : '📄';
+        // 1. 图标定义 (文件夹 vs 文件)
+        const isFolder = f.type === 'folder';
+        
+        // SVG: 文件夹 (Folder)
+        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+        
+        // SVG: 文件 (File)
+        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
 
-        // [新增] 2. 查看详情按钮 (只有文件夹才显示)
+        const iconSvg = isFolder ? svgFolder : svgFile;
+
+        // 2. 查看详情按钮 (Eye SVG)
         let viewBtn = '';
-        if (f.type === 'folder') {
-            // 使用 window.inspectFolder (稍后需要在 main.js 实现这个函数)
-            viewBtn = `<button class="btn btn-sm btn-icon text-secondary me-1" 
-                        onclick="window.inspectFolder('${f.category}', '${f.name}')" 
-                        title="View Contents">👁️</button>`;
+        if (isFolder) {
+            viewBtn = `
+            <button class="btn-icon-action me-1" onclick="window.inspectFolder('${f.category}', '${f.name}')" title="View Contents">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>`;
         }
 
-        // [保留] 3. 删除按钮逻辑
+        // 3. 删除按钮 (使用统一的 SVG 垃圾桶)
         let deleteBtn = '';
         if (f.category !== 'collection') {
-            deleteBtn = `<button class="btn btn-sm btn-icon text-danger ms-2 p-0" 
-                          onclick="deleteKBFile('${f.category}', '${f.name}')" 
-                          title="Delete">×</button>`;
+            deleteBtn = `
+            <button class="btn-delete-collection ms-2" onclick="deleteKBFile('${f.category}', '${f.name}')" title="Delete">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+            </button>`;
         }
 
-        // [布局优化] 使用 Flex 分隔左右
         div.innerHTML = `
             <div class="d-flex align-items-center flex-grow-1 overflow-hidden me-2">
-                <span class="me-2" style="font-size: 1.1em; opacity: 0.8;">${icon}</span>
+                <div class="file-icon-box me-3 ${isFolder ? 'folder' : ''}">
+                    ${iconSvg}
+                </div>
                 <div class="file-name text-truncate" title="${f.name}">${f.name}</div>
-                ${f.type === 'folder' && f.file_count ? `<span class="badge bg-light text-secondary border ms-2" style="font-size:0.65rem">${f.file_count} files</span>` : ''}
+                ${isFolder && f.file_count ? `<span class="badge bg-light text-secondary border ms-2" style="font-size:0.65rem">${f.file_count}</span>` : ''}
             </div>
             
             <div class="d-flex align-items-center flex-shrink-0">
@@ -277,6 +286,8 @@ function renderCollectionList(container, collections) {
         container.innerHTML = '<div class="text-muted small mt-3">No collections found in this database.</div>';
         return;
     }
+    
+    const svgCollection = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`;
 
     collections.forEach(c => {
         const div = document.createElement('div');
@@ -284,15 +295,24 @@ function renderCollectionList(container, collections) {
         const countStr = c.count !== undefined ? `${c.count} entities` : '';
         
         div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-start">
-                <div class="d-flex align-items-center">
-                    <div class="index-icon me-2">📚</div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="collection-icon-box">
+                        ${svgCollection}
+                    </div>
                     <div>
-                        <div class="fw-bold text-dark">${c.name}</div>
-                        <div class="text-muted text-xs">${countStr}</div>
+                        <div class="fw-semibold text-dark" style="font-size: 0.95rem;">${c.name}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">${countStr}</div>
                     </div>
                 </div>
-                <button class="btn-icon-sm text-danger" onclick="deleteKBFile('collection', '${c.name}')" title="Drop Collection">✕</button>
+                
+                <button class="btn-delete-collection" onclick="deleteKBFile('collection', '${c.name}')" title="Delete Collection">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"></path>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                    </svg>
+                </button>
             </div>
         `;
         container.appendChild(div);

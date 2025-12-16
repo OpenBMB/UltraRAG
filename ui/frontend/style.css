@@ -1624,3 +1624,116 @@ body {
   cursor: not-allowed;
   opacity: 1; /* 覆盖默认透明度 */
 }
+
+/* =========================================
+   Collection Item Styling (Refined)
+   ========================================= */
+
+/* 1. 给图标加一个淡淡的背景容器，增加层次感 */
+.collection-icon-box {
+  width: 36px;
+  height: 36px;
+  background: #f0f9ff; /* 极浅的蓝色 */
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-blue);
+}
+
+.index-icon {
+  font-size: 1.1rem; /* 图标稍微调小一点，更精致 */
+}
+
+/* 2. 优雅的删除按钮 */
+.btn-delete-collection {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid transparent; /* 预留边框位置 */
+  background: transparent;
+  color: #9ca3af; /* 默认浅灰色，不抢眼 */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+/* 悬停效果：变红，加浅红背景 */
+.btn-delete-collection:hover {
+  background-color: #fef2f2; /* 浅红色背景 */
+  color: #ef4444;           /* 鲜艳的红色图标 */
+  border-color: #fee2e2;    /* 淡淡的红边框 */
+  transform: scale(1.05);   /* 微微放大 */
+}
+
+/* 按下效果 */
+.btn-delete-collection:active {
+  transform: scale(0.95);
+  background-color: #fee2e2;
+}
+
+/* 微调卡片本身的内边距，让它看起来更透气 */
+.index-card-group {
+  padding: 16px; /* 增加一点内边距 */
+  border: 1px solid #e5e7eb;
+}
+
+/* =========================================
+   Refined KB List Icons & Buttons
+   ========================================= */
+
+/* 1. 文件/文件夹的图标容器 */
+.file-icon-box {
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;  /* 默认淡灰色 (文件) */
+  color: #64748b;       /* 深灰色图标 */
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+/* 文件夹特有样式 (稍微带点蓝色) */
+.file-icon-box.folder {
+  background: #eff6ff;
+  color: var(--accent-blue);
+}
+
+/* 2. 列表项本身 */
+.file-item {
+  /* 增加高度，让图标不拥挤 */
+  padding: 8px 12px; 
+  align-items: center;
+}
+
+/* 3. 查看(眼睛)按钮样式 */
+.btn-icon-action {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-icon-action:hover {
+  background: #f3f4f6;
+  color: var(--text-primary);
+}
+
+/* 4. [复用] 确保 .btn-delete-collection 在文件列表里大小合适 */
+/* 如果之前定义的尺寸在文件列表里太大，可以微调，但通常 32px 刚好 */
+.file-item .btn-delete-collection {
+    width: 28px;  /* 在紧凑列表里稍微小一点 */
+    height: 28px;
+}
