@@ -1235,38 +1235,46 @@ function renderChatHistory() {
     }
     state.chat.history.forEach((entry) => {
         const bubble = document.createElement("div"); 
-        bubble.className = `chat-bubble ${entry.role}`;
+        // 加上 fade-in 动画类，稍微好看点
+        bubble.className = `chat-bubble ${entry.role} fade-in-up`;
+        // 历史记录直接展示，不需要动画延迟
+        bubble.style.animationDelay = "0ms";
+
         const content = document.createElement("div"); 
         content.className = "msg-content";
 
         if (entry.role === "assistant") {
-            let htmlContent = renderMarkdown(entry.text, { unwrapLanguages: MARKDOWN_LANGS });
-            // 历史记录回显：使用 formatCitationHtmlWithOffset
-            // 注意：如果是一次性生成的历史记录，offset 可能会丢失细节。
-            // 但通常 [1] 对应列表里的 [1]，只要列表渲染对就行。
-            // 列表渲染使用的是 meta.sources 里的 displayId，所以是对应的。
-            // 这里的 offset 设为 0，因为 history.text 里的 [1] 需要匹配的是显示出来的 [1]
-            // 但实际上我们之前逻辑是：模型出 [1] -> 界面显 [6]。
-            // 如果 history.text 存的是原始的 [1]，这里回显会变成 [1]，点击跳到 id=1。
-            // 如果 id=1 是第一轮的，那就没问题。
-            // 复杂点在于：如果文本里是 [1]，但列表里只有 [6] (偏移后)，那点击就会失败。
+            let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
             
-            // [改进策略]：我们在 handleChatSubmit 里存入 history.text 之前，
-            // 其实应该把文本里的 [1] 永久替换成 [6] 存进去？
-            // 不，保持原始文本比较好。
+            // [核心修复] 读取该消息专属的 offset
+            // 如果是老消息没有 meta，或者是第一轮对话，则默认为 0
+            const msgOffset = (entry.meta && entry.meta.citationOffset) ? entry.meta.citationOffset : 0;
             
-            // 这里暂时用 0，依赖用户点击列表查看。
-            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, 0);
+            // 使用当初的 offset 进行渲染
+            // 这样如果你当初生成时是 [6]，现在渲染出来依然是 [6]
+            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, msgOffset);
         } else {
+            // 用户消息一般不需要 markdown，或者简单的转义即可
             content.textContent = entry.text;
         }
         bubble.appendChild(content);
 
+        // 渲染底部的引用卡片
         if (entry.meta && entry.meta.sources) {
-            // 渲染时会使用 sources 里的 displayId，所以列表本身是对的 (1-10)
+            // 注意：renderSources 内部通常会处理 DOM 生成
+            // 确保 entry.meta.sources 里的对象已经包含了正确的 displayId (如 6, 7, 8)
+            // 这样卡片的数字就能和正文里的 [6], [7], [8] 对应上
             renderSources(bubble, entry.meta.sources);
         }
-        // ... hint ...
+        
+        // 渲染调试信息 (Hint)
+        if (entry.meta && entry.meta.hint) {
+            const hintDiv = document.createElement("div");
+            hintDiv.className = "text-xs text-muted mt-2 pt-2 border-top";
+            hintDiv.textContent = entry.meta.hint;
+            bubble.appendChild(hintDiv);
+        }
+
         els.chatHistory.appendChild(bubble);
     });
     els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
@@ -1651,24 +1659,19 @@ async function handleChatSubmit(event) {
 
     if (!response.ok) throw new Error(response.statusText);
 
+    // 先占位
     const entryIndex = state.chat.history.length;
     state.chat.history.push({ role: "assistant", text: "", meta: {} });
     
     const chatContainer = document.getElementById("chat-history");
 
-    // [核心优化] 定义一个标志位：默认为 true (一开始就自动跟随)
+    // [滚动优化]
     let shouldAutoScroll = true;
-
-    // [核心优化] 监听用户的滚动行为
-    // 只要用户一旦发生滚动，就立即计算：我现在是不是在底部？
-    // 如果不在底部，shouldAutoScroll 就会变成 false，生成循环就不会再打扰用户了。
     const handleScroll = () => {
-        const threshold = 30; // 只要距离底部超过 30px，就认为用户在“往上看”
+        const threshold = 30; 
         const distance = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
         shouldAutoScroll = distance <= threshold;
     };
-    
-    // 绑定监听
     chatContainer.addEventListener('scroll', handleScroll);
 
     const bubble = document.createElement("div");
@@ -1680,12 +1683,24 @@ async function handleChatSubmit(event) {
 
     let currentText = "";
     
-    // [关键变量] 多轮引用计数器
-    let sessionSourceCount = 0; // 当前气泡内累计收到的文档总数
-    let currentBatchOffset = 0; // 当前这一批检索结果的起始偏移量 (例如第6个开始)
-    let allSources = [];        // 汇总所有引用，用于存入 history meta
+    // =========================================================
+    // [核心修复] 计算历史引用的总数，作为本轮的起始偏移量
+    // =========================================================
+    let initialSourceCount = 0;
+    // 遍历现有的历史记录（不包含刚刚 push 进去的那个空的 assistant）
+    for (let i = 0; i < entryIndex; i++) {
+        const entry = state.chat.history[i];
+        if (entry.meta && Array.isArray(entry.meta.sources)) {
+            initialSourceCount += entry.meta.sources.length;
+        }
+    }
 
-    // [新增] 暂存这一轮检索到的 sources，不立即渲染
+    // 这一轮的计数器，从历史总数开始累加
+    let sessionSourceCount = initialSourceCount; 
+    // 这一轮的固定偏移量，就是历史总数 (例如第一轮有5个，那第二轮偏移量就是5)
+    let currentBatchOffset = initialSourceCount; 
+    
+    let allSources = [];        
     let pendingRenderSources = [];
 
     const reader = response.body.getReader();
@@ -1708,27 +1723,22 @@ async function handleChatSubmit(event) {
             if (data.type === "step_start" || data.type === "step_end") {
                 updateProcessUI(entryIndex, data);
             } 
-            // [修改] 处理引用源数据：计算偏移并追加
             else if (data.type === "sources") {
-                // 1. 确定当前批次的偏移量 (等于之前的总数)
+                // 1. 这一批的偏移量 = 当前累计的总数
                 currentBatchOffset = sessionSourceCount;
-                // 2. 更新总数
+                // 2. 累加总数
                 sessionSourceCount += data.data.length;
                 
-                // 3. 映射 ID：给每个文档加上全局显示 ID
+                // 3. 映射 ID
                 const remappedDocs = data.data.map((doc, idx) => ({
                     ...doc, 
-                    // 原 ID (1,2,3) + 偏移量 (5) = 显示 ID (6,7,8)
+                    // [核心] ID = (历史总数 + 之前批次) + (当前索引 + 1)
                     displayId: currentBatchOffset + (idx + 1)
                 }));
                 
                 allSources = allSources.concat(remappedDocs);
-
-                // [修改] 存入待渲染列表，但暂不执行 renderSources
                 pendingRenderSources = pendingRenderSources.concat(remappedDocs);
-                
             } 
-            // [修改] 处理 Token：应用偏移高亮
             else if (data.type === "token") {
                 if (!data.is_final) updateProcessUI(entryIndex, data);
                 if (data.is_final) {
@@ -1737,13 +1747,10 @@ async function handleChatSubmit(event) {
                     
                     let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
                     
-                    // [关键] 使用带偏移量的格式化函数
-                    // 这里的 currentBatchOffset 指的是最近一次检索的偏移量
-                    // 假设模型总是基于最近一次检索生成内容
+                    // 使用计算正确的 currentBatchOffset
                     html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                     
                     contentDiv.innerHTML = html;
-                    // [修改] 只有当标志位允许时，才滚动
                     if (shouldAutoScroll) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
@@ -1752,30 +1759,31 @@ async function handleChatSubmit(event) {
             else if (data.type === "final") {
                 const final = data.data;
                 let finalText = currentText || final.answer || "";
-                let normalized = finalText;
                 let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
-                // 最终定格也应用偏移
+                
+                // 最终渲染
                 html = formatCitationHtmlWithOffset(html, currentBatchOffset);
                 contentDiv.innerHTML = html;
 
-                // =====================================================
-                // [核心修改] 2. 正文生成结束后，统一渲染暂存的 Reference
-                // =====================================================
+                // 渲染参考资料卡片
                 if (pendingRenderSources && pendingRenderSources.length > 0) {
-                    // 调用 renderSources 把卡片一次性加到底部
-                    // true 参数表示 append，防止覆盖掉之前的（如果有的话）
                     renderSources(bubble, pendingRenderSources, true);
                 }
 
-                // [新增] 最终渲染完后，如果原本就在底部，也要自动滚到底
                 if (shouldAutoScroll) {
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
-                state.chat.history[entryIndex].text = finalText;
-
-                // ================= [新增] 引用筛选逻辑 =================
                 
-                // A. 提取文本中所有被引用的 ID (本地 ID，如 [1], [2])
+                // 更新历史记录
+                state.chat.history[entryIndex].text = finalText;
+                if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
+                
+                // [关键] 保存这一轮使用的 offset
+                state.chat.history[entryIndex].meta.citationOffset = currentBatchOffset; 
+                // [关键] 保存所有的 source 对象 (包含正确的 displayId)
+                state.chat.history[entryIndex].meta.sources = allSources;
+
+                // 引用筛选/高亮逻辑
                 const usedLocalIds = new Set();
                 const regex = /\[(\d+)\]/g;
                 let match;
@@ -1783,15 +1791,10 @@ async function handleChatSubmit(event) {
                     usedLocalIds.add(parseInt(match[1], 10));
                 }
 
-                // B. 遍历气泡内所有的参考资料卡片
                 const refItems = bubble.querySelectorAll(".ref-item");
                 refItems.forEach(item => {
-                    // item.id 是 "ref-item-{GlobalID}" (例如 ref-item-6)
                     const globalId = parseInt(item.id.replace("ref-item-", ""), 10);
-                    
-                    // C. 关键计算：将 GlobalID 还原为这一轮的 LocalID 进行比对
-                    // 假设模型是基于最近一次检索结果生成的，引用的是 LocalID
-                    // LocalID = GlobalID - currentBatchOffset
+                    // 还原为 Local ID 进行比对
                     const localId = globalId - currentBatchOffset;
                     
                     if (usedLocalIds.has(localId)) {
@@ -1802,12 +1805,10 @@ async function handleChatSubmit(event) {
                         item.classList.remove("used");
                     }
                 });
-                // =====================================================
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
                 if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
-                if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 state.chat.history[entryIndex].meta.hint = hints.join(" | ");
                 
                 const procDiv = bubble.querySelector(".process-container");
@@ -1833,6 +1834,7 @@ async function handleChatSubmit(event) {
           setChatRunning(false);
       }
       saveCurrentSession();
+      chatContainer.removeEventListener('scroll', handleScroll); // 记得移除监听
   }
 }
 
