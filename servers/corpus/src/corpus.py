@@ -455,12 +455,10 @@ async def chunk_documents(
 ) -> None:
 
     try:
-        import chonkie
-        # default uv install chonkie version is 1.3.1, need to check for 1.4.0+
-        chonkie_ver = getattr(chonkie, "__version__", "")
-        is_chonkie_140 = chonkie_ver.startswith("1.4.0")
+        from chonkie import TokenChunker, SentenceChunker, RecursiveChunker, RecursiveRules
+        import tiktoken
     except ImportError:
-        err_msg = "chonkie not installed. Please `pip install chonkie`."
+        err_msg = "chonkie or tiktoken not installed. Please `pip install chonkie tiktoken`."
         app.logger.error(err_msg)
         raise ToolError(err_msg)
 
@@ -473,67 +471,39 @@ async def chunk_documents(
         chunk_path = str(chunk_path)
         output_dir = os.path.dirname(chunk_path)
     os.makedirs(output_dir, exist_ok=True)
-
     documents = _load_jsonl(raw_chunk_path)
 
     cfg = (chunk_backend_configs.get(chunk_backend) or {}).copy()
-    if chunk_backend == "token":
-        from chonkie import TokenChunker
-        import tiktoken
 
-        tokenizer_name = cfg.get("tokenizer_or_token_counter")
-        if not tokenizer_name:
-            err_msg = "`tokenizer_or_token_counter` is required for token chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        if tokenizer_name not in ["word", "character"]:
+    tokenizer_name = cfg.get("tokenizer_or_token_counter", "character")
+    if tokenizer_name not in ["word", "character"]:
+        try:
             tokenizer = tiktoken.get_encoding(tokenizer_name)
-        else:
-            tokenizer = tokenizer_name
-        chunk_size = cfg.get("chunk_size")
-        if not chunk_size:
-            err_msg = "`chunk_size` is required for token chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        chunk_overlap = cfg.get("chunk_overlap")
-        if not chunk_overlap:
-            err_msg = "`chunk_overlap` is required for token chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
+        except Exception:
+            app.logger.warning(f"Could not load tokenizer '{tokenizer_name}', falling back to 'gpt2'.")
+            tokenizer = tiktoken.get_encoding("gpt2")
+    else:
+        tokenizer = tokenizer_name
 
+    chunk_size = cfg.get("chunk_size", 512) 
+    chunk_overlap = cfg.get("chunk_overlap", 64)
+
+    if chunk_overlap >= chunk_size:
+        app.logger.warning(f"chunk_overlap ({chunk_overlap}) >= chunk_size ({chunk_size}), adjusting overlap to size/4.")
+        chunk_overlap = int(chunk_size / 4)
+    
+    app.logger.info(f"Chunking Config: backend={chunk_backend}, size={chunk_size}, overlap={chunk_overlap}, tokenizer={tokenizer_name}")
+
+
+    if chunk_backend == "token":
         chunker = TokenChunker(
             tokenizer=tokenizer,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
         )
-    elif chunk_backend == "sentence":
-        from chonkie import SentenceChunker
-        import tiktoken
 
-        tokenizer_name = cfg.get("tokenizer_or_token_counter")
-        if not tokenizer_name:
-            err_msg = "`tokenizer_or_token_counter` is required for sentence chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        if tokenizer_name not in ["word", "character"]:
-            tokenizer = tiktoken.get_encoding(tokenizer_name)
-        else:
-            tokenizer = tokenizer_name
-        chunk_size = cfg.get("chunk_size")
-        if not chunk_size:
-            err_msg = "`chunk_size` is required for sentence chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        chunk_overlap = cfg.get("chunk_overlap")
-        if not chunk_overlap:
-            err_msg = "`chunk_overlap` is required for sentence chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        min_sentences_per_chunk = cfg.get("min_sentences_per_chunk")
-        if not min_sentences_per_chunk:
-            err_msg = "`min_sentences_per_chunk` is required for sentence chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
+    elif chunk_backend == "sentence":
+        min_sentences_per_chunk = cfg.get("min_sentences_per_chunk", 1)
 
         delim = cfg.get("delim")
         DELIM_DEFAULT = [".", "!", "?", "；", "。", "！", "？"]
@@ -545,61 +515,24 @@ async def chunk_documents(
         elif delim is None:
             delim = DELIM_DEFAULT
 
-        if is_chonkie_140:
-            chunker = SentenceChunker(
-                tokenizer=tokenizer,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                min_sentences_per_chunk=min_sentences_per_chunk,
-                delim=delim,
-            )
-        else:
-            chunker = SentenceChunker(
-                tokenizer_or_token_counter=tokenizer,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                min_sentences_per_chunk=min_sentences_per_chunk,
-                delim=delim,
-            )
+        chunker = SentenceChunker(
+            tokenizer=tokenizer,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            min_sentences_per_chunk=min_sentences_per_chunk,
+            delim=delim,
+        )
             
     elif chunk_backend == "recursive":
-        from chonkie import RecursiveChunker, RecursiveRules
-        import tiktoken
+        min_characters_per_chunk = cfg.get("min_characters_per_chunk", 50)
 
-        tokenizer_name = cfg.get("tokenizer_or_token_counter")
-        if not tokenizer_name:
-            err_msg = "`tokenizer_or_token_counter` is required for recursive chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        if tokenizer_name not in ["word", "character"]:
-            tokenizer = tiktoken.get_encoding(tokenizer_name)
-        else:
-            tokenizer = tokenizer_name
-        chunk_size = cfg.get("chunk_size")
-        if not chunk_size:
-            err_msg = "`chunk_size` is required for recursive chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        min_characters_per_chunk = cfg.get("min_characters_per_chunk")
-        if not min_characters_per_chunk:
-            err_msg = "`min_characters_per_chunk` is required for recursive chunking."
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-        if is_chonkie_140:
-            chunker = RecursiveChunker(
-                tokenizer=tokenizer,
-                chunk_size=chunk_size,
-                rules=RecursiveRules(),
-                min_characters_per_chunk=min_characters_per_chunk,
-            )
-        else:
-            chunker = RecursiveChunker(
-                tokenizer_or_token_counter=tokenizer,
-                chunk_size=chunk_size,
-                rules=RecursiveRules(),
-                min_characters_per_chunk=min_characters_per_chunk,
-            )
-            
+        chunker = RecursiveChunker(
+            tokenizer=tokenizer,
+            chunk_size=chunk_size,
+            rules=RecursiveRules(),
+            min_characters_per_chunk=min_characters_per_chunk,
+        )    
+
     else:
         err_msg = (
             f"Invalid chunking method: {chunk_backend}. "
