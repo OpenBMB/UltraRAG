@@ -1171,7 +1171,6 @@ async def execute_pipeline(
                         try:
                             step_identifier = f"{server_name}.{tool_name}"
                             async for token in local_service.generate_stream(**args_input):                            
-                                print(token, end="", flush=True)
                                 full_content += token
                                 
                                 if stream_callback:
@@ -1295,7 +1294,6 @@ async def execute_pipeline(
                         try:
                             step_identifier = f"{server_name}.{tool_name}"
                             async for token in local_service.generate_stream(**args_input):                               
-                                print(token, end="", flush=True)
                                 full_content += token
                                 
                                 if stream_callback:
