@@ -444,12 +444,14 @@ async def build_mineru_corpus(
 
 
 @app.tool(
-    output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None"
+    output="raw_chunk_path,chunk_backend_configs,chunk_backend,tokenizer_or_token_counter,chunk_size,chunk_path,use_title->None"
 )
 async def chunk_documents(
     raw_chunk_path: str,
     chunk_backend_configs: Dict[str, Any],
     chunk_backend: str = "token",
+    tokenizer_or_token_counter: str = "character",
+    chunk_size: int = 256,
     chunk_path: Optional[str] = None,
     use_title: bool = True,
 ) -> None:
@@ -475,7 +477,7 @@ async def chunk_documents(
 
     cfg = (chunk_backend_configs.get(chunk_backend) or {}).copy()
 
-    tokenizer_name = cfg.get("tokenizer_or_token_counter", "character")
+    tokenizer_name = tokenizer_or_token_counter
     if tokenizer_name not in ["word", "character"]:
         try:
             tokenizer = tiktoken.get_encoding(tokenizer_name)
@@ -484,8 +486,7 @@ async def chunk_documents(
             tokenizer = tiktoken.get_encoding("gpt2")
     else:
         tokenizer = tokenizer_name
-
-    chunk_size = cfg.get("chunk_size", 512) 
+ 
     chunk_overlap = cfg.get("chunk_overlap", 64)
 
     if chunk_overlap >= chunk_size:
