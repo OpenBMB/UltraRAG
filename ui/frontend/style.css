@@ -758,7 +758,7 @@ body {
   border: 1px solid #f3f4f6;
   border-radius: 6px;
   color: #374151;
-  cursor: help; /* 鼠标放上去显示问号，提示可查看详情 */
+  cursor: pointer;
   transition: all 0.2s;
   line-height: 1.4;
 }
