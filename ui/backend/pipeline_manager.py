@@ -87,6 +87,7 @@ class DemoSession:
         self._client = None
         self._context = None
         self._active = False
+        self.last_accessed = time.time()
         self._thread.start()
         self._current_future = None
 
@@ -94,21 +95,21 @@ class DemoSession:
         asyncio.set_event_loop(self._loop)
         self._loop.run_forever()
 
+    def touch(self):
+        self.last_accessed = time.time()
+
     def start(self, name: str):
+        self.touch()
         if self._active: return
         
         funcs = _ensure_client_funcs()
         config_file = _find_pipeline_file(name)
         if not config_file: raise PipelineManagerError(f"Pipeline {name} not found")
         
-        # Phase 1: Load Context
         param_path = _resolve_parameter_path(name, for_write=False)
         self._context = funcs["load_ctx"](str(config_file), str(param_path))
-        
-        # Phase 2: Create Client
         self._client = funcs["create_client"](self._context["mcp_cfg"])
         
-        # Phase 3: Connect (Enter Context)
         future = asyncio.run_coroutine_threadsafe(self._client.__aenter__(), self._loop)
         try:
             future.result(timeout=15)
@@ -119,6 +120,7 @@ class DemoSession:
             raise PipelineManagerError(f"Connection failed: {e}")
 
     def stop(self):
+        self.touch()
         if self._active and self._client:
             try:
                 asyncio.run_coroutine_threadsafe(
@@ -133,6 +135,7 @@ class DemoSession:
         LOGGER.info(f"Session {self.session_id} stopped")
 
     def run_chat(self, callback, dynamic_params: Dict[str, Any] = None):
+        self.touch()
         if not self._active: raise PipelineManagerError("Session not active")
         
         funcs = _ensure_client_funcs()
@@ -152,10 +155,12 @@ class DemoSession:
             return self._current_future.result()
         except asyncio.CancelledError:
             LOGGER.info(f"Session {self.session_id} task cancelled by user.")
-            raise # 继续抛出，让外层捕获
+            raise 
         finally:
-            self._current_future = None # 任务结束，清空引用
+            self._current_future = None
+
     def interrupt_task(self):
+        self.touch()
         if self._current_future and not self._current_future.done():
             self._current_future.cancel()
             LOGGER.info(f"Interrupt signal sent to session {self.session_id}")
@@ -163,26 +168,63 @@ class DemoSession:
         return False
 
 class SessionManager:
-    def __init__(self):
+    def __init__(self, timeout_seconds: int = 1800): 
         self._sessions: Dict[str, DemoSession] = {}
         self._lock = threading.Lock()
+
+        self.timeout = timeout_seconds
+        self._cleaner_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+        self._cleaner_thread.start()
+
+    def _cleanup_loop(self):
+        while True:
+            time.sleep(60)
+            try:
+                self._check_timeouts()
+            except Exception as e:
+                LOGGER.error(f"Error in session cleanup loop: {e}")
+
+    def _check_timeouts(self):
+        now = time.time()
+        ids_to_remove = []
+        
+        with self._lock:
+            for sid, session in self._sessions.items():
+                if now - session.last_accessed > self.timeout:
+                    ids_to_remove.append(sid)
+        
+        if ids_to_remove:
+            LOGGER.info(f"Cleanup: Found {len(ids_to_remove)} expired sessions.")
+            for sid in ids_to_remove:
+                LOGGER.info(f"Auto-closing expired session: {sid}")
+                self.remove(sid)
 
     def get_or_create(self, session_id: str) -> DemoSession:
         with self._lock:
             if session_id not in self._sessions:
                 self._sessions[session_id] = DemoSession(session_id)
+            else:
+                self._sessions[session_id].touch()
             return self._sessions[session_id]
 
     def get(self, session_id: str) -> Optional[DemoSession]:
-        with self._lock: return self._sessions.get(session_id)
+        with self._lock: 
+            session = self._sessions.get(session_id)
+            if session:
+                session.touch()
+            return session
 
     def remove(self, session_id: str):
+        session = None
         with self._lock:
             if session_id in self._sessions:
-                self._sessions[session_id].stop()
+                session = self._sessions[session_id]
                 del self._sessions[session_id]
+        
+        if session:
+            session.stop()
 
-SESSION_MANAGER = SessionManager()
+SESSION_MANAGER = SessionManager(timeout_seconds=3600)
 
 # API Logic (Wrappers)
 
