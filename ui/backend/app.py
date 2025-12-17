@@ -21,7 +21,7 @@ FRONTEND_DIR = BASE_DIR.parent / "frontend"
 EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
 KB_TASKS = {}
 
-def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode):
+def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params=None):
     LOGGER.info(f"Task {task_id} started: {pipeline_name}")
     try:
         result = pm.run_kb_pipeline_tool(
@@ -29,7 +29,8 @@ def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collecti
             target_file_path=target_file,
             output_dir=output_dir,
             collection_name=collection_name,
-            index_mode=index_mode
+            index_mode=index_mode,
+            chunk_params=chunk_params,
         )
         KB_TASKS[task_id]["status"] = "success"
         KB_TASKS[task_id]["result"] = result
@@ -276,6 +277,13 @@ def create_app() -> Flask:
         collection_name = payload.get("collection_name")
         index_mode = payload.get("index_mode", "append")
 
+        chunk_params = {
+            "chunk_backend": payload.get("chunk_backend", "token"),
+            "tokenizer_or_token_counter": payload.get("tokenizer_or_token_counter", "gpt2"),
+            "chunk_size": payload.get("chunk_size", 500),
+            "use_title": payload.get("use_title", True)
+        }
+
         if not pipeline_name or not target_file:
             return jsonify({"error": "Missing pipeline_name or target_file"}), 400
 
@@ -296,7 +304,7 @@ def create_app() -> Flask:
 
         thread = threading.Thread(
             target=_run_kb_background,
-            args=(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode),
+            args=(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params),
             daemon=True # 设置为守护线程，主程序退出时它也会自动退出，防止挂起
         )
         thread.start()

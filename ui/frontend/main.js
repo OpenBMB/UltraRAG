@@ -382,6 +382,61 @@ window.saveDbConfig = async function() {
     refreshKBFiles(); // 立即刷新，测试连接状态
 };
 
+// ==========================================
+// --- Chunk Configuration Logic ---
+// ==========================================
+
+// 1. 定义默认配置状态
+let chunkConfigState = {
+    chunk_backend: "sentence",
+    tokenizer_or_token_counter: "character",
+    chunk_size: 512,
+    use_title: true
+};
+
+// 2. 打开配置弹窗 (回显当前状态)
+window.openChunkConfigModal = function() {
+    const modal = document.getElementById('chunk-config-modal');
+    
+    // 回显数据
+    document.getElementById('cfg-chunk-backend').value = chunkConfigState.chunk_backend;
+    document.getElementById('cfg-chunk-tokenizer').value = chunkConfigState.tokenizer_or_token_counter;
+    document.getElementById('cfg-chunk-size').value = chunkConfigState.chunk_size;
+    document.getElementById('cfg-chunk-title').value = chunkConfigState.use_title ? "true" : "false";
+    
+    if (modal) modal.showModal();
+};
+
+// 3. 保存配置
+window.saveChunkConfig = function() {
+    const backend = document.getElementById('cfg-chunk-backend').value;
+    const tokenizer = document.getElementById('cfg-chunk-tokenizer').value;
+    const size = parseInt(document.getElementById('cfg-chunk-size').value, 10);
+    const useTitleStr = document.getElementById('cfg-chunk-title').value;
+
+    if (isNaN(size) || size <= 0) {
+        alert("Chunk size must be a positive number");
+        return;
+    }
+
+    // 更新全局状态
+    chunkConfigState = {
+        chunk_backend: backend,
+        tokenizer_or_token_counter: tokenizer,
+        chunk_size: size,
+        use_title: (useTitleStr === "true")
+    };
+
+    const modal = document.getElementById('chunk-config-modal');
+    if (modal) modal.close();
+    
+    // 可选：给个提示
+    // alert("Chunk configuration saved!"); 
+    console.log("Chunk Config Updated:", chunkConfigState);
+};
+
+// ==========================================
+
 // 6. 处理操作按钮点击 (修改 - 挂载到 window)
 window.handleKBAction = function(filePath, pipelineName) {
     currentTargetFile = filePath;
@@ -398,9 +453,14 @@ window.handleKBAction = function(filePath, pipelineName) {
         if (els.milvusDialog) els.milvusDialog.showModal();
         return;
     }
+
+    let extraParams = {};
+    if (pipelineName === 'corpus_chunk') {
+        extraParams = { ...chunkConfigState }; // 展开对象传递
+    }
     
     // 其他任务直接开始
-    runKBTask(pipelineName, filePath);
+    runKBTask(pipelineName, filePath, extraParams);
 };
 
 // 7. 确认建索引 (修改 - 挂载到 window)

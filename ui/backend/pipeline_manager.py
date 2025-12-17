@@ -927,6 +927,7 @@ def run_kb_pipeline_tool(
     output_dir: str,
     collection_name: Optional[str] = None,
     index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖)
+    chunk_params: Optional[Dict[str, Any]] = None # [新增] 接收参数
 ) -> Dict[str, Any]:
 
     pipeline_cfg = load_pipeline(pipeline_name)
@@ -952,11 +953,22 @@ def run_kb_pipeline_tool(
 
     elif pipeline_name == "corpus_chunk":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
+
+        # [修改] 基础参数
+        corpus_override = {
+            "raw_chunk_path": str(target_file),
+            "chunk_path": out_path
+        }
+        
+        if chunk_params:
+            try:
+                if "chunk_size" in chunk_params:
+                    chunk_params["chunk_size"] = int(chunk_params["chunk_size"])
+            except: pass
+            corpus_override.update(chunk_params)
+
         override_params = {
-            "corpus": {
-                "raw_chunk_path": str(target_file),
-                "chunk_path": out_path
-            }
+            "corpus": corpus_override
         }
         
     elif pipeline_name == "milvus_index":

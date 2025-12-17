@@ -258,8 +258,13 @@
                     <div class="kb-arrow">↓</div>
 
                     <div class="kb-col">
-                        <div class="col-header">
-                            <span class="badge bg-light text-dark border me-2">2</span> Text Corpus
+                        <div class="col-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-light text-dark border me-2">2</span> Text Corpus
+                            </div>
+                            <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openChunkConfigModal()">
+                                Configure Chunk
+                            </button>
                         </div>
                         <div class="col-list" id="list-corpus"></div>
                     </div>
@@ -417,6 +422,56 @@
         <button class="btn btn-dark btn-sm" onclick="document.getElementById('folder-detail-modal').close()">Close</button>
     </div>
 </dialog>
+
+<dialog id="chunk-config-modal" style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
+        <div class="card" style="width: 380px; border:none;">
+            <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+                <h6 class="card-title m-0 fw-bold">Chunk Configuration</h6>
+                <button type="button" class="btn-close small" onclick="document.getElementById('chunk-config-modal').close()"></button>
+            </div>
+            <div class="card-body">
+                <form id="chunk-config-form">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Chunk Backend</label>
+                        <select id="cfg-chunk-backend" class="form-select form-select-sm">
+                            <option value="token" selected>token</option>
+                            <option value="sentence">sentence</option>
+                            <option value="recursive">recursive</option>
+                        </select>
+                    </div>
+    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Tokenizer / Counter</label>
+                        <select id="cfg-chunk-tokenizer" class="form-select form-select-sm">
+                            <option value="gpt2" selected>gpt2</option>
+                            <option value="character">character</option>
+                            <option value="word">word</option>
+                        </select>
+                    </div>
+    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Chunk Size</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="cfg-chunk-size" class="form-control" value="500" min="1">
+                        </div>
+                    </div>
+    
+                    <div class="mb-1">
+                        <label class="form-label small fw-bold text-muted">Use Title</label>
+                        <select id="cfg-chunk-title" class="form-select form-select-sm">
+                            <option value="true" selected>True</option>
+                            <option value="false">False</option>
+                        </select>
+                        <div class="form-text text-xs">Prepend document title to each chunk.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
+                <button type="button" class="btn btn-sm btn-light border" onclick="document.getElementById('chunk-config-modal').close()">Cancel</button>
+                <button type="button" class="btn btn-sm btn-dark" onclick="saveChunkConfig()">Save Config</button>
+            </div>
+        </div>
+    </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
