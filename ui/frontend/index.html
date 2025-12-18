@@ -228,80 +228,94 @@
     </div>
 
     <div class="kb-main d-none" id="kb-main-view">
-        <header class="view-header border-bottom">
-            <h3 class="m-0 fs-5 fw-bold">Knowledge Base Management</h3>
-        </header>
-        
-        <div class="kb-wrapper p-4">
-            <div class="kb-container apple-card">
-                <div class="kb-header">
-                    <h5 class="m-0">Document Pipeline</h5>
-                    <input type="file" id="file-upload" multiple hidden onchange="handleFileUpload(this)">
-                    <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="document.getElementById('file-upload').click()">
-                        + Upload Document
-                    </button>
+        <header class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
+            <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
+            
+            <div class="d-flex gap-2">
+                <div class="d-flex align-items-center me-3 px-3 py-1 bg-light rounded-pill border">
+                    <div id="db-connection-status" class="status-dot disconnected me-2"></div>
+                    <small class="text-muted font-monospace" id="db-uri-display">Connecting...</small>
                 </div>
 
-                <div id="task-status-bar" class="status-bar hidden">
+                <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">
+                    Configure DB
+                </button>
+                
+                <button class="btn btn-dark btn-sm px-3 d-flex align-items-center gap-2" onclick="openImportModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New Collection
+                </button>
+            </div>
+        </header>
+        
+        <div class="kb-wrapper p-4 bg-light">
+            <div id="bookshelf-grid" class="bookshelf-grid">
+                </div>
+        </div>
+    </div>
+
+    <dialog id="import-modal" style="width: 90vw; max-width: 1200px; height: 85vh; border:none; border-radius:16px; padding:0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <div class="d-flex flex-column h-100">
+            <div class="modal-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+                <div>
+                    <h5 class="m-0 fw-bold">Import Knowledge</h5>
+                    <small class="text-muted">Process raw documents into vector index.</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-light btn-sm text-danger" onclick="clearStagingArea()" title="Clear all temporary files">Delete All</button>
+                    <button class="btn-close" onclick="closeImportModal()"></button>
+                </div>
+            </div>
+
+            <div class="modal-body bg-light p-4 overflow-hidden d-flex flex-column">
+                
+                <div id="task-status-bar" class="status-bar hidden mb-3 mx-auto shadow-sm">
                     <span class="spinner"></span>
                     <span id="task-msg">Processing...</span>
                 </div>
 
-                <div class="kb-columns">
-                    <div class="kb-col">
-                        <div class="col-header">
-                            <span class="badge bg-light text-dark border me-2">1</span> Raw Documents
-                        </div>
-                        <div class="col-list" id="list-raw"></div>
-                    </div>
-
-                    <div class="kb-arrow">↓</div>
-
-                    <div class="kb-col">
-                        <div class="col-header d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="badge bg-light text-dark border me-2">2</span> Text Corpus
+                <div class="kb-pipeline-grid flex-grow-1">
+                    
+                    <div class="pipeline-card">
+                        <div class="card-head d-flex justify-content-between align-items-center">
+                            <div class="head-title d-flex align-items-center">
+                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">1</span>
+                                <span class="fw-bold text-dark small">Raw Files</span>
                             </div>
-                            <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openChunkConfigModal()">
-                                Configure Chunk
+                            <input type="file" id="file-upload" multiple hidden onchange="handleFileUpload(this)">
+                            <button class="btn btn-dark btn-sm py-0 px-2" style="font-size: 0.8rem;" onclick="document.getElementById('file-upload').click()">
+                                Upload
                             </button>
                         </div>
-                        <div class="col-list" id="list-corpus"></div>
+                        <div class="card-body-scroll" id="list-raw"></div>
                     </div>
 
-                    <div class="kb-arrow">↓</div>
-
-                    <div class="kb-col">
-                        <div class="col-header">
-                            <span class="badge bg-light text-dark border me-2">3</span> Chunks
+                    <div class="pipeline-card">
+                        <div class="card-head d-flex justify-content-between align-items-center">
+                            <div class="head-title d-flex align-items-center">
+                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">2</span>
+                                <span class="fw-bold text-dark small">Corpus</span>
+                            </div>
+                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted" style="font-size: 0.8rem;" onclick="openChunkConfigModal()">
+                                Config
+                            </button>
                         </div>
-                        <div class="col-list" id="list-chunks"></div>
+                        <div class="card-body-scroll" id="list-corpus"></div>
+                    </div>
+
+                    <div class="pipeline-card">
+                        <div class="card-head d-flex justify-content-between align-items-center">
+                            <div class="head-title d-flex align-items-center">
+                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">3</span>
+                                <span class="fw-bold text-dark small">Chunks</span>
+                            </div>
+                        </div>
+                        <div class="card-body-scroll" id="list-chunks"></div>
                     </div>
                 </div>
-                
-                <div class="kb-index-section mt-4 pt-3 border-top">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                      <div class="d-flex align-items-center gap-2">
-                          <div class="col-header m-0">Collections</div>
-                          <span id="db-connection-status" class="badge rounded-pill bg-secondary">Offline</span>
-                          <small class="text-muted ms-2" id="db-uri-display" style="font-size: 0.75rem; font-family: monospace;"></small>
-                      </div>
-                      
-                      <div class="d-flex align-items-center gap-2">
-                          <button class="btn btn-icon" id="refresh-collections-btn" title="Refresh Collections">↻</button>
-                          <button class="btn btn-dark btn-sm rounded-pill px-3" onclick="openDbConfigModal()">
-                              Configure DB
-                          </button>
-                      </div>
-                  </div>
-                    
-                    <div class="index-grid" id="list-indexes">
-                        </div>
-                </div>
-
             </div>
         </div>
-    </div>
+    </dialog>
 
     <aside class="chat-detail-sidebar" id="source-detail-panel">
       <div class="detail-header">

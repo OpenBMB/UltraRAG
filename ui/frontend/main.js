@@ -155,20 +155,75 @@ let pendingInsert = null;
 // --- Knowledge Base Logic ---
 // ==========================================
 
-let currentTargetFile = null; // 暂存当前正在操作的文件路径
 
-// 1. 刷新文件列表
+let currentTargetFile = null;
+let existingFilesSnapshot = new Set();
+
+// [修改] 打开导入工作台
+window.openImportModal = async function() {
+    const modal = document.getElementById('import-modal');
+    if (modal) modal.showModal();
+    
+    // 1. 先清空快照
+    existingFilesSnapshot.clear();
+    
+    // 2. 获取当前所有文件，建立“基准线”
+    try {
+        const data = await fetchJSON('/api/kb/files');
+        
+        // 把当前已有的所有文件路径加入快照
+        // 这样，凡是现在就在列表里的，都不是“新”的
+        const recordFiles = (list) => list.forEach(f => existingFilesSnapshot.add(f.path));
+        
+        recordFiles(data.raw);
+        recordFiles(data.corpus);
+        recordFiles(data.chunks);
+        
+        // 3. 立即渲染一次（此时不会有高亮，因为都在快照里）
+        // 这里手动调用 render 避免 refreshKBFiles 还没拉取完
+        refreshKBModalViews(data);
+        
+    } catch(e) {
+        console.error("Init modal failed:", e);
+    }
+};
+
+// [新增] 关闭导入工作台
+window.closeImportModal = function() {
+    const modal = document.getElementById('import-modal');
+    if (modal) modal.close();
+    
+    // 关闭后刷新主界面，确保新生成的 Collection 立即出现在书架上
+    refreshKBFiles();
+};
+
+// [新增] 清空暂存区 (逻辑桩)
+window.clearStagingArea = async function() {
+    if (!confirm("Are you sure you want to clear ALL temporary files (Raw, Corpus, Chunks)?")) return;
+    alert("Batch clear is not implemented in backend yet. Please delete files manually for now.");
+};
+
+
+
+// [新增] 专门用于刷新弹窗视图的辅助函数
+function refreshKBModalViews(data) {
+    renderKBList(document.getElementById('list-raw'), data.raw, 'build_text_corpus', 'Parse');
+    renderKBList(document.getElementById('list-corpus'), data.corpus, 'corpus_chunk', 'Chunk');
+    renderKBList(document.getElementById('list-chunks'), data.chunks, 'milvus_index', 'Index');
+}
+
+// [修改] 刷新文件列表 (主函数)
 async function refreshKBFiles() {
     try {
         const data = await fetchJSON('/api/kb/files');
         
-        // 渲染三列文件
-        renderKBList(els.listRaw, data.raw, 'build_text_corpus', 'Parse');
-        renderKBList(els.listCorpus, data.corpus, 'corpus_chunk', 'Chunk');
-        renderKBList(els.listChunks, data.chunks, 'milvus_index', 'Index');
+        // 1. 刷新弹窗视图
+        refreshKBModalViews(data);
         
-        // 渲染 Collections 和更新状态
-        renderCollectionList(els.listIndexes, data.index);
+        // 2. 刷新主页书架
+        renderCollectionList(null, data.index); 
+        
+        // 3. 更新状态
         updateDbStatusUI(data.db_status, data.db_config);
         
     } catch (e) {
@@ -176,67 +231,59 @@ async function refreshKBFiles() {
     }
 }
 
-// 2. 渲染列表辅助函数
+// [修改] 渲染流水线列表 (应用快照高亮)
 function renderKBList(container, files, nextPipeline, actionLabel) {
     if (!container) return;
     container.innerHTML = '';
     
     if (!files || files.length === 0) {
-        container.innerHTML = '<div class="text-muted small text-center mt-4">Empty</div>';
+        container.innerHTML = '<div class="text-muted small text-center mt-5 opacity-50">Empty</div>';
         return;
     }
 
+    // 按时间倒序，新文件排前面
+    files.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+
     files.forEach(f => {
         const div = document.createElement('div');
-        div.className = 'file-item';
         
-        // 1. 图标定义 (文件夹 vs 文件)
+        // [核心修复] 高亮逻辑
+        // 如果这个文件的路径 不在 打开弹窗时的快照里，那它就是新的！
+        const isNew = !existingFilesSnapshot.has(f.path);
+        
+        div.className = `file-item ${isNew ? 'new-upload' : ''}`;
+        
+        // --- 以下 UI 生成代码保持不变 ---
         const isFolder = f.type === 'folder';
-        
-        // SVG: 文件夹 (Folder)
-        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
-        
-        // SVG: 文件 (File)
-        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`;
-
+        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
         const iconSvg = isFolder ? svgFolder : svgFile;
 
-        // 2. 查看详情按钮 (Eye SVG)
+        // View 按钮
         let viewBtn = '';
         if (isFolder) {
-            viewBtn = `
-            <button class="btn-icon-action me-1" onclick="window.inspectFolder('${f.category}', '${f.name}')" title="View Contents">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-            </button>`;
+            viewBtn = `<button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="window.inspectFolder('${f.category}', '${f.name}')" title="View"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`;
         }
 
-        // 3. 删除按钮 (使用统一的 SVG 垃圾桶)
+        // Action 按钮
+        let actionBtn = `<button class="btn btn-sm btn-light border ms-auto" style="font-size:0.75rem;" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">${actionLabel}</button>`;
+        
+        // Delete 按钮
         let deleteBtn = '';
         if (f.category !== 'collection') {
-            deleteBtn = `
-            <button class="btn-delete-collection ms-2" onclick="deleteKBFile('${f.category}', '${f.name}')" title="Delete">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-            </button>`;
+            deleteBtn = `<button class="btn btn-sm text-danger ms-2" onclick="deleteKBFile('${f.category}', '${f.name}')">×</button>`;
         }
 
         div.innerHTML = `
-            <div class="d-flex align-items-center flex-grow-1 overflow-hidden me-2">
-                <div class="file-icon-box me-3 ${isFolder ? 'folder' : ''}">
-                    ${iconSvg}
-                </div>
-                <div class="file-name text-truncate" title="${f.name}">${f.name}</div>
-                ${isFolder && f.file_count ? `<span class="badge bg-light text-secondary border ms-2" style="font-size:0.65rem">${f.file_count}</span>` : ''}
-            </div>
-            
-            <div class="d-flex align-items-center flex-shrink-0">
+            <div class="d-flex align-items-center w-100">
+                <div class="text-muted me-2">${iconSvg}</div>
+                <div class="text-truncate small text-dark" style="max-width: 130px;" title="${f.name}">${f.name}</div>
+                ${isFolder && f.file_count ? `<span class="badge bg-light text-secondary border ms-1" style="font-size:0.6rem">${f.file_count}</span>` : ''}
                 ${viewBtn}
-                <button class="btn-action" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">
-                    ${actionLabel}
-                </button>
+                ${actionBtn}
                 ${deleteBtn}
             </div>
         `;
-        
         container.appendChild(div);
     });
 }
@@ -277,45 +324,57 @@ window.inspectFolder = async function(category, folderName) {
     }
 };
 
-// 3. 渲染 Collection 列表 (新增)
+// [修改] 渲染 Collection 列表 -> 书架卡片模式
 function renderCollectionList(container, collections) {
-    if (!container) return;
-    container.innerHTML = '';
+    const grid = document.getElementById('bookshelf-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
 
     if (!collections || collections.length === 0) {
-        container.innerHTML = '<div class="text-muted small mt-3">No collections found in this database.</div>';
+        grid.innerHTML = `
+            <div class="col-12 text-center py-5 text-muted" style="grid-column: 1 / -1;">
+                <div style="font-size:3rem; margin-bottom:1rem; opacity:0.3;">📚</div>
+                <h5>Library is empty</h5>
+                <p>Click "New Collection" to import documents.</p>
+            </div>
+        `;
         return;
     }
 
-    const svgCollection = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>`;
-
     collections.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'index-card-group'; 
-        const countStr = c.count !== undefined ? `${c.count} entities` : '';
+        const card = document.createElement('div');
+        card.className = 'collection-card';
         
-        div.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="collection-icon-box">
-                        ${svgCollection}
-                    </div>
-                    <div>
-                        <div class="fw-semibold text-dark" style="font-size: 0.95rem;">${c.name}</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">${countStr}</div>
-                    </div>
-                </div>
+        const countStr = c.count !== undefined ? `${c.count} vectors` : 'Ready';
+
+        // [修改] 定义一个精致的书本 SVG (Stroke 风格)
+        const bookSvg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+        `;
+        
+        // 渲染卡片
+        card.innerHTML = `
+            <div class="book-cover">
+                <div class="book-icon">${bookSvg}</div>
                 
-                <button class="btn-delete-collection" onclick="deleteKBFile('collection', '${c.name}')" title="Delete Collection">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 6h18"></path>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                    </svg>
+                <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="Delete Collection">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             </div>
+            <div class="book-info">
+                <div class="book-title" title="${c.name}">${c.name}</div>
+                <div class="book-meta">
+                    <span>${countStr}</span>
+                    <span class="badge bg-light text-dark border">Vector DB</span>
+                </div>
+            </div>
         `;
-        container.appendChild(div);
+        
+        grid.appendChild(card);
     });
 }
 
@@ -480,10 +539,12 @@ window.confirmIndexTask = function() {
     });
 };
 
-// 8. 处理文件上传 (保持不变)
+// [修改] handleFileUpload 恢复原样 (不再需要 sessionStems)
 window.handleFileUpload = async function(input) {
     if (!input.files.length) return;
-    const file = input.files[0];
+    
+    // 不需要手动记录文件名了，Snapshot 逻辑会自动处理
+
     const formData = new FormData();
     for (let i = 0; i < input.files.length; i++) {
         formData.append('file', input.files[i]);
@@ -493,7 +554,7 @@ window.handleFileUpload = async function(input) {
     try {
         const res = await fetch('/api/kb/upload', { method: 'POST', body: formData });
         if (res.ok) {
-            await refreshKBFiles(); // 刷新列表
+            await refreshKBFiles(); 
             updateKBStatus(false);
         } else {
             alert('Upload failed');
@@ -504,7 +565,7 @@ window.handleFileUpload = async function(input) {
         updateKBStatus(false);
         alert("Upload error: " + e.message);
     } finally {
-        input.value = ''; // 重置 input，允许重复上传同名文件
+        input.value = '';
     }
 };
 

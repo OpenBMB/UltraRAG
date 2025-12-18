@@ -1814,3 +1814,274 @@ body {
     width: 28px;  /* 在紧凑列表里稍微小一点 */
     height: 28px;
 }
+
+/* =========================================
+   Bookshelf View (Library Style)
+   ========================================= */
+
+/* 1. 书架网格 */
+.bookshelf-grid {
+  display: grid;
+  /* 自动适应宽度，每本书最小 200px */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+  gap: 24px;
+  padding-bottom: 40px;
+}
+
+/* 2. 书本/集合卡片 */
+.collection-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  aspect-ratio: 4/5; /* 类似书本比例 */
+}
+
+/* 悬停效果：浮起 */
+.collection-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+  border-color: #cbd5e1;
+}
+
+/* 书本封面区 */
+.book-cover {
+  flex: 1;
+  /* 统一使用极简的浅灰背景 */
+  background-color: #f8fafc; 
+  /* 或者用非常淡的渐变增加质感：
+  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9); 
+  */
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  
+  /* 图标默认颜色：深灰色 */
+  color: #94a3b8; 
+  transition: all 0.3s ease;
+}
+
+/* 悬停时：背景稍微变深，图标变深，更有交互感 */
+.collection-card:hover .book-cover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* [重要] 删除之前那段 .collection-card:nth-child(...) 的彩色代码 */
+/* 之前的 colorful 样式已废弃 */
+
+/* 书本 SVG 图标大小 */
+.book-icon svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.8;
+}
+
+/* 书本信息区 */
+.book-info {
+  padding: 16px;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+}
+
+.book-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 删除按钮 (悬停出现) */
+.btn-delete-book {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #e2e8f0;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+.collection-card:hover .btn-delete-book {
+  opacity: 1;
+}
+.btn-delete-book:hover {
+  background: #fee2e2;
+  border-color: #fee2e2;
+}
+
+/* =========================================
+   Modal Workflow Layout (Fixed)
+   ========================================= */
+
+/* 1. 强制横向布局，不许换行 */
+.kb-pipeline-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr; /* 三列等宽 */
+  gap: 16px;
+  height: 100%; /* 撑满弹窗高度 */
+  padding-bottom: 0;
+  min-height: 400px;
+}
+
+/* 2. 隐藏原本的箭头容器 (我们用更优雅的方式) */
+.pipeline-arrow {
+  display: none; 
+}
+
+/* 3. 优化卡片样式 */
+.pipeline-card {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  height: 100%; /* 撑满高度 */
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+/* 头部美化 */
+.card-head {
+  padding: 12px 16px;
+  background: #f8fafc; /* 浅灰头 */
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+/* 列表区域 */
+.card-body-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  background: #fff;
+}
+
+/* 4. 步骤徽章优化 */
+.step-badge {
+  background: #0f172a; /* 深色背景 */
+  color: #fff;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+/* 响应式：如果屏幕真的很小，才允许变垂直，但一般弹窗够宽 */
+@media (max-width: 768px) {
+  .kb-pipeline-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+/* =========================================
+   Scroll & Highlight Fixes
+   ========================================= */
+
+/* 1. 确保弹窗内部布局撑满，强制内部滚动 */
+#import-modal .modal-body {
+  height: 100%;           /* 撑满弹窗剩余空间 */
+  overflow: hidden;       /* 禁止整个弹窗滚动 */
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-pipeline-grid {
+  height: 100%;           /* Grid 撑满 body */
+  min-height: 0;          /* 关键：允许 flex 子元素缩小以触发滚动 */
+  padding-bottom: 0;      /* 去掉底部内边距 */
+}
+
+/* 新文件高亮样式 */
+.file-item.new-upload {
+  background-color: #eff6ff;     /* 明显的淡蓝背景 */
+  border: 1px solid #60a5fa;     /* 蓝色边框 */
+  box-shadow: 0 2px 6px rgba(37,99,235,0.15);
+  position: relative;            /* 必须有，为了定位 badge */
+  z-index: 1;                    /* 确保浮在其他元素上面一点 */
+}
+
+/* "NEW" 徽章 */
+.file-item.new-upload::after {
+  content: "NEW";
+  position: absolute;
+  top: -8px;                     /* 稍微挂在外面一点 */
+  right: -5px;
+  background: #2563eb;
+  color: white;
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  pointer-events: none;          /* 防止挡住点击 */
+}
+
+/* =========================================
+   Library View Layout (Fixed Header)
+   ========================================= */
+
+/* 1. 让主视图容器撑满屏幕，并使用 Flex 布局 */
+#kb-main-view {
+  height: 100vh;          /* 强制占满视口高度 */
+  display: flex;
+  flex-direction: column; /* 上下结构 */
+  overflow: hidden;       /* 禁止整个页面出现滚动条 */
+}
+
+/* 2. 头部：防止被压缩 */
+#kb-main-view .view-header {
+  flex-shrink: 0;         /* 头部高度固定 */
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03); /* 加一点阴影更有层次 */
+}
+
+/* 3. 书架区域：占据剩余空间 + 内部滚动 */
+#kb-main-view .kb-wrapper {
+  flex: 1;                /* 自动填满剩余高度 */
+  overflow-y: auto;       /* 核心：只有这个区域滚动 */
+  min-height: 0;          /* 防止 flex 子项溢出问题 */
+  
+  /* 优化滚动条体验 */
+  scroll-behavior: smooth; 
+  padding-bottom: 60px;   /* 底部留点余量，防止最后一排贴底 */
+}
+
+/* 可选：美化书架的滚动条 */
+#kb-main-view .kb-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+#kb-main-view .kb-wrapper::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+#kb-main-view .kb-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
