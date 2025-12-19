@@ -782,9 +782,12 @@ body {
 .ref-title {
   word-break: break-all;
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* 最多显示2行 */
+  -webkit-line-clamp: 6; /* 最多显示6行，让用户能看到更多内容 */
+  line-clamp: 6; /* 标准属性，兼容性更好 */
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1; /* 占据剩余空间 */
+  min-width: 0; /* 允许flex子元素缩小 */
 }
 
 /* [合并与增强] 引用角标样式 */
@@ -864,11 +867,13 @@ body {
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
-  /* 限制标题行数 */
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  /* 移除截断限制，允许显示完整标题 */
+  word-wrap: break-word;
+  word-break: break-word;
+  flex: 1; /* 占据剩余空间 */
+  min-width: 0; /* 允许flex子元素缩小并换行 */
+  padding-right: 1rem; /* 与关闭按钮保持间距 */
+  line-height: 1.5; /* 增加行高，多行显示更美观 */
 }
 
 /* --- 内容区域 (核心阅读优化) --- */

@@ -1594,7 +1594,8 @@ window.scrollToReference = function(refId) {
         // 2. [新增] 打开右侧侧边栏显示详情
         if (target._sourceData) {
             const src = target._sourceData;
-            showSourceDetail(`Reference [${src.id}]`, src.content);
+            const title = `Reference [${src.id}]`;
+            showSourceDetail(title, src.content);
         }
     }
 };
@@ -1632,7 +1633,10 @@ function renderSources(bubble, sources, isAppend = false) {
         item.className = "ref-item";
         item.id = `ref-item-${showId}`;
         item._sourceData = src; 
-        item.onclick = () => showSourceDetail(`Reference [${showId}]`, src.content);
+        item.onclick = () => {
+            const title = `Reference [${showId}]`;
+            showSourceDetail(title, src.content);
+        };
         
         item.innerHTML = `
             <span class="ref-id">[${showId}]</span>
