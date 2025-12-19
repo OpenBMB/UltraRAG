@@ -11,6 +11,7 @@ class LocalGenerationService:
             self, 
             backend_configs: Dict[str, Any], 
             sampling_params: Dict[str, Any], 
+            extra_params: Optional[Dict[str, Any]] = None,
             backend: str = "openai"
     ):
     
@@ -20,27 +21,11 @@ class LocalGenerationService:
         api_key = openai_cfg.get("api_key") or os.environ.get("LLM_API_KEY")
         
         self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
-        
+
         self.sampling_params = sampling_params.copy()
-        self.sampling_params.pop("chat_template_kwargs", None)
-
-        chat_template_kwargs = sampling_params.get("chat_template_kwargs", {})
-        openai_sampling_params = self._drop_keys(
-            sampling_params, banned=["chat_template_kwargs", "top_k"]
-        )
-        extra_body = {}
-        if "top_k" in sampling_params:
-            extra_body["top_k"] = sampling_params["top_k"]
-        if chat_template_kwargs:
-            extra_body["chat_template_kwargs"] = chat_template_kwargs
-        if extra_body:
-            openai_sampling_params["extra_body"] = extra_body
-        self.sampling_params = openai_sampling_params
-
-    
-    def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
-        return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
-    
+        if extra_params:
+            self.sampling_params["extra_body"] = extra_params
+            
     def _extract_text_prompts(
         self, prompt_ls: List[Union[str, Dict[str, Any]]]
     ) -> List[str]:
@@ -152,7 +137,3 @@ class LocalGenerationService:
             print("\n[LocalGen] Error Detected:")
             traceback.print_exc()
             yield f"\n[Error: {e}]"
-        
-    
-
-        

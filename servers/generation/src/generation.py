@@ -20,7 +20,7 @@ class Generation:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
         mcp_inst.tool(
             self.generation_init,
-            output="backend_configs,sampling_params,backend->None",
+            output="backend_configs,sampling_params,extra_params,backend->None",
         )
         mcp_inst.tool(
             self.generate,
@@ -82,6 +82,7 @@ class Generation:
         self,
         backend_configs: Dict[str, Any],
         sampling_params: Dict[str, Any],
+        extra_params: Optional[Dict[str, Any]] = None,
         backend: str = "vllm",
     ) -> None:
 
@@ -100,7 +101,6 @@ class Generation:
                 raise ImportError(err_msg)
 
             gpu_ids = str(cfg.get("gpu_ids"))
-
             os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
             os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
 
@@ -110,15 +110,16 @@ class Generation:
                 cfg,
                 banned=["gpu_ids", "model_name_or_path"],
             )
-            vllm_sampling_params = self._drop_keys(
-                sampling_params,
-                banned=["chat_template_kwargs"],
-            )
+    
             vllm_pass_cfg["tensor_parallel_size"] = len(gpu_ids.split(","))
-            self.chat_template_kwargs = sampling_params.get("chat_template_kwargs", {})
+
+            if extra_params:
+                self.chat_template_kwargs = extra_params.get("chat_template_kwargs", {})
+            else:
+                self.chat_template_kwargs = {}
 
             self.model = LLM(model=model_name_or_path, **vllm_pass_cfg)
-            self.sampling_params = SamplingParams(**vllm_sampling_params)
+            self.sampling_params = SamplingParams(**sampling_params)
 
         elif self.backend == "openai":
             self.model_name = cfg.get("model_name")
@@ -141,18 +142,9 @@ class Generation:
 
             self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
 
-            self.chat_template_kwargs = sampling_params.get("chat_template_kwargs", {})
-            openai_sampling_params = self._drop_keys(
-                sampling_params, banned=["chat_template_kwargs", "top_k"]
-            )
-            extra_body = {}
-            if "top_k" in sampling_params:
-                extra_body["top_k"] = sampling_params["top_k"]
-            if self.chat_template_kwargs:
-                extra_body["chat_template_kwargs"] = self.chat_template_kwargs
-            if extra_body:
-                openai_sampling_params["extra_body"] = extra_body
-            self.sampling_params = openai_sampling_params
+            if extra_params:
+                sampling_params["extra_body"] = extra_params
+            self.sampling_params = sampling_params
 
             self._max_concurrency = int(cfg.get("concurrency", 1))
             self._retries = int(cfg.get("retries", 3))
@@ -174,11 +166,11 @@ class Generation:
                 cfg,
                 banned=["gpu_ids", "model_name_or_path", "batch_size"],
             )
-            hf_sampling_params = self._drop_keys(
-                sampling_params, banned=["chat_template_kwargs"]
-            )
-            self.chat_template_kwargs = sampling_params.get("chat_template_kwargs", {})
-            self.sampling_params = hf_sampling_params
+            if extra_params:
+                self.chat_template_kwargs = extra_params.get("chat_template_kwargs", {})
+            else:
+                self.chat_template_kwargs = {}
+            self.sampling_params = sampling_params
             self.batch_size = int(cfg.get("batch_size", 1))
 
             self.model = AutoModelForCausalLM.from_pretrained(

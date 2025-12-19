@@ -1041,6 +1041,7 @@ async def execute_pipeline(
                         service_instance = LocalGenerationService(
                             backend_configs=gen_params.get("backend_configs", {}),
                             sampling_params=gen_params.get("sampling_params", {}),
+                            extra_params=gen_params.get("extra_params", {}),
                             backend="openai"
                         )
                         generation_services_map[srv_name] = service_instance
