@@ -427,10 +427,10 @@ body {
 
 /* Session Item */
 .chat-session-item {
-  padding: 0.6rem 0.8rem;
+  padding: 10px 16px 10px 24px;
   font-size: 0.9rem;
   color: var(--text-primary);
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -441,7 +441,7 @@ body {
   text-align: left;
   width: 100%;
 }
-.chat-session-item:hover { background-color: #eef0f2; }
+.chat-session-item:hover { background: rgba(0, 0, 0, 0.05); }
 .chat-session-item.active { background-color: #e0e7ff; color: var(--accent-blue); font-weight: 500; }
 
 .sidebar-footer {
@@ -2090,3 +2090,157 @@ body {
 #kb-main-view .kb-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* =========================================
+   Unified Sidebar - Full Reset & Pixel Perfect
+   ========================================= */
+
+   .chat-sidebar {
+    width: 260px;
+    height: 100vh;
+    background-color: #f9f9fa;
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    font-family: var(--font-sans); /* 恢复 Inter 字体 */
+  }
+  
+  /* 统一水平对齐基准：16px */
+  .sidebar-toggle-wrapper, 
+  .sidebar-label, 
+  .btn-nav {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* 1. 顶部样式 */
+  .sidebar-header {
+    padding: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .sidebar-toggle-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    min-height: 32px;
+  }
+  
+  .sidebar-toggle-wrapper .sidebar-label {
+    margin: 0 !important; /* 顶部 Feature 标签去除额外边距 */
+    padding: 0 !important; /* [新增] 去除嵌套 padding，防止双倍缩进 */
+  }
+
+  /* [新增] 收缩按钮统一风格 (黑色描边) */
+  #sidebar-toggle-btn {
+    color: #4b5563; /* [修改] 比纯黑 (#1a1a1a) 稍浅一点的深灰色，视觉更柔和 */
+  }
+  
+  /* 悬停时稍微加深背景 */
+  #sidebar-toggle-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #000;
+  }
+  
+  /* 2. 中间列表（带置底弹性逻辑） */
+  .sidebar-list {
+    flex: 1; /* 占据剩余空间，将 footer 压到底部 */
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .sidebar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin: 1.5rem 0 0.5rem 0;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* 3. 底部样式 */
+  .sidebar-footer {
+    margin-top: auto; /* 置底关键 */
+    padding: 0.8rem 0 1.2rem 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+  
+  /* --- 统一导航按钮样式 (还原字体质感) --- */
+  .btn-nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500; /* 还原原来的按钮权重 */
+    color: #4b5563; /* [修改] 从 var(--text-primary) 改为深灰色 */
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+    border-radius: 0;
+  }
+  
+  .btn-nav:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #1a1a1a; /* [新增] 悬停时文字变深，增加对比度 */
+  }
+  
+  .btn-sidebar-toggle {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    margin-right: -6px; /* 补偿内边距，让图标贴齐右边 */
+    display: flex;
+    align-items: center;
+  }
+  
+  /* =========================================
+     极致收缩状态 (.collapsed)
+     ========================================= */
+  
+  .chat-sidebar.collapsed {
+    width: 68px;
+  }
+  
+  /* 彻底隐藏：中间列表、文字标签、按钮文字内容 */
+  .chat-sidebar.collapsed .sidebar-list,
+  .chat-sidebar.collapsed .sidebar-label,
+  .chat-sidebar.collapsed .btn-text {
+    display: none !important;
+  }
+  
+  /* 全部图标居中对齐 */
+  .chat-sidebar.collapsed .sidebar-toggle-wrapper,
+  .chat-sidebar.collapsed .btn-nav {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+  }
+  
+  .chat-sidebar.collapsed .icon {
+    margin: 0 !important;
+    width: 24px;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* 收缩图标旋转 */
+  .chat-sidebar.collapsed #sidebar-toggle-btn {
+    margin: 0;
+    transform: rotate(180deg);
+  }

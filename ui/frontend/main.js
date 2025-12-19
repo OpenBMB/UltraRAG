@@ -85,6 +85,9 @@ const els = {
   // [新增] 按钮
   kbBtn: document.getElementById("kb-btn"),
 
+  chatSidebar: document.querySelector(".chat-sidebar"),
+  chatSidebarToggleBtn: document.getElementById("sidebar-toggle-btn"),
+
   // [新增] Chat 顶部控件
   chatPipelineLabel: document.getElementById("chat-pipeline-label"),
   chatPipelineMenu: document.getElementById("chat-pipeline-menu"),
@@ -2503,6 +2506,13 @@ function bindEvents() {
         els.kbBtn.onclick = openKBView; 
     }
 
+    if (els.chatSidebarToggleBtn && els.chatSidebar) {
+        els.chatSidebarToggleBtn.onclick = () => {
+            const isCollapsed = els.chatSidebar.classList.toggle("collapsed");
+            localStorage.setItem("ultrarag_sidebar_collapsed", isCollapsed);
+        };
+    }
+
     if (els.refreshCollectionsBtn) {
         els.refreshCollectionsBtn.onclick = async () => {
             log("Manually refreshing collections...");
@@ -2605,6 +2615,11 @@ async function bootstrap() {
       log("UI Ready."); 
   } catch (err) { 
       log(`Initialization error: ${err.message}`); 
+  }
+
+  const wasCollapsed = localStorage.getItem("ultrarag_sidebar_collapsed") === "true";
+  if (wasCollapsed && els.chatSidebar) {
+    els.chatSidebar.classList.add("collapsed");
   }
 
   // 2. [修改] 数据加载完后，再恢复历史会话和选中状态
