@@ -25,6 +25,8 @@ sampling_params:
   temperature: 0.7
   top_p: 0.8
   max_tokens: 2048
+
+extra_params:
   chat_template_kwargs:
     enable_thinking: false
 
