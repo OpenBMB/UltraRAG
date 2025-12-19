@@ -1090,7 +1090,9 @@ async def execute_pipeline(
                     raise ValueError(f"Invalid loop config: {loop_cfg}")
                 for st in range(times):
                     LoopTerminal[-1] = True
-                    await _execute_steps(inner_steps, depth + 1, state)
+                    loop_res = await _execute_steps(inner_steps, depth + 1, state)
+                    if loop_res is not None:
+                        result = loop_res
                     logger.debug(
                         f"{indent}Loop iteration {st + 1}/{times} completed {LoopTerminal}"
                     )
@@ -1117,9 +1119,9 @@ async def execute_pipeline(
                     concated, args_input, _ = Data.get_data(
                         server_name, tool_name, state
                     )
-                    result = await client.call_tool(concated, args_input)
+                    router_res = await client.call_tool(concated, args_input)
                     output_text = Data.save_data(
-                        server_name, tool_name, result, f"{state}{SEP}router"
+                        server_name, tool_name, router_res, f"{state}{SEP}router"
                     )
                 else:
                     server_name, tool_name = list(router[-1].keys())[0].split(".")
@@ -1127,11 +1129,11 @@ async def execute_pipeline(
                     concated, args_input, _ = Data.get_data(
                         server_name, tool_name, state, tool_value.get("input", {})
                     )
-                    result = await client.call_tool(concated, args_input)
+                    router_res = await client.call_tool(concated, args_input)
                     output_text = Data.save_data(
                         server_name,
                         tool_name,
-                        result,
+                        router_res,
                         f"{state}{SEP}router",
                         tool_value.get("output", {}),
                     )
@@ -1140,16 +1142,21 @@ async def execute_pipeline(
 
                 branch_depth = parse_path(state)[-1][0] + 1 if parse_path(state) else 1
                 branches = Data.get_branch()
+                # 重置 result 为 None，如果分支没有产出（例如空分支），则该步骤返回 None
+                # 以便上层调用（如 loop）保留之前的有意义结果
+                result = None
                 for branch_name in branches:
                     # for branch_name, branch_steps in branch_step["branches"].items():
 
                     logger.debug(f"{indent}Processing branch: {branch_name}")
                     # branch_steps = branch_step["branches"][branch_name]``
-                    await _execute_steps(
+                    branch_res = await _execute_steps(
                         branch_step["branches"][branch_name],
                         depth,
                         f"{state}{SEP}branch{branch_depth}_{branch_name}",
                     )
+                    if branch_res is not None:
+                        result = branch_res
             elif isinstance(step, dict) and "." in list(step.keys())[0]:
                 server_name, tool_name = list(step.keys())[0].split(".")
                 tool_value = step[list(step.keys())[0]]
@@ -1420,7 +1427,12 @@ async def execute_pipeline(
         if result is None:
             final = None
         else:
-            final = result.data
+            if hasattr(result, "data"):
+                final = result.data
+            elif hasattr(result, "content") and result.content:
+                final = result.content[0].text
+            else:
+                final = str(result)
         return {
             "final_result": final,
             "all_results": Data.snapshots,
@@ -1428,7 +1440,12 @@ async def execute_pipeline(
 
     if result is None:
         return None
-    return result.data
+    
+    if hasattr(result, "data"):
+        return result.data
+    elif hasattr(result, "content") and result.content:
+        return result.content[0].text
+    return str(result)
 
 async def run(
     config_path: str,

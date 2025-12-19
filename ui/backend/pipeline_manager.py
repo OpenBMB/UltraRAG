@@ -314,6 +314,9 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
             return   
         except Exception as e:
             LOGGER.error(f"Chat error: {e}")
+            try:
+                LOGGER.error(f"Faulty item: {item}")
+            except: pass
             token_queue.put({"type": "error", "message": str(e)})
         finally:
             token_queue.put(None) # Sentinel
@@ -324,7 +327,21 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
     while True:
         item = token_queue.get()
         if item is None: break
-        yield f"data: {json.dumps(item, ensure_ascii=False)}\n\n"
+        try:
+            yield f"data: {json.dumps(item, ensure_ascii=False)}\n\n"
+        except TypeError as e:
+            LOGGER.error(f"JSON serialization failed for item type {type(item)}: {e}")
+            import traceback
+            LOGGER.error(traceback.format_exc())
+            # Try to identify the bad field
+            if isinstance(item, dict):
+                for k, v in item.items():
+                    try:
+                        json.dumps(v, ensure_ascii=False)
+                    except TypeError:
+                        LOGGER.error(f"Field '{k}' is not serializable: type={type(v)}, value={v}")
+            
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Internal Serialization Error'})}\n\n"
 
 # Helpers (Config & Files) 
 
@@ -333,35 +350,55 @@ def _extract_result(res: Any) -> Optional[str]:
     
     # 1. 如果 res 是 execute_pipeline 返回的包装字典 (return_all=True)
     if isinstance(res, dict) and "final_result" in res:
-        # 取出真正的 result 数据
         target = res["final_result"]
     else:
         target = res
 
+    # [Safe Guard] 处理 Pydantic 对象 (RootModel 等)
+    try:
+        if hasattr(target, "model_dump"):
+            target = target.model_dump()
+        elif hasattr(target, "dict"):
+            target = target.dict()
+    except Exception:
+        pass 
+
     # 2. 尝试解析目标数据
     try:
-        # 情况 A: target 是 JSON 字符串 (MockResult.data)
+        # 情况 A: target 是 JSON 字符串
         if isinstance(target, str):
             try:
                 parsed = json.loads(target)
                 if isinstance(parsed, dict) and "ans_ls" in parsed:
-                    return parsed["ans_ls"][0]
+                    val = parsed["ans_ls"][0]
+                    return str(val) if not isinstance(val, str) else val
             except:
-                return target # 解析失败就返回原始字符串
+                return target 
 
-        # 情况 B: target 已经是 Dict (如果 MockResult 存的是 Dict)
-        if isinstance(target, dict) and "ans_ls" in target:
-            return target["ans_ls"][0]
-            
+        # 情况 B: target 已经是 Dict
+        if isinstance(target, dict):
+            if "ans_ls" in target:
+                val = target["ans_ls"][0]
+                return str(val) if not isinstance(val, str) else val
+            # 处理 root (Pydantic RootModel dump 后的结果可能放在 root 字段)
+            if "root" in target and isinstance(target["root"], str):
+                 return target["root"]
+
         # 情况 C: 仍然没找到，尝试从 content 结构里找 (兜底)
         if hasattr(target, 'content') and isinstance(target.content, list):
             text = target.content[0].text
-            return json.loads(text).get("ans_ls", [""])[0]
+            try:
+                parsed = json.loads(text)
+                val = parsed.get("ans_ls", [""])[0]
+                return str(val) if not isinstance(val, str) else val
+            except:
+                return text
             
     except Exception as e: 
         LOGGER.warning(f"Failed to extract result: {e}")
-        
-    return str(target) if target else None
+    
+    # 最终兜底：只要不为空，就转字符串
+    return str(target) if target is not None else None
 
 def _find_memory_answer(name: str, before: set[str]):
     files = sorted(OUTPUT_DIR.glob(f"memory_*_{name}_*.json"))
