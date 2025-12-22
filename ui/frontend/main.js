@@ -717,16 +717,12 @@ function log(message) {
 let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
 
-// [更新] 引用高亮函数 - 支持绝对ID模式
-// 当使用绝对ID时（offset=0或useAbsoluteIds=true），直接使用模型输出的ID
-// 当使用相对ID时，将 [1] 替换为 [1+offset]
-function formatCitationHtmlWithOffset(html, offset, useAbsoluteIds = false) {
+// 引用高亮函数 - 将 [1] 替换为可点击的引用链接
+function formatCitationHtml(html) {
     if (!html) return "";
     return html.replace(/\[(\d+)\]/g, (match, p1) => {
-        const originalId = parseInt(p1, 10);
-        // 如果使用绝对ID模式或offset为0，直接使用原始ID
-        const newId = useAbsoluteIds ? originalId : (originalId + offset);
-        return `<span class="citation-link" onclick="scrollToReference(${newId})">[${newId}]</span>`;
+        const id = parseInt(p1, 10);
+        return `<span class="citation-link" onclick="scrollToReference(${id})">[${id}]</span>`;
     });
 }
 
@@ -1453,14 +1449,7 @@ function renderChatHistory() {
 
         if (entry.role === "assistant") {
             let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
-            
-            // [更新] 支持绝对ID模式
-            // 如果是新的绝对ID模式，直接使用模型输出的ID
-            // 如果是老的相对ID模式，使用保存的offset进行偏移
-            const useAbsoluteIds = entry.meta && entry.meta.useAbsoluteIds;
-            const msgOffset = (entry.meta && entry.meta.citationOffset) ? entry.meta.citationOffset : 0;
-            
-            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, msgOffset, useAbsoluteIds);
+            content.innerHTML = formatCitationHtml(htmlContent);
             renderLatex(content);
         } else {
             // 用户消息：保留换行效果
@@ -1910,10 +1899,6 @@ async function handleChatSubmit(event) {
     chatContainer.appendChild(bubble);
 
     let currentText = "";
-    
-    // =========================================================
-    // [更新] 使用绝对ID模式 - 后端负责分配全局唯一ID
-    // =========================================================
     let allSources = [];        
     let pendingRenderSources = [];
 
@@ -1938,17 +1923,13 @@ async function handleChatSubmit(event) {
                 updateProcessUI(entryIndex, data);
             } 
             else if (data.type === "sources") {
-                // [更新] 使用绝对ID模式
-                // 后端 client.py 已经为每个文档分配了全局唯一的 id
-                // 直接使用后端传来的 id 作为 displayId
-                const remappedDocs = data.data.map((doc) => ({
+                // 后端已为每个文档分配了唯一ID，直接使用
+                const docs = data.data.map((doc) => ({
                     ...doc, 
-                    // 直接使用后端分配的绝对ID
                     displayId: doc.id
                 }));
-                
-                allSources = allSources.concat(remappedDocs);
-                pendingRenderSources = pendingRenderSources.concat(remappedDocs);
+                allSources = allSources.concat(docs);
+                pendingRenderSources = pendingRenderSources.concat(docs);
             } 
             else if (data.type === "token") {
                 if (!data.is_final) updateProcessUI(entryIndex, data);
@@ -1957,10 +1938,7 @@ async function handleChatSubmit(event) {
                     if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, MARKDOWN_LANGS)) continue;
                     
                     let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
-                    
-                    // [更新] 使用绝对ID模式 - 模型输出的ID就是最终ID，无需偏移
-                    html = formatCitationHtmlWithOffset(html, 0, true);
-                    
+                    html = formatCitationHtml(html);
                     contentDiv.innerHTML = html;
                     renderLatex(contentDiv);
                     if (shouldAutoScroll) {
@@ -1972,9 +1950,7 @@ async function handleChatSubmit(event) {
                 const final = data.data;
                 let finalText = currentText || final.answer || "";
                 let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
-                
-                // [更新] 使用绝对ID模式渲染
-                html = formatCitationHtmlWithOffset(html, 0, true);
+                html = formatCitationHtml(html);
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
 
@@ -1990,14 +1966,9 @@ async function handleChatSubmit(event) {
                 // 更新历史记录
                 state.chat.history[entryIndex].text = finalText;
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
-                
-                // [更新] 绝对ID模式下不再需要保存offset
-                state.chat.history[entryIndex].meta.citationOffset = 0; 
-                state.chat.history[entryIndex].meta.useAbsoluteIds = true;
-                // 保存所有的 source 对象 (包含正确的 displayId)
                 state.chat.history[entryIndex].meta.sources = allSources;
 
-                // [更新] 引用筛选/高亮逻辑 - 使用绝对ID
+                // 高亮被引用的文档卡片
                 const usedIds = new Set();
                 const regex = /\[(\d+)\]/g;
                 let match;
@@ -2007,9 +1978,8 @@ async function handleChatSubmit(event) {
 
                 const refItems = bubble.querySelectorAll(".ref-item");
                 refItems.forEach(item => {
-                    const globalId = parseInt(item.id.replace("ref-item-", ""), 10);
-                    // 绝对ID模式：直接比对
-                    if (usedIds.has(globalId)) {
+                    const id = parseInt(item.id.replace("ref-item-", ""), 10);
+                    if (usedIds.has(id)) {
                         item.classList.add("used");
                         item.classList.remove("unused");
                     } else {
