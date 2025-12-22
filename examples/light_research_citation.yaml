@@ -8,13 +8,13 @@ servers:
   prompt: servers/prompt
   router: servers/router
   custom: servers/custom
-  evaluation: servers/evaluation
 
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
 - retriever.retriever_init
 - generation.generation_init
+- custom.init_citation_registry
 - prompt.webnote_gen_plan
 - generation.generate:
     output:
@@ -40,7 +40,12 @@ pipeline:
                 query_list: subq_ls
               output:
                 ret_psg: psg_ls
-          - prompt.webnote_fill_page_cited
+          - custom.assign_citation_ids_stateful:
+              input:
+                ret_psg: psg_ls
+              output:
+                ret_psg: psg_ls
+          - prompt.webnote_fill_page
           - generation.generate:
               output:
                 ans_ls: page_ls

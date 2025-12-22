@@ -61,24 +61,6 @@ def qa_rag_boxed(
         ret.append(p)
     return ret
 
-# prompt for QA RAG with citation
-@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
-def qa_rag_cited(
-    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
-) -> list[PromptMessage]:
-    template: Template = load_prompt_template(template)
-    ret = []
-    for q, psg in zip(q_ls, ret_psg):
-        cited_passages = []
-        for idx, passage in enumerate(psg, start=1):
-            cited_passages.append(f"[{idx}] {passage}")
-
-        passage_text = "\n".join(cited_passages)
-        p = template.render(question=q, documents=passage_text)
-        ret.append(p)
-
-    return ret
-
 # prompt for QA RAG boxed with multiple choice
 @app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed_multiple_choice(
@@ -234,36 +216,6 @@ def webnote_fill_page(
     for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
         p = template.render(question=q, plan=plan, sub_question=subq, docs_text=psg, page=page)
         all_prompts.append(p)
-    return all_prompts
-
-@app.prompt(
-    output="q_ls,plan_ls,page_ls,subq_ls,psg_ls,webnote_fill_page_template->prompt_ls"
-)
-def webnote_fill_page_cited(
-    q_ls: List[str],
-    plan_ls: List[str],
-    page_ls: List[str],
-    subq_ls: List[str],
-    psg_ls: List[Any],
-    template: str | Path,
-) -> List[PromptMessage]:
-    template: Template = load_prompt_template(template)
-    all_prompts = []
-
-    for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
-        cited_passages = []
-        for idx, passage in enumerate(psg, start=1):
-            cited_passages.append(f"[{idx}] {passage}")
-        docs_text = "\n".join(cited_passages)
-        p = template.render(
-            question=q,
-            plan=plan,
-            sub_question=subq,
-            docs_text=docs_text,
-            page=page,
-        )
-        all_prompts.append(p)
-
     return all_prompts
 
 
