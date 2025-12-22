@@ -64,8 +64,9 @@ async def build_text_corpus(
     rows: List[Dict[str, Any]] = []
 
     def process_one_file(fp: str) -> None:
-        ext = os.path.splitext(fp)[1].lower()
-        stem = os.path.splitext(os.path.basename(fp))[0]
+        fp_path = Path(fp)
+        ext = fp_path.suffix.lower()
+        stem = fp_path.stem
         content = ""
         
         if ext in TEXT_EXTS:

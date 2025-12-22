@@ -16,6 +16,8 @@ import ast
 import os
 import uuid
 import shutil
+import re
+import unicodedata
 from datetime import datetime
 
 try:
@@ -43,6 +45,19 @@ KB_CORPUS_DIR = KB_ROOT / "corpus"
 KB_CHUNKS_DIR = KB_ROOT / "chunks" 
 KB_INDEX_DIR = KB_ROOT / "index"
 KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
+
+
+def _secure_filename_unicode(filename: str) -> str:
+    """
+    安全化文件名，保留 Unicode 字符（如中文），但移除危险字符。
+    """
+    filename = unicodedata.normalize('NFC', filename)
+    # 移除路径分隔符和危险字符
+    filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '', filename)
+    # 移除首尾空白和点
+    filename = filename.strip().strip('.')
+    return filename
+
 
 for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR, KB_INDEX_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -872,9 +887,8 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
     try:
         for file_obj in file_objs:
 
-            from werkzeug.utils import secure_filename
             original_name = file_obj.filename
-            safe_name = secure_filename(original_name) 
+            safe_name = _secure_filename_unicode(original_name)
             if not safe_name: 
                 safe_name = f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
           
