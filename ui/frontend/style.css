@@ -1607,6 +1607,11 @@ body {
   width: 100%;
   outline: none;
   box-shadow: none !important;
+  resize: none; /* 禁用默认的resize */
+  overflow-y: auto; /* 内容超出时显示滚动条 */
+  min-height: 24px; /* 最小高度 */
+  max-height: 200px; /* 最大高度，避免过高 */
+  line-height: 1.5; /* 行高 */
 }
 .chat-input:focus { background: transparent; }
 .chat-input::placeholder { color: #8e918f; }

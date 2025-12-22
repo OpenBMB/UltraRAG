@@ -1461,8 +1461,15 @@ function renderChatHistory() {
             content.innerHTML = formatCitationHtmlWithOffset(htmlContent, msgOffset);
             renderLatex(content);
         } else {
-            // 用户消息一般不需要 markdown，或者简单的转义即可
-            content.textContent = entry.text;
+            // 用户消息：保留换行效果
+            // 将换行符转换为HTML，同时转义HTML特殊字符防止XSS
+            const escapedText = entry.text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+            content.innerHTML = escapedText.replace(/\n/g, '<br>');
         }
         bubble.appendChild(content);
 
@@ -1491,6 +1498,9 @@ function renderChatHistory() {
 window.setQuickPrompt = function(text) {
     if (els.chatInput) {
         els.chatInput.value = text;
+        // 自动调整textarea高度
+        els.chatInput.style.height = 'auto';
+        els.chatInput.style.height = (els.chatInput.scrollHeight) + 'px';
         els.chatInput.focus();
         // 可选：如果想点击直接发送，取消下面这行的注释
         // els.chatSend.click();
@@ -1841,6 +1851,10 @@ async function handleChatSubmit(event) {
   const question = els.chatInput.value.trim();
   if (!question) return;
   els.chatInput.value = "";
+  // 重置textarea高度
+  if (els.chatInput) {
+    els.chatInput.style.height = 'auto';
+  }
   appendChatMessage("user", question);
   setChatRunning(true);
   state.chat.controller = new AbortController();
@@ -2636,6 +2650,23 @@ function bindEvents() {
     
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
+    
+    // 支持Shift+Enter换行，Enter提交
+    if (els.chatInput) {
+        els.chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChatSubmit(e);
+            }
+            // Shift+Enter 时允许默认行为（换行）
+        });
+        
+        // 自动调整textarea高度
+        els.chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    }
 
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
     if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
