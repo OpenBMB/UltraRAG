@@ -200,10 +200,39 @@ window.closeImportModal = function() {
     refreshKBFiles();
 };
 
-// [新增] 清空暂存区 (逻辑桩)
+// [新增] 清空暂存区
 window.clearStagingArea = async function() {
     if (!confirm("Are you sure you want to clear ALL temporary files (Raw, Corpus, Chunks)?")) return;
-    alert("Batch clear is not implemented in backend yet. Please delete files manually for now.");
+    
+    try {
+        const res = await fetch('/api/kb/staging/clear', { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+            const total = data.total_deleted || 0;
+            const counts = data.deleted_counts || {};
+            let message = `Successfully cleared staging area!\n\nDeleted:\n`;
+            message += `- Raw: ${counts.raw || 0} items\n`;
+            message += `- Corpus: ${counts.corpus || 0} items\n`;
+            message += `- Chunks: ${counts.chunks || 0} items\n`;
+            message += `\nTotal: ${total} items`;
+            
+            if (data.errors && data.errors.length > 0) {
+                message += `\n\nNote: Some errors occurred:\n${data.errors.slice(0, 3).join('\n')}`;
+                if (data.errors.length > 3) {
+                    message += `\n... and ${data.errors.length - 3} more errors`;
+                }
+            }
+            
+            alert(message);
+            await refreshKBFiles();
+        } else {
+            alert("Clear failed: " + (data.error || res.statusText));
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Clear error: " + e.message);
+    }
 };
 
 

@@ -958,6 +958,58 @@ def _delete_milvus_collection(name: str):
         LOGGER.error(f"Failed to drop collection {name}: {e}")
         raise e
 
+def clear_staging_area() -> Dict[str, Any]:
+    """清空暂存区：删除 raw, corpus, chunks 三个目录中的所有文件"""
+    deleted_counts = {"raw": 0, "corpus": 0, "chunks": 0}
+    errors = []
+    
+    for category, base_dir in [
+        ("raw", KB_RAW_DIR),
+        ("corpus", KB_CORPUS_DIR),
+        ("chunks", KB_CHUNKS_DIR)
+    ]:
+        if not base_dir.exists():
+            continue
+            
+        try:
+            # 遍历目录中的所有文件和文件夹
+            for item in base_dir.iterdir():
+                if item.name.startswith("."):
+                    continue
+                    
+                try:
+                    if item.is_dir():
+                        shutil.rmtree(item)
+                        deleted_counts[category] += 1
+                        LOGGER.info(f"Deleted folder: {item}")
+                    else:
+                        item.unlink()
+                        deleted_counts[category] += 1
+                        LOGGER.info(f"Deleted file: {item}")
+                except Exception as e:
+                    error_msg = f"Failed to delete {item} in {category}: {e}"
+                    LOGGER.error(error_msg)
+                    errors.append(error_msg)
+                    
+        except Exception as e:
+            error_msg = f"Error processing {category} directory: {e}"
+            LOGGER.error(error_msg)
+            errors.append(error_msg)
+    
+    total_deleted = sum(deleted_counts.values())
+    result = {
+        "status": "completed",
+        "deleted_counts": deleted_counts,
+        "total_deleted": total_deleted
+    }
+    
+    if errors:
+        result["errors"] = errors
+        result["status"] = "completed_with_errors"
+    
+    LOGGER.info(f"Staging area cleared: {total_deleted} items deleted")
+    return result
+
 def run_kb_pipeline_tool(
     pipeline_name: str, 
     target_file_path: str,

@@ -268,6 +268,16 @@ def create_app() -> Flask:
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/kb/staging/clear", methods=["POST"])
+    def clear_staging_area():
+        """清空暂存区：删除 raw, corpus, chunks 三个目录中的所有文件"""
+        try:
+            result = pm.clear_staging_area()
+            return jsonify(result)
+        except Exception as e:
+            LOGGER.error(f"Failed to clear staging area: {e}")
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/kb/run", methods=["POST"])
     def run_kb_task():
         payload = request.get_json(force=True)
