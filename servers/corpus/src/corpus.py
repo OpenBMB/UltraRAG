@@ -10,6 +10,8 @@ from fastmcp.exceptions import ToolError
 from PIL import Image
 from tqdm import tqdm
 
+import re
+
 from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("corpus")
@@ -35,6 +37,14 @@ def _load_jsonl(file_path: str) -> List[Dict[str, Any]]:
             docs.append(json.loads(line))
     return docs
 
+def clean_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace("\u3000", " ")
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
 
 @app.tool(output="parse_file_path,text_corpus_save_path->None")
 async def build_text_corpus(
@@ -43,6 +53,7 @@ async def build_text_corpus(
 ) -> None:
     TEXT_EXTS = [".txt", ".md"]
     PMLIKE_EXT = [".pdf", ".xps", ".oxps", ".epub", ".mobi", ".fb2"]
+    DOCX_EXT = [".docx"]
 
     in_path = os.path.abspath(parse_file_path)
     if not os.path.exists(in_path):
@@ -55,17 +66,39 @@ async def build_text_corpus(
     def process_one_file(fp: str) -> None:
         ext = os.path.splitext(fp)[1].lower()
         stem = os.path.splitext(os.path.basename(fp))[0]
-
+        content = ""
+        
         if ext in TEXT_EXTS:
             try:
-                with open(fp, "r", encoding="utf-8") as f:
-                    text = f.read()
-            except UnicodeDecodeError:
-                with open(fp, "r", encoding="latin-1", errors="ignore") as f:
-                    text = f.read()
-            text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
-            rows.append({"id": stem, "title": stem, "contents": text})
-
+                from charset_normalizer import from_path
+            except ImportError:
+                err_msg = "charset_normalizer not installed. Please `pip install charset_normalizer`."
+                app.logger.error(err_msg)
+                raise ToolError(err_msg)
+            try:
+                results = from_path(fp).best()
+                content = str(results) if results else ""
+            except Exception as e:
+                app.logger.warning(f"Text read failed: {fp} | {e}")
+        
+        elif ext in DOCX_EXT:
+            try:
+                from docx import Document
+            except ImportError:
+                err_msg = "docx not installed. Please `pip install docx`."
+                app.logger.error(err_msg)
+                raise ToolError(err_msg)
+            try:
+                doc = Document(fp)
+                full_text = [para.text for para in doc.paragraphs]
+                for table in doc.tables:
+                    for row in table.rows:
+                        row_text = [cell.text for cell in row.cells]
+                        full_text.append(" | ".join(row_text))
+                content = "\n".join(full_text)
+            except Exception as e:
+                app.logger.warning(f"Docx read failed: {fp} | {e}")
+        
         elif ext in PMLIKE_EXT:
             try:
                 import pymupdf
@@ -73,37 +106,28 @@ async def build_text_corpus(
                 err_msg = "pymupdf not installed. Please `pip install pymupdf`."
                 app.logger.error(err_msg)
                 raise ToolError(err_msg)
-
             try:
                 doc = pymupdf.open(fp)
+                texts = []
+                for pg in doc:
+                    blocks = pg.get_text("blocks")
+                    blocks.sort(key=lambda b: (b[1], b[0]))
+                    page_text = "\n".join([b[4] for b in blocks if b[4].strip()])
+                    texts.append(page_text)
+                content = "\n\n".join(texts)
             except Exception as e:
-                err_msg = f"Skip (open failed): {fp} | reason: {e}"
-                app.logger.warning(err_msg)
-                return
-
-            if getattr(doc, "is_encrypted", False):
-                try:
-                    doc.authenticate("")
-                except Exception:
-                    warn_msg = f"Skip (encrypted): {fp}"
-                    app.logger.warning(warn_msg)
-                    return
-
-            texts = []
-            for pg in doc:
-                try:
-                    t = pg.get_text("text")
-                except Exception as e:
-                    err_msg = f"Skip (get text failed): {fp} | reason: {e}"
-                    app.logger.warning(err_msg)
-                    t = ""
-                texts.append(t.replace("\r\n", "\n").replace("\r", "\n").strip())
-            merged = "\n\n".join(texts).strip()
-            rows.append({"id": stem, "title": stem, "contents": merged})
+                app.logger.warning(f"PDF read failed: {fp} | {e}")
         else:
             warn_msg = f"Unsupported file type, skip: {fp}"
             app.logger.warning(warn_msg)
             return
+
+        if content.strip():
+            rows.append({
+                "id": stem,
+                "title": stem,
+                "contents": clean_text(content)
+            })
 
     if os.path.isfile(in_path):
         process_one_file(in_path)
