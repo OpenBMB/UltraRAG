@@ -717,13 +717,15 @@ function log(message) {
 let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
 
-// [新增] 带偏移量的引用高亮函数
-// 将文本中的 [1] 替换为带点击事件的 <span ...>[1+offset]</span>
-function formatCitationHtmlWithOffset(html, offset) {
+// [更新] 引用高亮函数 - 支持绝对ID模式
+// 当使用绝对ID时（offset=0或useAbsoluteIds=true），直接使用模型输出的ID
+// 当使用相对ID时，将 [1] 替换为 [1+offset]
+function formatCitationHtmlWithOffset(html, offset, useAbsoluteIds = false) {
     if (!html) return "";
     return html.replace(/\[(\d+)\]/g, (match, p1) => {
         const originalId = parseInt(p1, 10);
-        const newId = originalId + offset; // 核心逻辑：加上偏移量
+        // 如果使用绝对ID模式或offset为0，直接使用原始ID
+        const newId = useAbsoluteIds ? originalId : (originalId + offset);
         return `<span class="citation-link" onclick="scrollToReference(${newId})">[${newId}]</span>`;
     });
 }
@@ -1452,13 +1454,13 @@ function renderChatHistory() {
         if (entry.role === "assistant") {
             let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
             
-            // [核心修复] 读取该消息专属的 offset
-            // 如果是老消息没有 meta，或者是第一轮对话，则默认为 0
+            // [更新] 支持绝对ID模式
+            // 如果是新的绝对ID模式，直接使用模型输出的ID
+            // 如果是老的相对ID模式，使用保存的offset进行偏移
+            const useAbsoluteIds = entry.meta && entry.meta.useAbsoluteIds;
             const msgOffset = (entry.meta && entry.meta.citationOffset) ? entry.meta.citationOffset : 0;
             
-            // 使用当初的 offset 进行渲染
-            // 这样如果你当初生成时是 [6]，现在渲染出来依然是 [6]
-            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, msgOffset);
+            content.innerHTML = formatCitationHtmlWithOffset(htmlContent, msgOffset, useAbsoluteIds);
             renderLatex(content);
         } else {
             // 用户消息：保留换行效果
@@ -1910,22 +1912,8 @@ async function handleChatSubmit(event) {
     let currentText = "";
     
     // =========================================================
-    // [核心修复] 计算历史引用的总数，作为本轮的起始偏移量
+    // [更新] 使用绝对ID模式 - 后端负责分配全局唯一ID
     // =========================================================
-    let initialSourceCount = 0;
-    // 遍历现有的历史记录（不包含刚刚 push 进去的那个空的 assistant）
-    for (let i = 0; i < entryIndex; i++) {
-        const entry = state.chat.history[i];
-        if (entry.meta && Array.isArray(entry.meta.sources)) {
-            initialSourceCount += entry.meta.sources.length;
-        }
-    }
-
-    // 这一轮的计数器，从历史总数开始累加
-    let sessionSourceCount = initialSourceCount; 
-    // 这一轮的固定偏移量，就是历史总数 (例如第一轮有5个，那第二轮偏移量就是5)
-    let currentBatchOffset = initialSourceCount; 
-    
     let allSources = [];        
     let pendingRenderSources = [];
 
@@ -1950,16 +1938,13 @@ async function handleChatSubmit(event) {
                 updateProcessUI(entryIndex, data);
             } 
             else if (data.type === "sources") {
-                // 1. 这一批的偏移量 = 当前累计的总数
-                currentBatchOffset = sessionSourceCount;
-                // 2. 累加总数
-                sessionSourceCount += data.data.length;
-                
-                // 3. 映射 ID
-                const remappedDocs = data.data.map((doc, idx) => ({
+                // [更新] 使用绝对ID模式
+                // 后端 client.py 已经为每个文档分配了全局唯一的 id
+                // 直接使用后端传来的 id 作为 displayId
+                const remappedDocs = data.data.map((doc) => ({
                     ...doc, 
-                    // [核心] ID = (历史总数 + 之前批次) + (当前索引 + 1)
-                    displayId: currentBatchOffset + (idx + 1)
+                    // 直接使用后端分配的绝对ID
+                    displayId: doc.id
                 }));
                 
                 allSources = allSources.concat(remappedDocs);
@@ -1973,8 +1958,8 @@ async function handleChatSubmit(event) {
                     
                     let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
                     
-                    // 使用计算正确的 currentBatchOffset
-                    html = formatCitationHtmlWithOffset(html, currentBatchOffset);
+                    // [更新] 使用绝对ID模式 - 模型输出的ID就是最终ID，无需偏移
+                    html = formatCitationHtmlWithOffset(html, 0, true);
                     
                     contentDiv.innerHTML = html;
                     renderLatex(contentDiv);
@@ -1988,8 +1973,8 @@ async function handleChatSubmit(event) {
                 let finalText = currentText || final.answer || "";
                 let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
                 
-                // 最终渲染
-                html = formatCitationHtmlWithOffset(html, currentBatchOffset);
+                // [更新] 使用绝对ID模式渲染
+                html = formatCitationHtmlWithOffset(html, 0, true);
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
 
@@ -2006,26 +1991,25 @@ async function handleChatSubmit(event) {
                 state.chat.history[entryIndex].text = finalText;
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 
-                // [关键] 保存这一轮使用的 offset
-                state.chat.history[entryIndex].meta.citationOffset = currentBatchOffset; 
-                // [关键] 保存所有的 source 对象 (包含正确的 displayId)
+                // [更新] 绝对ID模式下不再需要保存offset
+                state.chat.history[entryIndex].meta.citationOffset = 0; 
+                state.chat.history[entryIndex].meta.useAbsoluteIds = true;
+                // 保存所有的 source 对象 (包含正确的 displayId)
                 state.chat.history[entryIndex].meta.sources = allSources;
 
-                // 引用筛选/高亮逻辑
-                const usedLocalIds = new Set();
+                // [更新] 引用筛选/高亮逻辑 - 使用绝对ID
+                const usedIds = new Set();
                 const regex = /\[(\d+)\]/g;
                 let match;
                 while ((match = regex.exec(finalText)) !== null) {
-                    usedLocalIds.add(parseInt(match[1], 10));
+                    usedIds.add(parseInt(match[1], 10));
                 }
 
                 const refItems = bubble.querySelectorAll(".ref-item");
                 refItems.forEach(item => {
                     const globalId = parseInt(item.id.replace("ref-item-", ""), 10);
-                    // 还原为 Local ID 进行比对
-                    const localId = globalId - currentBatchOffset;
-                    
-                    if (usedLocalIds.has(localId)) {
+                    // 绝对ID模式：直接比对
+                    if (usedIds.has(globalId)) {
                         item.classList.add("used");
                         item.classList.remove("unused");
                     } else {

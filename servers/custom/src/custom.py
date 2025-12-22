@@ -254,5 +254,134 @@ def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str
     return {"pred_ls": [extract(ans) for ans in ans_ls]}
 
 
+# ============================================================
+# Citation Registry Tools - 维护文档的绝对ID映射
+# ============================================================
+
+@app.tool(output="ret_psg->ret_psg")
+def assign_citation_ids(
+    ret_psg: List[List[str]],
+) -> Dict[str, Any]:
+    """
+    为检索到的文档分配绝对ID。
+    
+    直接修改 ret_psg，为每个文档添加 [ID] 前缀，这样：
+    - 不需要修改原有的 prompt 函数
+    - 只需在 pipeline 中插入此步骤即可
+    
+    注意：这是一个简化版本，每次调用都从1开始编号。
+    如果需要跨迭代保持ID连续性，请使用 assign_citation_ids_stateful。
+    
+    Args:
+        ret_psg: 批量文档列表，格式为 List[List[str]]
+                 ret_psg[i] 是第i个query对应的文档列表
+    
+    Returns:
+        ret_psg: 带有绝对ID前缀的文档列表（直接覆盖原变量）
+    """
+    result_psg = []
+    
+    for docs_list in ret_psg:  # 遍历每个query的文档列表
+        cited_docs = []
+        for idx, doc in enumerate(docs_list, start=1):
+            doc_text = str(doc).strip()
+            # 输出带有ID前缀的文档
+            cited_docs.append(f"[{idx}] {doc_text}")
+        result_psg.append(cited_docs)
+    
+    return {
+        "ret_psg": result_psg,
+    }
+
+
+# 维护状态的版本 - 用于多轮迭代场景（如 webnote）
+# 使用类来保持跨调用的状态
+class CitationRegistry:
+    """全局 citation 注册表，用于跨迭代保持文档ID的连续性"""
+    _instances: Dict[int, Dict[str, Any]] = {}  # query_index -> {registry, counter}
+    
+    @classmethod
+    def reset(cls):
+        """重置所有注册表"""
+        cls._instances = {}
+    
+    @classmethod
+    def get_or_create(cls, query_index: int) -> Dict[str, Any]:
+        """获取或创建指定query的注册表"""
+        if query_index not in cls._instances:
+            cls._instances[query_index] = {
+                "registry": {},
+                "counter": 0
+            }
+        return cls._instances[query_index]
+    
+    @classmethod
+    def assign_id(cls, query_index: int, doc_text: str) -> int:
+        """为文档分配ID，相同内容复用ID"""
+        state = cls.get_or_create(query_index)
+        doc_hash = doc_text.strip()
+        
+        if doc_hash in state["registry"]:
+            return state["registry"][doc_hash]
+        else:
+            state["counter"] += 1
+            state["registry"][doc_hash] = state["counter"]
+            return state["counter"]
+
+
+@app.tool(output="q_ls->q_ls")
+def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
+    """
+    初始化/重置 citation 注册表。
+    在 pipeline 开始时调用一次，清空之前的文档ID映射。
+    
+    Args:
+        q_ls: 问题列表（传入传出，不修改）
+    
+    Returns:
+        q_ls: 原样返回
+    """
+    CitationRegistry.reset()
+    return {"q_ls": q_ls}
+
+
+@app.tool(output="ret_psg->ret_psg")
+def assign_citation_ids_stateful(
+    ret_psg: List[List[str]],
+) -> Dict[str, Any]:
+    """
+    为检索到的文档分配绝对ID（有状态版本）。
+    
+    直接修改 ret_psg，为每个文档添加 [ID] 前缀。
+    使用全局注册表保持跨迭代的ID连续性：
+    - 相同内容的文档在多轮迭代中会复用相同的ID
+    - 不同query之间的ID互不干扰
+    
+    使用前请先调用 init_citation_registry 初始化。
+    
+    Args:
+        ret_psg: 批量文档列表，格式为 List[List[str]]
+                 ret_psg[i] 是第i个query对应的文档列表
+    
+    Returns:
+        ret_psg: 带有绝对ID前缀的文档列表（直接覆盖原变量）
+    """
+    result_psg = []
+    
+    for i, docs_list in enumerate(ret_psg):  # 遍历每个query的文档列表
+        cited_docs = []
+        for doc in docs_list:
+            doc_text = str(doc).strip()
+            # 使用全局注册表分配ID
+            doc_id = CitationRegistry.assign_id(i, doc_text)
+            # 输出带有绝对ID前缀的文档
+            cited_docs.append(f"[{doc_id}] {doc_text}")
+        result_psg.append(cited_docs)
+    
+    return {
+        "ret_psg": result_psg,
+    }
+
+
 if __name__ == "__main__":
     app.run(transport="stdio")

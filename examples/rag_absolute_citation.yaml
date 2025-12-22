@@ -1,0 +1,22 @@
+# RAG with Citation IDs Demo
+#
+# 简单的RAG示例，为文档添加引用ID。
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- custom.assign_citation_ids
+- prompt.qa_rag_boxed
+- generation.generate
