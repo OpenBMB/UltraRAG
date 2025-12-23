@@ -104,6 +104,17 @@ def elem_match(elem: Dict, pairs: List[Tuple[int, str]]) -> bool:
     return all(elem.get(f"branch{d}_state") == s for d, s in pairs)
 
 
+def is_wrapped_list(lst: Any) -> bool:
+    """检查列表是否是 wrapped 格式（包含 {data, branch*_state} 结构）"""
+    if not isinstance(lst, list) or not lst:
+        return False
+    first = lst[0]
+    if not isinstance(first, dict):
+        return False
+    # 检查是否有任何 branch*_state 键
+    return any(k.startswith("branch") and k.endswith("_state") for k in first.keys())
+
+
 class UltraData:
     def __init__(
         self,
@@ -414,8 +425,47 @@ class UltraData:
         updated_mem_keys = []
         if server_name == "prompt":
             output_key = list(self.io[concated]["output"])[0]
-            self.global_vars[output_dict.get(output_key, output_key)] = data.messages
             var_name = output_dict.get(output_key, output_key)
+            
+            # 处理分支情况：如果在分支中，需要将结果 padding 到完整长度
+            parent_pairs = parse_path(state)
+            depth = parent_pairs[-1][0] if parent_pairs else 0
+            
+            if depth > 0:
+                # 在分支中，需要将短列表 padding 到完整长度
+                full_list = self.global_vars.get(var_name)
+                sub_list = data.messages
+                
+                if is_wrapped_list(full_list):
+                    # 已经是 wrapped 格式，需要按位置填充
+                    it = iter(sub_list)
+                    for i, elem in enumerate(full_list):
+                        if elem_match(elem, parent_pairs):
+                            try:
+                                new_elem = next(it)
+                            except StopIteration:
+                                raise ValueError(
+                                    f"[UltraRAG Error] Prompt {var_name} length < global_vars in step {server_name}.{tool_name}"
+                                )
+                            full_list[i]["data"] = new_elem
+                    if any(True for _ in it):
+                        raise ValueError(
+                            f"[UltraRAG Error] Prompt {var_name} length > global_vars in step {server_name}.{tool_name}"
+                        )
+                    self.global_vars[var_name] = full_list
+                else:
+                    # 尝试从其他变量获取 skeleton 结构
+                    skeleton = self._get_branch_skeleton(depth)
+                    if skeleton:
+                        padded = self._pad_to_skeleton(skeleton, parent_pairs, sub_list)
+                        self.global_vars[var_name] = padded
+                    else:
+                        # 如果没有 skeleton，直接保存（这种情况不应该发生）
+                        self.global_vars[var_name] = sub_list
+            else:
+                # 不在分支中，直接保存
+                self.global_vars[var_name] = data.messages
+            
             self._update_memory(var_name, self.global_vars[var_name])
             mem_key_updated = self._canonical_mem(
                 var_name
@@ -459,11 +509,11 @@ class UltraData:
                             full_list = self.global_vars[output_dict.get(key, key)]
                             sub_list = data[key]
                             it = iter(sub_list)
+                            # 使用 is_wrapped_list 检查，而不是只检查第一个元素的 data
+                            # 修复：当第一个元素的 data 为 None（如在其他分支中）时，之前的条件会失败
                             if (
                                 not is_router
-                                and isinstance(full_list, list)
-                                and isinstance(full_list[0], dict)
-                                and full_list[0].get("data", None)
+                                and is_wrapped_list(full_list)
                             ):
                                 for i, elem in enumerate(full_list):
                                     if elem_match(elem, parent_pairs):
@@ -481,13 +531,12 @@ class UltraData:
                                 self.global_vars[output_dict.get(key, key)] = full_list
 
                             elif is_router:
+                                # 使用 is_wrapped_list 检查列表是否已经是 wrapped 格式
+                                # 修复：之前的条件在第一个元素 data 为 None 时判断不准确
                                 if (
                                     depth == 1
                                     and isinstance(full_list, list)
-                                    and (
-                                        not isinstance(full_list[0], dict)
-                                        or full_list[0].get("data", None) is None
-                                    )
+                                    and not is_wrapped_list(full_list)
                                 ):
                                     full_list = [
                                         {
