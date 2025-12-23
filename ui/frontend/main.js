@@ -9,6 +9,9 @@ const state = {
   parametersReady: false,
   mode: "builder",
   
+  // 应用模式：true = admin (完整界面)，false = chat-only
+  adminMode: true,
+  
   // [修改] 聊天状态管理
   chat: { 
     history: [], 
@@ -2731,7 +2734,24 @@ window.updateKbLabel = function(selectEl) {
 };
 
 async function bootstrap() {
-  setMode(Modes.BUILDER); 
+  // 0. 首先获取应用模式配置
+  try {
+      const modeConfig = await fetchJSON('/api/config/mode');
+      state.adminMode = modeConfig.admin_mode === true;
+  } catch (err) {
+      console.warn("Failed to fetch app mode, defaulting to admin mode:", err);
+      state.adminMode = true;
+  }
+  
+  // 根据模式决定初始视图
+  if (state.adminMode) {
+      setMode(Modes.BUILDER);
+  } else {
+      // Chat-only 模式：直接进入 Chat 视图
+      setMode(Modes.CHAT);
+      applyChatOnlyMode();
+  }
+  
   resetContextStack(); 
   renderSteps(); 
   updatePipelinePreview(); 
@@ -2766,11 +2786,11 @@ async function bootstrap() {
                   state.chat.currentSessionId = session.id;
                   state.chat.history = cloneDeep(session.messages || []);
                   
-                  // [关键] 如果上次有选中的 Pipeline，自动加载它
-                  if (session.pipeline) {
+                  // [关键] 只在 Admin 模式下自动加载 Pipeline（Chat-only 模式在 initChatOnlyView 中处理）
+                  if (state.adminMode && session.pipeline) {
                       // 此时 refreshPipelines 已完成，UI 是安全的
                       loadPipeline(session.pipeline); 
-                  } else {
+                  } else if (state.adminMode) {
                       // 如果没有 pipeline 记录，只设置 label
                       setHeroPipelineLabel(state.selectedPipeline || "");
                   }
@@ -2781,9 +2801,54 @@ async function bootstrap() {
           console.warn("Failed to load history:", e);
           state.chat.sessions = [];
       }
-  } else {
+  } else if (state.adminMode) {
       setHeroPipelineLabel(state.selectedPipeline || "");
   }
+  
+  // Chat-only 模式下，初始化 Chat 界面
+  if (!state.adminMode) {
+      await initChatOnlyView();
+  }
+}
+
+// Chat-only 模式下隐藏管理相关的按钮
+function applyChatOnlyMode() {
+  // 隐藏 "Configure Pipeline" 返回按钮（不允许返回 Builder）
+  if (els.chatBack) {
+      els.chatBack.style.display = 'none';
+  }
+}
+
+// Chat-only 模式下初始化 Chat 界面
+async function initChatOnlyView() {
+  // 1. 渲染 Pipeline 选择菜单
+  await renderChatPipelineMenu();
+  
+  // 2. 渲染知识库选项
+  renderChatCollectionOptions();
+  
+  // 3. 渲染侧边栏会话列表
+  renderChatSidebar();
+  
+  // 4. 渲染聊天历史
+  renderChatHistory();
+  
+  // 5. 如果有已保存的会话且有对应的 Pipeline，尝试自动加载
+  const lastId = localStorage.getItem("ultrarag_last_active_id");
+  if (lastId) {
+      const session = state.chat.sessions.find(s => s.id === lastId);
+      if (session && session.pipeline) {
+          // 尝试加载上次使用的 Pipeline
+          try {
+              await switchChatPipeline(session.pipeline);
+          } catch (e) {
+              console.warn("Failed to restore last pipeline:", e);
+          }
+      }
+  }
+  
+  // 6. 更新 Demo 控制按钮状态
+  updateDemoControls();
 }
 
 bootstrap();

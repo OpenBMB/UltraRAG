@@ -35,7 +35,7 @@ class MockResult:
         self.data = text_content
 
 
-def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
+def launch_ui(host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = False) -> None:
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
@@ -47,9 +47,10 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
             "Failed to load the UI backend. Please ensure the `ui/backend` directory exists and is importable."
         ) from exc
 
-    app = create_app()
+    app = create_app(admin_mode=admin_mode)
     ui_logger = logging.getLogger("UltraRAG-UI")
-    ui_logger.info("UltraRAG UI server started: http://%s:%d", host, port)
+    mode_str = "Admin" if admin_mode else "Chat"
+    ui_logger.info("UltraRAG UI (%s mode) started: http://%s:%d", mode_str, host, port)
 
     try:
         app.run(host=host, port=port, debug=False)
@@ -1559,6 +1560,7 @@ def main():
     p_show_ui = show_sub.add_parser("ui", help="Launch the UltraRAG web UI")
     p_show_ui.add_argument("--host", default="127.0.0.1")
     p_show_ui.add_argument("--port", type=int, default=5050)
+    p_show_ui.add_argument("--admin", action="store_true", help="Launch full admin UI with pipeline builder (default: chat-only mode)")
     p_show.add_argument(
         "--log_level",
         type=str,
@@ -1579,7 +1581,7 @@ def main():
         asyncio.run(run(args.config, args.param, is_demo=args.is_demo))
     elif args.cmd == "show":
         if args.show_target == "ui":
-            launch_ui(host=args.host, port=args.port)
+            launch_ui(host=args.host, port=args.port, admin_mode=args.admin)
         else:
             parser.print_help()
             sys.exit(1)

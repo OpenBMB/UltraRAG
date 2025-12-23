@@ -42,8 +42,9 @@ def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collecti
         KB_TASKS[task_id]["status"] = "failed"
         KB_TASKS[task_id]["error"] = str(e)
 
-def create_app() -> Flask:
+def create_app(admin_mode: bool = False) -> Flask:
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
+    app.config["ADMIN_MODE"] = admin_mode
 
     @app.errorhandler(pm.PipelineManagerError)
     def handle_pipeline_error(err: pm.PipelineManagerError):
@@ -62,6 +63,13 @@ def create_app() -> Flask:
     @app.route("/")
     def index():
         return send_from_directory(app.static_folder, "index.html")
+
+    @app.route("/api/config/mode", methods=["GET"])
+    def get_app_mode():
+        """Return the application mode (admin or chat-only)"""
+        return jsonify({
+            "admin_mode": app.config.get("ADMIN_MODE", False)
+        })
 
     @app.route("/api/templates", methods=["GET"])
     def list_templates():
