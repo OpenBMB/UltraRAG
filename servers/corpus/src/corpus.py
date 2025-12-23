@@ -73,7 +73,7 @@ async def build_text_corpus(
             try:
                 from charset_normalizer import from_path
             except ImportError:
-                err_msg = "charset_normalizer not installed. Please `pip install charset_normalizer`."
+                err_msg = "charset_normalizer not installed. Please `pip install charset-normalizer`."
                 app.logger.error(err_msg)
                 raise ToolError(err_msg)
             try:
@@ -86,7 +86,7 @@ async def build_text_corpus(
             try:
                 from docx import Document
             except ImportError:
-                err_msg = "docx not installed. Please `pip install docx`."
+                err_msg = "docx not installed. Please `pip install python-docx`."
                 app.logger.error(err_msg)
                 raise ToolError(err_msg)
             try:
