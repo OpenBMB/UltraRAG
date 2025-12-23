@@ -1017,6 +1017,54 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 加一点微阴影 */
 }
 
+/* 未使用的引用折叠区域 */
+.unused-refs-section {
+  margin-top: 0.6rem;
+  border-top: 1px dashed #e5e5e5;
+  padding-top: 0.4rem;
+}
+
+.unused-header {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s;
+}
+
+.unused-header:hover {
+  background: #f1f5f9;
+}
+
+.unused-header .toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+}
+
+.unused-refs-section:not(.collapsed) .toggle-icon {
+  transform: rotate(90deg);
+}
+
+.unused-refs-section.collapsed .unused-list {
+  display: none;
+}
+
+.unused-list {
+  margin-top: 0.4rem;
+}
+
+.unused-list .ref-item {
+  font-size: 0.8rem;
+  padding: 4px 6px;
+}
+
 /* =========================================
    Knowledge Base (KB) Manager Styles
    ========================================= */

@@ -1466,7 +1466,7 @@ function renderChatHistory() {
 
         // 渲染底部的引用卡片
         if (entry.meta && entry.meta.sources) {
-            // 先计算哪些引用被使用了
+            // 计算哪些引用被使用了
             const usedIds = new Set();
             const regex = /\[(\d+)\]/g;
             let match;
@@ -1474,29 +1474,7 @@ function renderChatHistory() {
                 usedIds.add(parseInt(match[1], 10));
             }
             
-            // 排序：被引用的排在前面
-            const sortedSources = [...entry.meta.sources].sort((a, b) => {
-                const aUsed = usedIds.has(a.displayId || a.id);
-                const bUsed = usedIds.has(b.displayId || b.id);
-                if (aUsed && !bUsed) return -1;
-                if (!aUsed && bUsed) return 1;
-                return (a.displayId || a.id) - (b.displayId || b.id);
-            });
-            
-            renderSources(bubble, sortedSources);
-            
-            // 应用 used/unused 样式
-            const refItems = bubble.querySelectorAll(".ref-item");
-            refItems.forEach(item => {
-                const id = parseInt(item.id.replace("ref-item-", ""), 10);
-                if (usedIds.has(id)) {
-                    item.classList.add("used");
-                    item.classList.remove("unused");
-                } else {
-                    item.classList.add("unused");
-                    item.classList.remove("used");
-                }
-            });
+            renderSources(bubble, entry.meta.sources, usedIds);
         }
         
         // 渲染调试信息 (Hint)
@@ -1692,7 +1670,7 @@ window.closeSourceDetail = function() {
     if (panel) panel.classList.remove("show");
 };
 
-// 点击角标高亮引用项并显示详情（不自动滚动）
+// 点击 citation [x] 高亮引用项并显示详情
 window.scrollToReference = function(refId) {
     const targetId = `ref-item-${refId}`;
     // 查找当前可见的引用列表项 (倒序查找最近的)
@@ -1700,69 +1678,130 @@ window.scrollToReference = function(refId) {
     const target = allRefs[allRefs.length - 1];
 
     if (target) {
-        // 1. 先清除所有引用项的高亮
-        const allRefItems = document.querySelectorAll(".ref-item");
-        allRefItems.forEach(item => {
+        // 1. 清除所有引用项的高亮
+        document.querySelectorAll(".ref-item").forEach(item => {
             item.classList.remove("active-highlight");
         });
         
         // 2. 高亮当前选中的引用项
-        void target.offsetWidth; // 触发重排，确保动画生效
         target.classList.add("active-highlight");
         
-        // 3. 打开右侧侧边栏显示详情
+        // 3. 如果在折叠区域内，自动展开
+        const unusedSection = target.closest(".unused-refs-section");
+        if (unusedSection && unusedSection.classList.contains("collapsed")) {
+            unusedSection.classList.remove("collapsed");
+        }
+        
+        // 4. 打开右侧侧边栏显示详情
         if (target._sourceData) {
             const src = target._sourceData;
-            const title = `Reference [${src.id}]`;
-            showSourceDetail(title, src.content);
+            showSourceDetail(`Reference [${src.id}]`, src.content);
         }
     }
 };
 
-// [修改] 渲染参考资料列表 (支持追加模式)
-function renderSources(bubble, sources, isAppend = false) {
+// 渲染参考资料列表（支持折叠未使用的引用）
+function renderSources(bubble, sources, usedIds = null) {
     if (!bubble || !sources || sources.length === 0) return;
 
     let refContainer = bubble.querySelector(".reference-container");
-    let list;
-
-    if (!refContainer) {
-        // 第一次创建容器
-        refContainer = document.createElement("div");
-        refContainer.className = "reference-container";
-        refContainer.innerHTML = `<div class="ref-header">References</div>`;
-        list = document.createElement("div");
-        list.className = "ref-list";
-        refContainer.appendChild(list);
-        bubble.appendChild(refContainer);
-    } else {
-        list = refContainer.querySelector(".ref-list");
-        // 如果不是追加模式（比如页面刷新重绘），先清空
-        if (!isAppend) list.innerHTML = "";
+    
+    // 清空并重建
+    if (refContainer) {
+        refContainer.remove();
     }
-
+    
+    refContainer = document.createElement("div");
+    refContainer.className = "reference-container";
+    
+    // 分离 used 和 unused
+    const usedSources = [];
+    const unusedSources = [];
+    
+    // 去重：按 ID 只保留第一个
+    const seenIds = new Set();
     sources.forEach(src => {
-        // 使用计算好的全局 ID (displayId)
-        const showId = src.displayId || src.id;
+        const id = src.displayId || src.id;
+        if (seenIds.has(id)) return; // 跳过重复的
+        seenIds.add(id);
         
-        // 防止重复添加
-        if (list.querySelector(`#ref-item-${showId}`)) return;
-
+        if (usedIds && usedIds.has(id)) {
+            usedSources.push(src);
+        } else if (usedIds) {
+            unusedSources.push(src);
+        } else {
+            // 如果没有 usedIds，全部作为 used 处理
+            usedSources.push(src);
+        }
+    });
+    
+    // 创建引用项的辅助函数
+    const createRefItem = (src) => {
+        const showId = src.displayId || src.id;
         const item = document.createElement("div");
         item.className = "ref-item";
         item.id = `ref-item-${showId}`;
         item._sourceData = src; 
-        item.onclick = () => {
-            const title = `Reference [${showId}]`;
-            showSourceDetail(title, src.content);
+        item.onclick = (e) => {
+            e.stopPropagation();
+            // 清除其他高亮
+            document.querySelectorAll(".ref-item").forEach(el => el.classList.remove("active-highlight"));
+            item.classList.add("active-highlight");
+            showSourceDetail(`Reference [${showId}]`, src.content);
         };
-        
         item.innerHTML = `
             <span class="ref-id">[${showId}]</span>
             <span class="ref-title">${src.title}</span>
         `;
-        list.appendChild(item);
-    });
+        return item;
+    };
+    
+    // 渲染已使用的引用
+    if (usedSources.length > 0) {
+        const usedHeader = document.createElement("div");
+        usedHeader.className = "ref-header";
+        usedHeader.textContent = `Cited References (${usedSources.length})`;
+        refContainer.appendChild(usedHeader);
+        
+        const usedList = document.createElement("div");
+        usedList.className = "ref-list";
+        usedSources.forEach(src => {
+            const item = createRefItem(src);
+            item.classList.add("used");
+            usedList.appendChild(item);
+        });
+        refContainer.appendChild(usedList);
+    }
+    
+    // 渲染未使用的引用（可折叠）
+    if (unusedSources.length > 0) {
+        const unusedSection = document.createElement("div");
+        unusedSection.className = "unused-refs-section collapsed";
+        
+        const unusedHeader = document.createElement("div");
+        unusedHeader.className = "ref-header unused-header";
+        unusedHeader.innerHTML = `
+            <span>Other Retrieved (${unusedSources.length})</span>
+            <span class="toggle-icon">▶</span>
+        `;
+        unusedHeader.onclick = () => {
+            unusedSection.classList.toggle("collapsed");
+        };
+        unusedSection.appendChild(unusedHeader);
+        
+        const unusedList = document.createElement("div");
+        unusedList.className = "ref-list unused-list";
+        unusedSources.forEach(src => {
+            const item = createRefItem(src);
+            item.classList.add("unused");
+            unusedList.appendChild(item);
+        });
+        unusedSection.appendChild(unusedList);
+        
+        refContainer.appendChild(unusedSection);
+    }
+    
+    bubble.appendChild(refContainer);
 }
 
 // [新增] 格式化正文文本 (高亮 [1])
@@ -1993,16 +2032,9 @@ async function handleChatSubmit(event) {
                     usedIds.add(parseInt(match[1], 10));
                 }
 
-                // 渲染参考资料卡片（排序：被引用的在前）
+                // 渲染参考资料卡片（已使用的在上方，未使用的折叠）
                 if (pendingRenderSources && pendingRenderSources.length > 0) {
-                    const sortedSources = [...pendingRenderSources].sort((a, b) => {
-                        const aUsed = usedIds.has(a.displayId || a.id);
-                        const bUsed = usedIds.has(b.displayId || b.id);
-                        if (aUsed && !bUsed) return -1;
-                        if (!aUsed && bUsed) return 1;
-                        return (a.displayId || a.id) - (b.displayId || b.id);
-                    });
-                    renderSources(bubble, sortedSources, true);
+                    renderSources(bubble, pendingRenderSources, usedIds);
                 }
 
                 if (shouldAutoScroll) {
@@ -2013,19 +2045,6 @@ async function handleChatSubmit(event) {
                 state.chat.history[entryIndex].text = finalText;
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 state.chat.history[entryIndex].meta.sources = allSources;
-
-                // 应用 used/unused 样式
-                const refItems = bubble.querySelectorAll(".ref-item");
-                refItems.forEach(item => {
-                    const id = parseInt(item.id.replace("ref-item-", ""), 10);
-                    if (usedIds.has(id)) {
-                        item.classList.add("used");
-                        item.classList.remove("unused");
-                    } else {
-                        item.classList.add("unused");
-                        item.classList.remove("used");
-                    }
-                });
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
