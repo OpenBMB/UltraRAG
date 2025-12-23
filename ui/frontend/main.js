@@ -1466,10 +1466,37 @@ function renderChatHistory() {
 
         // 渲染底部的引用卡片
         if (entry.meta && entry.meta.sources) {
-            // 注意：renderSources 内部通常会处理 DOM 生成
-            // 确保 entry.meta.sources 里的对象已经包含了正确的 displayId (如 6, 7, 8)
-            // 这样卡片的数字就能和正文里的 [6], [7], [8] 对应上
-            renderSources(bubble, entry.meta.sources);
+            // 先计算哪些引用被使用了
+            const usedIds = new Set();
+            const regex = /\[(\d+)\]/g;
+            let match;
+            while ((match = regex.exec(entry.text || "")) !== null) {
+                usedIds.add(parseInt(match[1], 10));
+            }
+            
+            // 排序：被引用的排在前面
+            const sortedSources = [...entry.meta.sources].sort((a, b) => {
+                const aUsed = usedIds.has(a.displayId || a.id);
+                const bUsed = usedIds.has(b.displayId || b.id);
+                if (aUsed && !bUsed) return -1;
+                if (!aUsed && bUsed) return 1;
+                return (a.displayId || a.id) - (b.displayId || b.id);
+            });
+            
+            renderSources(bubble, sortedSources);
+            
+            // 应用 used/unused 样式
+            const refItems = bubble.querySelectorAll(".ref-item");
+            refItems.forEach(item => {
+                const id = parseInt(item.id.replace("ref-item-", ""), 10);
+                if (usedIds.has(id)) {
+                    item.classList.add("used");
+                    item.classList.remove("unused");
+                } else {
+                    item.classList.add("unused");
+                    item.classList.remove("used");
+                }
+            });
         }
         
         // 渲染调试信息 (Hint)
@@ -1958,9 +1985,24 @@ async function handleChatSubmit(event) {
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
 
-                // 渲染参考资料卡片
+                // 计算哪些引用被使用了
+                const usedIds = new Set();
+                const regex = /\[(\d+)\]/g;
+                let match;
+                while ((match = regex.exec(finalText)) !== null) {
+                    usedIds.add(parseInt(match[1], 10));
+                }
+
+                // 渲染参考资料卡片（排序：被引用的在前）
                 if (pendingRenderSources && pendingRenderSources.length > 0) {
-                    renderSources(bubble, pendingRenderSources, true);
+                    const sortedSources = [...pendingRenderSources].sort((a, b) => {
+                        const aUsed = usedIds.has(a.displayId || a.id);
+                        const bUsed = usedIds.has(b.displayId || b.id);
+                        if (aUsed && !bUsed) return -1;
+                        if (!aUsed && bUsed) return 1;
+                        return (a.displayId || a.id) - (b.displayId || b.id);
+                    });
+                    renderSources(bubble, sortedSources, true);
                 }
 
                 if (shouldAutoScroll) {
@@ -1972,14 +2014,7 @@ async function handleChatSubmit(event) {
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 state.chat.history[entryIndex].meta.sources = allSources;
 
-                // 高亮被引用的文档卡片
-                const usedIds = new Set();
-                const regex = /\[(\d+)\]/g;
-                let match;
-                while ((match = regex.exec(finalText)) !== null) {
-                    usedIds.add(parseInt(match[1], 10));
-                }
-
+                // 应用 used/unused 样式
                 const refItems = bubble.querySelectorAll(".ref-item");
                 refItems.forEach(item => {
                     const id = parseInt(item.id.replace("ref-item-", ""), 10);
