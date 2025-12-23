@@ -720,14 +720,7 @@ function log(message) {
 let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
 
-// 引用高亮函数 - 将 [1] 替换为可点击的引用链接
-function formatCitationHtml(html) {
-    if (!html) return "";
-    return html.replace(/\[(\d+)\]/g, (match, p1) => {
-        const id = parseInt(p1, 10);
-        return `<span class="citation-link" onclick="scrollToReference(${id})">[${id}]</span>`;
-    });
-}
+// 引用高亮函数已移至后面的 formatCitationHtml(html, messageIdx) 定义
 
 function escapeHtml(str) {
   return str
@@ -1393,13 +1386,14 @@ function appendChatMessage(role, text, meta = {}) {
   saveCurrentSession(); 
 }
 
-function formatCitationHtml(html) {
+function formatCitationHtml(html, messageIdx = null) {
     if (!html) return "";
-    // [关键修改] 增加 onclick="scrollToReference(1)"
+    // [关键修改] 增加 onclick="scrollToReference(1, messageIdx)"
     // 注意：scrollToReference 函数必须挂在 window 上或定义在全局作用域
+    // messageIdx 用于定位到具体的消息气泡，避免多条消息引用混淆
     return html.replace(
         /\[(\d+)\]/g, 
-        '<span class="citation-link" onclick="scrollToReference($1)">[$1]</span>'
+        (match, p1) => `<span class="citation-link" onclick="scrollToReference(${p1}, ${messageIdx})">[${p1}]</span>`
     );
 }
 
@@ -1440,10 +1434,12 @@ function renderChatHistory() {
         `;
         return; 
     }
-    state.chat.history.forEach((entry) => {
+    state.chat.history.forEach((entry, index) => {
         const bubble = document.createElement("div"); 
         // 加上 fade-in 动画类，稍微好看点
         bubble.className = `chat-bubble ${entry.role} fade-in-up`;
+        // 添加消息索引标识，用于引用定位
+        bubble.setAttribute("data-message-idx", index);
         // 历史记录直接展示，不需要动画延迟
         bubble.style.animationDelay = "0ms";
 
@@ -1452,7 +1448,7 @@ function renderChatHistory() {
 
         if (entry.role === "assistant") {
             let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
-            content.innerHTML = formatCitationHtml(htmlContent);
+            content.innerHTML = formatCitationHtml(htmlContent, index);
             renderLatex(content);
         } else {
             // 用户消息：保留换行效果
@@ -1674,11 +1670,24 @@ window.closeSourceDetail = function() {
 };
 
 // 点击 citation [x] 高亮引用项并显示详情
-window.scrollToReference = function(refId) {
-    const targetId = `ref-item-${refId}`;
-    // 查找当前可见的引用列表项 (倒序查找最近的)
-    const allRefs = document.querySelectorAll(`[id='${targetId}']`);
-    const target = allRefs[allRefs.length - 1];
+// messageIdx 参数用于定位到具体的消息气泡，确保显示正确消息的引用
+window.scrollToReference = function(refId, messageIdx = null) {
+    let target = null;
+    
+    if (messageIdx !== null) {
+        // 优先在指定消息气泡内查找引用
+        const bubble = document.querySelector(`[data-message-idx="${messageIdx}"]`);
+        if (bubble) {
+            target = bubble.querySelector(`[data-ref-id="${refId}"]`);
+        }
+    }
+    
+    // 如果没找到，回退到旧逻辑（兼容性）
+    if (!target) {
+        const targetId = `ref-item-${refId}`;
+        const allRefs = document.querySelectorAll(`[id='${targetId}']`);
+        target = allRefs[allRefs.length - 1];
+    }
 
     if (target) {
         // 1. 清除所有引用项的高亮
@@ -1744,6 +1753,8 @@ function renderSources(bubble, sources, usedIds = null) {
         const item = document.createElement("div");
         item.className = "ref-item";
         item.id = `ref-item-${showId}`;
+        // 添加 data-ref-id 属性，用于通过 messageIdx 精确定位引用
+        item.setAttribute("data-ref-id", showId);
         item._sourceData = src; 
         item.onclick = (e) => {
             e.stopPropagation();
@@ -1966,6 +1977,8 @@ async function handleChatSubmit(event) {
 
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble assistant";
+    // 添加消息索引标识，用于引用定位
+    bubble.setAttribute("data-message-idx", entryIndex);
     const contentDiv = document.createElement("div");
     contentDiv.className = "msg-content";
     bubble.appendChild(contentDiv);
@@ -2011,7 +2024,7 @@ async function handleChatSubmit(event) {
                     if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, MARKDOWN_LANGS)) continue;
                     
                     let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
-                    html = formatCitationHtml(html);
+                    html = formatCitationHtml(html, entryIndex);
                     contentDiv.innerHTML = html;
                     renderLatex(contentDiv);
                     if (shouldAutoScroll) {
@@ -2023,7 +2036,7 @@ async function handleChatSubmit(event) {
                 const final = data.data;
                 let finalText = currentText || final.answer || "";
                 let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
-                html = formatCitationHtml(html);
+                html = formatCitationHtml(html, entryIndex);
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
 
