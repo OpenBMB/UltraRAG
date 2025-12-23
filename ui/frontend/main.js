@@ -1665,7 +1665,7 @@ window.closeSourceDetail = function() {
     if (panel) panel.classList.remove("show");
 };
 
-// [新增] 点击角标跳转函数
+// 点击角标高亮引用项并显示详情（不自动滚动）
 window.scrollToReference = function(refId) {
     const targetId = `ref-item-${refId}`;
     // 查找当前可见的引用列表项 (倒序查找最近的)
@@ -1673,13 +1673,17 @@ window.scrollToReference = function(refId) {
     const target = allRefs[allRefs.length - 1];
 
     if (target) {
-        // 1. 视觉反馈：闪烁一下底部的列表项，告诉用户对应关系
-        target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        target.classList.remove("active-highlight");
-        void target.offsetWidth; 
+        // 1. 先清除所有引用项的高亮
+        const allRefItems = document.querySelectorAll(".ref-item");
+        allRefItems.forEach(item => {
+            item.classList.remove("active-highlight");
+        });
+        
+        // 2. 高亮当前选中的引用项
+        void target.offsetWidth; // 触发重排，确保动画生效
         target.classList.add("active-highlight");
         
-        // 2. [新增] 打开右侧侧边栏显示详情
+        // 3. 打开右侧侧边栏显示详情
         if (target._sourceData) {
             const src = target._sourceData;
             const title = `Reference [${src.id}]`;
