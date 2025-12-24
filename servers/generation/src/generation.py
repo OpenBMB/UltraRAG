@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import sys
+from contextlib import contextmanager
 from typing import Any, Dict, List, Union, Optional
 
 from openai import AsyncOpenAI, AuthenticationError
@@ -14,6 +16,31 @@ from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("generation")
 httpx_logger.setLevel(logging.WARNING)
+
+
+@contextmanager
+def suppress_stdout():
+    stdout_fd = sys.stdout.fileno()
+    saved_stdout_fd = os.dup(stdout_fd)
+    
+    try:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, stdout_fd)
+        os.close(devnull)
+        yield
+    finally:
+        os.dup2(saved_stdout_fd, stdout_fd)
+        os.close(saved_stdout_fd)
+
+
+def _suppress_vllm_logging():
+    os.environ.setdefault("VLLM_CONFIGURE_LOGGING", "0")
+    os.environ.setdefault("RAY_DEDUP_LOGS", "0")
+    os.environ.setdefault("GLOO_LOG_LEVEL", "ERROR")
+    os.environ.setdefault("NCCL_DEBUG", "ERROR")
+    
+    for name in ["vllm", "ray", "torch", "transformers"]:
+        logging.getLogger(name).setLevel(logging.ERROR)
 
 
 class Generation:
@@ -91,6 +118,8 @@ class Generation:
         cfg: Dict[str, Any] = (self.backend_configs.get(self.backend) or {}).copy()
 
         if self.backend == "vllm":
+            _suppress_vllm_logging()
+            
             try:
                 from vllm import LLM, SamplingParams
             except ImportError:
@@ -118,7 +147,8 @@ class Generation:
             else:
                 self.chat_template_kwargs = {}
 
-            self.model = LLM(model=model_name_or_path, **vllm_pass_cfg)
+            with suppress_stdout():
+                self.model = LLM(model=model_name_or_path, **vllm_pass_cfg)
             self.sampling_params = SamplingParams(**sampling_params)
 
         elif self.backend == "openai":
@@ -204,11 +234,12 @@ class Generation:
     ) -> List[str]:
 
         if self.backend == "vllm":
-            outputs = self.model.chat(
-                msg_ls,
-                self.sampling_params,
-                chat_template_kwargs=self.chat_template_kwargs,
-            )
+            with suppress_stdout():
+                outputs = self.model.chat(
+                    msg_ls,
+                    self.sampling_params,
+                    chat_template_kwargs=self.chat_template_kwargs,
+                )
             ret = [o.outputs[0].text for o in outputs]
 
         elif self.backend == "openai":
@@ -469,30 +500,31 @@ class Generation:
                 app.logger.info("[vllm_shutdown] model is None; nothing to do.")
                 return
 
-            fn = getattr(self.model, "shutdown", None)
-            if callable(fn):
-                app.logger.info("[vllm_shutdown] calling self.model.shutdown()")
-                fn()
-            else:
-                for path in ("llm_engine", "engine"):
-                    eng = getattr(self.model, path, None)
-                    if eng:
-                        for attr in ("shutdown", "close", "terminate"):
-                            f = getattr(eng, attr, None)
-                            if callable(f):
-                                app.logger.info(
-                                    f"[vllm_shutdown] calling self.model.{path}.{attr}()"
-                                )
-                                f()
-                                break
+            with suppress_stdout():
+                fn = getattr(self.model, "shutdown", None)
+                if callable(fn):
+                    app.logger.info("[vllm_shutdown] calling self.model.shutdown()")
+                    fn()
+                else:
+                    for path in ("llm_engine", "engine"):
+                        eng = getattr(self.model, path, None)
+                        if eng:
+                            for attr in ("shutdown", "close", "terminate"):
+                                f = getattr(eng, attr, None)
+                                if callable(f):
+                                    app.logger.info(
+                                        f"[vllm_shutdown] calling self.model.{path}.{attr}()"
+                                    )
+                                    f()
+                                    break
 
-            self.model = None
-            import gc, torch
+                self.model = None
+                import gc, torch
 
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-                torch.cuda.synchronize()
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
 
             app.logger.info("[vllm_shutdown] complete")
 

@@ -3,6 +3,8 @@ import ast
 import json
 import os
 import shutil
+import sys
+from contextlib import contextmanager
 from typing import Any, Dict, Iterable, List, Optional
 from pathlib import Path
 
@@ -11,6 +13,21 @@ from PIL import Image
 from tqdm import tqdm
 
 import re
+
+
+@contextmanager
+def suppress_stdout():
+    stdout_fd = sys.stdout.fileno()
+    saved_stdout_fd = os.dup(stdout_fd)
+    
+    try:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, stdout_fd)
+        os.close(devnull)
+        yield
+    finally:
+        os.dup2(saved_stdout_fd, stdout_fd)
+        os.close(saved_stdout_fd)
 
 from ultrarag.server import UltraRAG_MCP_Server
 
@@ -108,14 +125,15 @@ async def build_text_corpus(
                 app.logger.error(err_msg)
                 raise ToolError(err_msg)
             try:
-                doc = pymupdf.open(fp)
-                texts = []
-                for pg in doc:
-                    blocks = pg.get_text("blocks")
-                    blocks.sort(key=lambda b: (b[1], b[0]))
-                    page_text = "\n".join([b[4] for b in blocks if b[4].strip()])
-                    texts.append(page_text)
-                content = "\n\n".join(texts)
+                with suppress_stdout():
+                    doc = pymupdf.open(fp)
+                    texts = []
+                    for pg in doc:
+                        blocks = pg.get_text("blocks")
+                        blocks.sort(key=lambda b: (b[1], b[0]))
+                        page_text = "\n".join([b[4] for b in blocks if b[4].strip()])
+                        texts.append(page_text)
+                    content = "\n\n".join(texts)
             except Exception as e:
                 app.logger.warning(f"PDF read failed: {fp} | {e}")
         else:
@@ -202,7 +220,8 @@ async def build_image_corpus(
         os.makedirs(out_img_dir, exist_ok=True)
 
         try:
-            doc = pymupdf.open(pdf_path)
+            with suppress_stdout():
+                doc = pymupdf.open(pdf_path)
         except Exception as e:
             warn_msg = f"Skip PDF (open failed): {pdf_path} | reason: {e}"
             app.logger.warning(warn_msg)
@@ -221,7 +240,8 @@ async def build_image_corpus(
 
         for i, page in enumerate(doc):
             try:
-                pix = page.get_pixmap(matrix=mat, alpha=False, colorspace=pymupdf.csRGB)
+                with suppress_stdout():
+                    pix = page.get_pixmap(matrix=mat, alpha=False, colorspace=pymupdf.csRGB)
             except Exception as e:
                 warn_msg = f"Skip page {i} in {pdf_path}: render error: {e}"
                 app.logger.warning(warn_msg)
