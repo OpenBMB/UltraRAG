@@ -79,6 +79,7 @@ const els = {
   chatSend: document.getElementById("chat-send"),
   chatNewBtn: document.getElementById("chat-new-btn"),
   chatSessionList: document.getElementById("chat-session-list"),
+  clearAllChats: document.getElementById("clear-all-chats"),
   demoToggleBtn: document.getElementById("demo-toggle-btn"), // 引擎开关
   chatCollectionSelect: document.getElementById("chat-collection-select"),
 
@@ -1325,7 +1326,7 @@ function renderChatSidebar() {
     );
     
     if (state.chat.sessions.length === 0) {
-        els.chatSessionList.innerHTML = '<div class="text-muted small px-2">No history</div>';
+        els.chatSessionList.innerHTML = '<div class="text-muted small" style="padding-left: 24px;">No history</div>';
         return;
     }
     
@@ -1377,6 +1378,17 @@ function deleteChatSession(sessionId) {
     } else {
         renderChatSidebar();
     }
+}
+
+// [新增] 删除所有会话
+function deleteAllChatSessions() {
+    if (state.chat.sessions.length === 0) return;
+    if (!confirm("Delete all chat history?")) return;
+    
+    state.chat.sessions = [];
+    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    localStorage.removeItem("ultrarag_last_active_id");
+    createNewChatSession();
 }
 
 function appendChatMessage(role, text, meta = {}) {
@@ -2697,6 +2709,7 @@ function bindEvents() {
     }
 
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
+    if (els.clearAllChats) els.clearAllChats.onclick = deleteAllChatSessions;
     if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
 
     if (els.kbBtn) els.kbBtn.onclick = openKBView;

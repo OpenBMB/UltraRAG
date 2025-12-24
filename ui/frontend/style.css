@@ -423,6 +423,40 @@ body {
   text-transform: uppercase;
 }
 
+.sidebar-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 16px;
+}
+
+.sidebar-label-row .sidebar-label {
+  margin: 1rem 0.5rem 0.5rem;
+}
+
+.btn-clear-all {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.btn-clear-all:hover {
+  opacity: 1;
+  color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+}
+
 .session-list { display: flex; flex-direction: column; gap: 0.25rem; }
 
 /* Session Item */
