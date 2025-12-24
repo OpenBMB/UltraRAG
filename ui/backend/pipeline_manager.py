@@ -482,11 +482,18 @@ def list_server_tools() -> List[ServerTool]:
             res.append(ServerTool(srv, t, "prompt", m.get("input",{}), m.get("output",[])))
     return res
 
+# 屏蔽列表：这些pipeline是底层KB处理用的，不在UI中显示
+HIDDEN_PIPELINES = {"build_text_corpus", "corpus_chunk", "milvus_index"}
+
 def list_pipelines() -> List[Dict[str, Any]]:
     res = []
     for d in [PIPELINES_DIR, LEGACY_PIPELINES_DIR]:
         if d.exists():
             for f in d.glob("*.yaml"):
+                # 跳过屏蔽列表中的pipeline
+                if f.stem in HIDDEN_PIPELINES:
+                    continue
+                    
                 if not any(r["name"] == f.stem for r in res):
         
                     param_path = d / "parameter" / f"{f.stem}_parameter.yaml"
