@@ -1490,28 +1490,40 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f0f4f9; /* 极浅的蓝灰色背景 */
-  border: none;
-  border-radius: 16px; /* 稍微大一点的圆角 */
+  background: #f0f4f9; 
+  border: 1px solid transparent;
+  border-radius: 16px; 
   padding: 12px 20px;
   font-size: 0.95rem;
   color: #1f1f1f;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-weight: 500;
 }
 
+/* 分类配色 (更淡、更简约的灰调配色) */
+.chip-analysis { background-color: #f8f7ff !important; color: #6e6b7b !important; }
+.chip-analysis:hover { background-color: #f0eeff !important; border-color: #d9d6fe; }
+
+.chip-explain { background-color: #f1f8fe !important; color: #5d707a !important; }
+.chip-explain:hover { background-color: #e2f1fd !important; border-color: #badcfb; }
+
+.chip-implement { background-color: #f2f9f6 !important; color: #5c726b !important; }
+.chip-implement:hover { background-color: #e3f3ed !important; border-color: #b7e3d1; }
+
+.chip-insights { background-color: #f9f5f8 !important; color: #7a6673 !important; }
+.chip-insights:hover { background-color: #f4e9f1 !important; border-color: #e9cadf; }
+
 .chip-btn:hover {
-  background: #e2e7eb; /* 悬停加深 */
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .chip-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1; /* 统一主色调，或根据需要调整 */
+  color: inherit;
 }
 
 .chip-icon svg {
