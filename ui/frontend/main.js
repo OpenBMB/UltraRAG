@@ -1425,21 +1425,21 @@ function renderChatHistory() {
                 </div>
                 
                 <div class="suggestion-chips">
-                    <button class="chip-btn" onclick="setQuickPrompt('Summarize this document')">
+                    <button class="chip-btn" onclick="setQuickPrompt('结合多篇史料，深度分析北宋初期‘杯酒释兵权’对中后期冗兵冗费问题的潜在影响。')">
                         <span class="chip-icon">📝</span>
-                        <span>Research</span>
+                        <span>Analysis</span>
                     </button>
-                    <button class="chip-btn" onclick="setQuickPrompt('Write a Python script for RAG')">
-                        <span class="chip-icon">💻</span>
-                        <span>Write Code</span>
-                    </button>
-                    <button class="chip-btn" onclick="setQuickPrompt('Explain quantum computing')">
+                    <button class="chip-btn" onclick="setQuickPrompt('请结合数学推导，详细拆解 PPO 算法中 Clipping Loss 的设计初衷及其公式含义。')">
                         <span class="chip-icon">💡</span>
-                        <span>Learn Concept</span>
+                        <span>Explain</span>
                     </button>
-                    <button class="chip-btn" onclick="setQuickPrompt('Brainstorm marketing ideas')">
-                        <span class="chip-icon">🤯</span>
-                        <span>Brainstorm</span>
+                    <button class="chip-btn" onclick="setQuickPrompt('参考我上传的项目文档，快速搭建一个支持流式响应的 ChatGPT 风格聊天 Demo。')">
+                        <span class="chip-icon">🛠️</span>
+                        <span>Implement</span>
+                    </button>
+                    <button class="chip-btn" onclick="setQuickPrompt('对比最近的相关论文，挖掘多模态领域尚未被充分讨论的科研空白点与潜在机会。')">
+                        <span class="chip-icon">💎</span>
+                        <span>Insights</span>
                     </button>
                 </div>
             </div>
