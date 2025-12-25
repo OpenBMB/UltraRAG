@@ -1426,19 +1426,27 @@ function renderChatHistory() {
                 
                 <div class="suggestion-chips">
                     <button class="chip-btn" onclick="setQuickPrompt('结合多篇史料，深度分析北宋初期‘杯酒释兵权’对中后期冗兵冗费问题的潜在影响。')">
-                        <span class="chip-icon">📝</span>
+                        <span class="chip-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
+                        </span>
                         <span>Analysis</span>
                     </button>
                     <button class="chip-btn" onclick="setQuickPrompt('请结合数学推导，详细拆解 PPO 算法中 Clipping Loss 的设计初衷及其公式含义。')">
-                        <span class="chip-icon">💡</span>
+                        <span class="chip-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>
+                        </span>
                         <span>Explain</span>
                     </button>
                     <button class="chip-btn" onclick="setQuickPrompt('参考我上传的项目文档，快速搭建一个支持流式响应的 ChatGPT 风格聊天 Demo。')">
-                        <span class="chip-icon">🛠️</span>
+                        <span class="chip-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        </span>
                         <span>Implement</span>
                     </button>
                     <button class="chip-btn" onclick="setQuickPrompt('对比最近的相关论文，挖掘多模态领域尚未被充分讨论的科研空白点与潜在机会。')">
-                        <span class="chip-icon">💎</span>
+                        <span class="chip-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"></path><path d="M11 3 8 9l3 12"></path><path d="M13 3l3 6-3 12"></path><path d="M2 9h20"></path></svg>
+                        </span>
                         <span>Insights</span>
                     </button>
                 </div>

@@ -1508,8 +1508,15 @@ body {
 }
 
 .chip-icon {
-  font-size: 1.1rem;
-  filter: grayscale(0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1; /* 统一主色调，或根据需要调整 */
+}
+
+.chip-icon svg {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 /* 移动端适配：字体改小 */
