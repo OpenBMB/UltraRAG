@@ -790,16 +790,16 @@ def surveycpm_state_init(
     }
 
 
-@app.tool(output="response_ls->query_ls,parse_success_ls")
+@app.tool(output="response_ls->keywords_ls,parse_success_ls")
 def surveycpm_parse_search_response(
     response_ls: List[str]
 ) -> Dict[str, List]:
     """Parse search responses and extract keywords.
     
-    Returns query_ls where each item is a concatenated string of all keywords,
-    so it matches batch size and can be directly used by retriever.
+    Returns keywords_ls as 2D list: [[kw1, kw2], [kw3], ...]
+    Each inner list contains keywords for one batch item.
     """
-    query_ls = []
+    keywords_ls = []
     parse_success_ls = []
     
     for response in response_ls:
@@ -811,125 +811,48 @@ def surveycpm_parse_search_response(
         keywords = result.get("action", {}).get("keywords", [])
         parse_success = result.get("parse_success", False) and len(keywords) > 0
         
-        # Join all keywords into a single query string
-        query_str = " ".join(keywords) if keywords else ""
-        query_ls.append(query_str)
+        keywords_ls.append(keywords)
         parse_success_ls.append(parse_success)
     
     return {
-        "query_ls": query_ls,
+        "keywords_ls": keywords_ls,
         "parse_success_ls": parse_success_ls
     }
 
 
-@app.tool(output="keywords_ls->flat_query_list,keywords_lengths")
-def surveycpm_flatten_keywords(
-    keywords_ls: List[List[str]]
-) -> Dict[str, Any]:
-    """Flatten 2D keywords list to 1D for retriever.
-    
-    Input: [[kw1, kw2, kw3], [kw4], [kw5, kw6]]
-    Output: 
-        flat_query_list: [kw1, kw2, kw3, kw4, kw5, kw6]
-        keywords_lengths: [3, 1, 2]  # lengths for each batch item
-    """
-    flat_query_list = []
-    keywords_lengths = []
-    
-    for keywords in keywords_ls:
-        keywords_lengths.append(len(keywords))
-        flat_query_list.extend(keywords)
-    
-    return {
-        "flat_query_list": flat_query_list,
-        "keywords_lengths": keywords_lengths
-    }
-
-
-@app.tool(output="ret_psg,keywords_lengths->merged_ret_psg")
-def surveycpm_merge_retrieved_docs(
-    ret_psg: List[Any],
-    keywords_lengths: List[int]
-) -> Dict[str, List]:
-    """Merge retrieved documents back to batch structure.
-    
-    Input:
-        ret_psg: [docs1, docs2, docs3, docs4, docs5, docs6]  # flat retrieval results
-        keywords_lengths: [3, 1, 2]  # how to group them back
-    Output:
-        merged_ret_psg: [[docs1+docs2+docs3], [docs4], [docs5+docs6]]  # merged per batch item
-    """
-    merged_ret_psg = []
-    idx = 0
-    
-    for length in keywords_lengths:
-        if length == 0:
-            merged_ret_psg.append([])
-        else:
-            # Collect all docs for this batch item
-            batch_docs = []
-            for i in range(length):
-                if idx < len(ret_psg) and ret_psg[idx] is not None:
-                    docs = ret_psg[idx]
-                    if isinstance(docs, list):
-                        batch_docs.extend(docs)
-                    else:
-                        batch_docs.append(docs)
-                idx += 1
-            merged_ret_psg.append(batch_docs)
-    
-    return {"merged_ret_psg": merged_ret_psg}
-
-
-@app.tool(output="ret_psg,cursor_ls,parse_success_ls->retrieved_info_ls,state_ls")
+@app.tool(output="retrieved_info_ls,cursor_ls->retrieved_info_ls,state_ls")
 def surveycpm_after_search(
-    ret_psg: List[Any],
+    retrieved_info_ls: List[str],
     cursor_ls: List[str | None],
-    parse_success_ls: List[bool]
 ) -> Dict[str, List]:
     """Process search results and determine next state.
     
-    State transitions:
+    State transitions based on cursor:
     - cursor == "outline": -> analyst-init_plan (need to create survey structure)
     - cursor == section-X: -> write (need to write content for this section)
-    - cursor is None: -> done (should not happen in normal flow)
+    - cursor is None: -> done (all sections completed)
     """
-    retrieved_info_ls = []
+    new_retrieved_info_ls = []
     state_ls = []
     
-    for psg, cursor, parse_success in zip(ret_psg, cursor_ls, parse_success_ls):
+    for info, cursor in zip(retrieved_info_ls, cursor_ls):
         # Handle edge case: cursor is None means all sections are done
         if cursor is None:
             state_ls.append("done")
-            retrieved_info_ls.append("")
+            new_retrieved_info_ls.append("")
             continue
-            
-        search_success = psg is not None and len(psg) > 0
         
-        if not parse_success or not search_success:
-            state_ls.append("search")
-            retrieved_info_ls.append("")
+        # Keep the retrieved info (may be empty string if retrieval failed)
+        new_retrieved_info_ls.append(info if info else "")
+        
+        # Transition based on cursor state
+        if cursor == "outline":
+            state_ls.append("analyst-init_plan")
         else:
-            if isinstance(psg, list):
-                summaries = []
-                for doc in psg:
-                    if isinstance(doc, dict):
-                        summaries.append(doc.get("summary", doc.get("text", "")))
-                    elif isinstance(doc, str):
-                        summaries.append(doc)
-                info = "\n\n".join(summaries).strip()
-            else:
-                info = str(psg).strip()
-            
-            retrieved_info_ls.append(info if info else "")
-            
-            if cursor == "outline":
-                state_ls.append("analyst-init_plan")
-            else:
-                state_ls.append("write")
+            state_ls.append("write")
     
     return {
-        "retrieved_info_ls": retrieved_info_ls,
+        "retrieved_info_ls": new_retrieved_info_ls,
         "state_ls": state_ls
     }
 

@@ -64,6 +64,10 @@ class Retriever:
             self.retriever_zhipuai_search,
             output="q_ls,top_k,retrieve_thread_num->ret_psg",
         )
+        mcp_inst.tool(
+            self.retriever_batch_keywords_search,
+            output="keywords_ls,top_k,query_instruction,collection_name->retrieved_info_ls",
+        )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
@@ -1169,6 +1173,63 @@ class Retriever:
             )
         finally:
             await session.close()
+
+    async def retriever_batch_keywords_search(
+        self,
+        keywords_ls: List[List[str]],
+        top_k: int = 5,
+        query_instruction: str = "",
+        collection_name: str = "",
+    ) -> Dict[str, List[str]]:
+        """
+        Batch search for multiple items, each with a list of keywords.
+        
+        Args:
+            keywords_ls: 2D list where each inner list contains keywords for one batch item
+                        e.g., [["keyword1", "keyword2"], ["keyword3"], ["keyword4", "keyword5"]]
+            top_k: Number of results per keyword query
+            query_instruction: Optional prefix for queries
+            collection_name: Target collection name
+            
+        Returns:
+            retrieved_info_ls: List of concatenated retrieval results for each batch item
+        """
+        retrieved_info_ls = []
+        
+        for keywords in keywords_ls:
+            if not keywords:
+                # No keywords, return empty string
+                retrieved_info_ls.append("")
+                continue
+            
+            # Search for all keywords in this batch item
+            result = await self.retriever_search(
+                query_list=keywords,
+                top_k=top_k,
+                query_instruction=query_instruction,
+                collection_name=collection_name,
+            )
+            
+            # result["ret_psg"] is List[List[str]], one list per keyword
+            ret_psg = result.get("ret_psg", [])
+            
+            # Flatten and deduplicate passages
+            seen = set()
+            all_passages = []
+            for passages in ret_psg:
+                for psg in passages:
+                    if psg not in seen:
+                        seen.add(psg)
+                        all_passages.append(psg)
+            
+            # Limit total passages per batch item
+            all_passages = all_passages[:top_k * 2]
+            
+            # Join all passages into a single string
+            info = "\n\n".join(all_passages).strip()
+            retrieved_info_ls.append(info)
+        
+        return {"retrieved_info_ls": retrieved_info_ls}
 
 
 if __name__ == "__main__":

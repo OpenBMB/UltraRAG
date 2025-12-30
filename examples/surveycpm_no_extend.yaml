@@ -36,9 +36,7 @@ pipeline:
           - custom.surveycpm_parse_search_response:
               input:
                 response_ls: search_response_ls       
-          - retriever.retriever_search:
-              input:
-                query_list: query_ls
+          - retriever.retriever_batch_keywords_search
           - custom.surveycpm_after_search
           analyst-init_plan:
           - prompt.surveycpm_init_plan:
