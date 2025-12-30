@@ -26,3 +26,9 @@ webnote_init_page_template: prompt/webnote_init_page.jinja
 webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
 webnote_fill_page_template: prompt/webnote_fill_page.jinja
 webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
+
+# SurveyCPM
+surveycpm_search_template: prompt/surveycpm_search.jinja
+surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+surveycpm_write_template: prompt/surveycpm_write.jinja
+surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja

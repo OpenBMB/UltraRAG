@@ -168,5 +168,19 @@ def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     return {"ans_ls": ans_ls}
 
 
+@app.tool(output="state_ls->state_ls")
+def surveycpm_state_router(
+    state_ls: List[str]
+) -> Dict[str, List[Dict[str, str]]]:
+    routed = [
+        {
+            "data": state, 
+            "state": state
+        } 
+        for state in state_ls
+    ]
+    return {"state_ls": routed}
+
+
 if __name__ == "__main__":
     app.run(transport="stdio")

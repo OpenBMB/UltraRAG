@@ -395,5 +395,331 @@ def evisrag_vqa(
         ret.append(p)
     return ret
 
+
+# ==================== SurveyCPM Prompts ====================
+
+def _abbr_one_line(string, abbr=True, tokenizer=None):
+    """Abbreviate content to one line."""
+    if isinstance(string, dict):
+        if "content" in string and string["content"]:
+            return _abbr_one_line(string["content"], abbr=abbr, tokenizer=tokenizer)
+        elif "plan" in string:
+            return "[PLAN] " + string["plan"].replace("\n", " ").strip()
+        else:
+            return ""
+    else:
+        if not string:
+            return ""
+        else:
+            if abbr and tokenizer:
+                tokens = tokenizer(string, return_tensors="pt")
+                if tokens.input_ids.size(1) > 150:
+                    decoded_prefix = tokenizer.decode(tokens.input_ids[0][:100], skip_special_tokens=True)
+                    decoded_suffix = tokenizer.decode(tokens.input_ids[0][-50:], skip_special_tokens=True)
+                    decoded = decoded_prefix + " ... " + decoded_suffix
+                    return "[OK] " + decoded.replace("\n", " ").strip()
+                else:
+                    return "[OK] " + string.replace("\n", " ").strip()
+            else:
+                return "[OK] " + string.replace("\n", " ").strip()
+
+
+def _to_one_line(string):
+    """Convert content to one line."""
+    if isinstance(string, dict):
+        if "content" in string:
+            if not string["content"]:
+                return ""
+            return "[OK] " + string["content"].replace("\n", " ").strip() + _to_one_line(string["content"])
+        elif "plan" in string:
+            return "[PLAN] " + string["plan"].replace("\n", " ").strip()
+        else:
+            return ""
+    if not string:
+        return ""
+    else:
+        return string.replace("\n", " ")
+
+
+def _check_progress_postion(current_survey):
+    """Check the current progress position in the survey."""
+    if current_survey == {}:
+        return "outline"
+    else:
+        if "sections" in current_survey:
+            for i, section in enumerate(current_survey["sections"]):
+                if "content" not in section:
+                    return f"section-{i+1}"
+                if "subsections" in section:
+                    for j, subsection in enumerate(section["subsections"]):
+                        if "content" not in subsection:
+                            return f"section-{i+1}.{j+1}"
+                        if "subsections" in subsection:
+                            for k, subsubsection in enumerate(subsection["subsections"]):
+                                if "content" not in subsubsection:
+                                    return f"section-{i+1}.{j+1}.{k+1}"
+    return None
+
+
+def _check_progress_postion_last_detail(current_survey):
+    """Check the last completed position with detail."""
+    if current_survey == {}:
+        return "outline"
+    else:
+        titles = ["outline"]
+        if "sections" in current_survey:
+            for i, section in enumerate(current_survey["sections"]):
+                if "content" not in section:
+                    return titles[-1]
+                else:
+                    titles.append(f"section-{i+1}")
+                if "subsections" in section:
+                    for j, subsection in enumerate(section["subsections"]):
+                        if "content" not in subsection:
+                            return titles[-1]
+                        else:
+                            titles.append(f"section-{i+1}.{j+1}")
+                        if "subsections" in subsection:
+                            for k, subsubsection in enumerate(subsection["subsections"]):
+                                if "content" not in subsubsection:
+                                    return titles[-1]
+                                else:
+                                    titles.append(f"section-{i+1}.{j+1}.{k+1}")
+    return titles[-1]
+
+
+def _print_tasknote(current_survey, abbr=True):
+    """Print survey structure as a formatted string."""
+    string = ""
+    if current_survey == {}:
+        return "There is no survey."
+    
+    # title
+    try:
+        content = _abbr_one_line(current_survey["title"], abbr=False)
+        string += f"# Title: {content}\n"
+    except:
+        string += f"# Title: None\n"
+
+    to_line_func = _abbr_one_line
+
+    if "sections" in current_survey:
+        for i, section in enumerate(current_survey["sections"]):
+            title_key = "name" if "name" in section else "title"
+            name, content = section[title_key], to_line_func(section, abbr)
+            string += f"# Section-{i+1} [{name}]: {content}\n"
+
+            if "subsections" in section:
+                for j, subsection in enumerate(section["subsections"]):
+                    name, content = subsection[title_key], to_line_func(subsection, abbr)
+                    string += f"    ## Section-{i+1}.{j+1} [{name}]: {content}\n"
+
+                    if "subsections" in subsection:
+                        for k, subsubsection in enumerate(subsection["subsections"]):
+                            name, content = subsubsection[title_key], to_line_func(subsubsection, abbr)
+                            string += f"        ### Section-{i+1}.{j+1}.{k+1} [{name}]: {content}\n"
+    
+    return string
+
+
+def _print_tasknote_hire(current_survey, last_detail=False):
+    """Print survey structure with hierarchical detail."""
+    string = ""
+    if current_survey == {}:
+        return "There is no survey."
+    
+    # title
+    try:
+        content = _abbr_one_line(current_survey["title"], abbr=False)
+        string += f"# Title: {content}\n"
+    except:
+        string += f"# Title: None\n"
+
+    # sections
+    if last_detail:
+        now_section = _check_progress_postion_last_detail(current_survey)
+    else:
+        now_section = _check_progress_postion(current_survey)
+    
+    now_hire = now_section.count(".") if now_section else 0
+    
+    if "sections" in current_survey:
+        for i, section in enumerate(current_survey["sections"]):
+            title_key = "name" if "name" in section else "title"
+            if now_section and (now_hire == 0 or (now_section.startswith(f"section-{i+1}") and now_hire == 1)):
+                to_line_func = _to_one_line
+            else:
+                to_line_func = _abbr_one_line
+            name, content = section[title_key], to_line_func(section)
+            string += f"# Section-{i+1} [{name}]: {content}\n"
+
+            if "subsections" in section:
+                for j, subsection in enumerate(section["subsections"]):
+                    if now_section and ((now_section.startswith(f"section-{i+1}") and now_hire == 1) or \
+                       (now_section.startswith(f"section-{i+1}.{j+1}") and now_hire == 2)):
+                        to_line_func = _to_one_line
+                    else:
+                        to_line_func = _abbr_one_line
+                    
+                    name, content = subsection[title_key], to_line_func(subsection)
+                    string += f"    ## Section-{i+1}.{j+1} [{name}]: {content}\n"
+
+                    if "subsections" in subsection:
+                        for k, subsubsection in enumerate(subsection["subsections"]):
+                            if now_section and now_section.startswith(f"section-{i+1}.{j+1}"):
+                                to_line_func = _to_one_line
+                            else:
+                                to_line_func = _abbr_one_line
+                            
+                            name, content = subsubsection[title_key], to_line_func(subsubsection)
+                            string += f"        ### Section-{i+1}.{j+1}.{k+1} [{name}]: {content}\n"
+    
+    return string
+
+
+from typing import Dict
+
+
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls")
+def surveycpm_search(
+    instruction_ls: List[str],
+    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    cursor_ls: List[str | None],
+    surveycpm_search_template: str | Path,
+) -> List[PromptMessage]:
+    """
+    Generate search prompts for survey sections. Handles both initial and subsequent searches.
+    survey_ls contains JSON strings that are parsed into dicts.
+    """
+    import json
+    import logging
+    logger = logging.getLogger("UltraRAG.prompt")
+    logger.info(f"[surveycpm_search] instruction_ls length: {len(instruction_ls) if instruction_ls else 'None'}")
+    logger.info(f"[surveycpm_search] survey_ls length: {len(survey_ls) if survey_ls else 'None'}")
+    logger.info(f"[surveycpm_search] cursor_ls length: {len(cursor_ls) if cursor_ls else 'None'}")
+    logger.info(f"[surveycpm_search] template: {surveycpm_search_template}")
+    
+    if not instruction_ls or not survey_ls or not cursor_ls:
+        logger.warning("[surveycpm_search] Empty input lists!")
+        return []
+    
+    template: Template = load_prompt_template(surveycpm_search_template)
+    ret = []
+    for instruction, survey_json, cursor in zip(instruction_ls, survey_ls, cursor_ls):
+        # Parse JSON string to dict
+        survey = json.loads(survey_json) if survey_json else {}
+        
+        # Handle empty survey (initial state)
+        if not survey or survey == {}:
+            survey_str = "There is no survey."
+        else:
+            survey_str = _print_tasknote(survey, abbr=True)
+        
+        p = template.render(
+            user_query=instruction,
+            current_outline=survey_str,
+            current_instruction=f"You need to update {cursor}"
+        )
+        ret.append(p)
+    return ret
+
+
+@app.prompt(output="instruction_ls,retrieved_info_ls,surveycpm_init_plan_template->prompt_ls")
+def surveycpm_init_plan(
+    instruction_ls: List[str],
+    retrieved_info_ls: List[str],
+    surveycpm_init_plan_template: str | Path,
+) -> List[PromptMessage]:
+    """
+    Generate prompts for creating initial survey outline.
+    """
+    template: Template = load_prompt_template(surveycpm_init_plan_template)
+    ret = []
+    for instruction, retrieved_info in zip(instruction_ls, retrieved_info_ls):
+        p = template.render(
+            user_query=instruction,
+            current_information=retrieved_info
+        )
+        ret.append(p)
+    return ret
+
+
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls")
+def surveycpm_write(
+    instruction_ls: List[str],
+    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    cursor_ls: List[str | None],
+    retrieved_info_ls: List[str],
+    surveycpm_write_template: str | Path,
+) -> List[PromptMessage]:
+    """
+    Generate prompts for writing survey content.
+    survey_ls contains JSON strings that are parsed into dicts.
+    """
+    import json
+    template: Template = load_prompt_template(surveycpm_write_template)
+    ret = []
+    for instruction, survey_json, cursor, retrieved_info in zip(
+        instruction_ls, survey_ls, cursor_ls, retrieved_info_ls
+    ):
+        survey = json.loads(survey_json) if survey_json else {}
+        survey_str = _print_tasknote_hire(survey, last_detail=True)
+        p = template.render(
+            user_query=instruction,
+            current_survey=survey_str,
+            current_instruction=f"You need to update {cursor}",
+            current_information=retrieved_info
+        )
+        ret.append(p)
+    return ret
+
+
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,no_extend_ls,surveycpm_extend_plan_template->prompt_ls")
+def surveycpm_extend_plan(
+    instruction_ls: List[str],
+    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    cursor_ls: List[str | None],
+    no_extend_ls: List[bool],
+    surveycpm_extend_plan_template: str | Path,
+    template_info: str | Path | None = None,
+) -> List[PromptMessage]:
+    """
+    Generate prompts for extending survey outline.
+    survey_ls contains JSON strings that are parsed into dicts.
+    In no_extend mode (True): uses abbr=False, simpler template
+    In full mode (False): uses last_detail=True, info template
+    """
+    import json
+    template: Template = load_prompt_template(surveycpm_extend_plan_template)
+    template_info_obj = load_prompt_template(template_info) if template_info else None
+    
+    ret = []
+    for instruction, survey_json, cursor, no_extend in zip(
+        instruction_ls, survey_ls, cursor_ls, no_extend_ls
+    ):
+        survey = json.loads(survey_json) if survey_json else {}
+        if no_extend:
+            survey_str = _print_tasknote(survey, abbr=False)
+            p = template.render(
+                user_query=instruction,
+                current_survey=survey_str
+            )
+        else:
+            survey_str = _print_tasknote_hire(survey, last_detail=True)
+            if template_info_obj:
+                p = template_info_obj.render(
+                    user_query=instruction,
+                    current_survey=survey_str,
+                    current_instruction=f"You should decide whether to extend the plan under the current position: {cursor}"
+                )
+            else:
+                p = template.render(
+                    user_query=instruction,
+                    current_survey=survey_str
+                )
+        ret.append(p)
+    return ret
+
+
 if __name__ == "__main__":
     app.run(transport="stdio")
