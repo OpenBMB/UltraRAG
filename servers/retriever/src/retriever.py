@@ -1213,17 +1213,30 @@ class Retriever:
             # result["ret_psg"] is List[List[str]], one list per keyword
             ret_psg = result.get("ret_psg", [])
             
-            # Flatten and deduplicate passages
+            # Calculate per-keyword limit to ensure each keyword's top docs are included
+            num_keywords = len(keywords)
+            per_keyword_limit = max(1, top_k // num_keywords)
+            
+            # Collect top docs from each keyword, then merge
             seen = set()
             all_passages = []
+            
+            # First pass: take top per_keyword_limit from each keyword
             for passages in ret_psg:
-                for psg in passages:
+                for psg in passages[:per_keyword_limit]:
                     if psg not in seen:
                         seen.add(psg)
                         all_passages.append(psg)
             
-            # Limit total passages per batch item
-            all_passages = all_passages[:top_k * 2]
+            # Second pass: fill remaining slots with other docs if space available
+            remaining_slots = top_k - len(all_passages)
+            if remaining_slots > 0:
+                for passages in ret_psg:
+                    for psg in passages[per_keyword_limit:]:
+                        if psg not in seen and remaining_slots > 0:
+                            seen.add(psg)
+                            all_passages.append(psg)
+                            remaining_slots -= 1
             
             # Join all passages into a single string
             info = "\n\n".join(all_passages).strip()
