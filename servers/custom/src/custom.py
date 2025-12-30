@@ -1126,23 +1126,88 @@ def surveycpm_check_completion(
     }
 
 
+def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
+    """Format survey as clean Markdown for final output.
+    
+    Unlike _surveycpm_print_tasknote_hire, this function:
+    - Does NOT add [OK] or [PLAN] prefixes
+    - Preserves proper paragraph breaks and formatting
+    - Produces clean, renderable Markdown
+    """
+    if not survey or survey == {}:
+        return "No survey generated."
+    
+    lines = []
+    
+    # Title
+    title = survey.get("title", "Untitled Survey")
+    lines.append(f"# {title}")
+    lines.append("")
+    
+    # Sections
+    sections = survey.get("sections", [])
+    for i, section in enumerate(sections):
+        title_key = "name" if "name" in section else "title"
+        section_title = section.get(title_key, f"Section {i+1}")
+        
+        lines.append(f"## {section_title}")
+        lines.append("")
+        
+        # Section content
+        if "content" in section and section["content"]:
+            lines.append(section["content"].strip())
+            lines.append("")
+        elif "plan" in section and section["plan"]:
+            lines.append(f"*{section['plan'].strip()}*")
+            lines.append("")
+        
+        # Subsections
+        if "subsections" in section:
+            for j, subsection in enumerate(section["subsections"]):
+                subsection_title = subsection.get(title_key, f"Subsection {j+1}")
+                
+                lines.append(f"### {subsection_title}")
+                lines.append("")
+                
+                if "content" in subsection and subsection["content"]:
+                    lines.append(subsection["content"].strip())
+                    lines.append("")
+                elif "plan" in subsection and subsection["plan"]:
+                    lines.append(f"*{subsection['plan'].strip()}*")
+                    lines.append("")
+                
+                # Sub-subsections
+                if "subsections" in subsection:
+                    for k, subsubsection in enumerate(subsection["subsections"]):
+                        subsubsection_title = subsubsection.get(title_key, f"Sub-subsection {k+1}")
+                        
+                        lines.append(f"#### {subsubsection_title}")
+                        lines.append("")
+                        
+                        if "content" in subsubsection and subsubsection["content"]:
+                            lines.append(subsubsection["content"].strip())
+                            lines.append("")
+                        elif "plan" in subsubsection and subsubsection["plan"]:
+                            lines.append(f"*{subsubsection['plan'].strip()}*")
+                            lines.append("")
+    
+    return "\n".join(lines).strip()
+
+
 @app.tool(output="survey_ls,instruction_ls->ans_ls")
 def surveycpm_format_output(
     survey_ls: List[str],  # JSON strings
     instruction_ls: List[str]
 ) -> Dict[str, List[str]]:
-    """Format final survey output.
+    """Format final survey output as clean Markdown.
     survey_ls contains JSON strings that are parsed.
     """
     import json
     ans_ls = []
     for survey_json, instruction in zip(survey_ls, instruction_ls):
         survey = json.loads(survey_json) if survey_json else {}
-        if not survey or survey == {}:
-            ans_ls.append("No survey generated.")
-        else:
-            output = _surveycpm_print_tasknote_hire(survey, last_detail=False)
-            ans_ls.append(output)
+        output = _surveycpm_format_survey_markdown(survey)
+        ans_ls.append(output)
     
     return {"ans_ls": ans_ls}
 
