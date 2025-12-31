@@ -974,7 +974,7 @@ def surveycpm_after_extend(
         "extend_result_ls": new_extend_result_ls,
     }
 
-@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls->state_ls,extend_time_ls")
+@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls->state_ls,extend_time_ls,step_ls")
 def surveycpm_update_state(
     state_ls: List[str],
     cursor_ls: List[str | None],
