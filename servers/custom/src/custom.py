@@ -867,7 +867,7 @@ def surveycpm_after_init_plan(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls->survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls->survey_ls,cursor_ls")
 def surveycpm_after_write(
     response_ls: List[str],
     survey_ls: List[str],
