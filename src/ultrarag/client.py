@@ -1063,6 +1063,9 @@ async def execute_pipeline(
     stream_callback: Callable[[str], Awaitable[None]] = None,
     override_params: Dict[str, Any] = None
 ) -> Any:
+    # 重置全局循环终止标志，确保多次调用时不会受到之前运行的影响
+    global LoopTerminal
+    LoopTerminal.clear()
     
     config_path = context["config_path"]
     server_cfg = context["server_cfg"]
