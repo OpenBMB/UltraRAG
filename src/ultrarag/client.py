@@ -189,6 +189,7 @@ class UltraData:
         for elem in skeleton:
             new_elem = {k: v for k, v in elem.items() if k != "data"}
             new_elem["data"] = UNSET  # 使用哨兵值标记"未设置"
+            new_elem["data"] = UNSET  # 使用哨兵值标记"未设置"
             new_full.append(new_elem)
 
         it = iter(sub_list)
@@ -408,6 +409,7 @@ class UltraData:
                             sub = [
                                 e["data"]
                                 for e in val
+                                if elem_match(e, path_pairs) and e["data"] is not UNSET
                                 if elem_match(e, path_pairs) and e["data"] is not UNSET
                             ]
                             val = sub
