@@ -87,6 +87,15 @@ ROOT = "BASE"
 SEP = "/"
 LoopTerminal: list[bool] = []
 
+# 哨兵值：用于区分"数据未设置"和"数据是 None"
+class _Unset:
+    """Sentinel value to indicate data has not been set by any branch."""
+    __slots__ = ()
+    def __repr__(self):
+        return "<UNSET>"
+
+UNSET = _Unset()
+
 
 def parse_path(path: str) -> List[Tuple[int, str]]:
     """'branch1_finished/branch2_retry' → [(1,'finished'), (2,'retry')]"""
@@ -174,7 +183,7 @@ class UltraData:
         new_full = []
         for elem in skeleton:
             new_elem = {k: v for k, v in elem.items() if k != "data"}
-            new_elem["data"] = None
+            new_elem["data"] = UNSET  # 使用哨兵值标记"未设置"
             new_full.append(new_elem)
 
         it = iter(sub_list)
@@ -394,7 +403,7 @@ class UltraData:
                             sub = [
                                 e["data"]
                                 for e in val
-                                if elem_match(e, path_pairs) and e["data"] is not None
+                                if elem_match(e, path_pairs) and e["data"] is not UNSET
                             ]
                             val = sub
                             if signal is None:
