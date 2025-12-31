@@ -653,21 +653,15 @@ def surveycpm_write(
 @app.prompt(output="instruction_ls,survey_ls,surveycpm_extend_plan_template->prompt_ls")
 def surveycpm_extend_plan(
     instruction_ls: List[str],
-    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    survey_ls: List[str],
     surveycpm_extend_plan_template: str | Path,
 ) -> List[PromptMessage]:
-    """
-    Generate prompts for extending survey outline.
-    survey_ls contains JSON strings that are parsed into dicts.
-    Uses abbr=False to show full survey structure for LLM to decide which section to extend.
-    """
     import json
     template: Template = load_prompt_template(surveycpm_extend_plan_template)
     
     ret = []
     for instruction, survey_json in zip(instruction_ls, survey_ls):
         survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
-        # Show full survey structure (abbr=False) for extend decision
         survey_str = _print_tasknote(survey, abbr=False)
         p = template.render(
             user_query=instruction,

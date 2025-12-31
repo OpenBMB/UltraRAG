@@ -765,7 +765,7 @@ def surveycpm_get_position(
         raise ValueError(f"Invalid tag: {tag}")
 
 
-@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls")
+@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls,retrieved_info_ls")
 def surveycpm_state_init(
     instruction_ls: List[str],
 ) -> Dict[str, List]:
@@ -778,6 +778,7 @@ def surveycpm_state_init(
         "step_ls": [0] * n,
         "extend_time_ls": [0] * n,
         "extend_result_ls": ["<PAD>"] * n,
+        "retrieved_info_ls": ["<PAD>"] * n,
     }
 
 
@@ -908,25 +909,13 @@ def surveycpm_after_write(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls->survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls->survey_ls,cursor_ls,extend_result_ls")
 def surveycpm_after_extend(
     response_ls: List[str],
     survey_ls: List[str],  # JSON strings
     cursor_ls: List[str | None],
-    retrieved_info_ls: List[str],
-    extend_time_ls: List[int],
-    extend_result_ls: List[str],
 ) -> Dict[str, List]:
-    """Parse extend responses and handle extend-plan/nop actions.
-    
-    Updates extend_result_ls to indicate the result:
-    - "extended": extend-plan was successful
-    - "nop": user chose not to extend
-    - "retry": parsing failed
-    
-    Passes through all router variables. State transitions are handled by
-    surveycpm_update_state after the branch.
-    """
+
     import json
     new_survey_ls = []
     new_cursor_ls = []
@@ -969,8 +958,6 @@ def surveycpm_after_extend(
     return {
         "survey_ls": new_survey_ls,
         "cursor_ls": new_cursor_ls,
-        "retrieved_info_ls": retrieved_info_ls,
-        "extend_time_ls": extend_time_ls,
         "extend_result_ls": new_extend_result_ls,
     }
 
