@@ -168,18 +168,40 @@ def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     return {"ans_ls": ans_ls}
 
 
-@app.tool(output="state_ls->state_ls")
+@app.tool(output="state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls")
 def surveycpm_state_router(
-    state_ls: List[str]
-) -> Dict[str, List[Dict[str, str]]]:
-    routed = [
-        {
-            "data": state, 
-            "state": state
-        } 
-        for state in state_ls
-    ]
-    return {"state_ls": routed}
+    state_ls: List[str],
+    cursor_ls: List[str | None],
+    survey_ls: List[str],
+    step_ls: List[int],
+    extend_time_ls: List[int],
+    extend_result_ls: List[str],
+) -> Dict[str, List[Dict[str, Any]]]:
+    routed_state_ls = []
+    routed_cursor_ls = []
+    routed_survey_ls = []
+    routed_step_ls = []
+    routed_extend_time_ls = []
+    routed_extend_result_ls = []
+    
+    for state, cursor, survey, step, extend_time, extend_result in zip(
+        state_ls, cursor_ls, survey_ls, step_ls, extend_time_ls, extend_result_ls
+    ):
+        routed_state_ls.append({"data": state, "state": state})
+        routed_cursor_ls.append({"data": cursor, "state": state})
+        routed_survey_ls.append({"data": survey, "state": state})
+        routed_step_ls.append({"data": step, "state": state})
+        routed_extend_time_ls.append({"data": extend_time, "state": state})
+        routed_extend_result_ls.append({"data": extend_result, "state": state})
+    
+    return {
+        "state_ls": routed_state_ls,
+        "cursor_ls": routed_cursor_ls,
+        "survey_ls": routed_survey_ls,
+        "step_ls": routed_step_ls,
+        "extend_time_ls": routed_extend_time_ls,
+        "extend_result_ls": routed_extend_result_ls,
+    }
 
 
 if __name__ == "__main__":

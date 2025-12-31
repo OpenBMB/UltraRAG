@@ -562,7 +562,6 @@ def surveycpm_parse_response(
     response_text: str,
     is_json: bool = True
 ) -> Dict[str, Any]:
-    """Parse LLM response for survey generation."""
     extracted_result = {}
     
     think_pattern = r"<thought>(.*?)</thought>"
@@ -766,119 +765,88 @@ def surveycpm_get_position(
         raise ValueError(f"Invalid tag: {tag}")
 
 
-@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,retrieved_info_ls,step_ls,extend_time_ls,no_check_ls,no_extend_ls")
+@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls")
 def surveycpm_state_init(
-    instruction_ls: List[str]
+    instruction_ls: List[str],
 ) -> Dict[str, List]:
-    """Initialize survey state for all instances.
-    
-    Note: survey_ls is stored as JSON strings to avoid being filtered by
-    UltraRAG's branch filtering logic which filters dict lists by branch state.
-    """
-    import json
+
     n = len(instruction_ls)
     return {
         "state_ls": ["search"] * n,
         "cursor_ls": ["outline"] * n,
-        # Store as JSON strings to avoid branch filtering (dict lists get filtered)
-        "survey_ls": [json.dumps({}) for _ in range(n)],
-        "retrieved_info_ls": [""] * n,
+        "survey_ls": ["<PAD>"] * n,
         "step_ls": [0] * n,
         "extend_time_ls": [0] * n,
-        "no_check_ls": [True] * n,
-        "no_extend_ls": [True] * n,
+        "extend_result_ls": ["<PAD>"] * n,
     }
 
 
-@app.tool(output="response_ls->keywords_ls,parse_success_ls")
+@app.tool(output="response_ls->keywords_ls")
 def surveycpm_parse_search_response(
     response_ls: List[str]
 ) -> Dict[str, List]:
-    """Parse search responses and extract keywords.
-    
-    Returns keywords_ls as 2D list: [[kw1, kw2], [kw3], ...]
-    Each inner list contains keywords for one batch item.
-    """
     keywords_ls = []
-    parse_success_ls = []
     
     for response in response_ls:
-        result = surveycpm_parse_response(
-            response_text=response,
-            is_json=True
-        )
-        
+        result = surveycpm_parse_response(response_text=response, is_json=True)
         keywords = result.get("action", {}).get("keywords", [])
-        parse_success = result.get("parse_success", False) and len(keywords) > 0
-        
         keywords_ls.append(keywords)
-        parse_success_ls.append(parse_success)
     
-    return {
-        "keywords_ls": keywords_ls,
-        "parse_success_ls": parse_success_ls
-    }
+    return {"keywords_ls": keywords_ls}
 
 
-@app.tool(output="retrieved_info_ls,cursor_ls->retrieved_info_ls,state_ls")
-def surveycpm_after_search(
-    retrieved_info_ls: List[str],
-    cursor_ls: List[str | None],
-) -> Dict[str, List]:
-    """Process search results and determine next state.
+@app.tool(output="ret_psg_ls->retrieved_info_ls")
+def surveycpm_process_passages(
+    ret_psg_ls: List[List[List[str]]],
+) -> Dict[str, List[str]]:
+
+    top_k = 20
+    retrieved_info_ls = []
     
-    State transitions based on cursor:
-    - cursor == "outline": -> analyst-init_plan (need to create survey structure)
-    - cursor == section-X: -> write (need to write content for this section)
-    - cursor is None: -> done (all sections completed)
-    """
-    new_retrieved_info_ls = []
-    state_ls = []
-    
-    for info, cursor in zip(retrieved_info_ls, cursor_ls):
-        # Handle edge case: cursor is None means all sections are done
-        if cursor is None:
-            state_ls.append("done")
-            new_retrieved_info_ls.append("")
+    for ret_psg in ret_psg_ls:
+        if not ret_psg:
+            retrieved_info_ls.append("")
             continue
         
-        # Keep the retrieved info (may be empty string if retrieval failed)
-        new_retrieved_info_ls.append(info if info else "")
+        num_queries = len(ret_psg)
+        per_query_limit = max(1, top_k // num_queries)
         
-        # Transition based on cursor state
-        if cursor == "outline":
-            state_ls.append("analyst-init_plan")
-        else:
-            state_ls.append("write")
+        seen = set()
+        all_passages = []
+        
+        for passages in ret_psg:
+            for psg in passages[:per_query_limit]:
+                if psg not in seen:
+                    seen.add(psg)
+                    all_passages.append(psg)
+        
+        remaining_slots = top_k - len(all_passages)
+        if remaining_slots > 0:
+            for passages in ret_psg:
+                for psg in passages[per_query_limit:]:
+                    if psg not in seen and remaining_slots > 0:
+                        seen.add(psg)
+                        all_passages.append(psg)
+                        remaining_slots -= 1
+        
+        info = "\n\n".join(all_passages).strip()
+        retrieved_info_ls.append(info)
     
-    return {
-        "retrieved_info_ls": new_retrieved_info_ls,
-        "state_ls": state_ls
-    }
+    return {"retrieved_info_ls": retrieved_info_ls}
 
 
-@app.tool(output="response_ls,survey_ls->survey_ls,state_ls,cursor_ls,parse_success_ls")
+@app.tool(output="response_ls,survey_ls->survey_ls,cursor_ls")
 def surveycpm_after_init_plan(
     response_ls: List[str],
-    survey_ls: List[str]  # JSON strings
+    survey_ls: List[str], 
 ) -> Dict[str, List]:
-    """Parse init_plan responses and create survey structures.
-    survey_ls contains JSON strings that are parsed/serialized.
-    """
+
     import json
     new_survey_ls = []
-    state_ls = []
-    cursor_ls = []
-    parse_success_ls = []
+    new_cursor_ls = []
     
     for response, survey_json in zip(response_ls, survey_ls):
-        survey = json.loads(survey_json) if survey_json else {}
-        
-        result = surveycpm_parse_response(
-            response_text=response,
-            is_json=True
-        )
-        
+        result = surveycpm_parse_response(response_text=response, is_json=True)
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         
@@ -888,55 +856,31 @@ def surveycpm_after_init_plan(
                 "sections": action.get("sections", [])
             }
             new_survey_ls.append(json.dumps(new_survey))
-            state_ls.append("search")
-            cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
-            parse_success_ls.append(True)
+            new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
         else:
             new_survey_ls.append(survey_json)
-            state_ls.append("analyst-init_plan")
-            cursor_ls.append("outline")
-            parse_success_ls.append(False)
+            new_cursor_ls.append("outline")
     
     return {
         "survey_ls": new_survey_ls,
-        "state_ls": state_ls,
-        "cursor_ls": cursor_ls,
-        "parse_success_ls": parse_success_ls
+        "cursor_ls": new_cursor_ls,
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,no_check_ls,no_extend_ls->survey_ls,state_ls,cursor_ls,parse_success_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls->survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls")
 def surveycpm_after_write(
     response_ls: List[str],
-    survey_ls: List[str],  # JSON strings
+    survey_ls: List[str],
     cursor_ls: List[str | None],
-    no_check_ls: List[bool],
-    no_extend_ls: List[bool]
 ) -> Dict[str, List]:
-    """Parse write responses and update survey content.
-    survey_ls contains JSON strings that are parsed/serialized.
-    
-    State transitions after successful write:
-    - no_check=True, no_extend=True: -> search
-    - no_check=True, no_extend=False: -> analyst-extend_plan (if cursor depth < 2)
-    - no_check=False: -> analyst-check_para (not implemented yet)
-    """
+
     import json
     new_survey_ls = []
-    state_ls = []
     new_cursor_ls = []
-    parse_success_ls = []
     
-    for response, survey_json, cursor, no_check, no_extend in zip(
-        response_ls, survey_ls, cursor_ls, no_check_ls, no_extend_ls
-    ):
-        survey = json.loads(survey_json) if survey_json else {}
-        
-        result = surveycpm_parse_response(
-            response_text=response,
-            is_json=False
-        )
-        
+    for response, survey_json, cursor in zip(response_ls, survey_ls, cursor_ls):
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        result = surveycpm_parse_response(response_text=response, is_json=False)
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         
@@ -951,71 +895,46 @@ def surveycpm_after_write(
                 new_survey_ls.append(json.dumps(new_survey))
                 new_cursor = _surveycpm_check_progress_postion(new_survey)
                 new_cursor_ls.append(new_cursor)
-                
-                # Determine next state based on no_check and no_extend flags
-                if no_check:
-                    if no_extend:
-                        # Disable check and extend: go directly to search
-                        state_ls.append("search")
-                    else:
-                        # Disable check but allow extend: 
-                        # extend if cursor depth < 2, otherwise search
-                        # Note: cursor should not be None here, but handle it safely
-                        if cursor is not None and cursor.count(".") < 2:
-                            state_ls.append("analyst-extend_plan")
-                        else:
-                            state_ls.append("search")
-                else:
-                    # Check enabled (not implemented, default to search)
-                    state_ls.append("search")
-                    
-                parse_success_ls.append(True)
             else:
                 new_survey_ls.append(survey_json)
-                state_ls.append("write")
                 new_cursor_ls.append(cursor)
-                parse_success_ls.append(False)
         else:
             new_survey_ls.append(survey_json)
-            state_ls.append("write")
             new_cursor_ls.append(cursor)
-            parse_success_ls.append(False)
     
     return {
         "survey_ls": new_survey_ls,
-        "state_ls": state_ls,
         "cursor_ls": new_cursor_ls,
-        "parse_success_ls": parse_success_ls
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,extend_time_ls->survey_ls,state_ls,cursor_ls,extend_time_ls,parse_success_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls->survey_ls,cursor_ls,retrieved_info_ls,extend_time_ls,extend_result_ls")
 def surveycpm_after_extend(
     response_ls: List[str],
     survey_ls: List[str],  # JSON strings
     cursor_ls: List[str | None],
-    extend_time_ls: List[int]
+    retrieved_info_ls: List[str],
+    extend_time_ls: List[int],
+    extend_result_ls: List[str],
 ) -> Dict[str, List]:
     """Parse extend responses and handle extend-plan/nop actions.
-    survey_ls contains JSON strings that are parsed/serialized.
+    
+    Updates extend_result_ls to indicate the result:
+    - "extended": extend-plan was successful
+    - "nop": user chose not to extend
+    - "retry": parsing failed
+    
+    Passes through all router variables. State transitions are handled by
+    surveycpm_update_state after the branch.
     """
     import json
     new_survey_ls = []
-    state_ls = []
     new_cursor_ls = []
-    new_extend_time_ls = []
-    parse_success_ls = []
+    new_extend_result_ls = []
     
-    for response, survey_json, cursor, extend_time in zip(
-        response_ls, survey_ls, cursor_ls, extend_time_ls
-    ):
-        survey = json.loads(survey_json) if survey_json else {}
-        
-        result = surveycpm_parse_response(
-            response_text=response,
-            is_json=True
-        )
-        
+    for response, survey_json, cursor in zip(response_ls, survey_ls, cursor_ls):
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        result = surveycpm_parse_response(response_text=response, is_json=True)
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         action_name = action.get("name", "")
@@ -1031,99 +950,160 @@ def surveycpm_after_extend(
                     update_data={"subsections": copy.deepcopy(subsections)}
                 )
                 new_survey_ls.append(json.dumps(new_survey))
-                state_ls.append("search")
                 new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
-                new_extend_time_ls.append(extend_time)
-                parse_success_ls.append(True)
+                new_extend_result_ls.append("extended")
             else:
                 new_survey_ls.append(survey_json)
-                state_ls.append("analyst-extend_plan")
                 new_cursor_ls.append(cursor)
-                new_extend_time_ls.append(extend_time)
-                parse_success_ls.append(False)
+                new_extend_result_ls.append("retry")
                 
         elif parse_success and action_name == "nop":
             new_survey_ls.append(survey_json)
-            state_ls.append("search")
             new_cursor_ls.append(cursor)
-            new_extend_time_ls.append(12)
-            parse_success_ls.append(True)
+            new_extend_result_ls.append("nop")
         else:
             new_survey_ls.append(survey_json)
-            state_ls.append("analyst-extend_plan")
             new_cursor_ls.append(cursor)
-            new_extend_time_ls.append(extend_time)
-            parse_success_ls.append(False)
+            new_extend_result_ls.append("retry")
     
     return {
         "survey_ls": new_survey_ls,
-        "state_ls": state_ls,
         "cursor_ls": new_cursor_ls,
-        "extend_time_ls": new_extend_time_ls,
-        "parse_success_ls": parse_success_ls
+        "retrieved_info_ls": retrieved_info_ls,
+        "extend_time_ls": extend_time_ls,
+        "extend_result_ls": new_extend_result_ls,
     }
 
-
-@app.tool(output="step_ls->step_ls")
-def surveycpm_increment_step(
-    step_ls: List[int]
-) -> Dict[str, List[int]]:
-    """Increment step counter for all instances."""
-    return {"step_ls": [step + 1 for step in step_ls]}
-
-
-@app.tool(output="cursor_ls,extend_time_ls,no_extend_ls,state_ls,step_ls->state_ls,extend_time_ls,done_ls")
-def surveycpm_check_completion(
+@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls->state_ls,extend_time_ls")
+def surveycpm_update_state(
+    state_ls: List[str],
     cursor_ls: List[str | None],
     extend_time_ls: List[int],
-    no_extend_ls: List[bool],
-    state_ls: List[str],
+    extend_result_ls: List[str],
     step_ls: List[int],
-    max_step: int = 140
+    max_step: int = 140,
 ) -> Dict[str, List]:
-    """Check if survey generation is complete.
+    """Update state based on cursor and extend results.
     
-    Logic based on source code:
-    - If step >= max_step: done (incomplete)
-    - If cursor is None (all sections written):
-      - If extend_time < 10 and no_extend: allow more extend attempts
-      - Else: done (complete)
+    This runs OUTSIDE of branch, so all items are processed together.
+    Handles all state transitions in one place to avoid length mismatch issues.
+    
+    State transition logic:
+    - If step >= max_step: -> done
+    - If current state is 'search':
+        - cursor == 'outline': -> analyst-init_plan
+        - cursor is section-X: -> write
+        - cursor is None: -> done (shouldn't happen in search)
+    - If current state is 'analyst-init_plan':
+        - cursor != 'outline': -> search (init plan succeeded)
+        - cursor == 'outline': -> analyst-init_plan (retry)
+    - If current state is 'write':
+        - cursor is not None: -> search (continue writing)
+        - cursor is None and extend_time < 10: -> analyst-extend_plan
+        - cursor is None and extend_time >= 10: -> done
+    - If current state is 'analyst-extend_plan':
+        - extend_result == 'extended': -> search
+        - extend_result == 'nop': -> done
+        - extend_result == 'retry': -> analyst-extend_plan
+    - If current state is 'done': -> done
     """
     new_state_ls = []
     new_extend_time_ls = []
-    done_ls = []
+    new_step_ls = []
     
-    for cursor, extend_time, no_extend, state, step in zip(
-        cursor_ls, extend_time_ls, no_extend_ls, state_ls, step_ls
+    for i, (state, cursor, extend_time, step) in enumerate(
+        zip(state_ls, cursor_ls, extend_time_ls, step_ls)
     ):
+        extend_result = extend_result_ls[i] if i < len(extend_result_ls) else "<PAD>"
+        if extend_result == "<PAD>":
+            extend_result = ""
+        
         if step >= max_step:
             new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
-            done_ls.append(False)  # Incomplete due to max step
             continue
         
-        if cursor is None:
-            # All sections have content, check if we should extend
-            if extend_time < 10 and no_extend:
-                # Still have extend attempts in no_extend mode
+        if state == "search":
+            if cursor == "outline":
+                new_state_ls.append("analyst-init_plan")
+            elif cursor is not None:
+                new_state_ls.append("write")
+            else:
+                new_state_ls.append("done")
+            new_extend_time_ls.append(extend_time)
+            
+        elif state == "analyst-init_plan":
+            if cursor != "outline" and cursor is not None:
+                new_state_ls.append("search")
+            else:
+                new_state_ls.append("analyst-init_plan")
+            new_extend_time_ls.append(extend_time)
+            
+        elif state == "write":
+            if cursor is not None:
+                new_state_ls.append("search")
+                new_extend_time_ls.append(extend_time)
+            elif extend_time < 10:
                 new_state_ls.append("analyst-extend_plan")
                 new_extend_time_ls.append(extend_time + 1)
-                done_ls.append(False)
             else:
-                # No more extend attempts or not in no_extend mode
                 new_state_ls.append("done")
                 new_extend_time_ls.append(extend_time)
-                done_ls.append(True)  # Successfully complete
-        else:
-            new_state_ls.append(state)
+                
+        elif state == "analyst-extend_plan":
+            if extend_result == "extended":
+                new_state_ls.append("search")
+            elif extend_result == "nop":
+                new_state_ls.append("done")
+            else:
+                new_state_ls.append("analyst-extend_plan")
             new_extend_time_ls.append(extend_time)
-            done_ls.append(False)
+            
+        else:  # done or unknown
+            new_state_ls.append("done")
+            new_extend_time_ls.append(extend_time)
+        
+        step = step + 1
+        new_step_ls.append(step)
     
     return {
         "state_ls": new_state_ls,
         "extend_time_ls": new_extend_time_ls,
-        "done_ls": done_ls
+        "step_ls": new_step_ls,
     }
+
+@app.tool(output="step_ls,state_ls->state_ls")
+def surveycpm_check_completion(
+    step_ls: List[int],
+    state_ls: List[str],
+    max_step: int = 140
+) -> Dict[str, List]:
+    """Check completion status based on step count only.
+    
+    This runs OUTSIDE of branch, so all items are processed together.
+    
+    Note: The extend logic is now handled in surveycpm_after_write.
+    This function only checks if max_step is reached.
+    
+    Logic:
+    - If step >= max_step: -> done
+    - Otherwise: keep current state (which may already be analyst-extend_plan from surveycpm_after_write)
+    """
+    # If inputs are empty (due to framework filtering), return empty to avoid overwriting
+    if not step_ls or not state_ls:
+        app.logger.warning("[surveycpm_check_completion] Empty inputs, returning empty to avoid overwriting")
+        return {"state_ls": state_ls}
+    
+    new_state_ls = []
+    
+    for step, state in zip(step_ls, state_ls):
+        if step >= max_step:
+            new_state_ls.append("done")
+        else:
+            # Keep current state (analyst-extend_plan, search, write, done, etc.)
+            new_state_ls.append(state)
+    
+    return {"state_ls": new_state_ls}
 
 
 def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
@@ -1205,7 +1185,7 @@ def surveycpm_format_output(
     import json
     ans_ls = []
     for survey_json, instruction in zip(survey_ls, instruction_ls):
-        survey = json.loads(survey_json) if survey_json else {}
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
         output = _surveycpm_format_survey_markdown(survey)
         ans_ls.append(output)
     

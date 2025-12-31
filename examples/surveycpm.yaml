@@ -1,4 +1,4 @@
-# SurveyCPM - Automated Survey Paper Generation (NO_EXTEND Mode)
+# SurveyCPM - Automated Survey Paper Generation
 
 # MCP Server
 servers:
@@ -36,8 +36,10 @@ pipeline:
           - custom.surveycpm_parse_search_response:
               input:
                 response_ls: search_response_ls       
-          - retriever.retriever_batch_keywords_search
-          - custom.surveycpm_after_search
+          - retriever.retriever_batch_search:
+              input:
+                batch_query_list: search_response_ls
+          - custom.surveycpm_process_passages
           analyst-init_plan:
           - prompt.surveycpm_init_plan:
               output:
@@ -74,10 +76,8 @@ pipeline:
           - custom.surveycpm_after_extend:
               input:
                 response_ls: extend_response_ls
-          
           done: []
-    - custom.surveycpm_increment_step
-    - custom.surveycpm_check_completion
+    - custom.surveycpm_update_state
 - custom.surveycpm_format_output:
     output:
       ans_ls: final_survey_ls

@@ -577,40 +577,20 @@ def _print_tasknote_hire(current_survey, last_detail=False):
     return string
 
 
-from typing import Dict
-
-
 @app.prompt(output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls")
 def surveycpm_search(
     instruction_ls: List[str],
-    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    survey_ls: List[str],
     cursor_ls: List[str | None],
     surveycpm_search_template: str | Path,
 ) -> List[PromptMessage]:
-    """
-    Generate search prompts for survey sections. Handles both initial and subsequent searches.
-    survey_ls contains JSON strings that are parsed into dicts.
-    """
     import json
-    import logging
-    logger = logging.getLogger("UltraRAG.prompt")
-    logger.info(f"[surveycpm_search] instruction_ls length: {len(instruction_ls) if instruction_ls else 'None'}")
-    logger.info(f"[surveycpm_search] survey_ls length: {len(survey_ls) if survey_ls else 'None'}")
-    logger.info(f"[surveycpm_search] cursor_ls length: {len(cursor_ls) if cursor_ls else 'None'}")
-    logger.info(f"[surveycpm_search] template: {surveycpm_search_template}")
-    
-    if not instruction_ls or not survey_ls or not cursor_ls:
-        logger.warning("[surveycpm_search] Empty input lists!")
-        return []
-    
     template: Template = load_prompt_template(surveycpm_search_template)
     ret = []
     for instruction, survey_json, cursor in zip(instruction_ls, survey_ls, cursor_ls):
-        # Parse JSON string to dict
-        survey = json.loads(survey_json) if survey_json else {}
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
         
-        # Handle empty survey (initial state)
-        if not survey or survey == {}:
+        if not survey:
             survey_str = "There is no survey."
         else:
             survey_str = _print_tasknote(survey, abbr=True)
@@ -630,15 +610,13 @@ def surveycpm_init_plan(
     retrieved_info_ls: List[str],
     surveycpm_init_plan_template: str | Path,
 ) -> List[PromptMessage]:
-    """
-    Generate prompts for creating initial survey outline.
-    """
     template: Template = load_prompt_template(surveycpm_init_plan_template)
     ret = []
     for instruction, retrieved_info in zip(instruction_ls, retrieved_info_ls):
+        info = retrieved_info if retrieved_info != "<PAD>" else ""
         p = template.render(
             user_query=instruction,
-            current_information=retrieved_info
+            current_information=info
         )
         ret.append(p)
     return ret
@@ -647,76 +625,54 @@ def surveycpm_init_plan(
 @app.prompt(output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls")
 def surveycpm_write(
     instruction_ls: List[str],
-    survey_ls: List[str],  # JSON strings to avoid branch filtering
+    survey_ls: List[str],
     cursor_ls: List[str | None],
     retrieved_info_ls: List[str],
     surveycpm_write_template: str | Path,
 ) -> List[PromptMessage]:
-    """
-    Generate prompts for writing survey content.
-    survey_ls contains JSON strings that are parsed into dicts.
-    """
+
     import json
     template: Template = load_prompt_template(surveycpm_write_template)
     ret = []
     for instruction, survey_json, cursor, retrieved_info in zip(
         instruction_ls, survey_ls, cursor_ls, retrieved_info_ls
     ):
-        survey = json.loads(survey_json) if survey_json else {}
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        info = retrieved_info if retrieved_info != "<PAD>" else ""
         survey_str = _print_tasknote_hire(survey, last_detail=True)
         p = template.render(
             user_query=instruction,
             current_survey=survey_str,
             current_instruction=f"You need to update {cursor}",
-            current_information=retrieved_info
+            current_information=info
         )
         ret.append(p)
     return ret
 
 
-@app.prompt(output="instruction_ls,survey_ls,cursor_ls,no_extend_ls,surveycpm_extend_plan_template->prompt_ls")
+@app.prompt(output="instruction_ls,survey_ls,surveycpm_extend_plan_template->prompt_ls")
 def surveycpm_extend_plan(
     instruction_ls: List[str],
     survey_ls: List[str],  # JSON strings to avoid branch filtering
-    cursor_ls: List[str | None],
-    no_extend_ls: List[bool],
     surveycpm_extend_plan_template: str | Path,
-    template_info: str | Path | None = None,
 ) -> List[PromptMessage]:
     """
     Generate prompts for extending survey outline.
     survey_ls contains JSON strings that are parsed into dicts.
-    In no_extend mode (True): uses abbr=False, simpler template
-    In full mode (False): uses last_detail=True, info template
+    Uses abbr=False to show full survey structure for LLM to decide which section to extend.
     """
     import json
     template: Template = load_prompt_template(surveycpm_extend_plan_template)
-    template_info_obj = load_prompt_template(template_info) if template_info else None
     
     ret = []
-    for instruction, survey_json, cursor, no_extend in zip(
-        instruction_ls, survey_ls, cursor_ls, no_extend_ls
-    ):
-        survey = json.loads(survey_json) if survey_json else {}
-        if no_extend:
-            survey_str = _print_tasknote(survey, abbr=False)
-            p = template.render(
-                user_query=instruction,
-                current_survey=survey_str
-            )
-        else:
-            survey_str = _print_tasknote_hire(survey, last_detail=True)
-            if template_info_obj:
-                p = template_info_obj.render(
-                    user_query=instruction,
-                    current_survey=survey_str,
-                    current_instruction=f"You should decide whether to extend the plan under the current position: {cursor}"
-                )
-            else:
-                p = template.render(
-                    user_query=instruction,
-                    current_survey=survey_str
-                )
+    for instruction, survey_json in zip(instruction_ls, survey_ls):
+        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        # Show full survey structure (abbr=False) for extend decision
+        survey_str = _print_tasknote(survey, abbr=False)
+        p = template.render(
+            user_query=instruction,
+            current_survey=survey_str
+        )
         ret.append(p)
     return ret
 
