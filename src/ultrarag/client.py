@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Union, Any, Tuple
 import copy
 import logging
+import contextvars
 
 from fastmcp import Client
 from ultrarag.cli import log_server_banner
@@ -85,7 +86,11 @@ class Configuration:
 
 ROOT = "BASE"
 SEP = "/"
-LoopTerminal: list[bool] = []
+# 使用 ContextVar 实现协程安全的循环终止标志
+# 每个协程（用户请求）都有独立的 LoopTerminal 副本
+_loop_terminal_var: contextvars.ContextVar[list[bool]] = contextvars.ContextVar(
+    'loop_terminal', default=[]
+)
 
 # 哨兵值：用于区分"数据未设置"和"数据是 None"
 class _Unset:
@@ -1063,9 +1068,9 @@ async def execute_pipeline(
     stream_callback: Callable[[str], Awaitable[None]] = None,
     override_params: Dict[str, Any] = None
 ) -> Any:
-    # 重置全局循环终止标志，确保多次调用时不会受到之前运行的影响
-    global LoopTerminal
-    LoopTerminal.clear()
+    # 为当前协程创建独立的循环终止标志列表
+    # 使用 ContextVar 确保多用户并发时互不干扰
+    _loop_terminal_var.set([])
     
     config_path = context["config_path"]
     server_cfg = context["server_cfg"]
@@ -1144,22 +1149,23 @@ async def execute_pipeline(
                 })
 
             if isinstance(step, dict) and "loop" in step:
-                LoopTerminal.append(True)
+                loop_terminal = _loop_terminal_var.get()
+                loop_terminal.append(True)
                 loop_cfg = step["loop"]
                 times = loop_cfg.get("times")
                 inner_steps = loop_cfg.get("steps", [])
                 if times is None or not isinstance(inner_steps, list):
                     raise ValueError(f"Invalid loop config: {loop_cfg}")
                 for st in range(times):
-                    LoopTerminal[-1] = True
+                    loop_terminal[-1] = True
                     loop_res = await _execute_steps(inner_steps, depth + 1, state)
                     if loop_res is not None:
                         result = loop_res
                     logger.debug(
-                        f"{indent}Loop iteration {st + 1}/{times} completed {LoopTerminal}"
+                        f"{indent}Loop iteration {st + 1}/{times} completed {loop_terminal}"
                     )
-                    if LoopTerminal[-1]:
-                        LoopTerminal.pop()
+                    if loop_terminal[-1]:
+                        loop_terminal.pop()
                         logger.debug(
                             f"{indent}Loop terminal in iteration {st + 1}/{times}"
                         )
@@ -1274,11 +1280,11 @@ async def execute_pipeline(
                             state, 
                             tool_value.get("output", {})
                         )
-                        if depth > 0: LoopTerminal[depth - 1] &= signal
+                        if depth > 0: _loop_terminal_var.get()[depth - 1] &= signal
                         continue 
 
                 if depth > 0:
-                    LoopTerminal[depth - 1] &= signal
+                    _loop_terminal_var.get()[depth - 1] &= signal
                 if not signal:
                     if server_name == "prompt":
                         result = await client.get_prompt(concated, args_input)
@@ -1394,12 +1400,12 @@ async def execute_pipeline(
 
                         Data.save_data(server_name, tool_name, mock_result_obj, state)
                        
-                        if depth > 0: LoopTerminal[depth - 1] = signal
+                        if depth > 0: _loop_terminal_var.get()[depth - 1] = signal
                         continue 
 
 
                 if depth > 0:
-                    LoopTerminal[depth - 1] = signal
+                    _loop_terminal_var.get()[depth - 1] = signal
                 if not signal:
                     if server_name == "prompt":
                         result = await client.get_prompt(concated, args_input)
