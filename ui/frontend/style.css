@@ -1816,48 +1816,46 @@ body {
   opacity: 1; /* 覆盖默认透明度 */
 }
 
-/* Background Mode Toggle Button (matching sidebar-label style) */
+/* Background Mode Toggle Button (matching kb-visual-btn style) */
 .bg-mode-toggle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 8px;
+  padding: 8px 16px;
   border-radius: 99px;
   cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  transition: background 0.2s;
+  color: #444746;
+  font-size: 0.85rem;
+  font-weight: 500;
   background: transparent;
   border: 1px solid transparent;
   user-select: none;
 }
 
 .bg-mode-toggle:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f1f1f;
 }
 
 /* Active state when background mode is enabled */
 .bg-mode-toggle.active {
-  background: rgba(79, 70, 229, 0.1);
-  color: #4f46e5;
-  border-color: rgba(79, 70, 229, 0.2);
+  background: #e0e7ff;
+  color: #2563eb;
+  border-color: transparent;
 }
 
 .bg-mode-toggle.active:hover {
-  background: rgba(79, 70, 229, 0.15);
+  background: #dbeafe;
 }
 
 .bg-mode-toggle .bg-icon-svg {
   flex-shrink: 0;
-  opacity: 0.8;
+  color: inherit;
 }
 
 .bg-mode-toggle.active .bg-icon-svg {
-  opacity: 1;
+  color: inherit;
 }
 
 .right-actions {
@@ -2634,8 +2632,7 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   margin: 0;
   display: flex;
   align-items: center;
@@ -2764,12 +2761,11 @@ body {
 }
 
 .bg-task-status {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 99px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
   flex-shrink: 0;
 }
 
