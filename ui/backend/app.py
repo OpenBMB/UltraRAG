@@ -195,6 +195,85 @@ def create_app(admin_mode: bool = False) -> Flask:
             return jsonify({"error": "session_id required"}), 400
         return jsonify(pm.interrupt_chat(session_id))
 
+    # ===== 后台聊天任务 API =====
+    
+    @app.route("/api/pipelines/<string:name>/chat/background", methods=["POST"])
+    def start_background_chat(name: str):
+        """启动后台聊天任务"""
+        payload = request.get_json(force=True)
+        question = payload.get("question", "")
+        session_id = payload.get("session_id")
+        dynamic_params = payload.get("dynamic_params", {})
+        
+        if not question:
+            return jsonify({"error": "question is required"}), 400
+        if not session_id:
+            return jsonify({"error": "session_id is required. Please start engine first."}), 400
+        
+        # 处理 collection_name
+        selected_collection = dynamic_params.get("collection_name")
+        try:
+            kb_config = pm.load_kb_config()
+            milvus_global_config = kb_config.get("milvus", {})
+            
+            retriever_params = {
+                "index_backend": "milvus",
+                "index_backend_configs": {
+                    "milvus": milvus_global_config
+                }
+            }
+            
+            if selected_collection:
+                retriever_params["collection_name"] = selected_collection
+            
+            dynamic_params["retriever"] = retriever_params
+            
+            if "collection_name" in dynamic_params:
+                del dynamic_params["collection_name"]
+                
+        except Exception as e:
+            LOGGER.warning(f"Failed to construct retriever config: {e}")
+        
+        try:
+            task_id = pm.run_background_chat(name, question, session_id, dynamic_params)
+            return jsonify({
+                "status": "started",
+                "task_id": task_id,
+                "message": "Task started in background"
+            }), 202
+        except Exception as e:
+            LOGGER.error(f"Failed to start background chat: {e}")
+            return jsonify({"error": str(e)}), 500
+    
+    @app.route("/api/background-tasks", methods=["GET"])
+    def list_background_tasks():
+        """列出所有后台任务"""
+        limit = request.args.get("limit", 20, type=int)
+        tasks = pm.list_background_tasks(limit)
+        return jsonify(tasks)
+    
+    @app.route("/api/background-tasks/<string:task_id>", methods=["GET"])
+    def get_background_task(task_id: str):
+        """获取单个后台任务状态"""
+        task = pm.get_background_task(task_id)
+        if not task:
+            return jsonify({"error": "Task not found"}), 404
+        return jsonify(task)
+    
+    @app.route("/api/background-tasks/<string:task_id>", methods=["DELETE"])
+    def delete_background_task(task_id: str):
+        """删除后台任务"""
+        success = pm.delete_background_task(task_id)
+        if success:
+            return jsonify({"status": "deleted", "task_id": task_id})
+        return jsonify({"error": "Task not found"}), 404
+    
+    @app.route("/api/background-tasks/clear-completed", methods=["POST"])
+    def clear_completed_tasks():
+        """清理已完成的后台任务"""
+        count = pm.clear_completed_background_tasks()
+        return jsonify({"status": "cleared", "count": count})
+
     @app.route("/api/system/shutdown", methods=["POST"])
     def shutdown():
         LOGGER.info("Shutdown requested")

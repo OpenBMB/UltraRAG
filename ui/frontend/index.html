@@ -214,6 +214,14 @@
                              <option value="" selected>No Knowledge Base</option>
                          </select>
                     </div>
+                    
+                    <div class="bg-mode-toggle" id="bg-mode-toggle" onclick="toggleBackgroundMode()" title="Send to background">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bg-icon-svg">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                         </svg>
+                         <span id="bg-label-text">Background</span>
+                    </div>
                 </div>
 
                 <div class="right-actions">
@@ -489,6 +497,35 @@
             </div>
         </div>
     </dialog>
+
+  <!-- Background Task Notification Toast -->
+  <div id="notification-container" class="notification-container"></div>
+
+  <!-- Background Tasks Panel -->
+  <div id="background-tasks-panel" class="bg-tasks-panel d-none">
+    <div class="bg-tasks-header">
+      <h6>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+        Background Tasks
+      </h6>
+      <div class="d-flex gap-1 align-items-center">
+        <button onclick="refreshBackgroundTasks()" title="Refresh">↻</button>
+        <button onclick="clearCompletedTasks()" title="Clear completed">Clear</button>
+        <button class="bg-panel-close-btn" onclick="toggleBackgroundPanel()" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+    </div>
+    <div class="bg-tasks-body" id="bg-tasks-list">
+      <div class="text-muted text-center py-4">No background tasks</div>
+    </div>
+  </div>
+
+  <!-- Background Tasks Floating Button -->
+  <button id="bg-tasks-fab" class="bg-tasks-fab d-none" onclick="toggleBackgroundPanel()" title="Background Tasks">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+    <span class="bg-tasks-count d-none" id="bg-tasks-count">0</span>
+  </button>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>

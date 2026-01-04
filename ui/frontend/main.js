@@ -1591,6 +1591,8 @@ function openChatView() {
         updateDemoControls();
     }
 
+  // Initialize background tasks
+  initBackgroundTasks();
 }
 
 async function stopGeneration() {
@@ -1937,6 +1939,7 @@ function updateProcessUI(entryIndex, eventData) {
     }
 }
 
+
 async function handleChatSubmit(event) {
   if (event) event.preventDefault();
   if (state.chat.running) { await stopGeneration(); return; }
@@ -1945,8 +1948,21 @@ async function handleChatSubmit(event) {
 
   const question = els.chatInput.value.trim();
   if (!question) return;
+  
+  // Check if background mode is enabled
+  if (backgroundTaskState.backgroundModeEnabled) {
+    els.chatInput.value = "";
+    if (els.chatInput) els.chatInput.style.height = 'auto';
+    await sendToBackground(question);
+    // Disable background mode after sending
+    backgroundTaskState.backgroundModeEnabled = false;
+    const toggle = document.getElementById('bg-mode-toggle');
+    if (toggle) toggle.classList.remove('active');
+    return;
+  }
+  
   els.chatInput.value = "";
-  // 重置textarea高度
+  // Reset textarea height
   if (els.chatInput) {
     els.chatInput.style.height = 'auto';
   }
@@ -2315,7 +2331,7 @@ function markPipelineDirty() {
     const currentName = state.selectedPipeline;
     if (currentName && state.chat.activeEngines[currentName]) {
         const sid = state.chat.activeEngines[currentName];
-        // 尝试后台停止
+        // Try to stop in background
         fetchJSON(`/api/pipelines/demo/stop`, { 
             method: "POST", body: JSON.stringify({ session_id: sid }) 
         }).catch(() => {});
@@ -2699,7 +2715,7 @@ function bindEvents() {
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
     
-    // 支持Shift+Enter换行，Enter提交
+    // Support Shift+Enter for newline, Enter for submit
     if (els.chatInput) {
         els.chatInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -2853,6 +2869,423 @@ function applyChatOnlyMode() {
   }
 }
 
+// ===== Background Task Management =====
+
+// Background task state
+const backgroundTaskState = {
+    tasks: [],
+    polling: null,
+    panelOpen: false,
+    notifiedTasks: new Set(), // Already notified task IDs
+    backgroundModeEnabled: false, // Whether background mode is active
+};
+
+// Toggle background mode
+window.toggleBackgroundMode = function() {
+    backgroundTaskState.backgroundModeEnabled = !backgroundTaskState.backgroundModeEnabled;
+    
+    const toggle = document.getElementById('bg-mode-toggle');
+    
+    if (toggle) {
+        toggle.classList.toggle('active', backgroundTaskState.backgroundModeEnabled);
+    }
+};
+
+// Show notification toast
+function showNotification(type, title, message, onClick = null) {
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = `notification-toast ${type}`;
+    
+    const iconSvg = type === 'success' 
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+        : type === 'error'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+    
+    toast.innerHTML = `
+        <div class="notification-icon">${iconSvg}</div>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close" onclick="event.stopPropagation(); this.parentElement.remove();">×</button>
+    `;
+    
+    if (onClick) {
+        toast.onclick = () => {
+            onClick();
+            toast.remove();
+        };
+    }
+    
+    container.appendChild(toast);
+    
+    // Auto remove
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 8000);
+    
+    // Try browser native notification
+    requestBrowserNotification(title, message);
+}
+
+// Request browser notification permission and show notification
+async function requestBrowserNotification(title, message) {
+    if (!('Notification' in window)) return;
+    
+    if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+    
+    if (Notification.permission === 'granted' && document.hidden) {
+        const notification = new Notification(title, {
+            body: message,
+            icon: '/favicon.svg',
+            tag: 'ultrarag-bg-task'
+        });
+        
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+        };
+    }
+}
+
+// Toggle background tasks panel
+window.toggleBackgroundPanel = function() {
+    const panel = document.getElementById('background-tasks-panel');
+    if (!panel) return;
+    
+    backgroundTaskState.panelOpen = !backgroundTaskState.panelOpen;
+    panel.classList.toggle('d-none', !backgroundTaskState.panelOpen);
+    
+    if (backgroundTaskState.panelOpen) {
+        refreshBackgroundTasks();
+    }
+};
+
+// Refresh background tasks list
+window.refreshBackgroundTasks = async function() {
+    try {
+        const tasks = await fetchJSON('/api/background-tasks?limit=20');
+        backgroundTaskState.tasks = tasks;
+        renderBackgroundTasksList();
+        updateBackgroundTasksCount();
+        
+        // Check for newly completed tasks and notify
+        checkForCompletedTasks(tasks);
+    } catch (e) {
+        console.error('Failed to refresh background tasks:', e);
+    }
+};
+
+// Check for newly completed tasks
+function checkForCompletedTasks(tasks) {
+    for (const task of tasks) {
+        if (task.status === 'completed' && !backgroundTaskState.notifiedTasks.has(task.task_id)) {
+            backgroundTaskState.notifiedTasks.add(task.task_id);
+            showNotification(
+                'success',
+                'Background Task Completed',
+                task.question,
+                () => showBackgroundTaskDetail(task.task_id)
+            );
+        } else if (task.status === 'failed' && !backgroundTaskState.notifiedTasks.has(task.task_id)) {
+            backgroundTaskState.notifiedTasks.add(task.task_id);
+            showNotification(
+                'error',
+                'Background Task Failed',
+                task.error || task.question,
+                () => showBackgroundTaskDetail(task.task_id)
+            );
+        }
+    }
+}
+
+// Render background tasks list
+function renderBackgroundTasksList() {
+    const container = document.getElementById('bg-tasks-list');
+    if (!container) return;
+    
+    if (backgroundTaskState.tasks.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center py-4 small">No background tasks</div>';
+        return;
+    }
+    
+    container.innerHTML = backgroundTaskState.tasks.map(task => {
+        const time = task.created_at ? new Date(task.created_at * 1000).toLocaleTimeString() : '';
+        return `
+            <div class="bg-task-item ${task.status}" onclick="showBackgroundTaskDetail('${task.task_id}')">
+                <div class="bg-task-header">
+                    <div class="bg-task-question">${escapeHtml(task.question)}</div>
+                    <span class="bg-task-status ${task.status}">${task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed'}</span>
+                </div>
+                <div class="bg-task-meta">
+                    <span>${task.pipeline_name}</span>
+                    <span>${time}</span>
+                </div>
+                ${task.status === 'completed' && task.result_preview ? `
+                    <div class="bg-task-preview">${escapeHtml(task.result_preview)}</div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// HTML escape
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Update background tasks count
+function updateBackgroundTasksCount() {
+    const countEl = document.getElementById('bg-tasks-count');
+    const fab = document.getElementById('bg-tasks-fab');
+    if (!countEl || !fab) return;
+    
+    const runningCount = backgroundTaskState.tasks.filter(t => t.status === 'running').length;
+    
+    if (runningCount > 0) {
+        countEl.textContent = runningCount;
+        countEl.classList.remove('d-none');
+        fab.classList.remove('d-none');
+    } else if (backgroundTaskState.tasks.length > 0) {
+        countEl.classList.add('d-none');
+        fab.classList.remove('d-none');
+    } else {
+        fab.classList.add('d-none');
+    }
+}
+
+// Show background task detail
+window.showBackgroundTaskDetail = async function(taskId) {
+    try {
+        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        
+        // Create or get detail modal
+        let modal = document.getElementById('bg-task-detail-modal');
+        if (!modal) {
+            modal = document.createElement('dialog');
+            modal.id = 'bg-task-detail-modal';
+            modal.className = 'bg-task-detail-modal';
+            document.body.appendChild(modal);
+        }
+        
+        const statusClass = task.status === 'completed' ? 'success' : task.status === 'failed' ? 'error' : 'info';
+        const statusText = task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed';
+        
+        modal.innerHTML = `
+            <div class="bg-task-detail-header">
+                <div>
+                    <span class="bg-task-status ${task.status}">${statusText}</span>
+                    <div class="text-muted">${task.pipeline_name}</div>
+                </div>
+                <button class="bg-modal-close-btn" onclick="document.getElementById('bg-task-detail-modal').close()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="bg-task-detail-body">
+                <div class="bg-task-detail-question">
+                    <strong>Question</strong>
+                    ${escapeHtml(task.full_question || task.question)}
+                </div>
+                ${task.status === 'completed' ? `
+                    <div class="bg-task-detail-answer">
+                        ${typeof renderMarkdown === 'function' ? renderMarkdown(task.result || '') : escapeHtml(task.result || '')}
+                    </div>
+                ` : task.status === 'failed' ? `
+                    <div class="bg-task-detail-question" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.15);">
+                        <strong style="color: #ef4444;">Error</strong>
+                        ${escapeHtml(task.error || 'Unknown error')}
+                    </div>
+                ` : `
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <div class="spinner-border" style="color: #3b82f6; width: 2rem; height: 2rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">Processing your request...</div>
+                    </div>
+                `}
+                <div class="d-flex gap-2">
+                    ${task.status === 'completed' ? `
+                        <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
+                        <button class="btn btn-outline-secondary" onclick="loadTaskToChat('${taskId}')">Load to Chat</button>
+                    ` : ''}
+                    <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
+                </div>
+            </div>
+        `;
+        
+        modal.showModal();
+        
+        // If task is still running, refresh periodically
+        if (task.status === 'running') {
+            const refreshInterval = setInterval(async () => {
+                const updated = await fetchJSON(`/api/background-tasks/${taskId}`);
+                if (updated.status !== 'running') {
+                    clearInterval(refreshInterval);
+                    showBackgroundTaskDetail(taskId);
+                }
+            }, 2000);
+            
+            modal.addEventListener('close', () => clearInterval(refreshInterval), { once: true });
+        }
+    } catch (e) {
+        console.error('Failed to load task detail:', e);
+    }
+};
+
+// Copy task result
+window.copyTaskResult = async function(taskId) {
+    try {
+        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        if (task.result) {
+            await navigator.clipboard.writeText(task.result);
+            showNotification('success', 'Copied', 'Result copied to clipboard');
+        }
+    } catch (e) {
+        console.error('Failed to copy:', e);
+    }
+};
+
+// Load task result to chat
+window.loadTaskToChat = async function(taskId) {
+    try {
+        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        if (task.status !== 'completed') return;
+        
+        // Close modal
+        const modal = document.getElementById('bg-task-detail-modal');
+        if (modal) modal.close();
+        
+        // Add to chat history
+        state.chat.history.push({ 
+            role: 'user', 
+            text: task.full_question || task.question,
+            timestamp: new Date(task.created_at * 1000).toISOString()
+        });
+        state.chat.history.push({ 
+            role: 'assistant', 
+            text: task.result || '',
+            meta: { sources: task.sources || [] },
+            timestamp: new Date(task.completed_at * 1000).toISOString()
+        });
+        
+        // Save and render
+        saveCurrentSession();
+        renderChatHistory();
+        
+        // Close background panel
+        toggleBackgroundPanel();
+        
+        showNotification('success', 'Loaded', 'Background task result loaded to current chat');
+    } catch (e) {
+        console.error('Failed to load task to chat:', e);
+    }
+};
+
+// Delete background task
+window.deleteBackgroundTask = async function(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    try {
+        await fetchJSON(`/api/background-tasks/${taskId}`, { method: 'DELETE' });
+        
+        // Close detail modal
+        const modal = document.getElementById('bg-task-detail-modal');
+        if (modal) modal.close();
+        
+        // Refresh list
+        await refreshBackgroundTasks();
+    } catch (e) {
+        console.error('Failed to delete task:', e);
+    }
+};
+
+// Clear completed tasks
+window.clearCompletedTasks = async function() {
+    try {
+        const result = await fetchJSON('/api/background-tasks/clear-completed', { method: 'POST' });
+        showNotification('success', 'Cleared', `Cleared ${result.count} completed tasks`);
+        await refreshBackgroundTasks();
+    } catch (e) {
+        console.error('Failed to clear tasks:', e);
+    }
+};
+
+// Send to background
+async function sendToBackground(question) {
+    if (!state.chat.engineSessionId) {
+        alert('Please start the engine first');
+        return null;
+    }
+    
+    const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : '';
+    const dynamicParams = {};
+    if (selectedCollection) {
+        dynamicParams['collection_name'] = selectedCollection;
+    }
+    
+    try {
+        const response = await fetchJSON(
+            `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat/background`,
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    question,
+                    session_id: state.chat.engineSessionId,
+                    dynamic_params: dynamicParams
+                })
+            }
+        );
+        
+        showNotification('info', 'Task Submitted', 'Question sent to background, you will be notified when complete');
+        
+        // Show background tasks FAB
+        const fab = document.getElementById('bg-tasks-fab');
+        if (fab) fab.classList.remove('d-none');
+        
+        // Start polling
+        startBackgroundPolling();
+        
+        return response.task_id;
+    } catch (e) {
+        console.error('Failed to send to background:', e);
+        showNotification('error', '发送失败', e.message || '无法发送到后台');
+        return null;
+    }
+}
+
+// Start background task polling
+function startBackgroundPolling() {
+    if (backgroundTaskState.polling) return;
+    
+    backgroundTaskState.polling = setInterval(async () => {
+        await refreshBackgroundTasks();
+        
+        // Stop polling if no running tasks
+        const hasRunning = backgroundTaskState.tasks.some(t => t.status === 'running');
+        if (!hasRunning) {
+            stopBackgroundPolling();
+        }
+    }, 3000);
+}
+
+// Stop background task polling
+function stopBackgroundPolling() {
+    if (backgroundTaskState.polling) {
+        clearInterval(backgroundTaskState.polling);
+        backgroundTaskState.polling = null;
+    }
+}
+
 // Chat-only 模式下初始化 Chat 界面
 async function initChatOnlyView() {
   // 1. 渲染 Pipeline 选择菜单
@@ -2883,6 +3316,28 @@ async function initChatOnlyView() {
   
   // 6. 更新 Demo 控制按钮状态
   updateDemoControls();
+  
+  // 7. Initialize background tasks state
+  initBackgroundTasks();
+}
+
+// Initialize background tasks functionality
+async function initBackgroundTasks() {
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+        // 延迟请求，避免打扰用户
+        setTimeout(() => {
+            Notification.requestPermission();
+        }, 5000);
+    }
+    
+    // Load background tasks list
+    await refreshBackgroundTasks();
+    
+    // Start polling if there are running tasks
+    if (backgroundTaskState.tasks.some(t => t.status === 'running')) {
+        startBackgroundPolling();
+    }
 }
 
 bootstrap();

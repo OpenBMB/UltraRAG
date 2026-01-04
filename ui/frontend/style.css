@@ -427,11 +427,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-left: 16px;
   padding-right: 16px;
 }
 
 .sidebar-label-row .sidebar-label {
-  margin: 1rem 0.5rem 0.5rem;
+  margin: 1rem 0 0.5rem 0;
 }
 
 .btn-clear-all {
@@ -1589,7 +1590,7 @@ body {
    Embedded KB Selector (Gemini Style)
    ========================================= */
 
-/* 1. 胶囊容器：嵌在输入框左侧 */
+/* 1. Pill container: embedded on the left side of input */
 .kb-selector-pill {
   display: flex;
   align-items: center;
@@ -1629,13 +1630,13 @@ body {
   overflow: hidden;
 }
 
-/* 3. 左侧固定图标 */
+/* 3. Left icon */
 .kb-icon {
   font-size: 0.9rem;
   opacity: 0.7;
 }
 
-/* 4. 右侧刷新按钮 */
+/* 4. Right refresh button */
 .btn-kb-refresh {
   background: transparent;
   border: none;
@@ -1735,14 +1736,14 @@ body {
   margin-top: 4px;
 }
 
-/* 左侧区域 */
+/* Left actions area */
 .left-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* 右侧区域 */
+/* Right actions area */
 .right-actions {
   display: flex;
   align-items: center;
@@ -1811,6 +1812,55 @@ body {
   color: #d1d5db; /* 浅灰图标 */
   cursor: not-allowed;
   opacity: 1; /* 覆盖默认透明度 */
+}
+
+/* Background Mode Toggle Button (matching sidebar-label style) */
+.bg-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  background: transparent;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.bg-mode-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+/* Active state when background mode is enabled */
+.bg-mode-toggle.active {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4f46e5;
+  border-color: rgba(79, 70, 229, 0.2);
+}
+
+.bg-mode-toggle.active:hover {
+  background: rgba(79, 70, 229, 0.15);
+}
+
+.bg-mode-toggle .bg-icon-svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.bg-mode-toggle.active .bg-icon-svg {
+  opacity: 1;
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
 }
 
 /* =========================================
@@ -2350,3 +2400,600 @@ body {
     margin: 0;
     transform: rotate(180deg);
   }
+
+/* =========================================
+   Background Tasks UI
+   ========================================= */
+
+/* 通知容器 */
+.notification-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+/* Notification Toast - Apple Style */
+.notification-toast {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  animation: slideInRight 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-toast:hover {
+  transform: translateX(-4px) scale(1.01);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.15),
+    0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.notification-toast.success {
+  border-left: none;
+}
+
+.notification-toast.error {
+  border-left: none;
+}
+
+.notification-toast.info {
+  border-left: none;
+}
+
+.notification-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notification-toast.success .notification-icon {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: white;
+}
+
+.notification-toast.error .notification-icon {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: white;
+}
+
+.notification-toast.info .notification-icon {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.notification-message {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.notification-close {
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.notification-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Background Tasks Floating Button */
+.bg-tasks-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2000;
+  transition: all 0.2s;
+}
+
+.bg-tasks-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  background: #f9fafb;
+  color: #374151;
+}
+
+.bg-tasks-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  background: #4f46e5;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+}
+
+/* =========================================
+   Background Tasks Panel - Apple Style
+   ========================================= */
+
+.bg-tasks-panel {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 400px;
+  max-height: 540px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  box-shadow: 
+    0 24px 80px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+  z-index: 2001;
+  display: flex;
+  flex-direction: column;
+  animation: fadeInUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow: hidden;
+}
+
+.bg-tasks-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+}
+
+.bg-tasks-header h6 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.bg-tasks-header h6 svg {
+  opacity: 0.7;
+}
+
+.bg-tasks-header .d-flex button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.bg-tasks-header .d-flex button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+/* Panel close button with X icon */
+.bg-panel-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-panel-close-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.bg-tasks-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  max-height: 440px;
+}
+
+.bg-tasks-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bg-tasks-body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+/* Empty state */
+.bg-tasks-body .text-muted {
+  color: var(--text-secondary) !important;
+  font-size: 0.85rem;
+}
+
+/* Single background task card */
+.bg-task-item {
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.bg-task-item:last-child {
+  margin-bottom: 0;
+}
+
+.bg-task-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+  transform: scale(1.01);
+}
+
+.bg-task-item:active {
+  transform: scale(0.99);
+}
+
+.bg-task-item.running {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.04));
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.bg-task-item.completed {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04));
+  border-color: rgba(34, 197, 94, 0.15);
+}
+
+.bg-task-item.failed {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.04));
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.bg-task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.bg-task-question {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bg-task-status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.bg-task-status.running {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  animation: pulse-subtle 2s infinite;
+}
+
+.bg-task-status.completed {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  color: white;
+}
+
+.bg-task-status.failed {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: white;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.bg-task-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bg-task-preview {
+  margin-top: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  max-height: 60px;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* =========================================
+   Background Task Detail Modal - Apple Style  
+   ========================================= */
+
+.bg-task-detail-modal {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 
+    0 40px 100px rgba(0, 0, 0, 0.2),
+    0 12px 36px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  max-width: 640px;
+  width: 92vw;
+  max-height: 85vh;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.bg-task-detail-modal::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.bg-task-detail-header {
+  padding: 24px 28px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.bg-task-detail-header .text-muted {
+  color: var(--text-secondary) !important;
+  font-size: 0.8rem;
+  margin-top: 6px;
+}
+
+/* Close button with clear X icon */
+.bg-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bg-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--text-primary);
+}
+
+.bg-task-detail-body {
+  padding: 28px;
+  overflow-y: auto;
+  max-height: calc(85vh - 100px);
+}
+
+.bg-task-detail-question {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 18px 20px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.bg-task-detail-question strong {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.bg-task-detail-answer {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.bg-task-detail-answer::-webkit-scrollbar {
+  width: 5px;
+}
+
+.bg-task-detail-answer::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+/* Action buttons in detail modal */
+.bg-task-detail-body .d-flex.gap-2 {
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  margin-top: 24px;
+}
+
+.bg-task-detail-body .btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  border-radius: 10px;
+  font-weight: 500;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.bg-task-detail-body .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.bg-task-detail-body .btn-outline-secondary {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+  border-radius: 10px;
+  font-weight: 500;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.bg-task-detail-body .btn-outline-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.bg-task-detail-body .btn-outline-danger {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  border-radius: 10px;
+  font-weight: 500;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.bg-task-detail-body .btn-outline-danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Mobile responsive */
+@media (max-width: 576px) {
+  .notification-container {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+  
+  .bg-tasks-panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    bottom: 80px;
+  }
+  
+  .bg-tasks-fab {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+}

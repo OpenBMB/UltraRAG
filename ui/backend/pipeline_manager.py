@@ -241,6 +241,138 @@ class SessionManager:
 
 SESSION_MANAGER = SessionManager(timeout_seconds=3600)
 
+# ===== Background Chat Task Manager =====
+# 用于管理后台运行的聊天任务
+
+@dataclass
+class BackgroundChatTask:
+    """后台聊天任务数据结构"""
+    task_id: str
+    pipeline_name: str
+    question: str
+    session_id: str
+    status: str  # 'running', 'completed', 'failed'
+    created_at: float
+    completed_at: Optional[float] = None
+    result: Optional[str] = None
+    error: Optional[str] = None
+    sources: Optional[List[Dict]] = None
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "pipeline_name": self.pipeline_name,
+            "question": self.question[:50] + "..." if len(self.question) > 50 else self.question,
+            "full_question": self.question,
+            "status": self.status,
+            "created_at": self.created_at,
+            "completed_at": self.completed_at,
+            "result": self.result,
+            "result_preview": (self.result[:200] + "...") if self.result and len(self.result) > 200 else self.result,
+            "error": self.error,
+            "sources": self.sources,
+        }
+
+class BackgroundTaskManager:
+    """后台任务管理器"""
+    
+    def __init__(self, max_tasks: int = 50):
+        self._tasks: Dict[str, BackgroundChatTask] = {}
+        self._lock = threading.Lock()
+        self._max_tasks = max_tasks
+    
+    def create_task(self, pipeline_name: str, question: str, session_id: str) -> str:
+        """创建新的后台任务"""
+        task_id = f"bg_{int(time.time()*1000)}_{str(uuid.uuid4())[:8]}"
+        
+        with self._lock:
+            # 清理旧任务，保持列表不超过最大数量
+            if len(self._tasks) >= self._max_tasks:
+                self._cleanup_old_tasks()
+            
+            task = BackgroundChatTask(
+                task_id=task_id,
+                pipeline_name=pipeline_name,
+                question=question,
+                session_id=session_id,
+                status="running",
+                created_at=time.time()
+            )
+            self._tasks[task_id] = task
+        
+        return task_id
+    
+    def update_task(self, task_id: str, 
+                    status: Optional[str] = None,
+                    result: Optional[str] = None,
+                    error: Optional[str] = None,
+                    sources: Optional[List[Dict]] = None):
+        """更新任务状态"""
+        with self._lock:
+            if task_id not in self._tasks:
+                return
+            
+            task = self._tasks[task_id]
+            if status:
+                task.status = status
+            if result is not None:
+                task.result = result
+            if error is not None:
+                task.error = error
+            if sources is not None:
+                task.sources = sources
+            if status in ("completed", "failed"):
+                task.completed_at = time.time()
+    
+    def get_task(self, task_id: str) -> Optional[Dict]:
+        """获取任务信息"""
+        with self._lock:
+            task = self._tasks.get(task_id)
+            return task.to_dict() if task else None
+    
+    def list_tasks(self, limit: int = 20) -> List[Dict]:
+        """列出所有任务（按时间倒序）"""
+        with self._lock:
+            tasks = sorted(
+                self._tasks.values(),
+                key=lambda t: t.created_at,
+                reverse=True
+            )[:limit]
+            return [t.to_dict() for t in tasks]
+    
+    def delete_task(self, task_id: str) -> bool:
+        """删除任务"""
+        with self._lock:
+            if task_id in self._tasks:
+                del self._tasks[task_id]
+                return True
+            return False
+    
+    def clear_completed(self) -> int:
+        """清理已完成的任务"""
+        with self._lock:
+            to_delete = [
+                tid for tid, task in self._tasks.items()
+                if task.status in ("completed", "failed")
+            ]
+            for tid in to_delete:
+                del self._tasks[tid]
+            return len(to_delete)
+    
+    def _cleanup_old_tasks(self):
+        """清理最老的已完成任务"""
+        completed = [
+            (tid, task) for tid, task in self._tasks.items()
+            if task.status in ("completed", "failed")
+        ]
+        completed.sort(key=lambda x: x[1].created_at)
+        
+        # 删除一半的已完成任务
+        for tid, _ in completed[:len(completed)//2]:
+            del self._tasks[tid]
+
+BACKGROUND_TASK_MANAGER = BackgroundTaskManager()
+
 # API Logic (Wrappers)
 
 def start_demo_session(name: str, session_id: str):
@@ -766,6 +898,129 @@ def interrupt_chat(session_id: str):
         success = session.interrupt_task()
         return {"status": "interrupted", "active_task_cancelled": success}
     return {"status": "session_not_found"}
+
+# ===== Background Chat Execution =====
+
+# 专门用于后台任务的 Session 管理器（独立于前台）
+BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=7200)  # 后台任务 session 保持更长时间
+
+def run_background_chat(name: str, question: str, session_id: str, dynamic_params: Dict[str, Any] = None) -> str:
+    """
+    启动后台聊天任务
+    使用独立的 Session，不受前台操作影响
+    返回任务 ID，可用于后续查询状态
+    """
+    # 为后台任务创建独立的 session ID
+    bg_session_id = f"bg_{name}_{int(time.time()*1000)}_{str(uuid.uuid4())[:8]}"
+    task_id = BACKGROUND_TASK_MANAGER.create_task(name, question, bg_session_id)
+    
+    def _execute_background():
+        bg_session = None
+        try:
+            # 创建独立的后台 Session
+            bg_session = BACKGROUND_SESSION_MANAGER.get_or_create(bg_session_id)
+            bg_session.start(name)
+            
+            LOGGER.info(f"Background task {task_id} started with independent session {bg_session_id}")
+            
+        except Exception as e:
+            LOGGER.error(f"Failed to create background session: {e}")
+            BACKGROUND_TASK_MANAGER.update_task(
+                task_id, 
+                status="failed", 
+                error=f"Failed to initialize: {str(e)}"
+            )
+            # 清理失败的 session
+            if bg_session_id:
+                BACKGROUND_SESSION_MANAGER.remove(bg_session_id)
+            return
+        
+        # 准备上下文
+        try:
+            param_path, original_text, dataset_path = _prepare_chat_context(name, question)
+        except Exception as e:
+            BACKGROUND_TASK_MANAGER.update_task(
+                task_id,
+                status="failed",
+                error=f"Context preparation failed: {str(e)}"
+            )
+            BACKGROUND_SESSION_MANAGER.remove(bg_session_id)
+            return
+        
+        before_memory = {str(path) for path in sorted(OUTPUT_DIR.glob(f"memory_*_{name}_*.json"))}
+        
+        # 收集 sources
+        collected_sources = []
+        
+        async def token_callback(event_data):
+            if isinstance(event_data, dict):
+                if event_data.get("type") == "sources":
+                    docs = event_data.get("data", [])
+                    collected_sources.extend(docs)
+        
+        try:
+            # 执行 pipeline
+            res = bg_session.run_chat(token_callback, dynamic_params)
+            
+            # 恢复原始参数文件
+            param_path.write_text(original_text, encoding="utf-8")
+            
+            # 提取结果
+            final_ans = _extract_result(res)
+            mem_ans, mem_file = _find_memory_answer(name, before_memory)
+            
+            answer = final_ans or mem_ans or "No answer generated"
+            
+            # 更新任务为完成状态
+            BACKGROUND_TASK_MANAGER.update_task(
+                task_id,
+                status="completed",
+                result=answer,
+                sources=collected_sources
+            )
+            
+            LOGGER.info(f"Background task {task_id} completed successfully")
+            
+        except asyncio.CancelledError:
+            BACKGROUND_TASK_MANAGER.update_task(
+                task_id,
+                status="failed",
+                error="Task was cancelled"
+            )
+            LOGGER.info(f"Background task {task_id} cancelled")
+            
+        except Exception as e:
+            LOGGER.error(f"Background task {task_id} failed: {e}")
+            BACKGROUND_TASK_MANAGER.update_task(
+                task_id,
+                status="failed",
+                error=str(e)
+            )
+        finally:
+            # 任务完成后清理后台 Session
+            BACKGROUND_SESSION_MANAGER.remove(bg_session_id)
+            LOGGER.info(f"Background session {bg_session_id} cleaned up")
+    
+    # 在后台线程中执行
+    threading.Thread(target=_execute_background, daemon=True).start()
+    
+    return task_id
+
+def get_background_task(task_id: str) -> Optional[Dict]:
+    """获取后台任务状态"""
+    return BACKGROUND_TASK_MANAGER.get_task(task_id)
+
+def list_background_tasks(limit: int = 20) -> List[Dict]:
+    """列出所有后台任务"""
+    return BACKGROUND_TASK_MANAGER.list_tasks(limit)
+
+def delete_background_task(task_id: str) -> bool:
+    """删除后台任务"""
+    return BACKGROUND_TASK_MANAGER.delete_task(task_id)
+
+def clear_completed_background_tasks() -> int:
+    """清理已完成的后台任务"""
+    return BACKGROUND_TASK_MANAGER.clear_completed()
 
 # Knowledge Base Management   
 def load_kb_config() -> Dict[str, Any]:
