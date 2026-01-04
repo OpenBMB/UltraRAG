@@ -2085,6 +2085,11 @@ function renderStepsFromHistory(bubble, steps, isInterrupted = false) {
     bubble.insertBefore(procDiv, bubble.firstChild);
 }
 
+// 用于跟踪 process-body 的滚动状态
+const processScrollState = {
+    shouldAutoScroll: true
+};
+
 function updateProcessUI(entryIndex, eventData) {
     // 1. 找到对应的 Chat Bubble (最后一个 assistant 气泡)
     const container = document.getElementById("chat-history");
@@ -2107,9 +2112,27 @@ function updateProcessUI(entryIndex, eventData) {
         `;
         // 插在气泡最前面
         lastBubble.insertBefore(procDiv, lastBubble.firstChild);
+        
+        // [新增] 为 process-body 添加滚动监听，实现智能吸附
+        const newBody = procDiv.querySelector(".process-body");
+        if (newBody) {
+            processScrollState.shouldAutoScroll = true; // 重置状态
+            newBody.addEventListener('scroll', function() {
+                const threshold = 30;
+                const distance = this.scrollHeight - this.scrollTop - this.clientHeight;
+                processScrollState.shouldAutoScroll = distance <= threshold;
+            });
+        }
     }
     
     const body = procDiv.querySelector(".process-body");
+
+    // 辅助函数：智能滚动到底部
+    const smartScrollToBottom = () => {
+        if (processScrollState.shouldAutoScroll && body) {
+            body.scrollTop = body.scrollHeight;
+        }
+    };
 
     // 3. 处理不同事件
     if (eventData.type === "step_start") {
@@ -2124,7 +2147,7 @@ function updateProcessUI(entryIndex, eventData) {
             <div class="step-content-stream"></div> `;
         body.appendChild(stepDiv);
         // 自动滚动到底部
-        body.scrollTop = body.scrollHeight;
+        smartScrollToBottom();
 
     } else if (eventData.type === "token") {
         // 如果 Token 不是 final 的，就显示在思考过程里 (作为详细日志)
@@ -2138,6 +2161,8 @@ function updateProcessUI(entryIndex, eventData) {
                 const span = document.createElement("span");
                 span.textContent = eventData.content;
                 streamDiv.appendChild(span);
+                // [新增] 智能滚动跟随
+                smartScrollToBottom();
             }
         }
 
@@ -2160,6 +2185,8 @@ function updateProcessUI(entryIndex, eventData) {
                 details.className = "step-details";
                 details.textContent = eventData.output;
                 currentStep.appendChild(details);
+                // [新增] 智能滚动跟随
+                smartScrollToBottom();
                 
                 // (可选) 隐藏流式过程，只看结果? 
                 // currentStep.querySelector(".step-content-stream").style.display = 'none';
