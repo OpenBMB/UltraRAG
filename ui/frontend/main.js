@@ -3199,6 +3199,19 @@ function applyChatOnlyMode() {
 
 // ===== Background Task Management =====
 
+// User ID management for isolating background tasks per user
+const USER_ID_STORAGE_KEY = 'ultrarag_user_id';
+
+function getUserId() {
+    let userId = localStorage.getItem(USER_ID_STORAGE_KEY);
+    if (!userId) {
+        // Generate a unique user ID
+        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem(USER_ID_STORAGE_KEY, userId);
+    }
+    return userId;
+}
+
 // Background task state
 const backgroundTaskState = {
     tasks: [],
@@ -3355,7 +3368,8 @@ window.toggleBackgroundPanel = function() {
 // Refresh background tasks list
 window.refreshBackgroundTasks = async function() {
     try {
-        const serverTasks = await fetchJSON('/api/background-tasks?limit=20');
+        const userId = getUserId();
+        const serverTasks = await fetchJSON(`/api/background-tasks?limit=20&user_id=${encodeURIComponent(userId)}`);
         
         // Merge with cached tasks (for tasks that may have been lost on server restart)
         backgroundTaskState.tasks = mergeBackgroundTasks(serverTasks);
@@ -3465,8 +3479,9 @@ window.showBackgroundTaskDetail = async function(taskId) {
     try {
         // Try to get from server first, fallback to cache
         let task;
+        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
         } catch (e) {
             // Server may not have this task (e.g., after restart), try cache
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId);
@@ -3538,7 +3553,8 @@ window.showBackgroundTaskDetail = async function(taskId) {
         // If task is still running, refresh periodically
         if (task.status === 'running') {
             const refreshInterval = setInterval(async () => {
-                const updated = await fetchJSON(`/api/background-tasks/${taskId}`);
+                const userId = getUserId();
+                const updated = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
                 if (updated.status !== 'running') {
                     clearInterval(refreshInterval);
                     showBackgroundTaskDetail(taskId);
@@ -3557,8 +3573,9 @@ window.copyTaskResult = async function(taskId) {
     try {
         // Try server first, fallback to cache
         let task;
+        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
         } catch (e) {
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
                    backgroundTaskState.tasks.find(t => t.task_id === taskId);
@@ -3578,8 +3595,9 @@ window.loadTaskToChat = async function(taskId) {
     try {
         // Try server first, fallback to cache
         let task;
+        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
         } catch (e) {
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
                    backgroundTaskState.tasks.find(t => t.task_id === taskId);
@@ -3623,8 +3641,9 @@ window.deleteBackgroundTask = async function(taskId) {
     
     try {
         // Try to delete from server (may fail if task is only in cache)
+        const userId = getUserId();
         try {
-            await fetchJSON(`/api/background-tasks/${taskId}`, { method: 'DELETE' });
+            await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' });
         } catch (e) {
             // Ignore server error, may be a cached-only task
         }
@@ -3651,8 +3670,12 @@ window.clearCompletedTasks = async function() {
     try {
         // Try to clear from server
         let serverCount = 0;
+        const userId = getUserId();
         try {
-            const result = await fetchJSON('/api/background-tasks/clear-completed', { method: 'POST' });
+            const result = await fetchJSON('/api/background-tasks/clear-completed', { 
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId })
+            });
             serverCount = result.count || 0;
         } catch (e) {
             // Ignore server error
@@ -3689,6 +3712,7 @@ async function sendToBackground(question) {
     }
     
     try {
+        const userId = getUserId();
         const response = await fetchJSON(
             `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat/background`,
             {
@@ -3696,7 +3720,8 @@ async function sendToBackground(question) {
                 body: JSON.stringify({
                     question,
                     session_id: state.chat.engineSessionId,
-                    dynamic_params: dynamicParams
+                    dynamic_params: dynamicParams,
+                    user_id: userId
                 })
             }
         );

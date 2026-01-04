@@ -253,6 +253,7 @@ class BackgroundChatTask:
     session_id: str
     status: str  # 'running', 'completed', 'failed'
     created_at: float
+    user_id: str = ""  # 用户ID，用于隔离不同用户的任务
     completed_at: Optional[float] = None
     result: Optional[str] = None
     error: Optional[str] = None
@@ -266,6 +267,7 @@ class BackgroundChatTask:
             "full_question": self.question,
             "status": self.status,
             "created_at": self.created_at,
+            "user_id": self.user_id,
             "completed_at": self.completed_at,
             "result": self.result,
             "result_preview": (self.result[:200] + "...") if self.result and len(self.result) > 200 else self.result,
@@ -281,7 +283,7 @@ class BackgroundTaskManager:
         self._lock = threading.Lock()
         self._max_tasks = max_tasks
     
-    def create_task(self, pipeline_name: str, question: str, session_id: str) -> str:
+    def create_task(self, pipeline_name: str, question: str, session_id: str, user_id: str = "") -> str:
         """创建新的后台任务"""
         task_id = f"bg_{int(time.time()*1000)}_{str(uuid.uuid4())[:8]}"
         
@@ -296,7 +298,8 @@ class BackgroundTaskManager:
                 question=question,
                 session_id=session_id,
                 status="running",
-                created_at=time.time()
+                created_at=time.time(),
+                user_id=user_id
             )
             self._tasks[task_id] = task
         
@@ -324,36 +327,56 @@ class BackgroundTaskManager:
             if status in ("completed", "failed"):
                 task.completed_at = time.time()
     
-    def get_task(self, task_id: str) -> Optional[Dict]:
-        """获取任务信息"""
+    def get_task(self, task_id: str, user_id: str = "") -> Optional[Dict]:
+        """获取任务信息（仅返回属于该用户的任务）"""
         with self._lock:
             task = self._tasks.get(task_id)
-            return task.to_dict() if task else None
+            # 必须提供 user_id 且匹配才返回任务
+            if task and user_id and task.user_id == user_id:
+                return task.to_dict()
+            return None
     
-    def list_tasks(self, limit: int = 20) -> List[Dict]:
-        """列出所有任务（按时间倒序）"""
+    def list_tasks(self, limit: int = 20, user_id: str = "") -> List[Dict]:
+        """列出用户的任务（按时间倒序）"""
         with self._lock:
+            # 调试日志：打印所有任务的 user_id
+            all_user_ids = [(t.task_id, t.user_id) for t in self._tasks.values()]
+            LOGGER.debug(f"All tasks user_ids: {all_user_ids}, filtering for user_id: '{user_id}'")
+            
+            # 过滤出属于该用户的任务（如果没有传 user_id，不返回任何任务以保证安全）
+            if not user_id:
+                LOGGER.warning("No user_id provided, returning empty list for security")
+                return []
+            
+            user_tasks = [t for t in self._tasks.values() if t.user_id == user_id]
             tasks = sorted(
-                self._tasks.values(),
+                user_tasks,
                 key=lambda t: t.created_at,
                 reverse=True
             )[:limit]
             return [t.to_dict() for t in tasks]
     
-    def delete_task(self, task_id: str) -> bool:
-        """删除任务"""
+    def delete_task(self, task_id: str, user_id: str = "") -> bool:
+        """删除任务（仅允许删除属于该用户的任务）"""
         with self._lock:
             if task_id in self._tasks:
-                del self._tasks[task_id]
-                return True
+                task = self._tasks[task_id]
+                # 必须提供 user_id 且匹配才能删除
+                if user_id and task.user_id == user_id:
+                    del self._tasks[task_id]
+                    return True
             return False
     
-    def clear_completed(self) -> int:
-        """清理已完成的任务"""
+    def clear_completed(self, user_id: str = "") -> int:
+        """清理用户已完成的任务"""
         with self._lock:
+            # 必须提供 user_id 才能清理
+            if not user_id:
+                return 0
+            
             to_delete = [
                 tid for tid, task in self._tasks.items()
-                if task.status in ("completed", "failed")
+                if task.status in ("completed", "failed") and task.user_id == user_id
             ]
             for tid in to_delete:
                 del self._tasks[tid]
@@ -904,7 +927,7 @@ def interrupt_chat(session_id: str):
 # 专门用于后台任务的 Session 管理器（独立于前台）
 BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=7200)  # 后台任务 session 保持更长时间
 
-def run_background_chat(name: str, question: str, session_id: str, dynamic_params: Dict[str, Any] = None) -> str:
+def run_background_chat(name: str, question: str, session_id: str, dynamic_params: Dict[str, Any] = None, user_id: str = "") -> str:
     """
     启动后台聊天任务
     使用独立的 Session，不受前台操作影响
@@ -912,7 +935,7 @@ def run_background_chat(name: str, question: str, session_id: str, dynamic_param
     """
     # 为后台任务创建独立的 session ID
     bg_session_id = f"bg_{name}_{int(time.time()*1000)}_{str(uuid.uuid4())[:8]}"
-    task_id = BACKGROUND_TASK_MANAGER.create_task(name, question, bg_session_id)
+    task_id = BACKGROUND_TASK_MANAGER.create_task(name, question, bg_session_id, user_id=user_id)
     
     def _execute_background():
         bg_session = None
@@ -1006,21 +1029,21 @@ def run_background_chat(name: str, question: str, session_id: str, dynamic_param
     
     return task_id
 
-def get_background_task(task_id: str) -> Optional[Dict]:
+def get_background_task(task_id: str, user_id: str = "") -> Optional[Dict]:
     """获取后台任务状态"""
-    return BACKGROUND_TASK_MANAGER.get_task(task_id)
+    return BACKGROUND_TASK_MANAGER.get_task(task_id, user_id)
 
-def list_background_tasks(limit: int = 20) -> List[Dict]:
-    """列出所有后台任务"""
-    return BACKGROUND_TASK_MANAGER.list_tasks(limit)
+def list_background_tasks(limit: int = 20, user_id: str = "") -> List[Dict]:
+    """列出用户的后台任务"""
+    return BACKGROUND_TASK_MANAGER.list_tasks(limit, user_id)
 
-def delete_background_task(task_id: str) -> bool:
+def delete_background_task(task_id: str, user_id: str = "") -> bool:
     """删除后台任务"""
-    return BACKGROUND_TASK_MANAGER.delete_task(task_id)
+    return BACKGROUND_TASK_MANAGER.delete_task(task_id, user_id)
 
-def clear_completed_background_tasks() -> int:
-    """清理已完成的后台任务"""
-    return BACKGROUND_TASK_MANAGER.clear_completed()
+def clear_completed_background_tasks(user_id: str = "") -> int:
+    """清理用户已完成的后台任务"""
+    return BACKGROUND_TASK_MANAGER.clear_completed(user_id)
 
 # Knowledge Base Management   
 def load_kb_config() -> Dict[str, Any]:

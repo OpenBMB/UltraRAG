@@ -204,6 +204,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         question = payload.get("question", "")
         session_id = payload.get("session_id")
         dynamic_params = payload.get("dynamic_params", {})
+        user_id = payload.get("user_id", "") or request.headers.get("X-User-ID", "")
         
         if not question:
             return jsonify({"error": "question is required"}), 400
@@ -235,7 +236,7 @@ def create_app(admin_mode: bool = False) -> Flask:
             LOGGER.warning(f"Failed to construct retriever config: {e}")
         
         try:
-            task_id = pm.run_background_chat(name, question, session_id, dynamic_params)
+            task_id = pm.run_background_chat(name, question, session_id, dynamic_params, user_id=user_id)
             return jsonify({
                 "status": "started",
                 "task_id": task_id,
@@ -247,15 +248,19 @@ def create_app(admin_mode: bool = False) -> Flask:
     
     @app.route("/api/background-tasks", methods=["GET"])
     def list_background_tasks():
-        """列出所有后台任务"""
+        """列出当前用户的后台任务"""
         limit = request.args.get("limit", 20, type=int)
-        tasks = pm.list_background_tasks(limit)
+        user_id = request.args.get("user_id", "") or request.headers.get("X-User-ID", "")
+        LOGGER.info(f"Listing background tasks for user_id: '{user_id}'")
+        tasks = pm.list_background_tasks(limit, user_id=user_id)
+        LOGGER.info(f"Found {len(tasks)} tasks for user_id: '{user_id}'")
         return jsonify(tasks)
     
     @app.route("/api/background-tasks/<string:task_id>", methods=["GET"])
     def get_background_task(task_id: str):
         """获取单个后台任务状态"""
-        task = pm.get_background_task(task_id)
+        user_id = request.args.get("user_id", "") or request.headers.get("X-User-ID", "")
+        task = pm.get_background_task(task_id, user_id=user_id)
         if not task:
             return jsonify({"error": "Task not found"}), 404
         return jsonify(task)
@@ -263,15 +268,18 @@ def create_app(admin_mode: bool = False) -> Flask:
     @app.route("/api/background-tasks/<string:task_id>", methods=["DELETE"])
     def delete_background_task(task_id: str):
         """删除后台任务"""
-        success = pm.delete_background_task(task_id)
+        user_id = request.args.get("user_id", "") or request.headers.get("X-User-ID", "")
+        success = pm.delete_background_task(task_id, user_id=user_id)
         if success:
             return jsonify({"status": "deleted", "task_id": task_id})
         return jsonify({"error": "Task not found"}), 404
     
     @app.route("/api/background-tasks/clear-completed", methods=["POST"])
     def clear_completed_tasks():
-        """清理已完成的后台任务"""
-        count = pm.clear_completed_background_tasks()
+        """清理当前用户已完成的后台任务"""
+        payload = request.get_json(force=True) if request.is_json else {}
+        user_id = payload.get("user_id", "") or request.headers.get("X-User-ID", "")
+        count = pm.clear_completed_background_tasks(user_id=user_id)
         return jsonify({"status": "cleared", "count": count})
 
     @app.route("/api/system/shutdown", methods=["POST"])
