@@ -427,12 +427,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 16px;
-  padding-right: 16px;
+  /* Align with session items: left same as FEATURE (0.5rem), right same as session delete buttons (16px - 0.8rem) */
+  padding: 0.8rem 3px 0.5rem 0.5rem;
 }
 
 .sidebar-label-row .sidebar-label {
-  margin: 1rem 0 0.5rem 0;
+  margin: 0;
 }
 
 .btn-clear-all {
@@ -450,6 +450,8 @@ body {
   opacity: 0.6;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
   text-align: center;
+  /* Align with session delete buttons - add right margin to match session item padding */
+  margin-right: 13px;
 }
 
 .btn-clear-all:hover {
