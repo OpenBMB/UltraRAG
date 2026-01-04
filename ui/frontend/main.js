@@ -1080,8 +1080,21 @@ async function renderChatCollectionOptions() {
 // [新增] 切换到知识库视图
 function openKBView() {
     if (!els.chatMainView || !els.kbMainView) return;
+    
+    // 如果正在生成，显示确认弹窗
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndOpenKB();
+        });
+        return;
+    }
 
-    // 刷新数据 [新增]
+    doOpenKBView();
+}
+
+// 实际执行打开KB视图
+function doOpenKBView() {
+    // 刷新数据
     refreshKBFiles();
     
     // 隐藏聊天，显示知识库
@@ -1091,9 +1104,20 @@ function openKBView() {
     // 更新按钮状态
     if (els.kbBtn) els.kbBtn.classList.add("active");
     
-    // 取消所有 Session 列表的高亮 (视觉上告诉用户现在没在聊任何会话)
+    // 取消所有 Session 列表的高亮
     const items = document.querySelectorAll(".chat-session-item");
     items.forEach(el => el.classList.remove("active"));
+}
+
+// 中断生成并打开KB
+function interruptAndOpenKB() {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+    setChatRunning(false);
+    saveCurrentSession(true);
+    doOpenKBView();
 }
 
 // [新增] 切换回聊天视图 (复位)
@@ -1222,7 +1246,35 @@ function resetChatSession() {
 function generateChatId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
 function createNewChatSession() {
-    if (state.chat.history.length > 0) saveCurrentSession(true);
+    // 如果正在生成，显示确认弹窗
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndCreateNewChat();
+        });
+        return;
+    }
+    
+    if (state.chat.history.length > 0) {
+        saveCurrentSession(true);
+    }
+    
+    state.chat.currentSessionId = generateChatId();
+    state.chat.history = [];
+    renderChatHistory(); renderChatSidebar();
+    setChatStatus("Ready", "ready");
+    if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
+    backToChatView();
+}
+
+// 中断生成并创建新会话
+function interruptAndCreateNewChat() {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+    setChatRunning(false);
+    saveCurrentSession(true);
+    
     state.chat.currentSessionId = generateChatId();
     state.chat.history = [];
     renderChatHistory(); renderChatSidebar();
@@ -1232,7 +1284,13 @@ function createNewChatSession() {
 }
 
 function loadChatSession(sessionId) {
-    if (state.chat.running) return; // 正在生成时不许切
+    // 如果正在生成，显示确认弹窗
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndLoadSession(sessionId);
+        });
+        return;
+    }
     
     // 先保存当前正在进行的会话
     saveCurrentSession(false); 
@@ -1259,6 +1317,83 @@ function loadChatSession(sessionId) {
     }
 
     backToChatView();
+}
+
+// 中断生成并加载会话
+function interruptAndLoadSession(sessionId) {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+    setChatRunning(false);
+    saveCurrentSession(true);
+    
+    const session = state.chat.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    state.chat.currentSessionId = session.id;
+    state.chat.history = cloneDeep(session.messages || []);
+    
+    renderChatHistory();
+    renderChatSidebar();
+    setChatStatus("Ready", "ready");
+    
+    const sidebar = document.querySelector('.chat-sidebar');
+    if (window.innerWidth < 768 && sidebar) {
+        sidebar.classList.remove('show');
+    }
+    backToChatView();
+}
+
+// 显示中断确认弹窗
+function showInterruptConfirmDialog(onConfirm) {
+    // 创建或获取弹窗
+    let dialog = document.getElementById('interrupt-confirm-dialog');
+    if (!dialog) {
+        dialog = document.createElement('dialog');
+        dialog.id = 'interrupt-confirm-dialog';
+        dialog.className = 'interrupt-confirm-dialog';
+        document.body.appendChild(dialog);
+    }
+    
+    dialog.innerHTML = `
+        <div class="interrupt-dialog-content">
+            <div class="interrupt-dialog-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <h3>Generation in Progress</h3>
+            <p>A response is currently being generated. This action will interrupt the generation.</p>
+            <p class="interrupt-dialog-tip">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                Tip: Use <strong>Background</strong> mode to run tasks without interruption.
+            </p>
+            <div class="interrupt-dialog-actions">
+                <button class="btn-interrupt-cancel">Cancel</button>
+                <button class="btn-interrupt-confirm">Interrupt & Continue</button>
+            </div>
+        </div>
+    `;
+    
+    const cancelBtn = dialog.querySelector('.btn-interrupt-cancel');
+    const confirmBtn = dialog.querySelector('.btn-interrupt-confirm');
+    
+    cancelBtn.onclick = () => {
+        dialog.close();
+    };
+    
+    confirmBtn.onclick = () => {
+        dialog.close();
+        if (onConfirm) onConfirm();
+    };
+    
+    // 点击背景关闭
+    dialog.onclick = (e) => {
+        if (e.target === dialog) {
+            dialog.close();
+        }
+    };
+    
+    dialog.showModal();
 }
 
 function saveCurrentSession(force = false) {
@@ -3339,5 +3474,22 @@ async function initBackgroundTasks() {
         startBackgroundPolling();
     }
 }
+
+// 页面刷新/关闭时处理
+window.addEventListener('beforeunload', function(e) {
+    // 如果正在生成，显示浏览器确认弹窗
+    if (state.chat.running) {
+        // 保存当前已生成的内容
+        saveCurrentSession(true);
+        // 显示浏览器原生确认弹窗
+        e.preventDefault();
+        e.returnValue = 'A response is being generated. Are you sure you want to leave?';
+        return e.returnValue;
+    }
+    // 正常情况下保存会话
+    if (state.chat.history.length > 0 && state.chat.currentSessionId) {
+        saveCurrentSession(true);
+    }
+});
 
 bootstrap();

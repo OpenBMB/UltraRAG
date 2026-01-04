@@ -2977,6 +2977,122 @@ body {
   border-color: rgba(239, 68, 68, 0.5);
 }
 
+/* =========================================
+   Interrupt Confirmation Dialog
+   ========================================= */
+
+.interrupt-confirm-dialog {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 
+    0 40px 100px rgba(0, 0, 0, 0.2),
+    0 12px 36px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  max-width: 420px;
+  width: 90vw;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.interrupt-confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.interrupt-dialog-content {
+  padding: 32px;
+  text-align: center;
+}
+
+.interrupt-dialog-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.interrupt-dialog-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.interrupt-dialog-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.interrupt-dialog-tip {
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.85rem !important;
+  color: #4f46e5 !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.interrupt-dialog-tip svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.interrupt-dialog-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-interrupt-cancel {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-interrupt-cancel:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.btn-interrupt-confirm {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-interrupt-confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
 /* Mobile responsive */
 @media (max-width: 576px) {
   .notification-container {
