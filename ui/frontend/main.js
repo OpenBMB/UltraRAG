@@ -1618,6 +1618,11 @@ function renderChatHistory() {
         }
         bubble.appendChild(content);
 
+        // [新增] 渲染 Show Thinking 步骤信息
+        if (entry.role === "assistant" && entry.meta && entry.meta.steps && entry.meta.steps.length > 0) {
+            renderStepsFromHistory(bubble, entry.meta.steps, entry.meta.interrupted);
+        }
+
         // 渲染底部的引用卡片
         if (entry.meta && entry.meta.sources) {
             // 计算哪些引用被使用了
@@ -1735,6 +1740,7 @@ async function stopGeneration() {
 
     // 1. 前端断开连接 (停止接收数据流)
     // 这会让 fetch 抛出 AbortError，跳到 catch 块
+    // AbortError 处理会保存已生成的内容
     if (state.chat.controller) {
         state.chat.controller.abort();
         state.chat.controller = null;
@@ -1753,9 +1759,7 @@ async function stopGeneration() {
 
     log("Generation stopped by user.");
     
-    // UI 立即恢复
-    setChatRunning(false);
-    appendChatMessage("system", "Generation interrupted.");
+    // UI 状态会在 AbortError 处理中更新
 }
 
 // [新增] 辅助函数：清洗 PDF 提取文本中的脏格式
@@ -1991,6 +1995,96 @@ function formatMessageText(text) {
     return safeText;
 }
 
+// [新增] 从历史记录中恢复步骤信息
+function renderStepsFromHistory(bubble, steps, isInterrupted = false) {
+    if (!steps || steps.length === 0) return;
+    
+    // 创建 Process Container（与实时渲染格式完全一致）
+    const procDiv = document.createElement("div");
+    procDiv.className = "process-container collapsed"; // 默认折叠
+    procDiv.innerHTML = `
+        <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
+            <span>Show Thinking</span>
+            <span style="font-size:0.8em">▼</span>
+        </div>
+        <div class="process-body"></div>
+    `;
+    
+    const body = procDiv.querySelector(".process-body");
+    
+    // 解析步骤，合并 step_start 和 step_end
+    const stepMap = new Map();
+    const stepOrder = []; // 保持顺序
+    
+    for (const step of steps) {
+        if (step.type === 'step_start') {
+            if (!stepMap.has(step.name)) {
+                stepOrder.push(step.name);
+            }
+            stepMap.set(step.name, { 
+                name: step.name, 
+                tokens: step.tokens || '',
+                output: '',
+                completed: false 
+            });
+        } else if (step.type === 'step_end') {
+            const existing = stepMap.get(step.name);
+            if (existing) {
+                existing.completed = true;
+                if (step.output) {
+                    existing.output = step.output;
+                }
+            }
+        }
+    }
+    
+    // 按顺序渲染每个步骤（与实时渲染格式完全一致）
+    for (const name of stepOrder) {
+        const stepData = stepMap.get(name);
+        if (!stepData) continue;
+        
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "process-step";
+        stepDiv.dataset.stepName = name;
+        
+        // 标题部分：完成的显示空（因为 spinner 被移除了），未完成的显示警告
+        let titleContent = '';
+        if (!stepData.completed && isInterrupted) {
+            titleContent = '<span class="step-spinner" style="border-color: #f59e0b transparent transparent transparent;"></span>';
+        }
+        // 注意：已完成的步骤在实时渲染中 spinner 被移除了，所以这里也不显示
+        
+        stepDiv.innerHTML = `
+            <div class="step-title">
+                ${titleContent}
+                <span>${name}</span>
+            </div>
+        `;
+        
+        // 添加流式内容（如果有）
+        if (stepData.tokens) {
+            const streamDiv = document.createElement("div");
+            streamDiv.className = "step-content-stream";
+            // 使用 textContent 保持与实时渲染一致
+            streamDiv.textContent = stepData.tokens;
+            stepDiv.appendChild(streamDiv);
+        }
+        
+        // 添加 output 摘要（如果有）
+        if (stepData.output) {
+            const detailsDiv = document.createElement("div");
+            detailsDiv.className = "step-details";
+            detailsDiv.textContent = stepData.output;
+            stepDiv.appendChild(detailsDiv);
+        }
+        
+        body.appendChild(stepDiv);
+    }
+    
+    // 插入到气泡最前面（与实时渲染一致）
+    bubble.insertBefore(procDiv, bubble.firstChild);
+}
+
 function updateProcessUI(entryIndex, eventData) {
     // 1. 找到对应的 Chat Bubble (最后一个 assistant 气泡)
     const container = document.getElementById("chat-history");
@@ -2135,6 +2229,12 @@ async function handleChatSubmit(event) {
     const entryIndex = state.chat.history.length;
     state.chat.history.push({ role: "assistant", text: "", meta: {} });
     
+    // [修复] 将这些变量提升到更高作用域，以便在中断时能够保存
+    state.chat._streamingText = "";
+    state.chat._streamingSources = [];
+    state.chat._streamingSteps = []; // 保存步骤信息
+    state.chat._streamingEntryIndex = entryIndex;
+    
     const chatContainer = document.getElementById("chat-history");
 
     // [滚动优化]
@@ -2178,6 +2278,18 @@ async function handleChatSubmit(event) {
             
             if (data.type === "step_start" || data.type === "step_end") {
                 updateProcessUI(entryIndex, data);
+                // [新增] 保存步骤信息以便恢复
+                if (!state.chat._streamingSteps) state.chat._streamingSteps = [];
+                const stepInfo = {
+                    type: data.type,
+                    name: data.name,
+                    timestamp: Date.now()
+                };
+                // 保存 step_end 的 output 摘要
+                if (data.type === "step_end" && data.output) {
+                    stepInfo.output = data.output;
+                }
+                state.chat._streamingSteps.push(stepInfo);
             } 
             else if (data.type === "sources") {
                 // 后端已为每个文档分配了唯一ID，直接使用
@@ -2187,11 +2299,26 @@ async function handleChatSubmit(event) {
                 }));
                 allSources = allSources.concat(docs);
                 pendingRenderSources = pendingRenderSources.concat(docs);
+                // [修复] 同步更新状态，以便中断时能保存
+                state.chat._streamingSources = allSources;
             } 
             else if (data.type === "token") {
-                if (!data.is_final) updateProcessUI(entryIndex, data);
+                if (!data.is_final) {
+                    updateProcessUI(entryIndex, data);
+                    // [新增] 保存 thinking 内容
+                    if (!state.chat._streamingSteps) state.chat._streamingSteps = [];
+                    // 找到最后一个 step_start，追加 token 内容
+                    const lastStep = state.chat._streamingSteps.filter(s => s.type === 'step_start').pop();
+                    if (lastStep) {
+                        if (!lastStep.tokens) lastStep.tokens = "";
+                        lastStep.tokens += data.content;
+                    }
+                }
                 if (data.is_final) {
                     currentText += data.content;
+                    // [修复] 同步更新状态，以便中断时能保存
+                    state.chat._streamingText = currentText;
+                    
                     if (typeof isPendingLanguageFence === 'function' && isPendingLanguageFence(currentText, MARKDOWN_LANGS)) continue;
                     
                     let html = renderMarkdown(currentText, { unwrapLanguages: MARKDOWN_LANGS });
@@ -2232,6 +2359,10 @@ async function handleChatSubmit(event) {
                 state.chat.history[entryIndex].text = finalText;
                 if (!state.chat.history[entryIndex].meta) state.chat.history[entryIndex].meta = {};
                 state.chat.history[entryIndex].meta.sources = allSources;
+                // [新增] 保存步骤信息
+                if (state.chat._streamingSteps && state.chat._streamingSteps.length > 0) {
+                    state.chat.history[entryIndex].meta.steps = state.chat._streamingSteps;
+                }
                 
                 const hints = [];
                 if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
@@ -2251,7 +2382,36 @@ async function handleChatSubmit(event) {
       }
     }
   } catch (err) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') {
+          // [修复] 中断时保存已生成的内容
+          if (state.chat._streamingEntryIndex !== undefined) {
+              const idx = state.chat._streamingEntryIndex;
+              if (state.chat.history[idx]) {
+                  // 保存已生成的文本
+                  if (state.chat._streamingText) {
+                      state.chat.history[idx].text = state.chat._streamingText + "\n\n*(Generation interrupted)*";
+                  }
+                  state.chat.history[idx].meta = state.chat.history[idx].meta || {};
+                  state.chat.history[idx].meta.sources = state.chat._streamingSources || [];
+                  state.chat.history[idx].meta.interrupted = true;
+                  // [新增] 保存步骤信息
+                  if (state.chat._streamingSteps && state.chat._streamingSteps.length > 0) {
+                      state.chat.history[idx].meta.steps = state.chat._streamingSteps;
+                  }
+              }
+          }
+          // 清理流式状态
+          delete state.chat._streamingText;
+          delete state.chat._streamingSources;
+          delete state.chat._streamingSteps;
+          delete state.chat._streamingEntryIndex;
+          
+          setChatRunning(false);
+          setChatStatus("Interrupted", "info");
+          saveCurrentSession();
+          chatContainer.removeEventListener('scroll', handleScroll);
+          return;
+      }
       console.error(err);
       appendChatMessage("system", `Network Error: ${err.message}`);
       setChatStatus("Error", "error");
@@ -2260,6 +2420,12 @@ async function handleChatSubmit(event) {
           state.chat.controller = null;
           setChatRunning(false);
       }
+      // 清理流式状态
+      delete state.chat._streamingText;
+      delete state.chat._streamingSources;
+      delete state.chat._streamingSteps;
+      delete state.chat._streamingEntryIndex;
+      
       saveCurrentSession();
       chatContainer.removeEventListener('scroll', handleScroll); // 记得移除监听
   }
