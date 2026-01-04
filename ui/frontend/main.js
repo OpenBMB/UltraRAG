@@ -3013,7 +3013,63 @@ const backgroundTaskState = {
     panelOpen: false,
     notifiedTasks: new Set(), // Already notified task IDs
     backgroundModeEnabled: false, // Whether background mode is active
+    cachedTasks: [], // Cached completed tasks from localStorage
 };
+
+// LocalStorage key for background tasks
+const BG_TASKS_STORAGE_KEY = 'ultrarag_background_tasks';
+
+// Load cached background tasks from localStorage
+function loadCachedBackgroundTasks() {
+    try {
+        const cached = localStorage.getItem(BG_TASKS_STORAGE_KEY);
+        if (cached) {
+            backgroundTaskState.cachedTasks = JSON.parse(cached);
+            // Mark already notified tasks to avoid duplicate notifications
+            backgroundTaskState.cachedTasks.forEach(t => {
+                if (t.status === 'completed' || t.status === 'failed') {
+                    backgroundTaskState.notifiedTasks.add(t.task_id);
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('Failed to load cached background tasks:', e);
+        backgroundTaskState.cachedTasks = [];
+    }
+}
+
+// Save background tasks to localStorage
+function saveCachedBackgroundTasks() {
+    try {
+        // Only cache completed and failed tasks (with full results)
+        const toCache = backgroundTaskState.tasks.filter(t => 
+            t.status === 'completed' || t.status === 'failed'
+        );
+        localStorage.setItem(BG_TASKS_STORAGE_KEY, JSON.stringify(toCache));
+        backgroundTaskState.cachedTasks = toCache;
+    } catch (e) {
+        console.warn('Failed to save background tasks:', e);
+    }
+}
+
+// Merge server tasks with cached tasks
+function mergeBackgroundTasks(serverTasks) {
+    const merged = [...serverTasks];
+    const serverTaskIds = new Set(serverTasks.map(t => t.task_id));
+    
+    // Add cached tasks that are not on the server (e.g., server restarted)
+    for (const cached of backgroundTaskState.cachedTasks) {
+        if (!serverTaskIds.has(cached.task_id)) {
+            // Mark as cached so we know it's from localStorage
+            merged.push({ ...cached, fromCache: true });
+        }
+    }
+    
+    // Sort by created_at (newest first)
+    merged.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    
+    return merged;
+}
 
 // Toggle background mode
 window.toggleBackgroundMode = function() {
@@ -3106,15 +3162,27 @@ window.toggleBackgroundPanel = function() {
 // Refresh background tasks list
 window.refreshBackgroundTasks = async function() {
     try {
-        const tasks = await fetchJSON('/api/background-tasks?limit=20');
-        backgroundTaskState.tasks = tasks;
+        const serverTasks = await fetchJSON('/api/background-tasks?limit=20');
+        
+        // Merge with cached tasks (for tasks that may have been lost on server restart)
+        backgroundTaskState.tasks = mergeBackgroundTasks(serverTasks);
+        
+        // Save completed tasks to cache
+        saveCachedBackgroundTasks();
+        
         renderBackgroundTasksList();
         updateBackgroundTasksCount();
         
         // Check for newly completed tasks and notify
-        checkForCompletedTasks(tasks);
+        checkForCompletedTasks(backgroundTaskState.tasks);
     } catch (e) {
         console.error('Failed to refresh background tasks:', e);
+        // If server is unavailable, show cached tasks
+        if (backgroundTaskState.cachedTasks.length > 0) {
+            backgroundTaskState.tasks = [...backgroundTaskState.cachedTasks];
+            renderBackgroundTasksList();
+            updateBackgroundTasksCount();
+        }
     }
 };
 
@@ -3202,7 +3270,21 @@ function updateBackgroundTasksCount() {
 // Show background task detail
 window.showBackgroundTaskDetail = async function(taskId) {
     try {
-        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        // Try to get from server first, fallback to cache
+        let task;
+        try {
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        } catch (e) {
+            // Server may not have this task (e.g., after restart), try cache
+            task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId);
+            if (!task) {
+                task = backgroundTaskState.tasks.find(t => t.task_id === taskId);
+            }
+            if (!task) {
+                showNotification('error', 'Error', 'Task not found');
+                return;
+            }
+        }
         
         // Create or get detail modal
         let modal = document.getElementById('bg-task-detail-modal');
@@ -3280,8 +3362,16 @@ window.showBackgroundTaskDetail = async function(taskId) {
 // Copy task result
 window.copyTaskResult = async function(taskId) {
     try {
-        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
-        if (task.result) {
+        // Try server first, fallback to cache
+        let task;
+        try {
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        } catch (e) {
+            task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
+                   backgroundTaskState.tasks.find(t => t.task_id === taskId);
+        }
+        
+        if (task && task.result) {
             await navigator.clipboard.writeText(task.result);
             showNotification('success', 'Copied', 'Result copied to clipboard');
         }
@@ -3293,8 +3383,16 @@ window.copyTaskResult = async function(taskId) {
 // Load task result to chat
 window.loadTaskToChat = async function(taskId) {
     try {
-        const task = await fetchJSON(`/api/background-tasks/${taskId}`);
-        if (task.status !== 'completed') return;
+        // Try server first, fallback to cache
+        let task;
+        try {
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
+        } catch (e) {
+            task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
+                   backgroundTaskState.tasks.find(t => t.task_id === taskId);
+        }
+        
+        if (!task || task.status !== 'completed') return;
         
         // Close modal
         const modal = document.getElementById('bg-task-detail-modal');
@@ -3331,14 +3429,25 @@ window.deleteBackgroundTask = async function(taskId) {
     if (!confirm('Are you sure you want to delete this task?')) return;
     
     try {
-        await fetchJSON(`/api/background-tasks/${taskId}`, { method: 'DELETE' });
+        // Try to delete from server (may fail if task is only in cache)
+        try {
+            await fetchJSON(`/api/background-tasks/${taskId}`, { method: 'DELETE' });
+        } catch (e) {
+            // Ignore server error, may be a cached-only task
+        }
+        
+        // Also remove from local cache
+        backgroundTaskState.cachedTasks = backgroundTaskState.cachedTasks.filter(t => t.task_id !== taskId);
+        backgroundTaskState.tasks = backgroundTaskState.tasks.filter(t => t.task_id !== taskId);
+        localStorage.setItem(BG_TASKS_STORAGE_KEY, JSON.stringify(backgroundTaskState.cachedTasks));
         
         // Close detail modal
         const modal = document.getElementById('bg-task-detail-modal');
         if (modal) modal.close();
         
-        // Refresh list
-        await refreshBackgroundTasks();
+        // Update UI
+        renderBackgroundTasksList();
+        updateBackgroundTasksCount();
     } catch (e) {
         console.error('Failed to delete task:', e);
     }
@@ -3347,9 +3456,27 @@ window.deleteBackgroundTask = async function(taskId) {
 // Clear completed tasks
 window.clearCompletedTasks = async function() {
     try {
-        const result = await fetchJSON('/api/background-tasks/clear-completed', { method: 'POST' });
-        showNotification('success', 'Cleared', `Cleared ${result.count} completed tasks`);
-        await refreshBackgroundTasks();
+        // Try to clear from server
+        let serverCount = 0;
+        try {
+            const result = await fetchJSON('/api/background-tasks/clear-completed', { method: 'POST' });
+            serverCount = result.count || 0;
+        } catch (e) {
+            // Ignore server error
+        }
+        
+        // Also clear from local cache
+        const cachedCount = backgroundTaskState.cachedTasks.filter(t => t.status === 'completed').length;
+        backgroundTaskState.cachedTasks = backgroundTaskState.cachedTasks.filter(t => t.status !== 'completed');
+        backgroundTaskState.tasks = backgroundTaskState.tasks.filter(t => t.status !== 'completed');
+        localStorage.setItem(BG_TASKS_STORAGE_KEY, JSON.stringify(backgroundTaskState.cachedTasks));
+        
+        const totalCleared = Math.max(serverCount, cachedCount);
+        showNotification('success', 'Cleared', `Cleared ${totalCleared} completed tasks`);
+        
+        // Update UI
+        renderBackgroundTasksList();
+        updateBackgroundTasksCount();
     } catch (e) {
         console.error('Failed to clear tasks:', e);
     }
@@ -3458,6 +3585,9 @@ async function initChatOnlyView() {
 
 // Initialize background tasks functionality
 async function initBackgroundTasks() {
+    // Load cached tasks from localStorage first
+    loadCachedBackgroundTasks();
+    
     // Request browser notification permission
     if ('Notification' in window && Notification.permission === 'default') {
         // 延迟请求，避免打扰用户
