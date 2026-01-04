@@ -1636,13 +1636,13 @@ function renderChatHistory() {
             renderSources(bubble, entry.meta.sources, usedIds);
         }
         
-        // 渲染调试信息 (Hint)
-        if (entry.meta && entry.meta.hint) {
-            const hintDiv = document.createElement("div");
-            hintDiv.className = "text-xs text-muted mt-2 pt-2 border-top";
-            hintDiv.textContent = entry.meta.hint;
-            bubble.appendChild(hintDiv);
-        }
+        // 调试信息 (Hint) 已禁用，不再显示 Dataset/Memory 路径
+        // if (entry.meta && entry.meta.hint) {
+        //     const hintDiv = document.createElement("div");
+        //     hintDiv.className = "text-xs text-muted mt-2 pt-2 border-top";
+        //     hintDiv.textContent = entry.meta.hint;
+        //     bubble.appendChild(hintDiv);
+        // }
 
         els.chatHistory.appendChild(bubble);
     });
@@ -2391,10 +2391,11 @@ async function handleChatSubmit(event) {
                     state.chat.history[entryIndex].meta.steps = state.chat._streamingSteps;
                 }
                 
-                const hints = [];
-                if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
-                if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
-                state.chat.history[entryIndex].meta.hint = hints.join(" | ");
+                // 不再显示调试信息（Dataset/Memory路径）
+                // const hints = [];
+                // if (final.dataset_path) hints.push(`Dataset: ${final.dataset_path}`);
+                // if (final.memory_path) hints.push(`Memory: ${final.memory_path}`);
+                // state.chat.history[entryIndex].meta.hint = hints.join(" | ");
                 
                 const procDiv = bubble.querySelector(".process-container");
                 if (procDiv) procDiv.classList.add("collapsed");
