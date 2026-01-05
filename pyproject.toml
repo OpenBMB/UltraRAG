@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ultrarag"
-version = "0.2.1"
-description = "UltraRAG 2.0"
+version = "0.3.0"
+description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "fastmcp==2.11.3",
+    "fastmcp==2.13.0",
     "pandas",
     "Jinja2",
     "openai",
