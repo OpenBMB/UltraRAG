@@ -962,7 +962,7 @@ def surveycpm_after_init_plan(
                 "title": action.get("title", ""),
                 "sections": action.get("sections", [])
             }
-            new_survey_ls.append(json.dumps(new_survey))
+            new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
             new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
         else:
             new_survey_ls.append(survey_json)
@@ -999,7 +999,7 @@ def surveycpm_after_write(
                     position=cursor,
                     update_data={"content": content}
                 )
-                new_survey_ls.append(json.dumps(new_survey))
+                new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
                 new_cursor = _surveycpm_check_progress_postion(new_survey)
                 new_cursor_ls.append(new_cursor)
             else:
@@ -1044,7 +1044,7 @@ def surveycpm_after_extend(
                     position=position,
                     update_data={"subsections": copy.deepcopy(subsections)}
                 )
-                new_survey_ls.append(json.dumps(new_survey))
+                new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
                 new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
                 new_extend_result_ls.append("extended")
             else:
