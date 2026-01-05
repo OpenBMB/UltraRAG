@@ -1293,7 +1293,12 @@ async def execute_pipeline(
                     else:
                         result = await client.call_tool(concated, args_input)
 
-                    if stream_callback and server_name in retriever_aliases:
+                    # Check for sources in retriever or citation tools
+                    should_extract_sources = (
+                        server_name in retriever_aliases or 
+                        "citation" in tool_name.lower()
+                    )
+                    if stream_callback and should_extract_sources:
                         try:
                             content_str = ""
                             if hasattr(result, "content") and result.content:
@@ -1311,21 +1316,35 @@ async def execute_pipeline(
                                 sources = []
                                 for i, doc in enumerate(raw_docs):
                                     text = str(doc)
-                                    lines = text.strip().split('\n')
-                                    title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
-
-                                    doc_hash = text.strip()
-                                    if doc_hash in doc_content_to_id:
-                                        current_id = doc_content_to_id[doc_hash]
+                                    
+                                    # Check if doc already has [id] prefix
+                                    import re
+                                    id_match = re.match(r'^\[(\d+)\]\s*', text)
+                                    if id_match:
+                                        # Extract existing ID and remove prefix from content
+                                        current_id = int(id_match.group(1))
+                                        text_without_prefix = text[id_match.end():]
+                                        lines = text_without_prefix.strip().split('\n')
+                                        title = lines[0][:30] + "..." if lines else f"Doc {current_id}"
+                                        content = text_without_prefix
                                     else:
-                                        doc_id_counter += 1
-                                        current_id = doc_id_counter
-                                        doc_content_to_id[doc_hash] = current_id
+                                        # No prefix, assign new ID
+                                        lines = text.strip().split('\n')
+                                        title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                        content = text
+                                        
+                                        doc_hash = text.strip()
+                                        if doc_hash in doc_content_to_id:
+                                            current_id = doc_content_to_id[doc_hash]
+                                        else:
+                                            doc_id_counter += 1
+                                            current_id = doc_id_counter
+                                            doc_content_to_id[doc_hash] = current_id
                                     
                                     sources.append({
                                         "id": current_id,
                                         "title": title,
-                                        "content": text
+                                        "content": content
                                     })
                                 
                                 await stream_callback({"type": "sources", "data": sources})
@@ -1414,7 +1433,12 @@ async def execute_pipeline(
                     else:
                         result = await client.call_tool(concated, args_input)
 
-                    if stream_callback and server_name in retriever_aliases:
+                    # Check for sources in retriever or citation tools
+                    should_extract_sources = (
+                        server_name in retriever_aliases or 
+                        "citation" in tool_name.lower()
+                    )
+                    if stream_callback and should_extract_sources:
                         try:
                             content_str = ""
                             if hasattr(result, "content") and result.content:
@@ -1429,21 +1453,35 @@ async def execute_pipeline(
                                 sources = []
                                 for i, doc in enumerate(raw_docs):
                                     text = str(doc)
-                                    lines = text.strip().split('\n')
-                                    title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
-
-                                    doc_hash = text.strip()
-                                    if doc_hash in doc_content_to_id:
-                                        current_id = doc_content_to_id[doc_hash]
+                                    
+                                    # Check if doc already has [id] prefix
+                                    import re
+                                    id_match = re.match(r'^\[(\d+)\]\s*', text)
+                                    if id_match:
+                                        # Extract existing ID and remove prefix from content
+                                        current_id = int(id_match.group(1))
+                                        text_without_prefix = text[id_match.end():]
+                                        lines = text_without_prefix.strip().split('\n')
+                                        title = lines[0][:30] + "..." if lines else f"Doc {current_id}"
+                                        content = text_without_prefix
                                     else:
-                                        doc_id_counter += 1
-                                        current_id = doc_id_counter
-                                        doc_content_to_id[doc_hash] = current_id
+                                        # No prefix, assign new ID
+                                        lines = text.strip().split('\n')
+                                        title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                        content = text
+                                        
+                                        doc_hash = text.strip()
+                                        if doc_hash in doc_content_to_id:
+                                            current_id = doc_content_to_id[doc_hash]
+                                        else:
+                                            doc_id_counter += 1
+                                            current_id = doc_id_counter
+                                            doc_content_to_id[doc_hash] = current_id
 
                                     sources.append({
                                         "id": current_id,
                                         "title": title,
-                                        "content": text
+                                        "content": content
                                     })
                                 await stream_callback({"type": "sources", "data": sources})
                         except Exception as e:

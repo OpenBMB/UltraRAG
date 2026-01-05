@@ -328,6 +328,112 @@ def assign_citation_ids_stateful(
     }
 
 
+# ==================== SurveyCPM Citation Tools ====================
+
+
+class SurveyCPMCitationRegistry:
+    """Citation registry for SurveyCPM pipeline.
+    
+    Maintains unique citation IDs across multiple search rounds for each query.
+    """
+    _instances: Dict[int, Dict[str, Any]] = {}
+    
+    @classmethod
+    def reset(cls):
+        cls._instances = {}
+    
+    @classmethod
+    def get_or_create(cls, query_index: int) -> Dict[str, Any]:
+        if query_index not in cls._instances:
+            cls._instances[query_index] = {
+                "registry": {},
+                "counter": 0
+            }
+        return cls._instances[query_index]
+    
+    @classmethod
+    def assign_id(cls, query_index: int, doc_text: str) -> int:
+        """Assign a unique ID to a document, deduplicating across rounds."""
+        state = cls.get_or_create(query_index)
+        doc_hash = doc_text.strip()
+        
+        if doc_hash in state["registry"]:
+            return state["registry"][doc_hash]
+        else:
+            state["counter"] += 1
+            state["registry"][doc_hash] = state["counter"]
+            return state["counter"]
+
+
+@app.tool(output="instruction_ls->instruction_ls")
+def surveycpm_init_citation_registry(instruction_ls: List[str]) -> Dict[str, Any]:
+    """Initialize citation registry for SurveyCPM pipeline."""
+    SurveyCPMCitationRegistry.reset()
+    return {"instruction_ls": instruction_ls}
+
+
+@app.tool(output="ret_psg_ls->retrieved_info_ls,ret_psg")
+def surveycpm_process_passages_with_citation(
+    ret_psg_ls: List[List[List[str]]],
+) -> Dict[str, Any]:
+    """Process passages and assign unique citation IDs for SurveyCPM.
+    
+    Similar to surveycpm_process_passages, but adds [id] prefix to each passage
+    for citation tracking.
+    
+    Returns:
+        - retrieved_info_ls: List of formatted strings for prompts
+        - ret_psg: List of lists of cited passages for frontend rendering
+                   (same length as ret_psg_ls, each element is a list of cited docs)
+    """
+    top_k = 20
+    retrieved_info_ls = []
+    ret_psg_output = []  # List of lists for frontend sources (same length as input)
+    
+    for query_idx, ret_psg in enumerate(ret_psg_ls):
+        if not ret_psg:
+            retrieved_info_ls.append("")
+            ret_psg_output.append([])
+            continue
+        
+        num_queries = len(ret_psg)
+        per_query_limit = max(1, top_k // num_queries)
+        
+        seen = set()
+        all_passages = []
+        
+        # First pass: get unique passages up to per_query_limit from each query
+        for passages in ret_psg:
+            for psg in passages[:per_query_limit]:
+                if psg not in seen:
+                    seen.add(psg)
+                    # Assign unique citation ID
+                    citation_id = SurveyCPMCitationRegistry.assign_id(query_idx, psg)
+                    cited_psg = f"[{citation_id}] {psg}"
+                    all_passages.append(cited_psg)
+        
+        # Second pass: fill remaining slots
+        remaining_slots = top_k - len(all_passages)
+        if remaining_slots > 0:
+            for passages in ret_psg:
+                for psg in passages[per_query_limit:]:
+                    if psg not in seen and remaining_slots > 0:
+                        seen.add(psg)
+                        citation_id = SurveyCPMCitationRegistry.assign_id(query_idx, psg)
+                        cited_psg = f"[{citation_id}] {psg}"
+                        all_passages.append(cited_psg)
+                        remaining_slots -= 1
+        
+        info = "\n\n".join(all_passages).strip()
+        retrieved_info_ls.append(info)
+        ret_psg_output.append(all_passages)  # List of cited docs for this query
+    
+    return {
+        "retrieved_info_ls": retrieved_info_ls,
+        "ret_psg": ret_psg_output  # List of lists, same length as input
+    }
+
+
 # ==================== SurveyCPM Custom Tools ====================
 
 
