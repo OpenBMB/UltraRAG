@@ -1093,6 +1093,38 @@ def surveycpm_check_completion(
     return {"state_ls": new_state_ls}
 
 
+def _surveycpm_clean_content(content: str) -> str:
+    """Clean up content text for proper Markdown formatting.
+    
+    This function:
+    - Removes "Section-X.X.X" style references from content
+    - Fixes improper markdown headers (headers with leading spaces)
+    - Normalizes multiple consecutive blank lines to single blank line
+    - Ensures proper spacing around headers
+    """
+    if not content:
+        return ""
+    
+    # Remove "Section-X.X.X" patterns (e.g., "Section-1", "Section-2.3", "Section-4.3.1")
+    # But preserve the context around them
+    content = re.sub(r'\bSection-(\d+(?:\.\d+)*)\b', '', content)
+    
+    # Fix headers that have leading spaces (not valid markdown)
+    # Match lines like "    ## Title" or "        ### Title" and remove leading spaces
+    content = re.sub(r'^[ \t]+(#{1,6})\s+', r'\1 ', content, flags=re.MULTILINE)
+    
+    # Normalize multiple consecutive blank lines to at most two newlines
+    content = re.sub(r'\n{3,}', '\n\n', content)
+    
+    # Ensure headers have a blank line before them (except at start)
+    content = re.sub(r'([^\n])\n(#{1,6}\s)', r'\1\n\n\2', content)
+    
+    # Ensure headers have a blank line after them
+    content = re.sub(r'(#{1,6}\s[^\n]+)\n([^\n#])', r'\1\n\n\2', content)
+    
+    return content.strip()
+
+
 def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     """Format survey as clean Markdown for final output.
     
@@ -1100,6 +1132,8 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     - Does NOT add [OK] or [PLAN] prefixes
     - Preserves proper paragraph breaks and formatting
     - Produces clean, renderable Markdown
+    - Cleans up "Section-X.X.X" references in content
+    - Ensures proper markdown header formatting
     """
     if not survey or survey == {}:
         return "No survey generated."
@@ -1122,8 +1156,10 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
         
         # Section content
         if "content" in section and section["content"]:
-            lines.append(section["content"].strip())
-            lines.append("")
+            cleaned_content = _surveycpm_clean_content(section["content"])
+            if cleaned_content:
+                lines.append(cleaned_content)
+                lines.append("")
         elif "plan" in section and section["plan"]:
             lines.append(f"*{section['plan'].strip()}*")
             lines.append("")
@@ -1137,8 +1173,10 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
                 lines.append("")
                 
                 if "content" in subsection and subsection["content"]:
-                    lines.append(subsection["content"].strip())
-                    lines.append("")
+                    cleaned_content = _surveycpm_clean_content(subsection["content"])
+                    if cleaned_content:
+                        lines.append(cleaned_content)
+                        lines.append("")
                 elif "plan" in subsection and subsection["plan"]:
                     lines.append(f"*{subsection['plan'].strip()}*")
                     lines.append("")
@@ -1152,13 +1190,18 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
                         lines.append("")
                         
                         if "content" in subsubsection and subsubsection["content"]:
-                            lines.append(subsubsection["content"].strip())
-                            lines.append("")
+                            cleaned_content = _surveycpm_clean_content(subsubsection["content"])
+                            if cleaned_content:
+                                lines.append(cleaned_content)
+                                lines.append("")
                         elif "plan" in subsubsection and subsubsection["plan"]:
                             lines.append(f"*{subsubsection['plan'].strip()}*")
                             lines.append("")
     
-    return "\n".join(lines).strip()
+    # Final cleanup: normalize multiple blank lines
+    result = "\n".join(lines)
+    result = re.sub(r'\n{3,}', '\n\n', result)
+    return result.strip()
 
 
 @app.tool(output="survey_ls,instruction_ls->ans_ls")
