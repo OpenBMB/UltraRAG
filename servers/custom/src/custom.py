@@ -1134,6 +1134,7 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     - Produces clean, renderable Markdown
     - Cleans up "Section-X.X.X" references in content
     - Ensures proper markdown header formatting
+    - Adds section numbers (Section 1. xxx, Section 1.1 xxx, etc.)
     """
     if not survey or survey == {}:
         return "No survey generated."
@@ -1149,9 +1150,10 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     sections = survey.get("sections", [])
     for i, section in enumerate(sections):
         title_key = "name" if "name" in section else "title"
-        section_title = section.get(title_key, f"Section {i+1}")
+        section_title = section.get(title_key, "")
+        section_num = i + 1
         
-        lines.append(f"## {section_title}")
+        lines.append(f"## {section_num} {section_title}")
         lines.append("")
         
         # Section content
@@ -1167,9 +1169,10 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
         # Subsections
         if "subsections" in section:
             for j, subsection in enumerate(section["subsections"]):
-                subsection_title = subsection.get(title_key, f"Subsection {j+1}")
+                subsection_title = subsection.get(title_key, "")
+                subsection_num = f"{section_num}.{j + 1}"
                 
-                lines.append(f"### {subsection_title}")
+                lines.append(f"### {subsection_num} {subsection_title}")
                 lines.append("")
                 
                 if "content" in subsection and subsection["content"]:
@@ -1184,9 +1187,10 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
                 # Sub-subsections
                 if "subsections" in subsection:
                     for k, subsubsection in enumerate(subsection["subsections"]):
-                        subsubsection_title = subsubsection.get(title_key, f"Sub-subsection {k+1}")
+                        subsubsection_title = subsubsection.get(title_key, "")
+                        subsubsection_num = f"{section_num}.{j + 1}.{k + 1}"
                         
-                        lines.append(f"#### {subsubsection_title}")
+                        lines.append(f"#### {subsubsection_num} {subsubsection_title}")
                         lines.append("")
                         
                         if "content" in subsubsection and subsubsection["content"]:
