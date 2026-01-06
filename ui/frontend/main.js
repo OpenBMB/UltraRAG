@@ -1097,12 +1097,18 @@ function doOpenKBView() {
     // 刷新数据
     refreshKBFiles();
     
-    // 隐藏聊天，显示知识库
+    // 隐藏聊天和PaperAgent，显示知识库
     els.chatMainView.classList.add("d-none");
     els.kbMainView.classList.remove("d-none");
     
+    // 隐藏 PaperAgent 视图
+    const paView = document.getElementById("paperagent-main-view");
+    if (paView) paView.classList.add("d-none");
+    
     // 更新按钮状态
     if (els.kbBtn) els.kbBtn.classList.add("active");
+    const paBtn = document.getElementById("paperagent-btn");
+    if (paBtn) paBtn.classList.remove("active");
     
     // 取消所有 Session 列表的高亮
     const items = document.querySelectorAll(".chat-session-item");
@@ -1122,12 +1128,20 @@ function interruptAndOpenKB() {
 
 // [新增] 切换回聊天视图 (复位)
 function backToChatView() {
-    if (!els.chatMainView || !els.kbMainView) return;
+    if (!els.chatMainView) return;
 
-    els.kbMainView.classList.add("d-none");
+    // 隐藏其他视图
+    if (els.kbMainView) els.kbMainView.classList.add("d-none");
+    const paView = document.getElementById("paperagent-main-view");
+    if (paView) paView.classList.add("d-none");
+    
+    // 显示聊天视图
     els.chatMainView.classList.remove("d-none");
     
+    // 更新按钮状态
     if (els.kbBtn) els.kbBtn.classList.remove("active");
+    const paBtn = document.getElementById("paperagent-btn");
+    if (paBtn) paBtn.classList.remove("active");
     
     // 重新渲染侧边栏以恢复当前会话的高亮状态
     renderChatCollectionOptions();
@@ -3405,6 +3419,16 @@ function checkForCompletedTasks(tasks) {
                 task.question,
                 () => showBackgroundTaskDetail(task.task_id)
             );
+            
+            // 如果是 PaperAgent 报告生成任务，刷新报告列表
+            if (task.pipeline_name === 'paper_research' || 
+                task.question?.includes('研究报告') || 
+                task.question?.includes('热点分析') ||
+                task.question?.includes('请生成关于')) {
+                console.log('[PaperAgent] Report generation completed, refreshing reports...');
+                loadReports();
+                showNotification('success', '报告生成完成', '可在 PaperAgent 的研究报告中查看');
+            }
         } else if (task.status === 'failed' && !backgroundTaskState.notifiedTasks.has(task.task_id)) {
             backgroundTaskState.notifiedTasks.add(task.task_id);
             showNotification(
@@ -3840,5 +3864,1069 @@ window.addEventListener('beforeunload', function(e) {
         saveCurrentSession(true);
     }
 });
+
+// ==========================================
+// --- PaperAgent Logic ---
+// ==========================================
+
+const paperAgentState = {
+    categories: [],
+    selectedInterests: new Set(),
+    recommendedPapers: [],
+    selectedPapers: new Set(),
+    currentProfile: null,
+    reports: [],
+    currentTab: 'profile'
+};
+
+// PaperAgent 元素引用
+const paEls = {
+    mainView: document.getElementById("paperagent-main-view"),
+    btn: document.getElementById("paperagent-btn"),
+    tabs: document.querySelectorAll("[data-pa-tab]"),
+    interestChips: document.getElementById("pa-interest-chips"),
+    recommendPapers: document.getElementById("pa-recommend-papers"),
+    selectedCount: document.getElementById("pa-selected-count"),
+    saveProfileBtn: document.getElementById("pa-save-profile-btn"),
+    currentProfile: document.getElementById("pa-current-profile"),
+    clearProfileBtn: document.getElementById("pa-clear-profile-btn"),
+    refreshPapersBtn: document.getElementById("pa-refresh-papers-btn"),
+    searchInput: document.getElementById("pa-search-input"),
+    searchBtn: document.getElementById("pa-search-btn"),
+    categoryFilter: document.getElementById("pa-category-filter"),
+    searchResults: document.getElementById("pa-search-results"),
+    refreshReportsBtn: document.getElementById("pa-refresh-reports-btn"),
+    reportList: document.getElementById("pa-report-list"),
+    // 报告阅读器
+    reportReader: document.getElementById("pa-report-reader"),
+    readerBackBtn: document.getElementById("pa-reader-back-btn"),
+    readerTitle: document.getElementById("pa-reader-title"),
+    readerType: document.getElementById("pa-reader-type"),
+    readerDate: document.getElementById("pa-reader-date"),
+    readerContent: document.getElementById("pa-reader-content"),
+    readerDownloadBtn: document.getElementById("pa-reader-download-btn"),
+    citationsList: document.getElementById("pa-citations-list"),
+};
+
+// 初始化 PaperAgent
+async function initPaperAgent() {
+    if (!paEls.btn) return;
+    
+    // 绑定按钮事件
+    paEls.btn.onclick = openPaperAgentView;
+    
+    // 绑定 Tab 切换
+    paEls.tabs.forEach(tab => {
+        tab.onclick = () => switchPaperAgentTab(tab.dataset.paTab);
+    });
+    
+    // 绑定搜索
+    if (paEls.searchBtn) {
+        paEls.searchBtn.onclick = searchPapers;
+    }
+    if (paEls.searchInput) {
+        paEls.searchInput.onkeypress = (e) => {
+            if (e.key === 'Enter') searchPapers();
+        };
+    }
+    
+    // 绑定保存画像
+    if (paEls.saveProfileBtn) {
+        paEls.saveProfileBtn.onclick = saveUserProfile;
+    }
+    
+    // 绑定刷新论文
+    if (paEls.refreshPapersBtn) {
+        paEls.refreshPapersBtn.onclick = refreshRecommendedPapers;
+    }
+    
+    // 绑定清空画像
+    if (paEls.clearProfileBtn) {
+        paEls.clearProfileBtn.onclick = clearUserProfile;
+    }
+    
+    // 绑定刷新报告
+    if (paEls.refreshReportsBtn) {
+        paEls.refreshReportsBtn.onclick = loadReports;
+    }
+    
+    // 绑定阅读器返回
+    if (paEls.readerBackBtn) {
+        paEls.readerBackBtn.onclick = closeReportReader;
+    }
+    
+    // 绑定阅读器下载
+    if (paEls.readerDownloadBtn) {
+        paEls.readerDownloadBtn.onclick = downloadCurrentReport;
+    }
+}
+
+// 切换到 PaperAgent 视图
+function openPaperAgentView() {
+    if (!els.chatMainView || !paEls.mainView) return;
+    
+    // 如果正在生成，显示确认弹窗
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndOpenPaperAgent();
+        });
+        return;
+    }
+    
+    doOpenPaperAgentView();
+}
+
+function doOpenPaperAgentView() {
+    // 隐藏其他视图
+    els.chatMainView.classList.add("d-none");
+    if (els.kbMainView) els.kbMainView.classList.add("d-none");
+    paEls.mainView.classList.remove("d-none");
+    
+    // 更新按钮状态
+    if (paEls.btn) paEls.btn.classList.add("active");
+    if (els.kbBtn) els.kbBtn.classList.remove("active");
+    
+    // 取消 Session 列表高亮
+    document.querySelectorAll(".chat-session-item").forEach(el => el.classList.remove("active"));
+    
+    // 加载数据
+    loadPaperAgentData();
+}
+
+function interruptAndOpenPaperAgent() {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+    }
+    state.chat.running = false;
+    doOpenPaperAgentView();
+}
+
+// 切换 Tab
+function switchPaperAgentTab(tabName) {
+    paperAgentState.currentTab = tabName;
+    
+    // 更新 Tab 按钮状态
+    paEls.tabs.forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.paTab === tabName);
+    });
+    
+    // 更新 Tab 内容
+    document.querySelectorAll('.pa-tab-pane').forEach(pane => {
+        pane.classList.add('d-none');
+    });
+    const activePane = document.getElementById(`pa-${tabName}-pane`);
+    if (activePane) activePane.classList.remove('d-none');
+}
+
+// 加载 PaperAgent 数据
+async function loadPaperAgentData() {
+    try {
+        // 加载 CS 分类
+        await loadCategories();
+        
+        // 加载用户画像
+        await loadUserProfile();
+        
+        // 加载推荐论文
+        await loadRecommendedPapers();
+        
+        // 加载历史报告
+        await loadReports();
+        
+    } catch (error) {
+        console.error("Failed to load PaperAgent data:", error);
+    }
+}
+
+// 加载 CS 分类
+async function loadCategories() {
+    try {
+        const data = await fetchJSON('/api/paperagent/categories');
+        paperAgentState.categories = data.categories || [];
+        renderInterestChips();
+        renderCategoryFilter();
+    } catch (error) {
+        console.error("Failed to load categories:", error);
+        // 使用默认分类
+        paperAgentState.categories = [
+            { code: "cs.AI", name: "Artificial Intelligence", name_zh: "人工智能" },
+            { code: "cs.CL", name: "Computation and Language", name_zh: "计算语言学" },
+            { code: "cs.CV", name: "Computer Vision", name_zh: "计算机视觉" },
+            { code: "cs.LG", name: "Machine Learning", name_zh: "机器学习" },
+            { code: "cs.IR", name: "Information Retrieval", name_zh: "信息检索" },
+        ];
+        renderInterestChips();
+        renderCategoryFilter();
+    }
+}
+
+// 渲染兴趣标签
+function renderInterestChips() {
+    if (!paEls.interestChips) return;
+    
+    paEls.interestChips.innerHTML = paperAgentState.categories.map(cat => `
+        <div class="pa-interest-chip ${paperAgentState.selectedInterests.has(cat.code) ? 'selected' : ''}" 
+             data-code="${cat.code}" onclick="toggleInterest('${cat.code}')">
+            <span>${cat.name_zh || cat.name}</span>
+            <span class="chip-count">${cat.code}</span>
+        </div>
+    `).join('');
+}
+
+// 切换兴趣选择
+window.toggleInterest = function(code) {
+    if (paperAgentState.selectedInterests.has(code)) {
+        paperAgentState.selectedInterests.delete(code);
+    } else {
+        paperAgentState.selectedInterests.add(code);
+    }
+    renderInterestChips();
+    
+    // 根据选择的兴趣加载推荐论文
+    if (paperAgentState.selectedInterests.size > 0) {
+        loadRecommendedPapers();
+    }
+};
+
+// 渲染分类过滤器
+function renderCategoryFilter() {
+    if (!paEls.categoryFilter) return;
+    
+    paEls.categoryFilter.innerHTML = `
+        <option value="">所有分类</option>
+        ${paperAgentState.categories.map(cat => 
+            `<option value="${cat.code}">${cat.name_zh || cat.name}</option>`
+        ).join('')}
+    `;
+}
+
+// 加载用户画像
+async function loadUserProfile() {
+    try {
+        const userId = localStorage.getItem('paperagent_user_id') || 'default';
+        const data = await fetchJSON(`/api/paperagent/profile/${userId}`);
+        paperAgentState.currentProfile = data.profile;
+        
+        // 恢复选中的兴趣（兼容 research_interests 和 interests 字段）
+        const interests = data.profile?.research_interests || data.profile?.interests || [];
+        if (interests.length > 0) {
+            paperAgentState.selectedInterests = new Set(
+                interests.map(i => typeof i === 'string' ? i : i.category)
+            );
+            renderInterestChips();
+        }
+        
+        renderCurrentProfile();
+    } catch (error) {
+        console.log("No existing profile found");
+    }
+}
+
+// 渲染当前画像
+function renderCurrentProfile() {
+    if (!paEls.currentProfile) return;
+    
+    const profile = paperAgentState.currentProfile;
+    // 兼容后端返回的 research_interests 字段
+    const interests = profile?.research_interests || profile?.interests || [];
+    const interactionCount = profile?.paper_interactions?.length || profile?.interaction_count || 0;
+    const keywords = profile?.keyword_preferences || profile?.keyword_weights || {};
+    
+    if (!profile || interests.length === 0) {
+        paEls.currentProfile.innerHTML = `
+            <div class="col-12 text-center text-muted py-4">
+                暂无画像数据，请先选择感兴趣的论文
+            </div>
+        `;
+        return;
+    }
+    
+    const topKeywords = Object.entries(keywords)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+    
+    paEls.currentProfile.innerHTML = `
+        <div class="col-md-4">
+            <div class="pa-profile-stat">
+                <span class="stat-value">${interests.length}</span>
+                <span class="stat-label">研究领域</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pa-profile-stat">
+                <span class="stat-value">${interactionCount}</span>
+                <span class="stat-label">论文交互</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pa-profile-stat">
+                <span class="stat-value">${topKeywords.length}</span>
+                <span class="stat-label">关键词</span>
+            </div>
+        </div>
+        <div class="col-12 mt-3">
+            <h6 class="small text-muted fw-bold mb-2">研究兴趣领域</h6>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                ${interests.map(i => `
+                    <span class="pa-paper-category">${typeof i === 'string' ? i : i.category}</span>
+                `).join('')}
+            </div>
+            ${topKeywords.length > 0 ? `
+                <h6 class="small text-muted fw-bold mb-2 mt-3">关键词云</h6>
+                <div class="pa-profile-keywords">
+                    ${topKeywords.map(([kw, weight]) => `
+                        <span class="pa-profile-keyword">
+                            ${escapeHtml(kw)}
+                            <span class="keyword-weight">${(weight * 100).toFixed(0)}%</span>
+                        </span>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// 加载推荐论文
+async function loadRecommendedPapers() {
+    if (!paEls.recommendPapers) return;
+    
+    paEls.recommendPapers.innerHTML = `
+        <div class="pa-loading">
+            <div class="spinner"></div>
+            <span>加载推荐论文中...</span>
+        </div>
+    `;
+    
+    try {
+        const categories = Array.from(paperAgentState.selectedInterests);
+        const params = categories.length > 0 
+            ? `?categories=${categories.join(',')}`
+            : '';
+        
+        const data = await fetchJSON(`/api/paperagent/recommend${params}`);
+        paperAgentState.recommendedPapers = data.papers || [];
+        renderRecommendedPapers();
+    } catch (error) {
+        console.error("Failed to load recommended papers:", error);
+        paEls.recommendPapers.innerHTML = `
+            <div class="pa-empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-title">无法加载论文</div>
+                <div class="empty-desc">请检查网络连接或稍后重试</div>
+            </div>
+        `;
+    }
+}
+
+// 刷新推荐论文（重新从 arXiv 获取）
+async function refreshRecommendedPapers() {
+    if (!paEls.recommendPapers || !paEls.refreshPapersBtn) return;
+    
+    const originalText = paEls.refreshPapersBtn.innerHTML;
+    paEls.refreshPapersBtn.disabled = true;
+    paEls.refreshPapersBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 刷新中...';
+    
+    paEls.recommendPapers.innerHTML = `
+        <div class="pa-loading">
+            <div class="spinner"></div>
+            <span>正在从 arXiv 获取最新论文...</span>
+        </div>
+    `;
+    
+    try {
+        const categories = Array.from(paperAgentState.selectedInterests);
+        const params = new URLSearchParams();
+        if (categories.length > 0) {
+            params.append('categories', categories.join(','));
+        }
+        params.append('refresh', 'true'); // 告诉后端强制刷新
+        
+        const data = await fetchJSON(`/api/paperagent/recommend?${params.toString()}`);
+        paperAgentState.recommendedPapers = data.papers || [];
+        
+        // 清空已选择的论文
+        paperAgentState.selectedPapers.clear();
+        updateSelectedCount();
+        
+        renderRecommendedPapers();
+        showNotification('success', '刷新成功', `已获取 ${paperAgentState.recommendedPapers.length} 篇最新论文`);
+        
+    } catch (error) {
+        console.error("Failed to refresh papers:", error);
+        showNotification('error', '刷新失败', '无法获取最新论文');
+        paEls.recommendPapers.innerHTML = `
+            <div class="pa-empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-title">刷新失败</div>
+                <div class="empty-desc">请检查网络连接或稍后重试</div>
+            </div>
+        `;
+    } finally {
+        paEls.refreshPapersBtn.disabled = false;
+        paEls.refreshPapersBtn.innerHTML = originalText;
+    }
+}
+
+// 渲染推荐论文
+function renderRecommendedPapers() {
+    if (!paEls.recommendPapers) return;
+    
+    if (paperAgentState.recommendedPapers.length === 0) {
+        paEls.recommendPapers.innerHTML = `
+            <div class="pa-empty-state">
+                <div class="empty-icon">📄</div>
+                <div class="empty-title">暂无推荐</div>
+                <div class="empty-desc">请先选择感兴趣的研究领域</div>
+            </div>
+        `;
+        return;
+    }
+    
+    paEls.recommendPapers.innerHTML = paperAgentState.recommendedPapers.map(paper => `
+        <div class="pa-paper-item position-relative ${paperAgentState.selectedPapers.has(paper.arxiv_id) ? 'selected' : ''}" 
+             data-id="${paper.arxiv_id}" onclick="togglePaperSelection('${paper.arxiv_id}')">
+            <div class="pa-paper-title">${paper.title}</div>
+            <div class="pa-paper-meta">
+                <span>${paper.authors ? paper.authors.slice(0, 3).join(', ') : 'Unknown'}</span>
+                <span>•</span>
+                <span>${paper.published || ''}</span>
+            </div>
+            <div class="d-flex gap-1 mb-2">
+                ${(paper.categories || []).slice(0, 3).map(cat => 
+                    `<span class="pa-paper-category">${cat}</span>`
+                ).join('')}
+            </div>
+            <div class="pa-paper-abstract">${paper.abstract || ''}</div>
+        </div>
+    `).join('');
+    
+    updateSelectedCount();
+}
+
+// 切换论文选择
+window.togglePaperSelection = function(arxivId) {
+    if (paperAgentState.selectedPapers.has(arxivId)) {
+        paperAgentState.selectedPapers.delete(arxivId);
+    } else if (paperAgentState.selectedPapers.size < 5) {
+        paperAgentState.selectedPapers.add(arxivId);
+    }
+    
+    renderRecommendedPapers();
+    updateSelectedCount();
+};
+
+// 更新选中计数
+function updateSelectedCount() {
+    if (paEls.selectedCount) {
+        paEls.selectedCount.textContent = `${paperAgentState.selectedPapers.size}/5`;
+    }
+    if (paEls.saveProfileBtn) {
+        paEls.saveProfileBtn.disabled = paperAgentState.selectedPapers.size === 0;
+    }
+}
+
+// 保存用户画像
+async function saveUserProfile() {
+    if (paperAgentState.selectedPapers.size === 0) return;
+    
+    const userId = localStorage.getItem('paperagent_user_id') || 'user_' + Date.now();
+    localStorage.setItem('paperagent_user_id', userId);
+    
+    const selectedPapers = paperAgentState.recommendedPapers.filter(
+        p => paperAgentState.selectedPapers.has(p.arxiv_id)
+    );
+    
+    try {
+        paEls.saveProfileBtn.disabled = true;
+        paEls.saveProfileBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>保存中...';
+        
+        await fetchJSON('/api/paperagent/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                interests: Array.from(paperAgentState.selectedInterests),
+                selected_papers: selectedPapers
+            })
+        });
+        
+        // 重新加载画像
+        await loadUserProfile();
+        
+        paEls.saveProfileBtn.innerHTML = '<span class="me-1">✓</span> 已保存';
+        setTimeout(() => {
+            paEls.saveProfileBtn.innerHTML = '保存画像';
+            paEls.saveProfileBtn.disabled = paperAgentState.selectedPapers.size === 0;
+        }, 2000);
+        
+    } catch (error) {
+        console.error("Failed to save profile:", error);
+        paEls.saveProfileBtn.innerHTML = '保存失败';
+        paEls.saveProfileBtn.disabled = false;
+    }
+}
+
+// 清空用户画像
+async function clearUserProfile() {
+    if (!confirm('确定要清空当前画像吗？此操作不可撤销。')) return;
+    
+    const userId = localStorage.getItem('paperagent_user_id');
+    if (!userId) {
+        showNotification('info', '无画像', '当前没有已保存的画像');
+        return;
+    }
+    
+    try {
+        if (paEls.clearProfileBtn) {
+            paEls.clearProfileBtn.disabled = true;
+            paEls.clearProfileBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        }
+        
+        await fetchJSON(`/api/paperagent/profile/${userId}`, {
+            method: 'DELETE'
+        });
+        
+        // 清空本地状态
+        paperAgentState.currentProfile = null;
+        paperAgentState.selectedInterests.clear();
+        paperAgentState.selectedPapers.clear();
+        
+        // 重新渲染
+        renderCurrentProfile();
+        renderInterestChips();
+        updateSelectedCount();
+        
+        showNotification('success', '已清空', '用户画像已清空');
+        
+    } catch (error) {
+        console.error("Failed to clear profile:", error);
+        showNotification('error', '清空失败', error.message || '请稍后重试');
+    } finally {
+        if (paEls.clearProfileBtn) {
+            paEls.clearProfileBtn.disabled = false;
+            paEls.clearProfileBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                清空画像
+            `;
+        }
+    }
+}
+
+// 搜索论文
+async function searchPapers() {
+    if (!paEls.searchInput || !paEls.searchResults) return;
+    
+    const query = paEls.searchInput.value.trim();
+    if (!query) return;
+    
+    const category = paEls.categoryFilter?.value || '';
+    
+    paEls.searchResults.innerHTML = `
+        <div class="pa-loading">
+            <div class="spinner"></div>
+            <span>搜索中...</span>
+        </div>
+    `;
+    
+    try {
+        const params = new URLSearchParams({ query });
+        if (category) params.append('category', category);
+        
+        const data = await fetchJSON(`/api/paperagent/search?${params}`);
+        const papers = data.papers || [];
+        
+        if (papers.length === 0) {
+            paEls.searchResults.innerHTML = `
+                <div class="pa-empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <div class="empty-title">未找到相关论文</div>
+                    <div class="empty-desc">尝试使用不同的关键词</div>
+                </div>
+            `;
+            return;
+        }
+        
+        paEls.searchResults.innerHTML = papers.map(paper => `
+            <div class="pa-paper-item" onclick="viewPaperDetail('${paper.arxiv_id}')">
+                <div class="pa-paper-title">${paper.title}</div>
+                <div class="pa-paper-meta">
+                    <span>${paper.authors ? paper.authors.slice(0, 3).join(', ') : 'Unknown'}</span>
+                    <span>•</span>
+                    <span>${paper.published || ''}</span>
+                </div>
+                <div class="d-flex gap-1 mb-2">
+                    ${(paper.categories || []).slice(0, 3).map(cat => 
+                        `<span class="pa-paper-category">${cat}</span>`
+                    ).join('')}
+                </div>
+                <div class="pa-paper-abstract">${paper.abstract || ''}</div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error("Search failed:", error);
+        paEls.searchResults.innerHTML = `
+            <div class="pa-empty-state">
+                <div class="empty-icon">⚠️</div>
+                <div class="empty-title">搜索失败</div>
+                <div class="empty-desc">${error.message || '请稍后重试'}</div>
+            </div>
+        `;
+    }
+}
+
+// 查看论文详情
+window.viewPaperDetail = function(arxivId) {
+    window.open(`https://arxiv.org/abs/${arxivId}`, '_blank');
+};
+
+// 加载报告列表
+async function loadReports() {
+    if (!paEls.reportList) return;
+    
+    try {
+        const userId = localStorage.getItem('paperagent_user_id') || 'default';
+        const data = await fetchJSON(`/api/paperagent/reports/${userId}`);
+        paperAgentState.reports = data.reports || [];
+        renderReportList();
+    } catch (error) {
+        console.log("No reports found");
+        paperAgentState.reports = [];
+        renderReportList();
+    }
+}
+
+// 渲染报告列表（使用卡片网格布局）
+function renderReportList() {
+    if (!paEls.reportList) return;
+    
+    if (paperAgentState.reports.length === 0) {
+        paEls.reportList.innerHTML = `
+            <div class="pa-empty-state">
+                <div class="empty-icon">📊</div>
+                <div class="empty-title">暂无研究报告</div>
+                <div class="empty-desc">在 Chat 中选择 paper_research Pipeline，输入研究问题即可生成报告</div>
+            </div>
+        `;
+        return;
+    }
+    
+    const typeLabels = {
+        hotspot: '热点分析',
+        idea: '新 Idea',
+        survey: '综述'
+    };
+    
+    paEls.reportList.innerHTML = paperAgentState.reports.map(report => {
+        const dateStr = report.created_at 
+            ? new Date(report.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
+            : '';
+        return `
+            <div class="pa-report-card">
+                <div class="report-card-content" onclick="viewReport('${report.report_id}')">
+                    <span class="report-type-badge ${report.report_type || 'hotspot'}">${typeLabels[report.report_type] || '报告'}</span>
+                    <div class="report-title">${escapeHtml(report.title || '未命名报告')}</div>
+                    <div class="report-summary">${escapeHtml(report.summary || '')}</div>
+                </div>
+                <div class="report-footer">
+                    <span>${dateStr}</span>
+                    <button class="btn btn-sm btn-outline-danger report-delete-btn" onclick="event.stopPropagation(); deleteReport('${report.report_id}')" title="删除报告">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 生成报告 - 使用 paper_research pipeline 后台执行
+async function generateReport() {
+    if (!paEls.reportTopic) return;
+    
+    const topic = paEls.reportTopic.value.trim();
+    if (!topic) {
+        alert('请输入研究主题');
+        return;
+    }
+    
+    const reportType = paEls.reportType?.value || 'hotspot';
+    const userId = localStorage.getItem('paperagent_user_id') || 'default';
+    
+    try {
+        paEls.generateReportBtn.disabled = true;
+        paEls.generateReportBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>提交中...';
+        
+        const data = await fetchJSON('/api/paperagent/generate-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                topic: topic,
+                report_type: reportType
+            })
+        });
+        
+        // 检查是否是后台任务
+        if (data.status === 'started' && data.task_id) {
+            // 显示通知
+            showNotification('info', '报告生成中', `「${topic}」的研究报告正在后台生成，完成后将通知您。`);
+            
+            // 显示后台任务按钮
+            const fab = document.getElementById('bg-tasks-fab');
+            if (fab) fab.classList.remove('d-none');
+            
+            // 开始轮询后台任务
+            startBackgroundPolling();
+            
+            // 保存任务信息以便后续关联报告
+            const taskInfo = {
+                task_id: data.task_id,
+                topic: topic,
+                report_type: reportType,
+                user_id: userId,
+                created_at: new Date().toISOString()
+            };
+            savePaperAgentTask(taskInfo);
+            
+            paEls.generateReportBtn.innerHTML = '<span class="me-1">✨</span> 生成报告';
+            paEls.generateReportBtn.disabled = false;
+            paEls.reportTopic.value = '';
+            
+        } else if (data.report_id) {
+            // 直接返回了报告（快速模式）
+            showNotification('success', '报告生成完成', `「${topic}」的研究报告已生成`);
+            await loadReports();
+            viewReport(data.report_id);
+            
+            paEls.generateReportBtn.innerHTML = '<span class="me-1">✨</span> 生成报告';
+            paEls.generateReportBtn.disabled = false;
+            paEls.reportTopic.value = '';
+        }
+        
+    } catch (error) {
+        console.error("Failed to generate report:", error);
+        
+        // 如果 pipeline 不存在，使用快速模式
+        if (error.message && error.message.includes('not found')) {
+            showNotification('info', '使用快速模式', 'Pipeline 未配置，使用快速生成模式');
+            await generateQuickReport(topic, reportType, userId);
+        } else {
+            showNotification('error', '生成失败', error.message || '请稍后重试');
+            paEls.generateReportBtn.innerHTML = '<span class="me-1">✨</span> 生成报告';
+            paEls.generateReportBtn.disabled = false;
+        }
+    }
+}
+
+// 快速生成报告（不使用 pipeline）
+async function generateQuickReport(topic, reportType, userId) {
+    try {
+        paEls.generateReportBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>生成中...';
+        
+        const data = await fetchJSON('/api/paperagent/quick-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: userId,
+                topic: topic,
+                report_type: reportType
+            })
+        });
+        
+        if (data.report_id) {
+            showNotification('success', '报告生成完成', `「${topic}」的研究报告已生成`);
+            await loadReports();
+            viewReport(data.report_id);
+        }
+        
+        paEls.generateReportBtn.innerHTML = '<span class="me-1">✨</span> 生成报告';
+        paEls.generateReportBtn.disabled = false;
+        paEls.reportTopic.value = '';
+        
+    } catch (error) {
+        console.error("Failed to generate quick report:", error);
+        showNotification('error', '生成失败', error.message || '请稍后重试');
+        paEls.generateReportBtn.innerHTML = '<span class="me-1">✨</span> 生成报告';
+        paEls.generateReportBtn.disabled = false;
+    }
+}
+
+// 保存 PaperAgent 任务信息
+function savePaperAgentTask(taskInfo) {
+    const key = 'paperagent_tasks';
+    let tasks = [];
+    try {
+        const stored = localStorage.getItem(key);
+        if (stored) tasks = JSON.parse(stored);
+    } catch (e) {}
+    
+    tasks.unshift(taskInfo);
+    // 只保留最近 20 个
+    if (tasks.length > 20) tasks = tasks.slice(0, 20);
+    
+    localStorage.setItem(key, JSON.stringify(tasks));
+}
+
+// 查看报告（全屏阅读器模式）
+window.viewReport = async function(reportId) {
+    if (!paEls.reportReader) return;
+    
+    try {
+        const data = await fetchJSON(`/api/paperagent/report/${reportId}`);
+        const report = data.report;
+        
+        const typeLabels = {
+            hotspot: '热点分析',
+            idea: '新 Idea 挖掘',
+            survey: '综述概要'
+        };
+        
+        // 设置标题和元信息
+        if (paEls.readerTitle) paEls.readerTitle.textContent = report.title || '研究报告';
+        if (paEls.readerType) {
+            paEls.readerType.textContent = typeLabels[report.report_type] || '研究报告';
+            paEls.readerType.className = `report-type-badge ${report.report_type || 'hotspot'}`;
+        }
+        if (paEls.readerDate) {
+            const dateStr = report.created_at 
+                ? new Date(report.created_at).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '';
+            paEls.readerDate.textContent = dateStr;
+        }
+        
+        // 渲染 Markdown 内容并处理 citations
+        if (paEls.readerContent && window.marked) {
+            let htmlContent = DOMPurify.sanitize(marked.parse(report.content || ''));
+            
+            // 处理 citation 引用 [1], [2] 等，添加点击事件
+            htmlContent = htmlContent.replace(
+                /\[(\d+)\]/g, 
+                '<span class="citation-link" onclick="showReportCitation($1)">[$1]</span>'
+            );
+            
+            paEls.readerContent.innerHTML = htmlContent;
+            
+            // 渲染数学公式
+            if (window.renderMathInElement) {
+                renderMathInElement(paEls.readerContent, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\[', right: '\\]', display: true},
+                        {left: '\\(', right: '\\)', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        }
+        
+        // 渲染引用列表
+        renderCitationsList(report);
+        
+        // 保存当前报告用于下载
+        paperAgentState.currentReport = report;
+        
+        // 显示阅读器
+        paEls.reportReader.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+        
+    } catch (error) {
+        console.error("Failed to load report:", error);
+        showNotification('error', '加载失败', '无法加载报告内容');
+    }
+};
+
+// 渲染引用列表
+function renderCitationsList(report) {
+    if (!paEls.citationsList) return;
+    
+    // 尝试从引用论文中获取详情
+    const citedPapers = report.cited_papers || [];
+    
+    if (citedPapers.length === 0) {
+        // 如果没有 cited_papers，从内容中提取引用数字
+        const content = report.content || '';
+        const citationMatches = content.match(/\[(\d+)\]/g);
+        const uniqueCitations = [...new Set(citationMatches || [])].sort((a, b) => {
+            return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]);
+        });
+        
+        if (uniqueCitations.length === 0) {
+            paEls.citationsList.innerHTML = '<div class="text-muted small">暂无引用信息</div>';
+            return;
+        }
+        
+        paEls.citationsList.innerHTML = uniqueCitations.map(cite => {
+            const num = cite.match(/\d+/)[0];
+            return `
+                <div class="citation-item" data-citation-id="${num}">
+                    <span class="citation-id">${num}</span>
+                    <div class="citation-title">引用 ${num}</div>
+                    <div class="citation-meta">见正文</div>
+                </div>
+            `;
+        }).join('');
+        return;
+    }
+    
+    // 使用 cited_papers 渲染引用列表
+    paEls.citationsList.innerHTML = citedPapers.map(paper => {
+        const citationId = paper.citation_id || citedPapers.indexOf(paper) + 1;
+        const authors = paper.authors ? paper.authors.slice(0, 3).join(', ') : '';
+        const arxivUrl = paper.arxiv_url || (paper.arxiv_id ? `https://arxiv.org/abs/${paper.arxiv_id}` : '');
+        
+        return `
+            <div class="citation-item" data-citation-id="${citationId}">
+                <span class="citation-id">${citationId}</span>
+                <div class="citation-title">${arxivUrl ? `<a href="${arxivUrl}" target="_blank">${escapeHtml(paper.title || '')}</a>` : escapeHtml(paper.title || '')}</div>
+                <div class="citation-meta">${authors}${authors && paper.published ? ' • ' : ''}${paper.published || ''}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 关闭报告阅读器
+function closeReportReader() {
+    if (paEls.reportReader) {
+        paEls.reportReader.classList.add('d-none');
+        document.body.style.overflow = '';
+    }
+}
+
+// 删除报告
+window.deleteReport = async function(reportId) {
+    if (!confirm('确定要删除这份报告吗？此操作不可撤销。')) return;
+    
+    try {
+        await fetchJSON(`/api/paperagent/reports/${reportId}`, {
+            method: 'DELETE'
+        });
+        
+        showNotification('success', '已删除', '报告已删除');
+        
+        // 刷新列表
+        await loadReports();
+        
+    } catch (error) {
+        console.error("Failed to delete report:", error);
+        showNotification('error', '删除失败', error.message || '请稍后重试');
+    }
+};
+
+// 点击引用弹出详情（参考 chat 中的实现）
+window.showReportCitation = function(citationNum) {
+    const report = paperAgentState.currentReport;
+    if (!report) return;
+    
+    // 在右侧引用列表中高亮并滚动到对应引用
+    const citationItems = document.querySelectorAll('#pa-citations-list .citation-item');
+    citationItems.forEach((item) => {
+        item.classList.remove('highlighted');
+        const itemCitationId = item.dataset.citationId;
+        if (itemCitationId == citationNum) {
+            item.classList.add('highlighted');
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+    
+    // 同时使用 chat 的 source-detail-panel 显示详情
+    const panel = document.getElementById("source-detail-panel");
+    if (panel) {
+        const citedPapers = report.cited_papers || [];
+        // 通过 citation_id 查找论文
+        const paper = citedPapers.find(p => p.citation_id == citationNum) || citedPapers[citationNum - 1];
+        
+        let detailHtml = '';
+        if (paper) {
+            const arxivUrl = paper.arxiv_url || (paper.arxiv_id ? `https://arxiv.org/abs/${paper.arxiv_id}` : '');
+            detailHtml = `
+                <div class="source-detail-header">
+                    <span class="source-id">[${citationNum}]</span>
+                    <span class="source-title">${escapeHtml(paper.title || '')}</span>
+                </div>
+                <div class="source-detail-content">
+                    ${paper.authors ? `<p class="mb-2"><strong>作者:</strong> ${escapeHtml(paper.authors.slice(0, 5).join(', '))}${paper.authors.length > 5 ? ' 等' : ''}</p>` : ''}
+                    ${arxivUrl ? `<p class="mb-2"><strong>arXiv:</strong> <a href="${arxivUrl}" target="_blank">${paper.arxiv_id || arxivUrl}</a></p>` : ''}
+                    ${paper.published ? `<p class="mb-2"><strong>发布日期:</strong> ${paper.published}</p>` : ''}
+                    ${paper.categories ? `<p class="mb-2"><strong>分类:</strong> ${Array.isArray(paper.categories) ? paper.categories.join(', ') : paper.categories}</p>` : ''}
+                    ${paper.abstract ? `<p class="mb-0"><strong>摘要:</strong> ${escapeHtml(paper.abstract.substring(0, 500))}${paper.abstract.length > 500 ? '...' : ''}</p>` : ''}
+                </div>
+            `;
+        } else {
+            detailHtml = `
+                <div class="source-detail-header">
+                    <span class="source-id">[${citationNum}]</span>
+                    <span class="source-title">引用 ${citationNum}</span>
+                </div>
+                <div class="source-detail-content">
+                    <p class="text-muted">详细信息见正文</p>
+                </div>
+            `;
+        }
+        
+        panel.innerHTML = detailHtml;
+        panel.classList.add("show");
+    }
+};
+
+// 下载报告为 Markdown
+async function downloadCurrentReport() {
+    const report = paperAgentState.currentReport;
+    if (!report) return;
+    
+    try {
+        // 创建 Markdown 内容
+        const markdown = `# ${report.title}\n\n> 生成时间: ${report.created_at}\n> 类型: ${report.report_type}\n\n${report.content}`;
+        
+        // 创建下载
+        const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${report.title || 'research_report'}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showNotification('success', '下载成功', 'Markdown 文件已保存');
+    } catch (error) {
+        console.error("Failed to download report:", error);
+        showNotification('error', '下载失败', '无法下载报告');
+    }
+}
+
+// 刷新 PaperAgent 数据
+window.refreshPaperAgentData = function() {
+    loadPaperAgentData();
+};
+
+// 返回聊天视图时也要处理 PaperAgent 视图
+const originalBackToChatView = typeof backToChatView === 'function' ? backToChatView : null;
+function enhancedBackToChatView() {
+    if (!els.chatMainView) return;
+    
+    // 隐藏所有其他视图
+    if (els.kbMainView) els.kbMainView.classList.add("d-none");
+    if (paEls.mainView) paEls.mainView.classList.add("d-none");
+    els.chatMainView.classList.remove("d-none");
+    
+    // 更新按钮状态
+    if (els.kbBtn) els.kbBtn.classList.remove("active");
+    if (paEls.btn) paEls.btn.classList.remove("active");
+    
+    renderChatCollectionOptions();
+    renderChatSidebar();
+}
+
+// 初始化时调用
+setTimeout(() => {
+    initPaperAgent();
+    
+    // 覆盖 backToChatView
+    if (typeof window.backToChatView !== 'undefined' || originalBackToChatView) {
+        // 保持原有逻辑但扩展
+    }
+}, 100);
 
 bootstrap();

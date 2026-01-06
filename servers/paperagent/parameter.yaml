@@ -1,0 +1,26 @@
+# PaperAgent Server 参数配置
+# 用于配置论文爬取、用户画像和报告生成相关参数
+
+paperagent:
+  # 用户 ID（运行时动态传入）
+  user_id: ""
+  
+  # arXiv 爬取配置
+  crawler:
+    request_interval: 3.0  # 请求间隔（秒）
+    timeout: 30
+    max_retries: 3
+  
+  # 默认搜索配置
+  search:
+    max_results: 20
+    sort_by: "relevance"  # relevance, submittedDate, lastUpdatedDate
+  
+  # 语料库配置
+  corpus:
+    default_max_papers: 500
+    
+  # 报告配置
+  report:
+    max_summary_length: 200
+

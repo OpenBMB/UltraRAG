@@ -671,5 +671,31 @@ def surveycpm_extend_plan(
     return ret
 
 
+# ==================== PaperAgent Prompts ====================
+
+@app.prompt(output="instruction_ls,ret_psg,context_ls,paper_research_light_template->prompt_ls")
+def paper_research_light(
+    instruction_ls: List[str],
+    ret_psg: List[List[str]],
+    context_ls: List[Any] = None,
+    paper_research_light_template: str | Path = None,
+) -> List[PromptMessage]:
+    """Paper Research Light prompt for quick research report generation."""
+    template: Template = load_prompt_template(paper_research_light_template)
+    
+    ret = []
+    for i, instruction in enumerate(instruction_ls):
+        psg = ret_psg[i] if i < len(ret_psg) else []
+        context = context_ls[i] if context_ls and i < len(context_ls) else {}
+        
+        p = template.render(
+            instruction=instruction,
+            ret_psg=psg,
+            research_context=context
+        )
+        ret.append(p)
+    return ret
+
+
 if __name__ == "__main__":
     app.run(transport="stdio")

@@ -1,0 +1,138 @@
+# Paper Research Pipeline - 论文研究报告生成
+# 基于用户研究兴趣，使用在线 arXiv 检索生成热点和新 idea 挖掘报告
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+  paperagent: servers/paperagent
+
+# MCP Client Pipeline
+pipeline:
+# 1. 获取用户输入的研究主题
+- benchmark.get_data:
+    output:
+      q_ls: instruction_ls
+
+# 2. 初始化 PaperAgent
+- paperagent.paperagent_init
+
+# 2.5 重置引用注册表
+- paperagent.reset_arxiv_citation_registry
+
+# 3. 准备研究上下文（包含用户画像）
+- paperagent.prepare_research_context:
+    input:
+      topic: instruction_ls
+    output:
+      research_context: research_context_ls
+
+# 4. 初始化生成器
+- generation.generation_init
+
+# 5. 初始化 Citation Registry
+- custom.surveycpm_init_citation_registry:
+    input:
+      instruction_ls: instruction_ls
+
+# 6. 初始化状态
+- custom.surveycpm_state_init:
+    input:
+      instruction_ls: instruction_ls
+
+# 7. 主循环：搜索 -> 规划 -> 写作
+- loop:
+    times: 100
+    steps:
+    - branch:
+        router:
+        - router.surveycpm_state_router
+        branches:
+          search:
+          - prompt.surveycpm_search:
+              output:
+                prompt_ls: search_prompt_ls          
+          - generation.generate:
+              input:
+                prompt_ls: search_prompt_ls
+              output:
+                ans_ls: search_response_ls
+          - custom.surveycpm_parse_search_response:
+              input:
+                response_ls: search_response_ls       
+          # 使用在线 arXiv 搜索替代 Milvus 检索
+          - paperagent.arxiv_online_search:
+              input:
+                keywords_ls: keywords_ls
+              output:
+                ret_psg_ls: ret_psg_ls
+                psg_ids_ls: psg_ids_ls
+          # 使用 paperagent 的 citation 处理（适配 arXiv 检索格式）
+          - paperagent.process_arxiv_passages_with_citation:
+              input:
+                ret_psg_ls: ret_psg_ls
+                psg_ids_ls: psg_ids_ls
+              output:
+                retrieved_info_ls: retrieved_info_ls
+                ret_psg: ret_psg
+          - custom.surveycpm_update_state
+          
+          analyst-init_plan:
+          - prompt.surveycpm_init_plan:
+              output:
+                prompt_ls: init_plan_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: init_plan_prompt_ls
+              output:
+                ans_ls: init_plan_response_ls
+          - custom.surveycpm_after_init_plan:
+              input:
+                response_ls: init_plan_response_ls
+          - custom.surveycpm_update_state
+          
+          write:
+          - prompt.surveycpm_write:
+              output:
+                prompt_ls: write_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: write_prompt_ls
+              output:
+                ans_ls: write_response_ls
+          - custom.surveycpm_after_write:
+              input:
+                response_ls: write_response_ls
+          - custom.surveycpm_update_state
+          
+          analyst-extend_plan:
+          - prompt.surveycpm_extend_plan:
+              output:
+                prompt_ls: extend_prompt_ls         
+          - generation.generate:
+              input:
+                prompt_ls: extend_prompt_ls
+              output:
+                ans_ls: extend_response_ls
+          - custom.surveycpm_after_extend:
+              input:
+                response_ls: extend_response_ls
+          - custom.surveycpm_update_state
+          
+          done: []
+
+# 8. 格式化输出
+- custom.surveycpm_format_output:
+    output:
+      ans_ls: final_report_ls
+
+# 9. 保存报告到 PaperAgent（自动获取引用论文信息）
+- paperagent.create_report:
+    input:
+      content: final_report_ls
+      topics: instruction_ls
+    output:
+      report: saved_report

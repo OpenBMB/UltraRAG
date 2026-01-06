@@ -148,6 +148,13 @@
           </span>
           <span class="btn-text">Knowledge Base</span>
         </button>
+
+        <button type="button" id="paperagent-btn" class="btn-nav">
+          <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+          </span>
+          <span class="btn-text">PaperAgent</span>
+        </button>
       </div>
       
       <div class="sidebar-list">
@@ -262,6 +269,196 @@
         <div class="kb-wrapper p-4 bg-light">
             <div id="bookshelf-grid" class="bookshelf-grid">
                 </div>
+        </div>
+    </div>
+
+    <!-- PaperAgent 主视图 -->
+    <div class="paperagent-main d-none" id="paperagent-main-view">
+        <header class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
+            <h3 class="m-0 fs-5 fw-bold text-dark">
+              <span class="me-2">📄</span>PaperAgent
+            </h3>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" id="pa-refresh-btn" onclick="refreshPaperAgentData()">
+                    <span>↻</span> 刷新
+                </button>
+            </div>
+        </header>
+        
+        <div class="pa-wrapper p-4 bg-light">
+            <!-- Tab 导航 -->
+            <ul class="nav nav-pills nav-fill mb-4 p-1 bg-white rounded-3 shadow-sm" id="paperagent-tabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-3 py-2" data-pa-tab="profile" type="button">
+                        <span class="me-1">👤</span> 我的画像
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-3 py-2" data-pa-tab="explore" type="button">
+                        <span class="me-1">🔍</span> 探索论文
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-3 py-2" data-pa-tab="reports" type="button">
+                        <span class="me-1">📊</span> 研究报告
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab 内容区 -->
+            <div class="pa-tab-content">
+                <!-- 用户画像 Tab -->
+                <div class="pa-tab-pane active" id="pa-profile-pane">
+                    <div class="row g-4">
+                        <!-- 左侧：兴趣配置 -->
+                        <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                                    <h5 class="fw-bold mb-1">研究兴趣</h5>
+                                    <p class="text-muted small mb-0">选择你感兴趣的 CS 研究领域</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="pa-interest-chips" class="d-flex flex-wrap gap-2">
+                                        <!-- 兴趣标签将动态生成 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：推荐论文选择 -->
+                        <div class="col-lg-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white border-bottom-0 pt-4 pb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="fw-bold mb-1">初始化画像</h5>
+                                            <p class="text-muted small mb-0">选择 5 篇感兴趣的论文以建立画像</p>
+                                        </div>
+                                        <span class="badge bg-primary rounded-pill" id="pa-selected-count">0/5</span>
+                                    </div>
+                                    <button class="btn btn-outline-secondary btn-sm mt-2" id="pa-refresh-papers-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                        刷新论文
+                                    </button>
+                                </div>
+                                <div class="card-body pa-paper-list" id="pa-recommend-papers">
+                                    <div class="text-center text-muted py-5">
+                                        <div class="spinner-border spinner-border-sm me-2"></div>
+                                        加载推荐论文中...
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-top-0 pb-4">
+                                    <button class="btn btn-dark w-100 rounded-pill" id="pa-save-profile-btn" disabled>
+                                        保存画像
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 当前画像展示 -->
+                    <div class="card border-0 shadow-sm mt-4" id="pa-current-profile-card">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="fw-bold mb-1">当前画像</h5>
+                                <p class="text-muted small mb-0">基于你的交互历史分析的研究偏好</p>
+                            </div>
+                            <button class="btn btn-outline-danger btn-sm" id="pa-clear-profile-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                清空画像
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="pa-current-profile" class="row g-3">
+                                <div class="col-12 text-center text-muted py-4">
+                                    暂无画像数据，请先选择感兴趣的论文
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 探索论文 Tab -->
+                <div class="pa-tab-pane d-none" id="pa-explore-pane">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-3">
+                            <div class="row g-3 align-items-center">
+                                <div class="col">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="pa-search-input" placeholder="搜索 arXiv 论文...">
+                                        <button class="btn btn-dark" type="button" id="pa-search-btn">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <select class="form-select" id="pa-category-filter">
+                                        <option value="">所有分类</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body pa-paper-list" id="pa-search-results">
+                            <div class="text-center text-muted py-5">
+                                输入关键词搜索论文，或浏览推荐内容
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 研究报告 Tab -->
+                <div class="pa-tab-pane d-none" id="pa-reports-pane">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="fw-bold mb-1">研究报告</h5>
+                                <p class="text-muted small mb-0">在 Chat 中选择 <code>paper_research</code> Pipeline 生成报告，生成的报告将自动保存在这里</p>
+                            </div>
+                            <button class="btn btn-outline-secondary btn-sm" id="pa-refresh-reports-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                                刷新
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="pa-reports-grid" id="pa-report-list">
+                                <div class="text-center text-muted py-5">
+                                    暂无历史报告
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 报告阅读器（全屏模式） -->
+    <div id="pa-report-reader" class="report-reader d-none">
+        <div class="report-reader-header">
+            <button class="btn-back" id="pa-reader-back-btn" title="返回">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+            <div class="report-reader-title">
+                <h1 id="pa-reader-title">研究报告</h1>
+                <div class="report-meta">
+                    <span class="report-type-badge" id="pa-reader-type">热点分析</span>
+                    <span class="report-date" id="pa-reader-date"></span>
+                </div>
+            </div>
+            <div class="report-reader-actions">
+                <button class="btn btn-outline-secondary btn-sm" id="pa-reader-download-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    下载 Markdown
+                </button>
+            </div>
+        </div>
+        <div class="report-reader-body">
+            <article class="report-content markdown-body" id="pa-reader-content">
+            </article>
+            <aside class="report-citations" id="pa-reader-citations">
+                <h3>引用文献</h3>
+                <div class="citations-list" id="pa-citations-list"></div>
+            </aside>
         </div>
     </div>
 
