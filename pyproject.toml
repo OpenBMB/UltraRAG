@@ -24,6 +24,7 @@ dependencies = [
     "pillow",
     "rouge-score",
     "pytrec-eval-terrier",
+    "flask",
 ]
 
 [project.optional-dependencies]
@@ -35,6 +36,8 @@ retriever = [
     "faiss-gpu-cu12",
     "exa_py",
     "tavily-python",
+    "pymilvus",
+    "numba",
 ]
 
 generation = [
@@ -47,6 +50,9 @@ corpus = [
     "chonkie",
     "pymupdf",
     "mineru[core]",
+    "python-docx",
+    "charset-normalizer",
+    "tiktoken",
 ]
 
 all = [
