@@ -634,11 +634,23 @@ async def chunk_documents(
                 contents = title + "\n" + chunk.text
             else:
                 contents = chunk.text
+            # meta_chunk = {
+            #     "id": current_chunk_id,
+            #     "doc_id": doc_id,
+            #     "title": title,
+            #     "contents": contents.strip(),
+            # }
             meta_chunk = {
                 "id": current_chunk_id,
                 "doc_id": doc_id,
                 "title": title,
                 "contents": contents.strip(),
+                "publish_time": doc.get("publish_time"),
+                "origin_contents": doc.get("contents"),
+                "one_label": doc.get("one_label"),
+                "one_label_desc": doc.get("one_label_desc"),
+                "two_label": doc.get("two_label"),
+                "two_label_desc": doc.get("two_label_desc"),
             }
             chunked_documents.append(meta_chunk)
             current_chunk_id += 1
@@ -1161,12 +1173,66 @@ async def merge_new_old_data_pro(
             if old_data['one_label'] != change_twolabel_dict[old_data['two_label']]:
                 old_data['one_label'] = change_twolabel_dict[old_data['two_label']]
                 old_data['one_label_desc'] = onelabel_desc_dict[old_data['one_label']]
-
         raws.append(old_data)
     raws.extend(documents)
 
+    id_sum_num = len(old_documents) + len(documents)
+    num_str_list = []
+    for num_str in range(id_sum_num):
+        num_str_list.append(str(num_str))
+    
+    for doc_obj_id in raws:
+        if doc_obj_id['id'] in num_str_list:
+            num_str_list.remove(doc_obj_id['id'])
+
+    id_num = 0
+    id_dict = {}
+    for doc_obj_id in raws:
+        if doc_obj_id['id'] in id_dict:
+            doc_obj_id['id'] = num_str_list[id_num]
+            id_num += 1
+        else:
+            id_dict[doc_obj_id['id']] = 1
+
     out_path = os.path.abspath(input_old_data_file_path)
     _save_jsonl(raws, out_path)
+
+@app.tool(output="input_one_two_label_path->onelabel_num, onelabel_str")
+async def load_one_label(
+    input_one_two_label_path: str,
+) -> Dict[str, str]:
+
+    labels = _load_jsonl(input_one_two_label_path)
+
+    onelabel_has_two_label_dict = {}
+    onelabel_list = []
+    onelabel_desc_dict = {}
+    twolabel_desc_dict = {}
+    twolabel_in_onelabel_dict = {}
+    for label_obj in labels:
+        onelabel_desc_dict[label_obj['one_label']] = label_obj['one_label_desc']
+        twolabel_desc_dict[label_obj['two_label']] = label_obj['two_label_desc']
+        if label_obj['one_label'] not in onelabel_list:
+            onelabel_list.append(label_obj['one_label'])
+        if label_obj['one_label'] in onelabel_has_two_label_dict:
+            if label_obj['two_label'] not in onelabel_has_two_label_dict[label_obj['one_label']]:
+                onelabel_has_two_label_dict[label_obj['one_label']].append(label_obj['two_label'])
+        else:
+            onelabel_has_two_label_dict[label_obj['one_label']] = [label_obj['two_label']]
+        if label_obj['two_label'] in twolabel_in_onelabel_dict:
+            if label_obj['one_label'] not in twolabel_in_onelabel_dict[label_obj['two_label']]:
+                twolabel_in_onelabel_dict[label_obj['two_label']].append(label_obj['one_label'])
+        else:
+            twolabel_in_onelabel_dict[label_obj['two_label']] = [label_obj['one_label']]
+    
+    onelabel_num = 1
+    onelabel_str = '\n'
+    for onelabel_key in onelabel_desc_dict:
+        onelabel_str += str(onelabel_num)+'. ' + '\"label\": ' + onelabel_key + ' \"description\": ' + onelabel_desc_dict[onelabel_key] + '.\n'
+        onelabel_num += 1
+    
+    data = {'onelabel_num': str(onelabel_num), 'onelabel_str': onelabel_str}
+    return data
 
 
 if __name__ == "__main__":

@@ -443,6 +443,15 @@ def twolabel_desc(prompt_twolabel_list: List[str], prompt_onelabel_list: List[st
             p = template.render(prompt_twolabel=prompt_twolabel, prompt_onelabel=prompt_onelabel_list[p_i], onelabel_desc=prompt_onelabel_desc_list[p_i])
             ret.append(p)
     return ret
+
+@app.prompt(output="q_ls, onelabel_num, onelabel_str, label_one_two_classify_template->prompt_ls")
+def query_label_classify(q_ls: List[str], onelabel_num: str, onelabel_str: str, template: str | Path) -> List[PromptMessage]:
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q_i, q in enumerate(q_ls):
+        p = template.render(label_num=onelabel_num, label_description=onelabel_str, text=q)
+        ret.append(p)
+    return ret
     
 if __name__ == "__main__":
     app.run(transport="stdio")

@@ -22,6 +22,7 @@ lable_classify_template: prompt/label_classify.jinja
 lable_new_classify_template: prompt/label_new_classify.jinja
 label_merge_template: prompt/label_merge.jinja
 label_desc_template: prompt/label_desc.jinja
+label_one_two_classify_template: prompt/label_one_two_classify.jinja
 
 # For other prompts, please add parameters here as needed
 

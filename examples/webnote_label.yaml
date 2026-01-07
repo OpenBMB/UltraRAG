@@ -1,0 +1,59 @@
+# WebNote Demo
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  corpus: servers/corpus
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+  evaluation: servers/evaluation
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- corpus.load_one_label
+- retriever.retriever_init
+- generation.generation_init
+- prompt.webnote_gen_plan
+- generation.generate:
+    output:
+      ans_ls: plan_ls
+- prompt.webnote_init_page
+- generation.generate:
+    output:
+      ans_ls: page_ls
+- loop:
+    times: 5
+    steps:
+    - branch:
+        router:
+        - router.webnote_check_page
+        branches:
+          incomplete:
+          - prompt.webnote_gen_subq
+          - generation.generate:
+              output:
+                ans_ls: subq_ls
+          - prompt.query_label_classify
+          - generation.generate:
+              input:
+                prompt_ls: subq_ls
+              output:
+                ans_ls: onelabel_list
+          - retriever.retriever_search_by_label:
+              input:
+                query_list: subq_ls
+              output:
+                ret_psg: psg_ls
+          - prompt.webnote_fill_page
+          - generation.generate:
+              output:
+                ans_ls: page_ls
+          complete: []
+- prompt.webnote_gen_answer
+- generation.generate
+- custom.output_extract_from_boxed
+- evaluation.evaluate

@@ -16,8 +16,8 @@ mineru_extra_params:
   source: modelscope
 
 # chunking parameters
-raw_chunk_path: corpora/text.jsonl
-chunk_path: corpora/chunks.jsonl
+raw_chunk_path: data/label_update/update_data/update_onelabel_data_old.json
+chunk_path: data/label_update/update_data/update_onelabel_data_old_chunks.json
 use_title: false
 chunk_backend: token # choices=["token", "sentence", "recursive"]
 chunk_backend_configs:
