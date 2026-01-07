@@ -15,7 +15,6 @@ try:
 except ImportError: 
     MilvusClient = None  
 
-
 class MilvusIndexBackend(BaseIndexBackend):
     def __init__(
         self,
@@ -42,6 +41,7 @@ class MilvusIndexBackend(BaseIndexBackend):
 
         self.id_field: str = str(self.config.get("id_field_name", "id"))
         self.vector_field: str = str(self.config.get("vector_field_name", "vector"))
+        self.onelabel_field: str = str(self.config.get("onelabel_field_name", "onelabel"))
         
         self.metric_type: str = str(self.config.get("metric_type", "IP"))
         self.index_params: dict[str, Any] = dict(self.config.get("index_params"))
@@ -95,10 +95,6 @@ class MilvusIndexBackend(BaseIndexBackend):
         )
         self.collection_loaded = True
         self.logger.info(f"[milvus] Created new collection '{self.collection_name}'.")
-
-
-
-
     def load_index(self) -> None: 
         self._client_connect()
         try:
@@ -166,6 +162,62 @@ class MilvusIndexBackend(BaseIndexBackend):
             pass
 
         self.logger.info("[milvus] Index ready on collection '%s'.", self.collection_name)
+    def build_index_label(
+        self,
+        *,
+        embeddings: np.ndarray,
+        ids: np.ndarray,
+        overwrite: bool = False,
+        onelabels: List[str],
+    ) -> None:
+        
+        if not overwrite and self.collection_loaded:
+            self.logger.info(
+                f"[milvus] Collection '{self.collection_name}' already loaded, skip creation."
+            )
+            return
+        
+        client = self._client_connect()
+        
+        embeddings = np.asarray(embeddings, dtype=np.float32, order="C")
+        ids = np.asarray(ids, dtype=np.int64)
+        if embeddings.ndim != 2:
+            raise ValueError("[milvus] embeddings must be a 2-D array.")
+        if ids.ndim != 1 or ids.shape[0] != embeddings.shape[0]:
+            raise ValueError("[milvus] ids must align with embeddings.")
+
+        dim = int(embeddings.shape[1])
+        self._ensure_collection(dim=dim, overwrite=overwrite)
+
+        total = embeddings.shape[0]
+        info_msg = f"[milvus] Inserting {total} vectors into collection {self.collection_name}."
+        self.logger.info(info_msg)
+        
+        index_chunk_size = int(self.config.get("index_chunk_size"))
+        with tqdm(
+            total=total,
+            desc="[milvus] Indexing: ",
+            unit="vec",
+        ) as pbar:
+            for start in range(0, total, index_chunk_size):
+                end = min(start + index_chunk_size, total)
+                rows = [
+                    {self.id_field: int(i), self.vector_field: vec, self.onelabel_field: onelabel}
+                    for i, vec, onelabel in zip(ids[start:end].tolist(), embeddings[start:end].tolist(), onelabels[start:end])
+                ]
+                client.insert(collection_name=self.collection_name, data=rows)  
+                pbar.update(end - start)
+
+        try:
+            client.create_index(
+                collection_name=self.collection_name,  
+                field_name=self.vector_field,
+                index_params=self.index_params,
+            )
+        except Exception:
+            pass
+
+        self.logger.info("[milvus] Index ready on collection '%s'.", self.collection_name)
 
     def search(
         self,
@@ -199,5 +251,62 @@ class MilvusIndexBackend(BaseIndexBackend):
                 did = int(doc_id)
                 row.append(self.contents[did])
             ret.append(row)
+        return ret
+    
+    def search_by_label(
+        self,
+        query_embeddings: np.ndarray,
+        top_k: int,
+        onelabel_list: List[str],
+    ) -> List[List[str]]:
+
+        client = self._client_connect()
+
+        query_embeddings = np.asarray(query_embeddings, dtype=np.float32, order="C")
+        if query_embeddings.ndim != 2:
+            raise ValueError("[milvus] query embeddings must be 2-D.")
+
+        # MilvusClient.search returns list[list[{id, distance, entity}]]
+        ret = []
+        query_embeddings_list = query_embeddings.tolist()
+        for oI, onelabel in enumerate(onelabel_list):
+            if onelabel == 'error_label':
+                try:
+                    res = client.search(
+                        collection_name=self.collection_name,
+                        data=[query_embeddings_list[oI]],
+                        limit=int(top_k),
+                        search_params=self.search_params,
+                        output_fields=[self.id_field],  # we only need ids
+                    )
+                except Exception as exc:  
+                    raise RuntimeError(f"[milvus] Search failed: {exc}") from exc
+
+                row = []
+                for hit in res[0]:
+                    doc_id = hit.get("id") if isinstance(hit, dict) else getattr(hit, "id", None)
+                    did = int(doc_id)
+                    row.append(self.contents[did])
+                ret.append(row)
+            else:
+                filter_condition = f'onelabel == "{onelabel}"'
+                try:
+                    res = client.search(
+                        collection_name=self.collection_name,
+                        data=[query_embeddings_list[oI]],
+                        filter=filter_condition,
+                        limit=int(top_k),
+                        search_params=self.search_params,
+                        output_fields=[self.id_field],  # we only need ids
+                    )
+                except Exception as exc:  
+                    raise RuntimeError(f"[milvus] Search failed: {exc}") from exc
+                
+                row = []
+                for hit in res[0]:
+                    doc_id = hit.get("id") if isinstance(hit, dict) else getattr(hit, "id", None)
+                    did = int(doc_id)
+                    row.append(self.contents[did])
+                ret.append(row)
         return ret
 

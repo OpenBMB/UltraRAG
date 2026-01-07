@@ -9,6 +9,7 @@ import orjson
 import numpy as np
 from tqdm import tqdm
 from PIL import Image
+import json
 
 from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
@@ -32,12 +33,20 @@ class Retriever:
             output="embedding_path,overwrite->None",
         )
         mcp_inst.tool(
+            self.retriever_index_label,
+            output="embedding_path,overwrite->None",
+        )
+        mcp_inst.tool(
             self.bm25_index,
             output="overwrite->None",
         )
         mcp_inst.tool(
             self.retriever_search,
             output="q_ls,top_k,query_instruction->ret_psg",
+        )
+        mcp_inst.tool(
+            self.retriever_search_by_label,
+            output="q_ls,onelabel_list,input_one_two_label_path,top_k,query_instruction->ret_psg",
         )
         mcp_inst.tool(
             self.retriever_deploy_search,
@@ -214,6 +223,7 @@ class Retriever:
             raise ValueError(error_msg)
 
         self.contents = []
+        self.onelabels = []
         corpus_path_obj = Path(corpus_path)
         corpus_dir = corpus_path_obj.parent
         file_size = os.path.getsize(corpus_path)
@@ -243,6 +253,8 @@ class Retriever:
                             raise ValueError(error_msg)
 
                         self.contents.append(item["contents"])
+                        if 'one_label' in item:
+                            self.onelabels.append(item['one_label'])
                     else:
                         if "image_path" not in item:
                             error_msg = (
@@ -489,6 +501,47 @@ class Retriever:
         
         info_msg = f"[{self.index_backend_name}] Indexing success."
         app.logger.info(info_msg)
+    def retriever_index_label(
+        self,
+        embedding_path: str,
+        overwrite: bool = False,
+    ):
+        if self.backend == "bm25":
+            err_msg = "BM25 backend does not support vector index building via retriever_index_label."
+            app.logger.error(err_msg)
+            raise ValueError(err_msg)
+
+        if self.index_backend is None:
+            err_msg = (
+                "Vector index backend is not initialized. "
+                "Ensure retriever_init completed successfully."
+            )
+            app.logger.error(err_msg)
+            raise RuntimeError(err_msg)
+
+        if not os.path.exists(embedding_path):
+            app.logger.error(f"Embedding file not found: {embedding_path}")
+            raise NotFoundError(f"Embedding file not found: {embedding_path}")
+
+        embedding = np.load(embedding_path)
+        vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
+        
+        try:
+            self.index_backend.build_index_label(
+                embeddings=embedding,
+                ids=vec_ids,
+                overwrite=overwrite,
+                onelabels=self.onelabels,
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        finally:
+            del embedding
+            gc.collect()
+
+        
+        info_msg = f"[{self.index_backend_name}] Indexing success."
+        app.logger.info(info_msg)
 
     def bm25_index(
         self,
@@ -612,6 +665,129 @@ class Retriever:
             raise RuntimeError(err_msg)
 
         rets = self.index_backend.search(query_embedding, top_k)
+
+        return {"ret_psg": rets}
+
+    async def retriever_search_by_label(
+        self,
+        query_list: List[str],
+        onelabel_list: List[str],
+        input_one_two_label_path: str,
+        top_k: int = 5,
+        query_instruction: str = "",
+    ) -> Dict[str, List[List[str]]]:
+
+        if isinstance(query_list, str):
+            query_list = [query_list]
+        queries = [f"{query_instruction}{query}" for query in query_list]
+
+        origin_onelabel_list = []
+        origin_twolabel_list = []
+        with open(input_one_two_label_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                label_data = json.loads(line)
+                if label_data['one_label'] not in origin_onelabel_list:
+                    origin_onelabel_list.append(label_data['one_label'])
+                if label_data['two_label'] not in origin_twolabel_list:
+                    origin_twolabel_list.append(label_data['two_label'])
+        
+        onelabel_pro_list = []
+        for onelabel_temp in onelabel_list:
+            onelabel_flag = True
+            onelabel_temp = onelabel_temp.strip()
+            if onelabel_temp in origin_onelabel_list:
+                onelabel_pro_list.append(onelabel_temp)
+                onelabel_flag = False
+            if onelabel_flag:
+                for origin_onelabel in origin_onelabel_list:
+                    if onelabel_temp.find(origin_onelabel) != -1:
+                        onelabel_pro_list.append(origin_onelabel)
+                        onelabel_flag = False
+            if onelabel_flag:
+                onelabel_pro_list.append('error_label')
+        
+        if self.backend == "infinity":
+            async with self.model:
+                query_embedding, _ = await self.model.embed(sentences=queries)
+        elif self.backend == "sentence_transformers":
+            if self.device_num == 1:
+                device_param = "cuda:0"
+            else:
+                device_param = [f"cuda:{i}" for i in range(self.device_num)]
+            normalize = bool(self.st_encode_params.get("normalize_embeddings", False))
+            q_prompt_name = self.st_encode_params.get("q_prompt_name", "")
+            q_task = self.st_encode_params.get("psg_task", None)
+
+            if isinstance(device_param, list) and len(device_param) > 1:
+                pool = self.model.start_multi_process_pool()
+                try:
+
+                    def _encode_all():
+                        return self.model.encode(
+                            queries,
+                            pool=pool,
+                            batch_size=self.batch_size,
+                            show_progress_bar=True,
+                            normalize_embeddings=normalize,
+                            precision="float32",
+                            prompt_name=q_prompt_name,
+                            task=q_task,
+                        )
+
+                    query_embedding = await asyncio.to_thread(_encode_all)
+                finally:
+                    self.model.stop_multi_process_pool(pool)
+            else:
+
+                def _encode_single():
+                    return self.model.encode(
+                        queries,
+                        device=device_param,
+                        batch_size=self.batch_size,
+                        show_progress_bar=True,
+                        normalize_embeddings=normalize,
+                        precision="float32",
+                        prompt_name=q_prompt_name,
+                        task=q_task,
+                    )
+
+                query_embedding = await asyncio.to_thread(_encode_single)
+
+        elif self.backend == "openai":
+            query_embedding = []
+            for i in tqdm(
+                range(0, len(queries), self.batch_size),
+                desc="[openai] Embedding:",
+                unit="batch",
+            ):
+                chunk = queries[i : i + self.batch_size]
+                resp = await self.model.embeddings.create(
+                    model=self.model_name, input=chunk
+                )
+                query_embedding.extend([d.embedding for d in resp.data])
+
+        else:
+            error_msg = f"Unsupported backend: {self.backend}"
+            app.logger.error(error_msg)
+            raise ValueError(error_msg)
+
+        query_embedding = np.array(query_embedding, dtype=np.float32)
+
+        info_msg = f"query embedding shape: {query_embedding.shape}"
+        app.logger.info(info_msg)
+        
+        if self.index_backend is None:
+            err_msg = (
+                "Vector index backend is not initialized. "
+                "Ensure retriever_init completed successfully."
+            )
+            app.logger.error(err_msg)
+            raise RuntimeError(err_msg)
+
+        rets = self.index_backend.search_by_label(query_embedding, top_k, onelabel_pro_list)
 
         return {"ret_psg": rets}
     

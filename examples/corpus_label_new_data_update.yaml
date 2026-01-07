@@ -1,0 +1,28 @@
+# Corpus Label Build And Update Demo
+
+# MCP Servers
+servers:
+  corpus: servers/corpus
+  prompt: servers/prompt
+  generation: servers/generation
+
+# MCP Client Pipeline
+pipeline:
+- corpus.load_onelabel_data
+- prompt.onelabel_classify
+- generation.generation_init
+- generation.generate
+- corpus.load_twolabel_data
+- prompt.twolabel_classify
+- generation.generate
+- corpus.twolabel_result_pro
+- prompt.twolabel_new_classify
+- generation.generate
+- corpus.twolabel_new_result_pro
+- prompt.twolabel_merge
+- generation.generate
+- corpus.twolabel_merge_result_pro
+- prompt.twolabel_desc
+- generation.generate
+- corpus.twolabel_desc_result_pro
+- corpus.merge_new_old_data_pro

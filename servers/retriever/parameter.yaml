@@ -2,6 +2,7 @@
 
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
+input_one_two_label_path: data/label_update/origin_data/origin_one_two_label.json
 embedding_path: embedding/embedding.npy
 
 backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
@@ -47,7 +48,7 @@ index_backend_configs:
     search_params:
       metric_type: IP
       params: {}
-    index_chunk_size: 50000
+    index_chunk_size: 6000
 
 batch_size: 16
 top_k: 5
