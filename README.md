@@ -238,6 +238,21 @@ ultrarag run examples/sayhello.yaml
 
 阅读[快速开始](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解如何基于 UltraRAG 运行一个完整的 RAG Pipeline。
 
+## Demo使用
+
+运行以下命令启动ui：
+
+```shell
+ultrarag show ui
+```
+
+运行以下命令启动管理员ui：
+
+```shell
+ultrarag show ui --admin
+```
+
+
 ## 支持
 
 UltraRAG v2 开箱即用，已在 [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) 和 [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) 上同步发布当前 RAG 领域最常用的 **公开评测数据集**以及**大规模语料库**。
