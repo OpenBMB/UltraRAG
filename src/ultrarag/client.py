@@ -403,13 +403,13 @@ class UltraData:
                     if v in self.global_vars:
                         val = self.global_vars[v]
                         # print(f"path_pairs: {path_pairs}")
-                        if isinstance(val, list) and val and isinstance(val[0], dict):
+                        # 只有当列表是 wrapped 格式时才解包装
+                        if isinstance(val, list) and val and isinstance(val[0], dict) and is_wrapped_list(val):
                             signal = signal & True if signal is not None else True
                             # val = [e["data"] for e in val if elem_match(e, path_pairs)]
                             sub = [
                                 e["data"]
                                 for e in val
-                                if elem_match(e, path_pairs) and e["data"] is not UNSET
                                 if elem_match(e, path_pairs) and e["data"] is not UNSET
                             ]
                             val = sub
