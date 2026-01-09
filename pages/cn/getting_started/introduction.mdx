@@ -3,43 +3,46 @@ title: "项目简介"
 icon: "hand-wave"
 ---
 
-## UltraRAG v2
+## UltraRAG
 
-UltraRAG v2 （UR-v2）是首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 系统构建框架，
-旨在为科研探索场景提供高效的建模支持。它将 RAG 中的核心组件（如 [Retriever](/pages/cn/rag_servers/retriever)、[Generation](/pages/cn/rag_servers/generation) 等）标准化封装为独立的 MCP Server，并通过函数级 Tool 接口实现灵活调用与功能扩展。借助 MCP Client 作为流程调度器，开发者仅需编写简洁的 YAML 文件，便可高效构建支持串行、循环与条件分支等复杂控制结构的推理流程，显著降低搭建与调试复杂 RAG 系统的技术门槛与学习成本。
-
+UltraRAG 是首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 开发框架，专为科研探索与工业原型设计打造。它将 RAG 中的核心组件（如 [Retriever](/pages/cn/rag_servers/retriever)、[Generation](/pages/cn/rag_servers/generation) 等）标准化封装为独立的 MCP Server，实现了基于函数级 Tool 接口的灵活扩展。配合 MCP Client 的流程调度能力，开发者能够通过 YAML 配置实现对复杂控制结构（如条件、循环等）的精确编排。此外，系统支持算法逻辑向对话演示界面的无缝迁移，极大地优化了复杂 RAG 系统的开发全链路效率。
 <p align="center">
   <img src="/images/getting_started/intro.png" width="95%" />
 </p>
-<Columns cols={3}>
+<Columns cols={2}>
 
-  <Card title="📑 Pipeline">
-    是用户以 YAML 编写的流程定义文件，用于描述各组件与工具的调用顺序与执行逻辑
+  <Card title="📑 Pipeline · 流程定义">
+    **核心蓝图**：用户通过 YAML 编写的任务逻辑，定义了各组件的执行顺序与业务逻辑，实现推理流程的配置化。
   </Card>
-  <Card title="🕹️ Client">
-    是流程的调度中枢，负责解析 Pipeline，统一协调各 Server 中 Tool 的执行与调用顺序
+  <Card title="🕹️ Client · 调度中枢">
+    **指挥中枢**：负责解析 Pipeline 配置，统一协调各 Server 间工具的调用与数据传递，确保流程精准执行。
   </Card>
-  <Card title="🔧 Server">
-    包含所有可独立调用的功能模块，开发者可通过标准化接口便捷添加新功能或模块，实现系统的灵活扩展与高效组合
+  <Card title="⚙️ Server · 功能执行">
+    **能力载体**：将核心功能标准化封装为独立服务，支持通过简单接口实现新模块的快速扩展与灵活组合。
+  </Card>
+  <Card title="🖥️ UI · 交互演示">
+    **视觉门户**：将 YAML 定义的逻辑一键转化为直观的对话界面，显著提升了系统的调试效率与演示效果。
   </Card>
 </Columns>
 
-此外，UR-v2 提供由浅入深的完整教学示例，集成多项主流 benchmark 任务与高质量 baseline，配合统一的评测体系与知识库支持，能够显著提升系统开发效率并确保实验的可复现性。
+## Why UltraRAG?
 
-## Why UltraRAG v2?
+RAG 系统正经历从静态链式串联向自主推理体系的范式演进，愈发依赖模型的主动推理、动态检索与条件决策。然而，传统框架在应对多轮交互与动态更新时，往往面临灵活性不足、模块深度耦合、结构松散等瓶颈，导致研究者难以高效复现与横向对比。
 
-RAG 系统正从早期模块串联的简单模式，演进为依赖模型主动推理、动态检索与条件判断的复杂体系。传统框架在灵活性与可扩展性方面已难以满足此类系统多轮交互与信息更新的需求。同时，现有的开源实现普遍缺乏统一范式，不同 baseline 模块之间耦合严重、结构松散，给理解、复现与对比研究带来极大挑战。
+UltraRAG 旨在打破这一僵局，为开发者提供一套标准化、解耦且极简的开发新范式：
 
-为应对这些挑战，UltraRAG v2 致力于提供：
-
-<Card title="🚀 低代码构建复杂 Pipeline">
-  原生支持串行、循环、条件分支等推理控制结构，开发者只需编写 YAML 文件，自定义几十行代码即可实现复杂迭代式 RAG 流程等）。
+<Card title="🚀 低代码编排复杂流程">
+  **推理编排**：原生支持串行、循环与条件分支等控制结构。开发者仅需编写 YAML 配置文件，即可在数十行代码内实现复杂的迭代式 RAG 逻辑。
 </Card>
 
-<Card title="⚡ 快速复现与功能扩展">
-  基于 MCP 架构，所有模块均封装为独立、可复用的 Server，支持用户按需自定义或复用现有模块。每个 Server 的功能均以函数级别的 Tool 形式注册，新功能只需添加一个函数即可无缝接入整体流程。
+<Card title="⚡ 模块化扩展与复现">
+  **原子化 Server**：基于 MCP 架构将功能解耦为独立 Server。新功能仅需以函数级 Tool 形式注册，即可无缝接入流程，实现极高的复用性。
 </Card>
 
-<Card title="📊 统一评测与对比">
-  内置标准化的评测流程与指标管理，支持多个主流科研 [Benchmark](/pages/cn/develop_guide/dataset) 的开箱即用与扩展，并通过持续集成最新基线，提升研究复现性与优化效率。
+<Card title="📊 统一评测与基准对比">
+  **科研提效**：内置标准化评测流程，开箱即用主流科研 [Benchmark](/pages/cn/develop_guide/dataset)。通过统一指标管理与基线集成，大幅提升实验的可复现性与对比效率。
+</Card>
+
+<Card title="✨ 交互原型快速生成">
+  **一键交付**：告别繁琐的 UI 开发。仅需一行命令，即可将 Pipeline 逻辑瞬间转化为可交互的对话式 Web UI，缩短从算法到演示的距离。
 </Card>

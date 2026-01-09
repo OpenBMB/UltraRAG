@@ -3,7 +3,7 @@
   "theme": "mint",
   "name": "UltraRAG v2",
   "banner": {
-    "content": "📣 Tutorials have been updated and are now fully aligned with UltraRAG 2.1 — check out [what’s new](/pages/cn/getting_started/update).",
+    "content": "📣 Tutorials have been updated and are now fully aligned with UltraRAG 3.0 — check out [what’s new](/pages/cn/getting_started/update).",
     "dismissible": true
   },
   "colors": {
