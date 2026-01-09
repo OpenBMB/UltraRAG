@@ -107,8 +107,7 @@ class DemoSession:
         self._current_future = None
         
         # 多轮对话支持
-        self._conversation_history: List[Dict[str, str]] = []  # 对话历史
-        self._is_first_turn = True  # 是否是第一次提问
+        self._conversation_history: List[Dict[str, str]] = []  # 对话历史（空表示第一次提问）
         self._pipeline_name = None  # 当前 pipeline 名称
         
         # 多轮对话专用的 MCP 客户端和上下文
@@ -171,7 +170,6 @@ class DemoSession:
         
         # 重置对话状态
         self._conversation_history = []
-        self._is_first_turn = True
         
         LOGGER.info(f"Session {self.session_id} stopped")
     
@@ -189,18 +187,18 @@ class DemoSession:
         return self._conversation_history.copy()
     
     def clear_history(self):
-        """清空对话历史"""
+        """清空对话历史，使下一次提问重新走完整 pipeline"""
         self._conversation_history = []
-        self._is_first_turn = True
         LOGGER.info(f"Session {self.session_id} conversation history cleared")
     
     def is_first_turn(self) -> bool:
-        """是否是第一次提问"""
-        return self._is_first_turn
+        """是否是第一次提问 - 根据对话历史是否为空来判断"""
+        return len(self._conversation_history) == 0
     
     def mark_first_turn_done(self):
-        """标记第一次提问已完成"""
-        self._is_first_turn = False
+        """标记第一次提问已完成（已废弃，保留以兼容）"""
+        # 不再使用 _is_first_turn 标志，改为根据对话历史判断
+        pass
     
     def init_multiturn_client(self):
         """初始化多轮对话的 MCP 客户端"""
@@ -642,18 +640,30 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
             
             yield f"data: {json.dumps({'type': 'error', 'message': 'Internal Serialization Error'})}\n\n"
 
-def chat_multiturn_stream(session_id: str, question: str, dynamic_params: Dict[str, Any] = None):
+def chat_multiturn_stream(session_id: str, question: str, dynamic_params: Dict[str, Any] = None, conversation_history: List[Dict[str, str]] = None):
     """
     多轮对话流式处理 - 直接使用 LocalGenerationService 进行生成
     不经过完整的 pipeline，只做纯粹的多轮对话
+    
+    Args:
+        session_id: 会话 ID
+        question: 当前用户问题
+        dynamic_params: 动态参数
+        conversation_history: 前端传入的对话历史（优先使用）
     """
     session = SESSION_MANAGER.get(session_id)
     if not session:
         yield f"data: {json.dumps({'type': 'error', 'message': 'Session expired'})}\n\n"
         return
     
-    # 获取对话历史并添加当前问题
-    history = session.get_conversation_history()
+    # 使用前端传入的对话历史（前端是"真相的唯一来源"）
+    # 如果前端没传，则使用后端维护的历史（兼容旧逻辑）
+    if conversation_history is not None:
+        history = list(conversation_history)  # 复制一份，避免修改原列表
+    else:
+        history = session.get_conversation_history()
+    
+    # 添加当前问题
     history.append({"role": "user", "content": question})
     
     token_queue = queue.Queue()

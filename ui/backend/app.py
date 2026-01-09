@@ -153,6 +153,21 @@ def create_app(admin_mode: bool = False) -> Flask:
         question = payload.get("question", "")
         session_id = payload.get("session_id")
         dynamic_params = payload.get("dynamic_params", {})
+        
+        # 新增：前端传入的对话历史（浏览器会话中之前的对话）
+        # 兼容两种字段名：conversation_history 或 history
+        raw_history = payload.get("conversation_history") or payload.get("history") or []
+        
+        # 转换格式：前端用 {role, text}，后端用 {role, content}
+        conversation_history = []
+        for msg in raw_history:
+            if isinstance(msg, dict):
+                role = msg.get("role", "user")
+                # 兼容 text 和 content 两种字段名
+                content = msg.get("content") or msg.get("text") or ""
+                if role in ("user", "assistant") and content:
+                    conversation_history.append({"role": role, "content": str(content)})
+        
         # 新增：允许前端强制指定是否走完整 pipeline
         force_full_pipeline = payload.get("force_full_pipeline", False)
 
@@ -184,22 +199,26 @@ def create_app(admin_mode: bool = False) -> Flask:
         if not session_id:
             return jsonify({"error": "session_id missing. Please start engine first."}), 400
         
-        # 检查是否是第一次提问
-        session = pm.SESSION_MANAGER.get(session_id)
-        is_first_turn = session.is_first_turn() if session else True
+        # 根据前端传入的对话历史判断是否是第一次提问
+        # 注意：前端在发送请求之前已经把当前问题添加到 history 中了
+        # 所以：第一次提问时 history 有 1 条消息，第二次提问时 history 有 3 条消息
+        # 只有当有 >= 2 条消息时（说明有之前的助手回复），才走多轮对话
+        has_previous_conversation = len(conversation_history) >= 2
         
-        if is_first_turn or force_full_pipeline:
-            # 第一次提问：走完整 pipeline
-            LOGGER.info(f"Session {session_id}: First turn, running full pipeline '{name}'")
+        LOGGER.info(f"Session {session_id}: conversation_history length = {len(conversation_history)}, has_previous = {has_previous_conversation}")
+        
+        if not has_previous_conversation or force_full_pipeline:
+            # 第一次提问（或强制）：走完整 pipeline
+            LOGGER.info(f"Session {session_id}: First turn (history empty), running full pipeline '{name}'")
             return Response(
                 pm.chat_demo_stream(name, question, session_id, dynamic_params),
                 mimetype='text/event-stream'
             )
         else:
-            # 后续提问：走多轮对话
-            LOGGER.info(f"Session {session_id}: Multi-turn chat mode")
+            # 后续提问：走多轮对话，使用前端传入的对话历史
+            LOGGER.info(f"Session {session_id}: Multi-turn chat mode with {len(conversation_history)} history messages")
             return Response(
-                pm.chat_multiturn_stream(session_id, question, dynamic_params),
+                pm.chat_multiturn_stream(session_id, question, dynamic_params, conversation_history),
                 mimetype='text/event-stream'
             )
     
