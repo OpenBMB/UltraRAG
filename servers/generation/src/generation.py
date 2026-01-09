@@ -58,6 +58,10 @@ class Generation:
             output="multimodal_path,prompt_ls,system_prompt,image_tag->ans_ls",
         )
         mcp_inst.tool(
+            self.multiturn_generate,
+            output="messages,system_prompt->ans_ls",
+        )
+        mcp_inst.tool(
             self.vllm_shutdown,
             output="->None",
         )
@@ -387,6 +391,47 @@ class Generation:
         )
         msg_ls = [system_msgs + [{"role": "user", "content": p}] for p in prompts]
         ret = await self._generate(msg_ls)
+        return {"ans_ls": ret}
+
+    async def multiturn_generate(
+        self,
+        messages: List[Dict[str, str]],
+        system_prompt: str = "",
+    ) -> Dict[str, List[str]]:
+        """
+        多轮对话生成。
+        
+        Args:
+            messages: 对话历史列表，每条消息格式为 {"role": "user"|"assistant", "content": "..."}
+            system_prompt: 系统提示词（可选）
+        
+        Returns:
+            {"ans_ls": [assistant_response]}
+        """
+        system_prompt = str(system_prompt or "").strip()
+        
+        if not messages:
+            app.logger.info("empty messages; return empty ans_ls.")
+            return {"ans_ls": []}
+        
+        # 构建完整的消息列表
+        full_messages = []
+        if system_prompt:
+            full_messages.append({"role": "system", "content": system_prompt})
+        
+        # 添加对话历史
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role in ("user", "assistant", "system") and content:
+                full_messages.append({"role": role, "content": str(content)})
+        
+        if not full_messages or all(m["role"] == "system" for m in full_messages):
+            app.logger.info("no valid user/assistant messages; return empty ans_ls.")
+            return {"ans_ls": []}
+        
+        # 调用生成（只传入一组消息）
+        ret = await self._generate([full_messages])
         return {"ans_ls": ret}
 
     async def multimodal_generate(

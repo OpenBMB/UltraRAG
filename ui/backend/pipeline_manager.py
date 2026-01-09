@@ -105,6 +105,16 @@ class DemoSession:
         self.last_accessed = time.time()
         self._thread.start()
         self._current_future = None
+        
+        # 多轮对话支持
+        self._conversation_history: List[Dict[str, str]] = []  # 对话历史
+        self._is_first_turn = True  # 是否是第一次提问
+        self._pipeline_name = None  # 当前 pipeline 名称
+        
+        # 多轮对话专用的 MCP 客户端和上下文
+        self._multiturn_client = None
+        self._multiturn_context = None
+        self._multiturn_active = False
 
     def _bg_loop(self):
         asyncio.set_event_loop(self._loop)
@@ -129,6 +139,7 @@ class DemoSession:
         try:
             future.result(timeout=15)
             self._active = True
+            self._pipeline_name = name  # 记录 pipeline 名称
             LOGGER.info(f"Session {self.session_id} connected for pipeline {name}")
         except Exception as e:
             LOGGER.error(f"Session start failed: {e}")
@@ -144,10 +155,114 @@ class DemoSession:
             except Exception as e:
                 LOGGER.warning(f"Error during disconnect: {e}")
         
+        # 清理多轮对话客户端
+        if self._multiturn_active and self._multiturn_client:
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self._multiturn_client.__aexit__(None, None, None), self._loop
+                ).result(timeout=5)
+            except Exception as e:
+                LOGGER.warning(f"Error during multiturn disconnect: {e}")
+        
         self._active = False
+        self._multiturn_active = False
         self._loop.call_soon_threadsafe(self._loop.stop)
         self._thread.join(timeout=1)
+        
+        # 重置对话状态
+        self._conversation_history = []
+        self._is_first_turn = True
+        
         LOGGER.info(f"Session {self.session_id} stopped")
+    
+    def add_to_history(self, role: str, content: str):
+        """添加消息到对话历史"""
+        if role in ("user", "assistant") and content:
+            self._conversation_history.append({
+                "role": role,
+                "content": str(content)
+            })
+            LOGGER.debug(f"Session {self.session_id} history updated: {len(self._conversation_history)} messages")
+    
+    def get_conversation_history(self) -> List[Dict[str, str]]:
+        """获取对话历史"""
+        return self._conversation_history.copy()
+    
+    def clear_history(self):
+        """清空对话历史"""
+        self._conversation_history = []
+        self._is_first_turn = True
+        LOGGER.info(f"Session {self.session_id} conversation history cleared")
+    
+    def is_first_turn(self) -> bool:
+        """是否是第一次提问"""
+        return self._is_first_turn
+    
+    def mark_first_turn_done(self):
+        """标记第一次提问已完成"""
+        self._is_first_turn = False
+    
+    def init_multiturn_client(self):
+        """初始化多轮对话的 MCP 客户端"""
+        if self._multiturn_active:
+            return
+        
+        funcs = _ensure_client_funcs()
+        multiturn_config_file = _find_pipeline_file("multiturn_chat")
+        if not multiturn_config_file:
+            LOGGER.warning("multiturn_chat pipeline not found, will fall back to full pipeline")
+            return
+        
+        try:
+            multiturn_param_path = _resolve_parameter_path("multiturn_chat", for_write=False)
+            self._multiturn_context = funcs["load_ctx"](str(multiturn_config_file), str(multiturn_param_path))
+            self._multiturn_client = funcs["create_client"](self._multiturn_context["mcp_cfg"])
+            
+            future = asyncio.run_coroutine_threadsafe(
+                self._multiturn_client.__aenter__(), self._loop
+            )
+            future.result(timeout=15)
+            self._multiturn_active = True
+            LOGGER.info(f"Session {self.session_id} multiturn client initialized")
+        except Exception as e:
+            LOGGER.warning(f"Failed to init multiturn client: {e}, will fall back to full pipeline")
+            self._multiturn_active = False
+    
+    def run_multiturn_chat(self, callback, dynamic_params: Dict[str, Any] = None):
+        """执行多轮对话生成"""
+        self.touch()
+        if not self._multiturn_active:
+            raise PipelineManagerError("Multiturn client not active")
+        
+        funcs = _ensure_client_funcs()
+        
+        # 构建 override_params，将对话历史传入
+        override_params = dynamic_params.copy() if dynamic_params else {}
+        
+        # 将 messages 注入到 generation 参数中（作为全局变量）
+        # 这里我们需要在 execute_pipeline 之前设置 messages
+        if "generation" not in override_params:
+            override_params["generation"] = {}
+        
+        self._current_future = asyncio.run_coroutine_threadsafe(
+            funcs["exec_pipe"](
+                self._multiturn_client,
+                self._multiturn_context,
+                is_demo=True,
+                return_all=True,
+                stream_callback=callback,
+                override_params=override_params
+            ),
+            self._loop
+        )
+        
+        try:
+            return self._current_future.result()
+        except asyncio.CancelledError:
+            LOGGER.info(f"Session {self.session_id} multiturn task cancelled by user.")
+            raise
+        finally:
+            self._current_future = None
 
     def run_chat(self, callback, dynamic_params: Dict[str, Any] = None):
         self.touch()
@@ -467,11 +582,25 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
             final_ans = _extract_result(res)
             mem_ans, mem_file = _find_memory_answer(name, before_memory)
             
+            answer = final_ans or mem_ans or "No answer generated"
+            
+            # 更新对话历史（第一轮）
+            session.add_to_history("user", question)
+            session.add_to_history("assistant", answer)
+            session.mark_first_turn_done()
+            
+            # 初始化多轮对话客户端（为后续轮次准备）
+            try:
+                session.init_multiturn_client()
+            except Exception as e:
+                LOGGER.warning(f"Failed to init multiturn client: {e}")
+            
             final_data = {
                 "status": "succeeded",
-                "answer": final_ans or mem_ans or "No answer generated",
+                "answer": answer,
                 "dataset_path": _as_project_relative(dataset_path) if dataset_path else None,
-                "memory_path": _as_project_relative(mem_file) if mem_file else None
+                "memory_path": _as_project_relative(mem_file) if mem_file else None,
+                "is_first_turn": True
             }
             token_queue.put({"type": "final", "data": final_data})
 
@@ -512,6 +641,150 @@ def chat_demo_stream(name: str, question: str, session_id: str, dynamic_params: 
                         LOGGER.error(f"Field '{k}' is not serializable: type={type(v)}, value={v}")
             
             yield f"data: {json.dumps({'type': 'error', 'message': 'Internal Serialization Error'})}\n\n"
+
+def chat_multiturn_stream(session_id: str, question: str, dynamic_params: Dict[str, Any] = None):
+    """
+    多轮对话流式处理 - 直接使用 LocalGenerationService 进行生成
+    不经过完整的 pipeline，只做纯粹的多轮对话
+    """
+    session = SESSION_MANAGER.get(session_id)
+    if not session:
+        yield f"data: {json.dumps({'type': 'error', 'message': 'Session expired'})}\n\n"
+        return
+    
+    # 获取对话历史并添加当前问题
+    history = session.get_conversation_history()
+    history.append({"role": "user", "content": question})
+    
+    token_queue = queue.Queue()
+    
+    async def token_callback(event_data):
+        if isinstance(event_data, dict):
+            token_queue.put(event_data)
+        else:
+            token_queue.put({"type": "token", "content": str(event_data)})
+    
+    def run_bg():
+        try:
+            # 获取 generation 配置
+            # 首先尝试从当前 pipeline 的参数中获取
+            pipeline_name = session._pipeline_name
+            if pipeline_name:
+                try:
+                    params = load_parameters(pipeline_name)
+                    gen_params = params.get("generation", {})
+                except:
+                    gen_params = {}
+            else:
+                gen_params = {}
+            
+            # 如果 dynamic_params 中有 generation 配置，则覆盖
+            if dynamic_params and "generation" in dynamic_params:
+                gen_params.update(dynamic_params["generation"])
+            
+            # 获取 system_prompt
+            system_prompt = gen_params.get("system_prompt", "")
+            
+            # 导入 LocalGenerationService
+            import sys
+            import os
+            sys.path.append(os.getcwd())
+            try:
+                from servers.generation.src.local_generation import LocalGenerationService
+            except ImportError:
+                token_queue.put({"type": "error", "message": "LocalGenerationService not available"})
+                token_queue.put(None)
+                return
+            
+            # 创建服务实例
+            try:
+                service = LocalGenerationService(
+                    backend_configs=gen_params.get("backend_configs", {}),
+                    sampling_params=gen_params.get("sampling_params", {}),
+                    extra_params=gen_params.get("extra_params", {}),
+                    backend="openai"
+                )
+            except Exception as e:
+                token_queue.put({"type": "error", "message": f"Failed to init generation service: {e}"})
+                token_queue.put(None)
+                return
+            
+            # 发送 step_start 事件
+            token_queue.put({
+                "type": "step_start",
+                "name": "multiturn_generate",
+                "depth": 0
+            })
+            
+            # 执行流式生成
+            full_content = ""
+            
+            async def generate():
+                nonlocal full_content
+                async for token in service.multiturn_generate_stream(
+                    messages=history,
+                    system_prompt=system_prompt
+                ):
+                    full_content += token
+                    token_queue.put({
+                        "type": "token",
+                        "content": token,
+                        "step": "generation.multiturn_generate",
+                        "is_final": True
+                    })
+            
+            # 在事件循环中运行
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(generate())
+            finally:
+                loop.close()
+            
+            # 发送 step_end 事件
+            token_queue.put({
+                "type": "step_end",
+                "name": "multiturn_generate",
+                "output": f"Generated:\n{full_content[:500]}..." if len(full_content) > 500 else f"Generated:\n{full_content}"
+            })
+            
+            # 更新对话历史
+            session.add_to_history("user", question)
+            session.add_to_history("assistant", full_content)
+            
+            # 发送最终结果
+            final_data = {
+                "status": "succeeded",
+                "answer": full_content,
+                "is_multiturn": True
+            }
+            token_queue.put({"type": "final", "data": final_data})
+            
+        except asyncio.CancelledError:
+            LOGGER.info("Multiturn chat cancelled.")
+            token_queue.put(None)
+            return
+        except Exception as e:
+            LOGGER.error(f"Multiturn chat error: {e}")
+            import traceback
+            traceback.print_exc()
+            token_queue.put({"type": "error", "message": str(e)})
+        finally:
+            token_queue.put(None)
+    
+    threading.Thread(target=run_bg, daemon=True).start()
+    
+    # 输出流
+    while True:
+        item = token_queue.get()
+        if item is None:
+            break
+        try:
+            yield f"data: {json.dumps(item, ensure_ascii=False)}\n\n"
+        except TypeError as e:
+            LOGGER.error(f"JSON serialization failed: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Internal Serialization Error'})}\n\n"
+
 
 # Helpers (Config & Files) 
 
@@ -638,7 +911,7 @@ def list_server_tools() -> List[ServerTool]:
     return res
 
 # 屏蔽列表：这些pipeline是底层KB处理用的，不在UI中显示
-HIDDEN_PIPELINES = {"build_text_corpus", "corpus_chunk", "milvus_index"}
+HIDDEN_PIPELINES = {"build_text_corpus", "corpus_chunk", "milvus_index", "multiturn_chat"}
 
 def list_pipelines() -> List[Dict[str, Any]]:
     res = []

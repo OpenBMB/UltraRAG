@@ -137,3 +137,53 @@ class LocalGenerationService:
             print("\n[LocalGen] Error Detected:")
             traceback.print_exc()
             yield f"\n[Error: {e}]"
+
+    async def multiturn_generate_stream(
+        self,
+        messages: List[Dict[str, str]],
+        system_prompt: str = "",
+        **kwargs
+    ):
+        """
+        多轮对话流式生成。
+        
+        Args:
+            messages: 对话历史列表，每条消息格式为 {"role": "user"|"assistant", "content": "..."}
+            system_prompt: 系统提示词（可选）
+        """
+        if not messages:
+            return
+        
+        # 构建完整的消息列表
+        full_messages = []
+        if system_prompt:
+            full_messages.append({"role": "system", "content": system_prompt})
+        
+        # 添加对话历史
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role in ("user", "assistant", "system") and content:
+                full_messages.append({"role": role, "content": str(content)})
+        
+        if not full_messages or all(m["role"] == "system" for m in full_messages):
+            return
+        
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.model_name,
+                messages=full_messages,
+                stream=True,
+                **self.sampling_params
+            )
+            
+            async for chunk in stream:
+                if chunk.choices:
+                    content_delta = chunk.choices[0].delta.content or ""
+                    if content_delta:
+                        yield content_delta
+                        
+        except Exception as e:
+            print("\n[LocalGen Multiturn] Error Detected:")
+            traceback.print_exc()
+            yield f"\n[Error: {e}]"
