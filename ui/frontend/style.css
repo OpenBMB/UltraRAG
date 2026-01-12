@@ -3207,3 +3207,142 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(16, 163, 127, 0.4);
 }
+
+/* ==========================================
+   Unified Modal System
+   ========================================== */
+.unified-modal {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.3);
+  padding: 0;
+  width: 420px;
+  max-width: 90vw;
+  background: #fff;
+  overflow: hidden;
+}
+
+.unified-modal::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.unified-modal[open] {
+  animation: unified-modal-in 0.25s ease-out;
+}
+
+@keyframes unified-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.unified-modal-content {
+  padding: 28px 32px;
+  text-align: center;
+}
+
+.unified-modal-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unified-modal-icon.info {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #2563eb;
+}
+
+.unified-modal-icon.success {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+}
+
+.unified-modal-icon.warning {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+}
+
+.unified-modal-icon.error {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+}
+
+.unified-modal-icon.confirm {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #4f46e5;
+}
+
+.unified-modal-title {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.unified-modal-message {
+  margin: 0 0 24px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.unified-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.unified-modal-btn {
+  min-width: 100px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.unified-modal-btn-primary {
+  background: var(--text-primary);
+  color: #fff;
+}
+
+.unified-modal-btn-primary:hover {
+  background: #333;
+  transform: translateY(-1px);
+}
+
+.unified-modal-btn-secondary {
+  background: #f3f4f6;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.unified-modal-btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.unified-modal-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.unified-modal-btn-danger:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}

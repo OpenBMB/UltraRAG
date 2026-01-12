@@ -147,6 +147,163 @@ const Modes = {
   CHAT: "chat",
 };
 
+// ==========================================
+// --- Unified Modal System ---
+// ==========================================
+
+/**
+ * Show a modal dialog (replaces alert)
+ * @param {string} message - The message to display
+ * @param {object} options - Configuration options
+ * @param {string} options.title - Modal title (default: "Notification")
+ * @param {string} options.type - Icon type: 'info' | 'success' | 'warning' | 'error' (default: 'info')
+ * @param {string} options.confirmText - Text for confirm button (default: "OK")
+ * @returns {Promise<void>}
+ */
+function showModal(message, options = {}) {
+  const {
+    title = "Notification",
+    type = "info",
+    confirmText = "OK"
+  } = options;
+  
+  return new Promise((resolve) => {
+    const modal = document.getElementById("unified-modal");
+    const iconEl = document.getElementById("unified-modal-icon");
+    const titleEl = document.getElementById("unified-modal-title");
+    const messageEl = document.getElementById("unified-modal-message");
+    const actionsEl = document.getElementById("unified-modal-actions");
+    
+    if (!modal) {
+      console.warn("Unified modal not found, falling back to alert");
+      window.alert(message);
+      resolve();
+      return;
+    }
+    
+    // Set icon based on type
+    iconEl.className = `unified-modal-icon ${type}`;
+    const icons = {
+      info: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+      success: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+      warning: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+      error: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>'
+    };
+    iconEl.innerHTML = icons[type] || icons.info;
+    
+    // Set content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // Set actions (single OK button)
+    actionsEl.innerHTML = `<button class="btn unified-modal-btn unified-modal-btn-primary" id="unified-modal-ok">${confirmText}</button>`;
+    
+    const okBtn = document.getElementById("unified-modal-ok");
+    const closeHandler = () => {
+      modal.close();
+      resolve();
+    };
+    okBtn.onclick = closeHandler;
+    
+    // Close on backdrop click
+    modal.onclick = (e) => {
+      if (e.target === modal) closeHandler();
+    };
+    
+    // Close on Escape key
+    modal.onkeydown = (e) => {
+      if (e.key === "Escape") closeHandler();
+    };
+    
+    modal.showModal();
+  });
+}
+
+/**
+ * Show a confirm dialog (replaces confirm)
+ * @param {string} message - The message to display
+ * @param {object} options - Configuration options
+ * @param {string} options.title - Modal title (default: "Confirm")
+ * @param {string} options.type - Icon type: 'info' | 'warning' | 'confirm' (default: 'confirm')
+ * @param {string} options.confirmText - Text for confirm button (default: "Confirm")
+ * @param {string} options.cancelText - Text for cancel button (default: "Cancel")
+ * @param {boolean} options.danger - Whether this is a dangerous action (default: false)
+ * @returns {Promise<boolean>}
+ */
+function showConfirm(message, options = {}) {
+  const {
+    title = "Confirm",
+    type = "confirm",
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    danger = false
+  } = options;
+  
+  return new Promise((resolve) => {
+    const modal = document.getElementById("unified-modal");
+    const iconEl = document.getElementById("unified-modal-icon");
+    const titleEl = document.getElementById("unified-modal-title");
+    const messageEl = document.getElementById("unified-modal-message");
+    const actionsEl = document.getElementById("unified-modal-actions");
+    
+    if (!modal) {
+      console.warn("Unified modal not found, falling back to confirm");
+      resolve(window.confirm(message));
+      return;
+    }
+    
+    // Set icon based on type
+    iconEl.className = `unified-modal-icon ${type}`;
+    const icons = {
+      info: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+      warning: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+      confirm: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+    };
+    iconEl.innerHTML = icons[type] || icons.confirm;
+    
+    // Set content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    
+    // Set actions (Cancel + Confirm buttons)
+    const confirmBtnClass = danger ? "unified-modal-btn-danger" : "unified-modal-btn-primary";
+    actionsEl.innerHTML = `
+      <button class="btn unified-modal-btn unified-modal-btn-secondary" id="unified-modal-cancel">${cancelText}</button>
+      <button class="btn unified-modal-btn ${confirmBtnClass}" id="unified-modal-confirm">${confirmText}</button>
+    `;
+    
+    const cancelBtn = document.getElementById("unified-modal-cancel");
+    const confirmBtn = document.getElementById("unified-modal-confirm");
+    
+    let resolved = false;
+    const closeWith = (result) => {
+      if (resolved) return;
+      resolved = true;
+      modal.close();
+      resolve(result);
+    };
+    
+    cancelBtn.onclick = () => closeWith(false);
+    confirmBtn.onclick = () => closeWith(true);
+    
+    // Close on backdrop click = cancel
+    modal.onclick = (e) => {
+      if (e.target === modal) closeWith(false);
+    };
+    
+    // Escape = cancel
+    modal.onkeydown = (e) => {
+      if (e.key === "Escape") closeWith(false);
+    };
+    
+    modal.showModal();
+  });
+}
+
+// Make functions globally available
+window.showModal = showModal;
+window.showConfirm = showConfirm;
+
 const nodePickerState = {
   mode: "tool",
   server: null,
@@ -207,7 +364,13 @@ window.closeImportModal = function() {
 
 // [新增] 清空暂存区
 window.clearStagingArea = async function() {
-    if (!confirm("Are you sure you want to clear ALL temporary files (Raw, Corpus, Chunks)?")) return;
+    const confirmed = await showConfirm("Are you sure you want to clear ALL temporary files (Raw, Corpus, Chunks)?", {
+        title: "Clear Staging Area",
+        type: "warning",
+        confirmText: "Clear All",
+        danger: true
+    });
+    if (!confirmed) return;
     
     try {
         const res = await fetch('/api/kb/staging/clear', { method: 'POST' });
@@ -216,11 +379,7 @@ window.clearStagingArea = async function() {
         if (res.ok) {
             const total = data.total_deleted || 0;
             const counts = data.deleted_counts || {};
-            let message = `Successfully cleared staging area!\n\nDeleted:\n`;
-            message += `- Raw: ${counts.raw || 0} items\n`;
-            message += `- Corpus: ${counts.corpus || 0} items\n`;
-            message += `- Chunks: ${counts.chunks || 0} items\n`;
-            message += `\nTotal: ${total} items`;
+            let message = `Deleted:\n- Raw: ${counts.raw || 0} items\n- Corpus: ${counts.corpus || 0} items\n- Chunks: ${counts.chunks || 0} items\n\nTotal: ${total} items`;
             
             if (data.errors && data.errors.length > 0) {
                 message += `\n\nNote: Some errors occurred:\n${data.errors.slice(0, 3).join('\n')}`;
@@ -229,14 +388,14 @@ window.clearStagingArea = async function() {
                 }
             }
             
-            alert(message);
+            await showModal(message, { title: "Staging Area Cleared", type: "success" });
             await refreshKBFiles();
         } else {
-            alert("Clear failed: " + (data.error || res.statusText));
+            await showModal("Clear failed: " + (data.error || res.statusText), { title: "Error", type: "error" });
         }
     } catch(e) {
         console.error(e);
-        alert("Clear error: " + e.message);
+        await showModal("Clear error: " + e.message, { title: "Error", type: "error" });
     }
 };
 
@@ -458,7 +617,7 @@ window.saveDbConfig = async function() {
     const uri = els.cfgUri.value.trim();
     const token = els.cfgToken.value.trim();
     
-    if(!uri) { alert("URI is required"); return; }
+    if(!uri) { showModal("URI is required", { title: "Validation Error", type: "warning" }); return; }
     
     const fullConfig = window._currentFullKbConfig || {};
     if (!fullConfig.milvus) fullConfig.milvus = {};
@@ -511,7 +670,7 @@ window.saveChunkConfig = function() {
     const useTitleStr = document.getElementById('cfg-chunk-title').value;
 
     if (isNaN(size) || size <= 0) {
-        alert("Chunk size must be a positive number");
+        showModal("Chunk size must be a positive number", { title: "Validation Error", type: "warning" });
         return;
     }
 
@@ -564,7 +723,7 @@ window.confirmIndexTask = function() {
     if (!els.idxCollection || !els.idxMode) return;
     const collName = els.idxCollection.value.trim();
     
-    if (!collName) { alert("Collection name required"); return; }
+    if (!collName) { showModal("Collection name is required", { title: "Validation Error", type: "warning" }); return; }
     const mode = els.idxMode.value;
     
     if (els.milvusDialog) els.milvusDialog.close();
@@ -594,13 +753,13 @@ window.handleFileUpload = async function(input) {
             await refreshKBFiles(); 
             updateKBStatus(false);
         } else {
-            alert('Upload failed');
+            showModal("Upload failed", { title: "Error", type: "error" });
             updateKBStatus(false);
         }
     } catch (e) {
         console.error(e);
         updateKBStatus(false);
-        alert("Upload error: " + e.message);
+        showModal("Upload error: " + e.message, { title: "Error", type: "error" });
     } finally {
         input.value = '';
     }
@@ -609,7 +768,13 @@ window.handleFileUpload = async function(input) {
 // 9. 删除文件 (新增 - 挂载到 window)
 window.deleteKBFile = async function(category, filename) {
     const action = category === 'collection' ? 'drop this collection' : 'delete this file';
-    if(!confirm(`Permanently ${action} (${filename})?`)) return;
+    const confirmed = await showConfirm(`Permanently ${action} (${filename})?`, {
+        title: "Delete Confirmation",
+        type: "warning",
+        confirmText: "Delete",
+        danger: true
+    });
+    if (!confirmed) return;
     
     try {
         const res = await fetch(`/api/kb/files/${category}/${filename}`, { method: 'DELETE' });
@@ -617,7 +782,7 @@ window.deleteKBFile = async function(category, filename) {
             refreshKBFiles();
         } else {
             const err = await res.json();
-            alert("Delete failed: " + (err.error || res.statusText));
+            showModal("Delete failed: " + (err.error || res.statusText), { title: "Error", type: "error" });
         }
     } catch(e) {
         console.error(e);
@@ -651,7 +816,7 @@ async function runKBTask(pipelineName, filePath, extraParams = {}) {
             throw new Error(data.error || 'Task start failed');
         }
     } catch (e) {
-        alert(e.message);
+        showModal(e.message, { title: "Task Error", type: "error" });
         updateKBStatus(false);
     }
 }
@@ -676,7 +841,7 @@ function pollTaskStatus(taskId) {
             } else if (task.status === 'failed') {
                 clearInterval(interval);
                 updateKBStatus(false);
-                alert(`Task Failed: ${task.error}`);
+                showModal(`Task Failed: ${task.error}`, { title: "Task Failed", type: "error" });
             } else {
                 // still running...
                 console.log('Task running...');
@@ -932,9 +1097,14 @@ function renderMarkdown(text, { allowCodeBlock = true, unwrapLanguages = [] } = 
 }
 
 // --- Lifecycle ---
-function createNewPipeline() {
+async function createNewPipeline() {
   if (state.steps.length > 0) {
-    if (!confirm("Create new pipeline? Unsaved changes will be lost.")) return;
+    const confirmed = await showConfirm("Create new pipeline? Unsaved changes will be lost.", {
+      title: "Create New Pipeline",
+      type: "warning",
+      confirmText: "Create New"
+    });
+    if (!confirmed) return;
   }
   state.selectedPipeline = null; state.parameterData = null; state.steps = []; state.isBuilt = false; state.parametersReady = false;
   els.name.value = ""; if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = "Select Pipeline";
@@ -1176,7 +1346,7 @@ async function renderChatPipelineMenu() {
 async function switchChatPipeline(name) {
     if (name === state.selectedPipeline) return;
     if (state.chat.running) {
-        alert("Please wait for the current response to finish.");
+        showModal("Please wait for the current response to finish.", { title: "Please Wait", type: "info" });
         return;
     }
     
@@ -1347,54 +1517,19 @@ function interruptAndLoadSession(sessionId) {
 }
 
 // 显示中断确认弹窗
-function showInterruptConfirmDialog(onConfirm) {
-    // 创建或获取弹窗
-    let dialog = document.getElementById('interrupt-confirm-dialog');
-    if (!dialog) {
-        dialog = document.createElement('dialog');
-        dialog.id = 'interrupt-confirm-dialog';
-        dialog.className = 'interrupt-confirm-dialog';
-        document.body.appendChild(dialog);
-    }
-    
-    dialog.innerHTML = `
-        <div class="interrupt-dialog-content">
-            <div class="interrupt-dialog-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            </div>
-            <h3>Generation in Progress</h3>
-            <p>A response is currently being generated. This action will interrupt the generation.</p>
-            <p class="interrupt-dialog-tip">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                Tip: Use <strong>Background</strong> mode to run tasks without interruption.
-            </p>
-            <div class="interrupt-dialog-actions">
-                <button class="btn-interrupt-cancel">Cancel</button>
-                <button class="btn-interrupt-confirm">Interrupt & Continue</button>
-            </div>
-        </div>
-    `;
-    
-    const cancelBtn = dialog.querySelector('.btn-interrupt-cancel');
-    const confirmBtn = dialog.querySelector('.btn-interrupt-confirm');
-    
-    cancelBtn.onclick = () => {
-        dialog.close();
-    };
-    
-    confirmBtn.onclick = () => {
-        dialog.close();
-        if (onConfirm) onConfirm();
-    };
-    
-    // 点击背景关闭
-    dialog.onclick = (e) => {
-        if (e.target === dialog) {
-            dialog.close();
+async function showInterruptConfirmDialog(onConfirm) {
+    const confirmed = await showConfirm(
+        "A response is currently being generated. This action will interrupt the generation.\n\nTip: Use Background mode to run tasks without interruption.",
+        {
+            title: "Generation in Progress",
+            type: "warning",
+            confirmText: "Interrupt",
+            danger: true
         }
-    };
-    
-    dialog.showModal();
+    );
+    if (confirmed && onConfirm) {
+        onConfirm();
+    }
 }
 
 function saveCurrentSession(force = false) {
@@ -1501,8 +1636,14 @@ function renderChatSidebar() {
 }
 
 // [新增] 删除会话辅助函数
-function deleteChatSession(sessionId) {
-    if (!confirm("Delete this chat?")) return;
+async function deleteChatSession(sessionId) {
+    const confirmed = await showConfirm("Delete this chat?", {
+        title: "Delete Chat",
+        type: "warning",
+        confirmText: "Delete",
+        danger: true
+    });
+    if (!confirmed) return;
     
     state.chat.sessions = state.chat.sessions.filter(s => s.id !== sessionId);
     localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
@@ -1517,9 +1658,15 @@ function deleteChatSession(sessionId) {
 }
 
 // [新增] 删除所有会话
-function deleteAllChatSessions() {
+async function deleteAllChatSessions() {
     if (state.chat.sessions.length === 0) return;
-    if (!confirm("Delete all chat history?")) return;
+    const confirmed = await showConfirm("Delete all chat history?", {
+        title: "Clear All Chats",
+        type: "warning",
+        confirmText: "Delete All",
+        danger: true
+    });
+    if (!confirmed) return;
     
     state.chat.sessions = [];
     localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
@@ -1765,59 +1912,15 @@ function validateKnowledgeBaseSelection() {
 /**
  * 显示知识库选择提示弹窗
  */
-function showKnowledgeBaseAlert() {
-    // 使用自定义弹窗而不是简单的 alert，提供更好的用户体验
-    const existingDialog = document.getElementById('kb-alert-dialog');
-    if (existingDialog) {
-        existingDialog.showModal();
-        return;
-    }
-    
-    // 创建弹窗
-    const dialog = document.createElement('dialog');
-    dialog.id = 'kb-alert-dialog';
-    dialog.className = 'kb-alert-dialog';
-    dialog.innerHTML = `
-        <div class="kb-alert-content">
-            <div class="kb-alert-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                    <circle cx="12" cy="10" r="2"></circle>
-                    <path d="M12 14v2"></path>
-                </svg>
-            </div>
-            <p class="kb-alert-message">
-                The current pipeline requires retrieval capabilities. 
-                
-                Please select a Knowledge Base before starting the conversation.
-            </p>
-            <div class="kb-alert-actions">
-                <button class="btn btn-primary" id="kb-alert-ok-btn">OK</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(dialog);
-    
-    // 绑定关闭事件
-    const okBtn = dialog.querySelector('#kb-alert-ok-btn');
-    okBtn.onclick = () => {
-        dialog.close();
-        // 聚焦到知识库选择下拉框
-        if (els.chatCollectionSelect) {
-            els.chatCollectionSelect.focus();
-        }
-    };
-    
-    // 点击背景关闭
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) {
-            dialog.close();
-        }
+async function showKnowledgeBaseAlert() {
+    await showModal("Please select a Knowledge Base before starting the conversation.", {
+        title: "Knowledge Base Required",
+        type: "warning"
     });
-    
-    dialog.showModal();
+    // 聚焦到知识库选择下拉框
+    if (els.chatCollectionSelect) {
+        els.chatCollectionSelect.focus();
+    }
 }
 
 function openChatView() {
@@ -2314,7 +2417,7 @@ async function handleChatSubmit(event) {
   if (event) event.preventDefault();
   if (state.chat.running) { await stopGeneration(); return; }
   if (!canUseChat()) return;
-  if (!state.chat.engineSessionId) { alert("Start Engine first."); return; }
+  if (!state.chat.engineSessionId) { showModal("Please start the engine first.", { title: "Engine Required", type: "warning" }); return; }
 
   const question = els.chatInput.value.trim();
   if (!question) return;
@@ -2585,7 +2688,16 @@ function setHeroStatusLabel(status) {
   if (!els.heroStatus) return;
   els.heroStatus.dataset.status = status; els.heroStatus.textContent = status.toUpperCase();
 }
-function requestShutdown() { if (!window.confirm("Exit UltraRAG UI?")) return; fetch("/api/system/shutdown", { method: "POST" }); setTimeout(() => window.close(), 800); }
+async function requestShutdown() { 
+    const confirmed = await showConfirm("Exit UltraRAG UI?", {
+        title: "Exit Application",
+        type: "confirm",
+        confirmText: "Exit"
+    });
+    if (!confirmed) return; 
+    fetch("/api/system/shutdown", { method: "POST" }); 
+    setTimeout(() => window.close(), 800); 
+}
 
 async function fetchJSON(url, options = {}) {
   const resp = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
@@ -3050,8 +3162,15 @@ function buildSelectedPipeline() {
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
     .then(() => { state.isBuilt=true; state.parametersReady=false; updateActionButtons(); log("Pipeline built."); showParameterPanel(true); }).catch(e=>log(e.message));
 }
-function deleteSelectedPipeline() {
-    if(!state.selectedPipeline || !confirm("Delete pipeline?")) return;
+async function deleteSelectedPipeline() {
+    if(!state.selectedPipeline) return;
+    const confirmed = await showConfirm("Delete this pipeline?", {
+        title: "Delete Pipeline",
+        type: "warning",
+        confirmText: "Delete",
+        danger: true
+    });
+    if (!confirmed) return;
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}`, { method: "DELETE" })
     .then(() => { state.selectedPipeline=null; els.name.value=""; setSteps([]); refreshPipelines(); }).catch(e=>log(e.message));
 }
@@ -3104,7 +3223,14 @@ async function refreshTools() {
 
 function bindEvents() {
     els.pipelineForm.addEventListener("submit", handleSubmit);
-    els.clearSteps.addEventListener("click", () => { if(confirm("Clear steps?")) setSteps([]); });
+    els.clearSteps.addEventListener("click", async () => { 
+        const confirmed = await showConfirm("Clear all steps?", {
+            title: "Clear Steps",
+            type: "warning",
+            confirmText: "Clear"
+        });
+        if (confirmed) setSteps([]); 
+    });
     els.buildPipeline.addEventListener("click", buildSelectedPipeline);
     els.deletePipeline.addEventListener("click", deleteSelectedPipeline);
     if (els.newPipelineBtn) els.newPipelineBtn.addEventListener("click", createNewPipeline); 
@@ -3759,7 +3885,13 @@ window.loadTaskToChat = async function(taskId) {
 
 // Delete background task
 window.deleteBackgroundTask = async function(taskId) {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    const confirmed = await showConfirm("Are you sure you want to delete this task?", {
+        title: "Delete Task",
+        type: "warning",
+        confirmText: "Delete",
+        danger: true
+    });
+    if (!confirmed) return;
     
     try {
         // Try to delete from server (may fail if task is only in cache)
@@ -3823,7 +3955,7 @@ window.clearCompletedTasks = async function() {
 // Send to background
 async function sendToBackground(question) {
     if (!state.chat.engineSessionId) {
-        alert('Please start the engine first');
+        showModal("Please start the engine first", { title: "Engine Required", type: "warning" });
         return null;
     }
     
