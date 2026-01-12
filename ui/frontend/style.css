@@ -615,24 +615,39 @@ body {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
-/* --- 在文件末尾追加 --- */
+/* --- 发送按钮样式 --- */
 
-/* 停止按钮状态 */
+/* 发送图标包装器 */
+.send-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 停止按钮状态 - 类似通义千问的圆形停止按钮 */
 .btn-send.stop {
-  background-color: #ef4444 !important; /* 红色 */
-  transform: scale(1); /* 防止点击动画干扰 */
+  background-color: #1a1a1a !important;
+  transform: scale(1);
 }
 .btn-send.stop:hover {
-  background-color: #dc2626 !important;
+  background-color: #333 !important;
 }
 
-/* 停止图标 (白色正方形) */
+/* 停止图标 (圆角正方形) */
 .icon-stop {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   background-color: white;
-  border-radius: 2px;
+  border-radius: 3px;
+  animation: pulseStop 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseStop {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 /* --- 思考过程 (Thought Process) 样式 --- */
@@ -1428,64 +1443,74 @@ body {
 }
 
 /* =========================================
-   Gemini-style Empty State
+   通义千问风格 Empty State
    ========================================= */
 
-/* 1. 容器布局：垂直居中，稍微偏上一点 */
-.empty-state-wrapper {
-  /* [新增] 确保空状态内容也居中 */
-  max-width: 800px;
-  margin: 0 auto;
-  
-  /* [保持原样] */
+/* 空状态时的容器布局 - 让输入框垂直居中偏上 */
+.chat-container.empty-state {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  padding-bottom: 100px;
-  gap: 40px;
+  padding-bottom: 15vh; /* 整体向上偏移 */
+}
+
+.chat-container.empty-state #chat-history {
+  flex: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 1.5rem;
+  overflow: visible;
+}
+
+.chat-container.empty-state .chat-input-wrapper {
+  padding-bottom: 1rem;
+}
+
+/* 1. 欢迎语容器 */
+.empty-state-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 1rem;
 }
 
 /* 2. 问候语区域 */
 .greeting-section {
-  text-align: left; /* 保持左对齐或居中看你喜好，Gemini 主要是左对齐，但居中更适合你的布局 */
+  text-align: center;
   width: 100%;
   max-width: 800px;
   padding: 0 1rem;
 }
 
-/* 渐变文字 "Hello, Human" */
+/* 渐变文字 "Hello，UltraRAG" */
 .greeting-gradient {
-  font-size: 3rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #4285f4, #d96570, #9b72cb);
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   letter-spacing: -0.02em;
   display: inline-block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  line-height: 1.3;
 }
 
-/* 大标题 "Where should we start?" */
-.greeting-title {
-  font-size: 3rem;
-  font-weight: 600;
-  color: #c4c7c5; /* 这种浅灰色是精髓 */
-  margin: 0;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
-}
-
-/* 3. 建议胶囊 (Chips) 容器 */
-.suggestion-chips {
+/* 3. 建议胶囊 (Chips) 容器 - 输入框下方 */
+.suggestion-chips-bottom {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   max-width: 800px;
   width: 100%;
-  padding: 0 1rem;
+  padding: 0.5rem 1rem 2rem;
+  margin: 0 auto;
 }
 
 /* 胶囊按钮本体 */
@@ -1536,11 +1561,16 @@ body {
 
 /* 移动端适配：字体改小 */
 @media (max-width: 768px) {
-  .greeting-gradient, .greeting-title {
-    font-size: 2.2rem;
+  .greeting-gradient {
+    font-size: 1.8rem;
   }
-  .suggestion-chips {
-    justify-content: center; /* 移动端居中排列建议 */
+  .suggestion-chips-bottom {
+    padding: 0.5rem;
+    gap: 8px;
+  }
+  .suggestion-chips-bottom .chip-btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
   }
 }
 

@@ -1692,51 +1692,49 @@ function formatCitationHtml(html, messageIdx = null) {
     );
 }
 
+// [新增] 渲染预设建议按钮（已禁用）
+function renderSuggestionChips() {
+    // 预设按钮已删除，不再渲染
+}
+
+// [新增] 移除预设建议按钮
+function removeSuggestionChips() {
+    const existing = document.getElementById('suggestion-chips-container');
+    if (existing) existing.remove();
+}
+
 // 2. [主函数] 修改后的 renderChatHistory
 function renderChatHistory() {
     if (!els.chatHistory) return;
     els.chatHistory.innerHTML = "";
-    // [核心修改] 仿 Gemini 空白欢迎页
+    
+    // 获取 chat-container 元素来控制空状态布局
+    const chatContainer = els.chatHistory.parentElement;
+    
+    // [核心修改] 仿通义千问空白欢迎页 - 输入框居中，预设按钮在下方
     if (state.chat.history.length === 0) { 
+        // 添加空状态类，让输入框居中
+        if (chatContainer) chatContainer.classList.add('empty-state');
+        
         els.chatHistory.innerHTML = `
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">Welcome back.</span>
+                        <span class="greeting-gradient">Hello，UltraRAG</span>
                     </div>
-                    <h1 class="greeting-title">Ready when you are.</h1>
-                </div>
-                
-                <div class="suggestion-chips">
-                    <button class="chip-btn chip-analysis" onclick="setQuickPrompt('结合多篇史料，深度分析北宋初期‘杯酒释兵权’对中后期冗兵冗费问题的潜在影响。')">
-                        <span class="chip-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg>
-                        </span>
-                        <span>Analysis</span>
-                    </button>
-                    <button class="chip-btn chip-explain" onclick="setQuickPrompt('请结合数学推导，详细拆解 PPO 算法中 Clipping Loss 的设计初衷及其公式含义。')">
-                        <span class="chip-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg>
-                        </span>
-                        <span>Explain</span>
-                    </button>
-                    <button class="chip-btn chip-implement" onclick="setQuickPrompt('参考我上传的项目文档，快速搭建一个支持流式响应的 ChatGPT 风格聊天 Demo。')">
-                        <span class="chip-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-                        </span>
-                        <span>Implement</span>
-                    </button>
-                    <button class="chip-btn chip-insights" onclick="setQuickPrompt('对比最近的相关论文，挖掘多模态领域尚未被充分讨论的科研空白点与潜在机会。')">
-                        <span class="chip-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"></path><path d="M11 3 8 9l3 12"></path><path d="M13 3l3 6-3 12"></path><path d="M2 9h20"></path></svg>
-                        </span>
-                        <span>Insights</span>
-                    </button>
                 </div>
             </div>
         `;
+        
+        // 渲染预设按钮到输入框下方
+        renderSuggestionChips();
         return; 
     }
+    
+    // 移除空状态类，恢复正常布局
+    if (chatContainer) chatContainer.classList.remove('empty-state');
+    // 移除预设按钮
+    removeSuggestionChips();
     state.chat.history.forEach((entry, index) => {
         const bubble = document.createElement("div"); 
         // 加上 fade-in 动画类，稍微好看点
@@ -1824,7 +1822,7 @@ function setChatRunning(isRunning) {
   updateDemoControls();
   
   const btn = els.chatSend;
-  const icon = document.getElementById("chat-send-icon");
+  const iconWrapper = document.getElementById("chat-send-icon");
   
   if (isRunning) {
       setChatStatus("Thinking...", "running");
@@ -1833,11 +1831,11 @@ function setChatRunning(isRunning) {
       if (els.chatInput) els.chatInput.disabled = true;
       if (els.chatSend) els.chatSend.disabled = false; // <--- 关键！必须解开！
 
-      // 样式变为红色停止
+      // 样式变为停止按钮
       if (btn) btn.classList.add("stop");
-      if (icon) {
-          icon.textContent = "";
-          icon.className = "icon-stop";
+      if (iconWrapper) {
+          // 隐藏发送箭头，显示停止图标
+          iconWrapper.innerHTML = '<span class="icon-stop"></span>';
       }
   } else {
       updateActionButtons();
@@ -1845,9 +1843,14 @@ function setChatRunning(isRunning) {
       // 闲置状态：输入框解锁（前提是引擎在线，updateDemoControls 已处理）
       // 样式变回箭头
       if (btn) btn.classList.remove("stop");
-      if (icon) {
-          icon.className = "";
-          icon.textContent = "↑";
+      if (iconWrapper) {
+          // 恢复发送箭头图标
+          iconWrapper.innerHTML = `
+            <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="5 12 12 5 19 12"></polyline>
+            </svg>
+          `;
       }
   }
 }
