@@ -3295,9 +3295,23 @@ function bindEvents() {
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
     
     // Support Shift+Enter for newline, Enter for submit
+    // [修复] 添加 IME 输入法组合状态检测，防止中文输入时误触发发送
     if (els.chatInput) {
+        let isComposing = false; // 跟踪是否正在进行 IME 组合输入
+        
+        // 监听 IME 组合开始事件（拼音输入开始）
+        els.chatInput.addEventListener('compositionstart', function() {
+            isComposing = true;
+        });
+        
+        // 监听 IME 组合结束事件（拼音输入结束，已选择汉字或确认拼音）
+        els.chatInput.addEventListener('compositionend', function() {
+            isComposing = false;
+        });
+        
         els.chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // 如果正在进行 IME 组合输入，不触发发送
+            if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                 e.preventDefault();
                 handleChatSubmit(e);
             }
