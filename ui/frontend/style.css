@@ -412,14 +412,14 @@ body {
 .sidebar-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0.8rem;
+  padding: 0;
 }
 
 .sidebar-label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin: 1rem 0.5rem 0.5rem;
+  margin: 1rem 16px 0.5rem 16px; /* 统一左侧 margin 为 16px */
   text-transform: uppercase;
 }
 
@@ -427,8 +427,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Align with session items: left same as FEATURE (0.5rem), right same as session delete buttons (16px - 0.8rem) */
-  padding: 0.8rem 3px 0.5rem 0.5rem;
+  /* 左侧 20px 对齐标题，右侧 16px 对齐删除按钮 */
+  padding: 0.8rem 16px 0.5rem 20px;
 }
 
 .sidebar-label-row .sidebar-label {
@@ -450,8 +450,8 @@ body {
   opacity: 0.6;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
   text-align: center;
-  /* Align with session delete buttons - add right margin to match session item padding */
-  margin-right: 13px;
+  /* Align with session delete buttons - no extra margin needed as parent padding handles it */
+  margin-right: 0;
 }
 
 .btn-clear-all:hover {
@@ -464,7 +464,7 @@ body {
 
 /* Session Item */
 .chat-session-item {
-  padding: 10px 16px 10px 24px;
+  padding: 10px 16px 10px 24px; /* 左侧缩进 36px (20px + 16px)，体现层级 */
   font-size: 0.9rem;
   color: var(--text-primary);
   border-radius: 0;
@@ -2294,12 +2294,11 @@ body {
     font-family: var(--font-sans); /* 恢复 Inter 字体 */
   }
   
-  /* 统一水平对齐基准：16px */
+  /* 统一水平对齐基准：20px */
   .sidebar-toggle-wrapper, 
-  .sidebar-label, 
   .btn-nav {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
   }
   
   /* 1. 顶部样式 */
@@ -2360,16 +2359,17 @@ body {
     padding: 0;
   }
   
-  .sidebar-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    margin: 1.5rem 0 0.5rem 0;
-    letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-  }
+.sidebar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 1rem 20px 0.5rem 20px; /* 统一左侧 margin 为 20px */
+  text-transform: uppercase;
+  margin-top: 1.5rem;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+}
   
   /* 3. 底部样式 */
   .sidebar-footer {
