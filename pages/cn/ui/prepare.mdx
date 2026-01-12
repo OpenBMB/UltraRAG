@@ -1,0 +1,284 @@
+---
+title: "部署指南"
+icon: "box"
+---
+
+本指南将指导您完成 UltraRAG UI 的全栈部署，包括生成模型（LLM）、检索模型（Embedding）以及 Milvus 向量数据库。
+
+## 模型推理服务部署
+
+UltraRAG UI 统一采用 OpenAI API 协议进行调用。您可以选择直接在宿主机使用 `Screen` 运行，或使用 `Docker` 容器化部署。
+
+
+### 生成模型部署
+
+以 Qwen3-32B 为例，建议使用多卡并行以保证推理速度。
+
+**Screen (宿主机直接运行)**
+
+1. 新建会话会话：
+
+```shell
+screen -S llm
+```
+
+2. 启动命令：
+
+```shell script/vllm_serve_emb.sh
+CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
+    --served-model-name qwen3-32b \
+    --model Qwen/Qwen3-32B \
+    --trust-remote-code \
+    --host 0.0.0.0 \
+    --port 65503 \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.9 \
+    --tensor-parallel-size 2 \
+    --enforce-eager
+```
+
+出现类似以下输出，表示模型服务启动成功：
+
+```
+(APIServer pid=2811812) INFO:     Started server process [2811812]
+(APIServer pid=2811812) INFO:     Waiting for application startup.
+(APIServer pid=2811812) INFO:     Application startup complete.
+```
+
+3. 退出会话：按下 `Ctrl + A + D` 可退出并保持服务在后台运行。
+如需重新进入该会话，可执行：
+
+```shell
+screen -r llm
+```
+
+**Docker (容器化部署)**
+
+```shell
+docker run -d --gpus all \
+  -e CUDA_VISIBLE_DEVICES=0,1 \
+  -v /parent_dir_of_models:/workspace \
+  -p 29001:65503 \
+  --ipc=host \
+  --name vllm_qwen \
+  vllm/vllm-openai:latest \
+  --served-model-name qwen3-32b \
+  --model Qwen/Qwen3-32B \
+  --trust-remote-code \
+  --host 0.0.0.0 \
+  --port 65503 \
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.9 \
+  --tensor-parallel-size 2 \
+  --enforce-eager
+```
+
+### 检索模型部署
+
+以 Qwen3-Embedding-0.6B 为例，通常占用显存较小。
+
+**Screen (宿主机直接运行)**
+
+1. 新建会话：
+
+```shell
+screen -S retriever
+```
+
+2. 启动命令：
+
+```shell script/vllm_serve_emb.sh
+CUDA_VISIBLE_DEVICES=2 python -m vllm.entrypoints.openai.api_server \
+    --served-model-name qwen-embedding \
+    --model Qwen/Qwen3-Embedding-0.6B \
+    --trust-remote-code \
+    --host 0.0.0.0 \
+    --port 65504 \
+    --task embed \
+    --gpu-memory-utilization 0.2
+```
+**Docker (容器化部署)**
+
+```shell
+docker run -d --gpus all \
+  -e CUDA_VISIBLE_DEVICES=2 \
+  -v /parent_dir_of_models:/workspace \
+  -p 29002:65504 \
+  --ipc=host \
+  --name vllm_qwen_emb \
+  vllm/vllm-openai:latest \
+  --served-model-name qwen-embedding \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --trust-remote-code \
+  --host 0.0.0.0 \
+  --port 65504 \
+  --task embed \
+  --gpu-memory-utilization 0.2
+```
+
+## 向量数据库部署 (Milvus)
+
+Milvus 用于高效存储和检索向量数据。
+
+**官方部署**
+
+```shell
+# milvus单机版（docker）：https://milvus.io/docs/zh/install-overview.md#Milvus-Standalone
+curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
+bash standalone_embed.sh start
+```
+
+**自定义部署**
+
+若需自定义端口（如防止端口冲突）或数据路径，可使用以下脚本：
+```shell start_milvus.sh highlight="7,8,10"
+#!/usr/bin/env bash
+set -e
+
+CONTAINER_NAME=milvus-ultrarag
+MILVUS_IMAGE=milvusdb/milvus:latest
+
+GRPC_PORT=29901
+HTTP_PORT=29902
+
+DATA_DIR=/root/ultrarag-demo/milvus/
+
+echo "==> Starting Milvus (standalone)"
+echo "==> gRPC: ${GRPC_PORT}, HTTP: ${HTTP_PORT}"
+echo "==> Data dir: ${DATA_DIR}"
+
+mkdir -p ${DATA_DIR}
+chown -R 1000:1000 ${DATA_DIR} 2>/dev/null || true
+
+docker run -d \
+  --name ${CONTAINER_NAME} \
+  --restart unless-stopped \
+  --security-opt seccomp:unconfined \
+  -e DEPLOY_MODE=STANDALONE \
+  -e ETCD_USE_EMBED=true \
+  -e COMMON_STORAGETYPE=local \
+  -v ${DATA_DIR}:/var/lib/milvus \
+  -p ${GRPC_PORT}:19530 \
+  -p ${HTTP_PORT}:9091 \
+  --health-cmd="curl -f http://localhost:9091/healthz" \
+  --health-interval=30s \
+  --health-start-period=60s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  ${MILVUS_IMAGE} \
+  milvus run standalone
+
+echo "==> Waiting for Milvus to become healthy..."
+sleep 5
+docker ps | grep ${CONTAINER_NAME} || true
+```
+
+修改GRPC_PORT、HTTP_PORT以及DATA_DIR，并运行以下命令进行部署：
+
+```shell
+bash start_milvus.sh
+```
+
+部署成功后，您可以通过以下命令检查Milvus的状态：
+
+```shell
+docker ps | grep milvus-ultrarag
+```
+
+如果一切正常，您应该能够看到Milvus容器正在运行。
+
+<Tip>UI 配置提示：启动成功后，在 UltraRAG UI 的 `Knowledge Base` -> `Configure DB` 中填写 `GRPC_PORT` 地址（如 `tcp://127.0.0.1:29901`）。点击 Connect 显示 Connected 即代表成功。</Tip>
+
+
+## 知识库管理与 Pipeline 配置
+
+部署完基础服务后，需要配置文档处理流水线（Pipeline）。
+
+### 构建基础流水线
+
+依次运行以下命令完成初始化：
+
+1. 文档解析：
+
+```shell
+ultrarag build examples/build_text_corpus.yaml
+```
+
+2. 文档切块：
+
+```shell
+ultrarag build examples/corpus_chunk.yaml
+```
+
+3. 建立索引：
+
+```shell
+ultrarag build examples/milvus_index.yaml
+```
+
+### 配置检索器
+
+修改 `examples/parameter/milvus_index_parameter.yaml`，将 Pipeline 链接至您刚才部署的 vLLM 检索服务：
+
+```yaml examples/parameter/milvus_index_parameter.yaml icon="/images/yaml.svg"
+retriever:
+  backend: sentence_transformers # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: '' # [!code --]
+      base_url: https://api.openai.com/v1 # [!code --]
+      model_name: text-embedding-3-small # [!code --]
+      api_key: 'abc' # [!code ++]
+      base_url: http://localhost:65504/v1 # [!code ++]
+      model_name: qwen-embedding # [!code ++]
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  embedding_path: embedding/embedding.npy
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  overwrite: false
+
+```
