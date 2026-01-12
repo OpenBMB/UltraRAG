@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "UltraRAG v2",
+  "name": "UltraRAG v3",
   "banner": {
     "content": "📣 Tutorials have been updated and are now fully aligned with UltraRAG 3.0 — check out [what’s new](/pages/cn/getting_started/update).",
     "dismissible": true
@@ -18,7 +18,7 @@
         "language": "cn",
         "tabs": [
           {
-            "tab": "Documentation",
+            "tab": "Docs",
             "groups": [
               {
                 "group": "开始使用",
@@ -74,8 +74,14 @@
             ]
           },
           {
-            "tab": "Demo",
+            "tab": "UI",
             "groups": [
+              {
+                "group": "使用指南",
+                "pages": [
+                  "pages/cn/ui/prepare"
+                ]
+              },
               {
                 "group": "Pipeline",
                 "pages": [
@@ -171,7 +177,7 @@
             ]
           },
           {
-            "tab": "Demo",
+            "tab": "UI",
             "groups": [
               {
                 "group": "Pipeline",
