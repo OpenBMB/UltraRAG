@@ -4,6 +4,7 @@ const state = {
   contextStack: [],
   toolCatalog: { order: [], byServer: {} },
   parameterData: null,
+  pipelineConfig: null,  // 存储完整的 pipeline 配置（包括 servers）
   editingPath: null,
   isBuilt: false,
   parametersReady: false,
@@ -1706,6 +1707,119 @@ function setChatRunning(isRunning) {
 
 function canUseChat() { return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData); }
 
+/**
+ * 检查当前 pipeline 是否包含 retriever 服务
+ * 通过查看 pipeline 配置中的 servers 是否包含 "retriever" 键
+ */
+function pipelineHasRetriever() {
+    if (!state.pipelineConfig || typeof state.pipelineConfig !== 'object') {
+        return false;
+    }
+    const servers = state.pipelineConfig.servers;
+    if (!servers || typeof servers !== 'object') {
+        return false;
+    }
+    // 检查 servers 对象的键是否包含 'retriever'
+    return Object.keys(servers).some(key => key.toLowerCase() === 'retriever');
+}
+
+/**
+ * 检查是否是初次对话（用户还没有发过消息，或者只有一条刚发的用户消息）
+ * 注意：在调用此函数时，用户消息可能还没被添加到 history 中
+ */
+function isFirstTurnChat() {
+    // 如果 history 为空，或者 history 中没有 assistant 的回复，说明是第一次对话
+    const hasAssistantMessage = state.chat.history.some(msg => msg.role === 'assistant');
+    return !hasAssistantMessage;
+}
+
+/**
+ * 验证是否需要选择知识库
+ * 返回 true 表示验证通过，返回 false 表示需要用户选择知识库
+ */
+function validateKnowledgeBaseSelection() {
+    // 1. 检查是否是初次对话
+    if (!isFirstTurnChat()) {
+        // 不是初次对话，无需验证
+        return true;
+    }
+    
+    // 2. 检查 pipeline 是否包含 retriever
+    if (!pipelineHasRetriever()) {
+        // 不包含 retriever，无需验证
+        return true;
+    }
+    
+    // 3. 检查用户是否选择了知识库
+    const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : "";
+    if (selectedCollection) {
+        // 已选择知识库，验证通过
+        return true;
+    }
+    
+    // 未选择知识库，显示提示
+    showKnowledgeBaseAlert();
+    return false;
+}
+
+/**
+ * 显示知识库选择提示弹窗
+ */
+function showKnowledgeBaseAlert() {
+    // 使用自定义弹窗而不是简单的 alert，提供更好的用户体验
+    const existingDialog = document.getElementById('kb-alert-dialog');
+    if (existingDialog) {
+        existingDialog.showModal();
+        return;
+    }
+    
+    // 创建弹窗
+    const dialog = document.createElement('dialog');
+    dialog.id = 'kb-alert-dialog';
+    dialog.className = 'kb-alert-dialog';
+    dialog.innerHTML = `
+        <div class="kb-alert-content">
+            <div class="kb-alert-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    <circle cx="12" cy="10" r="2"></circle>
+                    <path d="M12 14v2"></path>
+                </svg>
+            </div>
+            <p class="kb-alert-message">
+                The current pipeline requires retrieval capabilities. 
+                
+                Please select a Knowledge Base before starting the conversation.
+            </p>
+            <div class="kb-alert-actions">
+                <button class="btn btn-primary" id="kb-alert-ok-btn">OK</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    
+    // 绑定关闭事件
+    const okBtn = dialog.querySelector('#kb-alert-ok-btn');
+    okBtn.onclick = () => {
+        dialog.close();
+        // 聚焦到知识库选择下拉框
+        if (els.chatCollectionSelect) {
+            els.chatCollectionSelect.focus();
+        }
+    };
+    
+    // 点击背景关闭
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            dialog.close();
+        }
+    });
+    
+    dialog.showModal();
+}
+
 function openChatView() {
   if (!canUseChat()) { log("Please build and save parameters first."); return; }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
@@ -2204,6 +2318,11 @@ async function handleChatSubmit(event) {
 
   const question = els.chatInput.value.trim();
   if (!question) return;
+  
+  // [新增] 验证是否需要选择知识库（仅初次对话且 pipeline 包含 retriever 时）
+  if (!validateKnowledgeBaseSelection()) {
+    return;
+  }
   
   // Check if background mode is enabled
   if (backgroundTaskState.backgroundModeEnabled) {
@@ -2857,6 +2976,8 @@ async function loadPipeline(name) {
         state.selectedPipeline = name;
         els.name.value = name;
         
+        // [新增] 存储完整的 pipeline 配置（包括 servers）
+        state.pipelineConfig = cfg;
 
         let safeSteps = [];
         
@@ -3703,6 +3824,11 @@ window.clearCompletedTasks = async function() {
 async function sendToBackground(question) {
     if (!state.chat.engineSessionId) {
         alert('Please start the engine first');
+        return null;
+    }
+    
+    // [新增] 验证是否需要选择知识库（仅初次对话且 pipeline 包含 retriever 时）
+    if (!validateKnowledgeBaseSelection()) {
         return null;
     }
     

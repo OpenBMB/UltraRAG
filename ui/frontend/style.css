@@ -3111,3 +3111,99 @@ body {
     height: 48px;
   }
 }
+
+/* ==========================================
+   知识库选择提示弹窗
+   ========================================== */
+.kb-alert-dialog {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 0;
+  width: 400px;
+  max-width: 90vw;
+  background: #fff;
+  overflow: hidden;
+}
+
+.kb-alert-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.kb-alert-dialog[open] {
+  animation: kb-alert-in 0.3s ease-out;
+}
+
+@keyframes kb-alert-in {
+  from { 
+    opacity: 0; 
+    transform: translateY(30px) scale(0.9); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+.kb-alert-content {
+  padding: 32px;
+  text-align: center;
+}
+
+.kb-alert-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d97706;
+}
+
+.kb-alert-icon svg {
+  width: 36px;
+  height: 36px;
+}
+
+.kb-alert-title {
+  margin: 0 0 12px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.kb-alert-message {
+  margin: 0 0 24px;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.kb-alert-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.kb-alert-actions .btn {
+  min-width: 140px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.kb-alert-actions .btn-primary {
+  background: linear-gradient(135deg, #10a37f, #059669);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 163, 127, 0.3);
+}
+
+.kb-alert-actions .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 163, 127, 0.4);
+}
