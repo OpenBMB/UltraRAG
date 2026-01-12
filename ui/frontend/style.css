@@ -2322,6 +2322,25 @@ body {
     margin: 0 !important; /* 顶部 Feature 标签去除额外边距 */
     padding: 0 !important; /* [新增] 去除嵌套 padding，防止双倍缩进 */
   }
+  
+  /* Logo 样式 */
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .sidebar-logo-img {
+    height: 20px; /* 与右边的 toggle 按钮图标高度一致 */
+    width: auto;
+    object-fit: contain;
+  }
+  
+  /* 侧边栏收缩时隐藏 logo */
+  .chat-sidebar.collapsed .sidebar-logo {
+    display: none !important;
+  }
 
   /* [新增] 收缩按钮统一风格 (黑色描边) */
   #sidebar-toggle-btn {
