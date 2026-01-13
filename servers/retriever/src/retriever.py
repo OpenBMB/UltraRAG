@@ -37,20 +37,20 @@ class Retriever:
             output="q_ls,top_k,query_instruction,collection_name->ret_psg",
         )
         mcp_inst.tool(
+            self.retriever_batch_search,
+            output="batch_query_list,top_k,query_instruction,collection_name->ret_psg_ls",
+        )
+        mcp_inst.tool(
             self.bm25_index,
             output="overwrite->None",
         )
         mcp_inst.tool(
-            self.retriever_deploy_search,
-            output="retriever_url,q_ls,top_k,query_instruction->ret_psg",
-        )
-        mcp_inst.tool(
-            self.retriever_search_colbert_maxsim,
-            output="q_ls,embedding_path,top_k,query_instruction->ret_psg",
-        )
-        mcp_inst.tool(
             self.bm25_search,
             output="q_ls,top_k->ret_psg",
+        )
+        mcp_inst.tool(
+            self.retriever_deploy_search,
+            output="retriever_url,q_ls,top_k,query_instruction->ret_psg",
         )
         mcp_inst.tool(
             self.retriever_exa_search,
@@ -64,15 +64,11 @@ class Retriever:
             self.retriever_zhipuai_search,
             output="q_ls,top_k,retrieve_thread_num->ret_psg",
         )
-        mcp_inst.tool(
-            self.retriever_batch_search,
-            output="batch_query_list,top_k,query_instruction,collection_name->ret_psg_ls",
-        )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
-    def retriever_init(
+    async def retriever_init(
         self,
         model_name_or_path: str,
         backend_configs: Dict[str, Any],
@@ -671,38 +667,6 @@ class Retriever:
             info_msg = f"[{self.index_backend_name}] Indexing success."
             app.logger.info(info_msg)
 
-    def bm25_index(
-        self,
-        overwrite: bool = False,
-    ):
-        bm25_save_path = self.cfg.get("save_path", None)
-        if bm25_save_path:
-            output_dir = os.path.dirname(bm25_save_path)
-        else:
-            current_file = os.path.abspath(__file__)
-            project_root = os.path.dirname(os.path.dirname(current_file))
-            output_dir = os.path.join(project_root, "output", "index")
-            bm25_save_path = os.path.join(output_dir, "bm25")
-
-        if not overwrite and os.path.exists(bm25_save_path):
-            info_msg = (
-                f"Index file already exists: {bm25_save_path}. "
-                "Set overwrite=True to overwrite."
-            )
-            app.logger.info(info_msg)
-            return
-
-        if overwrite and os.path.exists(bm25_save_path):
-            os.remove(bm25_save_path)
-
-        corpus_tokens = self.tokenizer.tokenize(self.contents, return_as="tuple")
-        self.model.index(corpus_tokens)
-        self.model.save(bm25_save_path, corpus=None)
-        self.tokenizer.save_stopwords(bm25_save_path)
-        self.tokenizer.save_vocab(bm25_save_path)
-        info_msg = "[bm25] Indexing success."
-        app.logger.info(info_msg)
-
     async def retriever_search(
         self,
         query_list: List[str],
@@ -894,102 +858,38 @@ class Retriever:
                     raise ToolError(err_msg)
 
                 return {"ret_psg": response_data["ret_psg"]}
-
-    async def retriever_search_colbert_maxsim(
+    
+    async def bm25_index(
         self,
-        query_list: List[str],
-        embedding_path: str,
-        top_k: int = 5,
-        query_instruction: str = "",
-    ) -> Dict[str, List[List[str]]]:
-        try:
-            import torch
-        except ImportError:
-            err_msg = (
-                "torch is not installed. Please install it with `pip install torch`."
-            )
-            app.logger.error(err_msg)
-            raise ImportError(err_msg)
-
-        if self.backend not in ["infinity"]:
-            error_msg = (
-                "retriever_search_colbert_maxsim only supports 'infinity' backend "
-                "with ColBERT/ColPali multi-vector models. "
-                "Use retriever_search or other backend-specific retrieval functions instead."
-            )
-            app.logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        if isinstance(query_list, str):
-            query_list = [query_list]
-        queries = [f"{query_instruction}{query}" for query in query_list]
-
-        async with self.model:
-            query_embedding, _ = await self.model.embed(sentences=queries)
-
-        doc_embeddings = np.load(embedding_path)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        if (
-            isinstance(doc_embeddings, np.ndarray)
-            and doc_embeddings.dtype != object
-            and doc_embeddings.ndim == 3
-        ):
-            docs_tensor = torch.from_numpy(
-                doc_embeddings.astype("float32", copy=False)
-            ).to(device)
-        elif isinstance(doc_embeddings, np.ndarray) and doc_embeddings.dtype == object:
-            try:
-                stacked = np.stack(
-                    [np.asarray(x, dtype=np.float32) for x in doc_embeddings.tolist()],
-                    axis=0,
-                )
-                docs_tensor = torch.from_numpy(stacked).to(device)
-            except Exception:
-                error_msg = (
-                    f"Document embeddings in {embedding_path} have inconsistent shapes, "
-                    "cannot stack into (N,Kd,D). "
-                    f"Check your retriever_embed."
-                )
-                app.logger.error(error_msg)
-                raise ValueError(error_msg)
+        overwrite: bool = False,
+    ):
+        bm25_save_path = self.cfg.get("save_path", None)
+        if bm25_save_path:
+            output_dir = os.path.dirname(bm25_save_path)
         else:
-            error_msg = (
-                f"Unexpected doc_embeddings format: type={type(doc_embeddings)}, "
-                f"shape={getattr(doc_embeddings, 'shape', None)}"
+            current_file = os.path.abspath(__file__)
+            project_root = os.path.dirname(os.path.dirname(current_file))
+            output_dir = os.path.join(project_root, "output", "index")
+            bm25_save_path = os.path.join(output_dir, "bm25")
+
+        if not overwrite and os.path.exists(bm25_save_path):
+            info_msg = (
+                f"Index file already exists: {bm25_save_path}. "
+                "Set overwrite=True to overwrite."
             )
-            app.logger.error(error_msg)
-            raise ValueError(error_msg)
+            app.logger.info(info_msg)
+            return
 
-        def _l2norm(t: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-            return t / t.norm(dim=-1, keepdim=True).clamp_min(eps)
+        if overwrite and os.path.exists(bm25_save_path):
+            os.remove(bm25_save_path)
 
-        N, _, D_docs = docs_tensor.shape
-        docs_tensor = _l2norm(docs_tensor)
-        k_pick = min(top_k, N)
-
-        results = []
-        for q_np in query_embedding:
-            q = torch.as_tensor(
-                q_np,
-                dtype=torch.float32,
-                device=device,
-            )
-            if q.shape[-1] != D_docs:
-                error_msg = (
-                    f"Dimension mismatch: query D={q.shape[-1]} vs doc D={D_docs}"
-                )
-                app.logger.error(error_msg)
-                raise ValueError(error_msg)
-
-            q = _l2norm(q)
-            sim = torch.einsum("qd,nkd->nqk", q, docs_tensor)
-            sim_max = sim.max(dim=2).values
-            scores = sim_max.sum(dim=1)
-
-            top_idx = torch.topk(scores, k=k_pick, largest=True).indices.tolist()
-            results.append([self.contents[i] for i in top_idx])
-        return {"ret_psg": results}
+        corpus_tokens = self.tokenizer.tokenize(self.contents, return_as="tuple")
+        self.model.index(corpus_tokens)
+        self.model.save(bm25_save_path, corpus=None)
+        self.tokenizer.save_stopwords(bm25_save_path)
+        self.tokenizer.save_vocab(bm25_save_path)
+        info_msg = "[bm25] Indexing success."
+        app.logger.info(info_msg)
 
     async def bm25_search(
         self,
