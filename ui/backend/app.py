@@ -108,6 +108,12 @@ def create_app(admin_mode: bool = False) -> Flask:
         payload = request.get_json(force=True)
         return jsonify(pm.save_pipeline(payload))
 
+    @app.route("/api/pipelines/<string:name>/yaml", methods=["PUT"])
+    def save_pipeline_yaml(name: str):
+        """直接保存 YAML 文本到文件"""
+        yaml_content = request.get_data(as_text=True)
+        return jsonify(pm.save_pipeline_yaml(name, yaml_content))
+
     @app.route("/api/pipelines/<string:name>", methods=["GET"])
     def get_pipeline(name: str):
         return jsonify(pm.load_pipeline(name))
@@ -116,6 +122,17 @@ def create_app(admin_mode: bool = False) -> Flask:
     def delete_pipeline(name: str):
         pm.delete_pipeline(name)
         return jsonify({"status": "deleted"})
+
+    @app.route("/api/pipelines/<string:name>/rename", methods=["POST"])
+    def rename_pipeline(name: str):
+        """Rename a pipeline"""
+        payload = request.get_json(force=True)
+        new_name = payload.get("new_name", "").strip()
+        if not new_name:
+            return jsonify({"error": "new_name is required"}), 400
+        
+        result = pm.rename_pipeline(name, new_name)
+        return jsonify(result)
 
     @app.route("/api/pipelines/<string:name>/parameters", methods=["GET"])
     def get_parameters(name: str):
@@ -500,6 +517,131 @@ def create_app(admin_mode: bool = False) -> Flask:
             return jsonify({"error": "Task not found"}), 404
         
         return jsonify(task)
+
+    # =========================================
+    # Prompt Template API
+    # =========================================
+    
+    PROMPTS_DIR = BASE_DIR.parent.parent / "prompt"
+    
+    @app.route("/api/prompts", methods=["GET"])
+    def list_prompts():
+        """List all prompt template files"""
+        prompts = []
+        if PROMPTS_DIR.exists():
+            for f in sorted(PROMPTS_DIR.rglob("*.jinja*")):
+                rel_path = f.relative_to(PROMPTS_DIR)
+                prompts.append({
+                    "name": f.name,
+                    "path": str(rel_path),
+                    "size": f.stat().st_size
+                })
+        return jsonify(prompts)
+    
+    @app.route("/api/prompts/<path:filepath>", methods=["GET"])
+    def get_prompt(filepath: str):
+        """Read a prompt template file"""
+        file_path = PROMPTS_DIR / filepath
+        if not file_path.exists():
+            return jsonify({"error": "File not found"}), 404
+        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
+            return jsonify({"error": "Invalid path"}), 400
+        
+        content = file_path.read_text(encoding="utf-8")
+        return jsonify({
+            "path": filepath,
+            "content": content
+        })
+    
+    @app.route("/api/prompts", methods=["POST"])
+    def create_prompt():
+        """Create a new prompt template file"""
+        payload = request.get_json(force=True)
+        name = payload.get("name", "").strip()
+        content = payload.get("content", "")
+        
+        if not name:
+            return jsonify({"error": "Name is required"}), 400
+        
+        # 安全检查：确保文件名合法
+        if ".." in name or name.startswith("/"):
+            return jsonify({"error": "Invalid filename"}), 400
+        
+        file_path = PROMPTS_DIR / name
+        if file_path.exists():
+            return jsonify({"error": "File already exists"}), 409
+        
+        # 确保目录存在
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(content, encoding="utf-8")
+        
+        return jsonify({
+            "status": "created",
+            "path": name
+        })
+    
+    @app.route("/api/prompts/<path:filepath>", methods=["PUT"])
+    def update_prompt(filepath: str):
+        """Update a prompt template file"""
+        payload = request.get_json(force=True)
+        content = payload.get("content", "")
+        
+        file_path = PROMPTS_DIR / filepath
+        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
+            return jsonify({"error": "Invalid path"}), 400
+        
+        # 确保目录存在
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(content, encoding="utf-8")
+        
+        return jsonify({
+            "status": "saved",
+            "path": filepath
+        })
+    
+    @app.route("/api/prompts/<path:filepath>", methods=["DELETE"])
+    def delete_prompt(filepath: str):
+        """Delete a prompt template file"""
+        file_path = PROMPTS_DIR / filepath
+        if not file_path.exists():
+            return jsonify({"error": "File not found"}), 404
+        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
+            return jsonify({"error": "Invalid path"}), 400
+        
+        file_path.unlink()
+        return jsonify({"status": "deleted"})
+
+    @app.route("/api/prompts/<path:filepath>/rename", methods=["POST"])
+    def rename_prompt(filepath: str):
+        """Rename a prompt template file"""
+        payload = request.get_json(force=True)
+        new_name = payload.get("new_name", "").strip()
+        
+        if not new_name:
+            return jsonify({"error": "new_name is required"}), 400
+        
+        if ".." in new_name or new_name.startswith("/"):
+            return jsonify({"error": "Invalid filename"}), 400
+        
+        old_path = PROMPTS_DIR / filepath
+        if not old_path.exists():
+            return jsonify({"error": "File not found"}), 404
+        if not str(old_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
+            return jsonify({"error": "Invalid path"}), 400
+        
+        new_path = PROMPTS_DIR / new_name
+        if new_path.exists():
+            return jsonify({"error": "A file with this name already exists"}), 409
+        
+        # 确保目标目录存在
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        old_path.rename(new_path)
+        
+        return jsonify({
+            "status": "renamed",
+            "old_path": filepath,
+            "new_path": new_name
+        })
 
     return app
 

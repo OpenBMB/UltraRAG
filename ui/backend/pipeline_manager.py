@@ -981,9 +981,53 @@ def save_pipeline(payload: Dict) -> Dict:
     
     return {"name": name, **yaml_data}
 
+def save_pipeline_yaml(name: str, yaml_content: str) -> Dict:
+    """直接保存 YAML 文本内容到文件"""
+    if not name:
+        raise PipelineManagerError("Name required")
+    
+    # 验证 YAML 语法
+    try:
+        parsed = yaml.safe_load(yaml_content)
+    except yaml.YAMLError as e:
+        raise PipelineManagerError(f"Invalid YAML syntax: {e}")
+    
+    # 写入文件
+    p = pipeline_path(name)
+    p.write_text(yaml_content, encoding="utf-8")
+    
+    return {"name": name, "status": "saved"}
+
 def delete_pipeline(name: str):
     p = _find_pipeline_file(name)
     if p: p.unlink()
+
+def rename_pipeline(old_name: str, new_name: str) -> Dict:
+    """Rename a pipeline file"""
+    if not old_name or not new_name:
+        raise PipelineManagerError("Both old_name and new_name are required")
+    
+    # 检查旧文件是否存在
+    old_path = _find_pipeline_file(old_name)
+    if not old_path:
+        raise PipelineManagerError(f"Pipeline '{old_name}' not found")
+    
+    # 检查新名称是否已存在
+    new_path = pipeline_path(new_name)
+    if new_path.exists():
+        raise PipelineManagerError(f"Pipeline '{new_name}' already exists")
+    
+    # 执行重命名
+    old_path.rename(new_path)
+    
+    # 同时重命名对应的 parameter 文件（如果存在）
+    old_param_path = _resolve_parameter_path(old_name, for_write=False)
+    if old_param_path.exists():
+        new_param_path = _resolve_parameter_path(new_name, for_write=True)
+        new_param_path.parent.mkdir(parents=True, exist_ok=True)
+        old_param_path.rename(new_param_path)
+    
+    return {"status": "renamed", "old_name": old_name, "new_name": new_name}
 
 def load_parameters(name: str) -> Dict:
     p = _resolve_parameter_path(name, for_write=False)

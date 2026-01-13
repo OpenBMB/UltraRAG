@@ -13,82 +13,226 @@
 </head>
 <body>
   
-  <nav class="navbar fixed-top">
-    <div class="container-xl">
-      <div class="d-flex align-items-center gap-3">
-        <span class="navbar-brand fw-semibold">UltraRAG</span>
+  <nav class="navbar fixed-top builder-navbar">
+    <div class="navbar-container">
+      <!-- 左侧：Logo + 状态指示器 -->
+      <div class="navbar-left">
+        <a href="#" class="navbar-logo-link">
+          <img src="ultrarag.svg" alt="UltraRAG" class="navbar-logo-img">
+        </a>
         <div class="status-indicator" id="hero-status" data-status="idle">Idle</div>
       </div>
-      <div class="d-flex align-items-center gap-3">
+      
+      <!-- 右侧：Pipeline 标签和 Exit 按钮 -->
+      <div class="navbar-right">
         <span class="pipeline-label text-muted small" id="hero-selected-pipeline">No Pipeline Selected</span>
-        <button type="button" id="shutdown-app" class="btn btn-text btn-sm text-secondary">Exit</button>
+        <button type="button" id="shutdown-app" class="btn btn-text btn-sm">Exit</button>
       </div>
     </div>
   </nav>
 
-  <main class="main-container">
-    <div class="content-wrapper">
-      <header class="page-header text-center fade-in-up">
-        <h1 class="display-title">Build Your RAG Workflow</h1>
-        <p class="subtitle text-secondary">Design intelligent serial, branch, and loop pipelines.</p>
-      </header>
+  <main class="canvas-main" id="pipeline-form">
+    <!-- 新布局：功能栏 + 内容区 -->
+    <div class="workspace-layout">
+      
+      <!-- 最左侧：功能切换栏 -->
+      <aside class="workspace-sidebar">
+        <nav class="workspace-nav">
+          <button class="workspace-nav-btn active" data-mode="pipeline" title="Pipeline YAML">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <span class="nav-label">Pipeline</span>
+          </button>
+          <button class="workspace-nav-btn" data-mode="parameters" title="Parameters">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span class="nav-label">Params</span>
+          </button>
+          <button class="workspace-nav-btn" data-mode="prompts" title="Prompt Templates">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span class="nav-label">Prompts</span>
+          </button>
+        </nav>
+      </aside>
 
-      <form id="pipeline-form" class="fade-in-up delay-1">
-        <div class="toolbar-card">
-          <div class="row g-3 align-items-center">
-            <div class="col-md-auto">
-              <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
-                  Select Pipeline
-                </button>
-                <ul class="dropdown-menu shadow-sm border-0" id="pipeline-menu"></ul>
+      <!-- 主内容区 -->
+      <div class="workspace-content">
+        <!-- ========== Pipeline 模式 ========== -->
+        <div class="workspace-panel" id="panel-pipeline">
+          <div class="canvas-split-layout">
+            <!-- 左侧：Visual Builder 画布 -->
+            <div class="canvas-left-panel">
+              <div class="canvas-panel-header">
+                <div class="panel-title-group">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  <span class="panel-title">Visual Builder</span>
+                </div>
+                <div class="panel-toolbar">
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                      Select Pipeline
+                    </button>
+                    <ul class="dropdown-menu shadow-sm border-0" id="pipeline-menu"></ul>
+                  </div>
+                  <button type="button" id="new-pipeline-btn" class="btn btn-sm btn-outline-secondary" title="New Pipeline">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-pipelines" title="Refresh">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  </button>
+                  <button type="button" id="clear-steps" class="btn btn-sm btn-outline-danger" title="Clear Canvas">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="canvas-body">
+                <div id="flow-canvas" class="flow-canvas" aria-label="Pipeline canvas"></div>
+                <div id="context-controls" class="context-controls"></div>
               </div>
             </div>
-            <div class="col-auto">
-              <button type="button" id="new-pipeline-btn" class="btn btn-light border px-3" title="Create a new blank workflow">
-                <span class="fw-bold text-success">+</span> New
-              </button>
-            </div>
-            <div class="col">
-              <input type="text" id="pipeline-name" class="form-control form-control-flush" placeholder="Enter Pipeline Name..." />
-            </div>
-            <div class="col-auto d-flex gap-2">
-              <button type="button" class="btn btn-icon" id="refresh-pipelines" title="Refresh">↻</button>
-              <button type="button" id="clear-steps" class="btn btn-icon text-danger" title="Clear Canvas">🗑</button>
+
+            <!-- 可拖拽的分隔条 -->
+            <div class="canvas-resizer" id="builder-resizer"></div>
+
+            <!-- 右侧：YAML 编辑器 -->
+            <div class="canvas-right-panel">
+              <div class="canvas-panel-header editor-header">
+                <div class="panel-title-group">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <input type="text" id="pipeline-name" class="pipeline-name-input" placeholder="Pipeline Name..." />
+                </div>
+                <div class="panel-toolbar">
+                  <button type="button" id="yaml-format-btn" class="btn btn-sm btn-ghost" title="Reset to Canvas State">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                  </button>
+                  <div class="toolbar-divider"></div>
+                  <button type="submit" id="save-pipeline" class="btn btn-sm btn-dark">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save
+                  </button>
+                  <button type="button" id="build-pipeline" class="btn btn-sm btn-outline-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    Build
+                  </button>
+                  <button type="button" id="direct-chat-btn" class="btn btn-sm btn-ai-gradient d-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    Chat
+                  </button>
+                  <button type="button" id="delete-pipeline" class="btn btn-sm btn-ghost text-danger" title="Delete Pipeline">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                  <span id="yaml-sync-status" class="sync-status synced" title="Synced">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="yaml-editor-container">
+                <div class="yaml-editor-wrapper">
+                  <div class="yaml-gutter" id="yaml-line-numbers"></div>
+                  <textarea id="yaml-editor" class="yaml-editor" spellcheck="false" placeholder="# Write your pipeline YAML here..."></textarea>
+                </div>
+                <div id="yaml-error-bar" class="yaml-error-bar d-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <span id="yaml-error-message"></span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="builder-section mt-4">
-          <div id="flow-canvas" class="flow-canvas" aria-label="Pipeline canvas"></div>
-          <div id="context-controls" class="context-controls mt-3"></div>
-          <div class="code-preview mt-4">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span class="text-uppercase text-xs fw-bold text-muted tracking-wider">Live Preview</span>
-            </div>
-            <pre id="pipeline-preview" class="code-block"></pre>
+        <!-- ========== Parameters 模式 ========== -->
+        <div class="workspace-panel d-none" id="panel-parameters">
+          <div class="params-layout">
+            <!-- 左侧：Server 导航 -->
+            <aside class="params-sidebar">
+              <div class="params-sidebar-header">
+                <span>Servers</span>
+                <button type="button" id="params-refresh-btn" class="btn btn-sm btn-ghost" title="Reload Parameters">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </button>
+              </div>
+              <nav id="parameter-nav" class="params-nav"></nav>
+              <div class="params-sidebar-footer">
+                <button type="button" id="params-save-btn" class="btn btn-dark btn-sm w-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  Save Parameters
+                </button>
+              </div>
+            </aside>
+            <!-- 右侧：参数表单 -->
+            <main class="params-main">
+              <div id="params-empty" class="params-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <p>Please <strong>Build</strong> a pipeline first to configure parameters.</p>
+              </div>
+              <div id="parameter-form" class="params-sections"></div>
+            </main>
           </div>
         </div>
 
-        <div class="floating-actions">
-          <button type="submit" id="save-pipeline" class="btn btn-dark btn-pill">Save Changes</button>
-          <button type="button" id="build-pipeline" class="btn btn-light btn-pill border">Build</button>
-          
-          <button type="button" id="direct-chat-btn" class="btn btn-ai-gradient btn-pill ms-2 d-none">
-            Chat
-          </button>
-          
-          <button type="button" id="delete-pipeline" class="btn btn-text text-danger ms-2">Delete</button>
+        <!-- ========== Prompts 模式 ========== -->
+        <div class="workspace-panel d-none" id="panel-prompts">
+          <div class="prompts-layout">
+            <!-- 左侧：Prompt 文件列表 -->
+            <aside class="prompts-sidebar">
+              <div class="prompts-sidebar-header">
+                <span>Prompt Files</span>
+                <button type="button" id="prompt-new-btn" class="btn btn-sm btn-ghost" title="New Prompt">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+              </div>
+              <div class="prompts-search">
+                <input type="text" id="prompt-search" class="form-control form-control-sm" placeholder="Search prompts...">
+              </div>
+              <nav id="prompt-list" class="prompts-list"></nav>
+            </aside>
+            <!-- 右侧：Prompt 编辑器 -->
+            <main class="prompts-main">
+              <div class="prompts-editor-header">
+                <div class="prompt-file-info">
+                  <input type="text" id="prompt-filename" class="prompt-name-input" placeholder="No file selected" readonly />
+                  <span id="prompt-modified" class="prompt-modified-badge d-none">Modified</span>
+                </div>
+                <div class="prompt-actions">
+                  <button type="button" id="prompt-save-btn" class="btn btn-sm btn-dark" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    Save
+                  </button>
+                  <button type="button" id="prompt-delete-btn" class="btn btn-sm btn-ghost text-danger" disabled title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="prompts-editor-container">
+                <div id="prompt-empty" class="prompts-empty">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <p>Select a prompt file from the list or create a new one.</p>
+                </div>
+                <div class="prompt-editor-wrapper d-none" id="prompt-editor-wrapper">
+                  <div class="prompt-gutter" id="prompt-line-numbers"></div>
+                  <textarea id="prompt-editor" class="prompt-editor" spellcheck="false" placeholder="# Jinja2 Template..."></textarea>
+                </div>
+              </div>
+            </main>
+          </div>
         </div>
-      </form>
-
-      <div class="log-section mt-5">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="text-uppercase text-xs fw-bold text-muted">System Output</span>
-        </div>
-        <pre id="log" class="log-terminal"></pre>
       </div>
     </div>
+
+    <!-- 底部可折叠的 Console -->
+    <div class="canvas-console" id="canvas-console">
+      <div class="console-header" id="console-toggle">
+        <div class="console-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <span>Console</span>
+        </div>
+        <button type="button" class="console-toggle-btn" title="Toggle Console">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+      </div>
+      <pre id="log" class="console-output"></pre>
+    </div>
+    
+    <!-- 隐藏的兼容性元素 -->
+    <pre id="pipeline-preview" class="d-none"></pre>
   </main>
 
   <div id="parameter-panel" class="view-overlay d-none fade-in">
@@ -101,24 +245,34 @@
       </div>
     </header>
 
-    <div class="container-wide py-5">
-      <div class="row justify-content-center">
-        <div class="col-12">
-          <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body p-4 p-lg-5">
-              <p class="text-secondary mb-4 border-bottom pb-3">Please configure the parameters required to run the Pipeline. Objects and Arrays are displayed on a full line.</p>
-              <div id="parameter-form" class="parameter-grid"></div>
-            </div>
-          </div>
-
-          <div class="d-flex gap-3 justify-content-center pb-5">
-            <button type="button" class="btn btn-dark btn-pill px-4 py-2" id="parameter-save">Save Parameters</button>
-
-            <div class="vr mx-2 opacity-25"></div>
-            <button type="button" class="btn btn-ai-gradient btn-pill px-4 py-2" id="parameter-chat">Enter Chat Mode</button>
-          </div>
+    <div class="parameter-container">
+      <!-- 左侧：Server 导航 -->
+      <aside class="parameter-sidebar">
+        <div class="parameter-sidebar-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          <span>Servers</span>
         </div>
-      </div>
+        <nav id="parameter-nav" class="parameter-nav"></nav>
+      </aside>
+
+      <!-- 右侧：参数配置区 -->
+      <main class="parameter-main">
+        <div class="parameter-content">
+          <p class="parameter-hint">Select a server from the left to configure its parameters, or expand all sections below.</p>
+          <div id="parameter-form" class="parameter-sections"></div>
+        </div>
+
+        <div class="parameter-actions">
+          <button type="button" class="btn btn-dark btn-pill px-4 py-2" id="parameter-save">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            Save Parameters
+          </button>
+          <button type="button" class="btn btn-ai-gradient btn-pill px-4 py-2" id="parameter-chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Enter Chat Mode
+          </button>
+        </div>
+      </main>
     </div>
   </div>
 
@@ -164,7 +318,7 @@
           <span class="icon">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.332.183-.582.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.217.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.583-.495.645-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </span>
-          <span class="btn-text">Configure Pipeline</span>
+          <span class="btn-text">Settings</span>
         </button>
       </div>
     </aside>
