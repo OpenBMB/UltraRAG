@@ -24,7 +24,7 @@ screen -S llm
 
 2. 启动命令：
 
-```shell script/vllm_serve_emb.sh
+```shell script/vllm_serve.sh
 CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
     --served-model-name qwen3-32b \
     --model Qwen/Qwen3-32B \

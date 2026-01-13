@@ -5,7 +5,7 @@ icon: "magnifying-glass"
 
 ## 作用
 
-Retriever Server 是 UR-v2 中的核心检索模块，集成了 模型加载、文本编码、索引构建与检索查询 等一体化功能。
+Retriever Server 是 UltraRAG 中的核心检索模块，集成了 模型加载、文本编码、索引构建与检索查询 等一体化功能。
 它原生支持 [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)、[Infinity](https://github.com/michaelfeil/infinity) 以及 [OpenAI](https://platform.openai.com/docs/guides/embeddings) 等多种后端接口，
 可灵活适配不同规模与类型的语料库，满足 大规模向量化 与 高效文档召回 的需求。
 
@@ -43,9 +43,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -54,9 +54,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -64,12 +63,33 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_chunk_size: 50000
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -84,9 +104,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -95,9 +115,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document # [!code --]
         psg_task: null # [!code --]
@@ -109,14 +128,35 @@ retriever:
         q_task: retrieval # [!code ++]
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl # [!code --]
   corpus_path: corpora/image.jsonl # [!code ++]
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
   gpu_ids: 0,1 # [!code --]
   gpu_ids: 1 # [!code ++]
-  index_chunk_size: 50000
-  index_path: index/index.index
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false # [!code --]
   is_multimodal: true # [!code ++]
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
@@ -176,9 +216,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -187,9 +227,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -197,10 +236,32 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -216,7 +277,7 @@ ultrarag run examples/corpus_search.yaml
 
 ### BM25检索
 
-除了向量检索外，UR-2.0 还内置了经典的 BM25 文本检索算法。BM25 是一种基于 词频–逆文档频率（TF-IDF） 改进的 稀疏检索方法，
+除了向量检索外，UltraRAG 还内置了经典的 BM25 文本检索算法。BM25 是一种基于 词频–逆文档频率（TF-IDF） 改进的 稀疏检索方法，
 常用于快速、轻量的文本语义匹配任务。在实际应用中，BM25 可与向量检索（Dense Retrieval）互补，共同提升检索的覆盖率与召回多样性。
 
 Step 1：构建 BM25 索引
@@ -248,9 +309,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -259,9 +320,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -269,10 +329,32 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   overwrite: false
@@ -323,9 +405,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -334,9 +416,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -344,10 +425,32 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   top_k: 5
@@ -362,7 +465,7 @@ ultrarag run examples/bm25_search.yaml
 
 在实际应用中，单一的检索方式往往难以兼顾 召回率 与 精准度。
 例如，BM25 在关键词匹配上表现出色，而向量检索则在语义理解上更具优势。
-因此，UR-2.0 支持将稀疏检索（BM25）与稠密检索（Dense Retrieval）进行融合，
+因此，UltraRAG 支持将稀疏检索（BM25）与稠密检索（Dense Retrieval）进行融合，
 通过混合策略（Hybrid Retrieval）综合两者的优点，进一步提升检索的多样性与鲁棒性。
 
 
@@ -421,9 +524,9 @@ bm25:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -432,9 +535,8 @@ bm25:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -442,10 +544,32 @@ bm25:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   top_k: 5
@@ -455,9 +579,9 @@ dense:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -466,9 +590,8 @@ dense:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -476,11 +599,32 @@ dense:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index # [!code --]
-  index_path: index1/index.index # [!code ++]
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -495,7 +639,7 @@ ultrarag run examples/hybrid_search.yaml
 
 ### 部署检索模型
 
-UR-2.0 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的Embedding 模型都可以直接接入，无需额外适配或修改代码。
+UltraRAG 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的Embedding 模型都可以直接接入，无需额外适配或修改代码。
 以下示例展示如何使用 [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) 部署本地检索模型。
 
 **step1: 后台部署模型**
@@ -511,14 +655,14 @@ screen -S retriever
 执行以下命令部署模型（以 Qwen3-Embedding-0.6B 为例）：
 
 ```shell script/vllm_serve_emb.sh
-CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
+CUDA_VISIBLE_DEVICES=2 python -m vllm.entrypoints.openai.api_server \
     --served-model-name qwen-embedding \
     --model Qwen/Qwen3-Embedding-0.6B \
     --trust-remote-code \
-    --host 127.0.0.1 \
-    --port 65502 \
+    --host 0.0.0.0 \
+    --port 65504 \
     --task embed \
-    --gpu-memory-utilization 0.9
+    --gpu-memory-utilization 0.2
 ```
 
 出现类似以下输出，表示模型服务启动成功：
@@ -557,22 +701,22 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: '' # [!code --]
+      api_key: 'abc' # [!code ++]
       base_url: https://api.openai.com/v1 # [!code --]
-      base_url: http://127.0.0.1:65502/v1 # [!code ++]
+      base_url: http://127.0.0.1:65504/v1 # [!code ++]
       model_name: text-embedding-3-small # [!code --]
       model_name: qwen-embedding # [!code ++]
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -580,21 +724,44 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   query_instruction: ''
   top_k: 5
+
 ```
 
 完成配置后，即可像使用普通向量检索一样运行.
 
 ### Web Serach API
 
-UR-2.0 原生集成了三种主流 Web 检索 API：[Tavily](https://www.tavily.com/)、[Exa](https://exa.ai/) 以及 [GLM](https://docs.z.ai/guides/tools/web-search)。
+UltraRAG 原生集成了三种主流 Web 检索 API：[Tavily](https://www.tavily.com/)、[Exa](https://exa.ai/) 以及 [GLM](https://docs.z.ai/guides/tools/web-search)。
 这些 API 可直接作为 Retriever Server 的检索后端使用，实现在线信息检索与实时知识增强。
 
 **Step 1：配置 API Key**
@@ -606,7 +773,7 @@ export TAVILY_API_KEY="your retriever key"
 ```
 
 更推荐使用 .env 配置文件 进行统一管理：
-在 UR-2.0 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
+在 UltraRAG 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
 并填写你的密钥信息，例如：
 
 ```
@@ -616,7 +783,7 @@ TAVILY_API_KEY=tvly-dev-yourapikeyhere
 EXA_API_KEY=
 ZHIPUAI_API_KEY=
 ```
-UR-2.0 会在启动时自动读取该文件并加载相关配置。
+UltraRAG 会在启动时自动读取该文件并加载相关配置。
 
 **Step 2：Web Search**
 
@@ -662,13 +829,13 @@ retriever:
 ultrarag run examples/web_search.yaml
 ```
 
-<Note>你可以将 retriever_tavily_search 替换为 retriever_exa_search 或 retriever_zhipuai_search Web 检索源。</Note>
+<Note>你可以将 retriever_tavily_search 替换为 retriever_exa_search 或 retriever_zhipuai_search 作为 Web 检索源。</Note>
 
 ### 部署 Retriever Server
 
 在同一语料库下测试多种 benchmark 或模型性能时，如果每次都重新初始化 retriever server，都会重复加载大型语料库和索引，耗时且低效。
 
-为此，UR-v2 提供了 常驻式 Retriever Server 部署脚本，可让 retriever 长时间运行在 CPU 或 GPU 上，避免重复加载，加速实验流程。
+为此，UltraRAG 提供了 常驻式 Retriever Server 部署脚本，可让 retriever 长时间运行在 CPU 或 GPU 上，避免重复加载，加速实验流程。
 
 **step1: 参数设置**
 
@@ -678,18 +845,17 @@ ultrarag run examples/web_search.yaml
 {
   "model_name_or_path": "openbmb/MiniCPM-Embedding-Light",
   "corpus_path": "data/corpus_example.jsonl",
+  "collection_name": "ultrarag_embeddings",
 
   "backend": "sentence_transformers",
   "backend_configs": {
     "infinity": {
       "bettertransformer": false,
       "pooling_method": "auto",
-      "device": "cuda",
       "model_warmup": false,
       "trust_remote_code": true
     },
     "sentence_transformers": {
-      "device": "cuda",
       "trust_remote_code": true,
       "sentence_transformers_encode": {
         "normalize_embeddings": false,
@@ -721,9 +887,11 @@ ultrarag run examples/web_search.yaml
     "milvus": {
       "uri": "index/milvus_demo.db",
       "token": null,
-      "collection_name": "ultrarag_embeddings",
       "id_field_name": "id",
       "vector_field_name": "vector",
+      "text_field_name": "contents",
+      "id_max_length": 64,
+      "text_max_length": 60000,
       "metric_type": "IP",
       "index_params": {
         "index_type": "AUTOINDEX",
@@ -739,7 +907,8 @@ ultrarag run examples/web_search.yaml
 
   "batch_size": 16,
   "gpu_ids": "0,1",
-  "is_multimodal": false
+  "is_multimodal": false,
+  "is_demo": false
 }
 ```
 
@@ -810,20 +979,3 @@ retriever:
 ```shell
 ultrarag run examples/deploy_corpus_search.yaml
 ```
-
-### 存储检索文档
-
-UR-v2 的运行结果默认保存在 `output/memory_xxx.json` 文件中。
-在一些场景下，我们希望将 检索到的文档内容直接写回原始数据集，便于后续处理或进一步执行流水线。
-
-为此，UR-v2 提供了一个辅助脚本，可将检索结果合并到原始数据集并输出为新的文件：
-
-```python script/save_retrieve_results.py
-python ./script/save_retrieve_results.py \
-    --origin_data_path [your dataset path] \
-    --question_key [key name in the original dataset] \
-    --result_path [UR-v2 memory result path] \
-    --save_data_path [output dataset path]
-```
-
-运行该脚本后，会自动读取原始数据、匹配检索结果，并生成包含检索内容的新数据文件。

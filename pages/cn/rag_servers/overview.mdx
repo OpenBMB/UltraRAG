@@ -3,11 +3,11 @@ title: "模块概述"
 icon: "books"
 ---
 
-## Sever 简介
+## Server 简介
 
 在典型的 RAG 系统中，整体流程通常由多个功能模块组成，例如检索器（Retriever）、生成器（Generator）等。这些模块分别承担不同的任务，并通过流程编排协同工作，从而完成复杂的问答与推理过程。
 
-在 UR-v2 中，我们基于 MCP（Model Context Protocol） 架构，对这些功能模块进行了统一封装，提出了更加标准化的实现方式——Server。
+在 UltraRAG 中，我们基于 MCP（Model Context Protocol） 架构，对这些功能模块进行了统一封装，提出了更加标准化的实现方式——Server。
 
 <Note>Server 本质上就是一个具备独立功能的 RAG 模块组件。</Note>
 
@@ -21,7 +21,7 @@ icon: "books"
 
 首先，在`servers`文件夹下新建名为`sayhello`的文件夹，并在其中创建源码目录`sayhello/src`。然后，在 `src` 目录下新建文件 `sayhello.py`，作为 Server 的主程序入口。
 
-在 UR-v2 中，所有 Server 都通过基类 `UltraRAG_MCP_Server` 完成实例化。示例如下：
+在 UltraRAG 中，所有 Server 都通过基类 `UltraRAG_MCP_Server` 完成实例化。示例如下：
 
 ```python servers/sayhello/src/sayhello.py icon="python"
 from ultrarag.server import UltraRAG_MCP_Server
@@ -63,19 +63,19 @@ if __name__ == "__main__":
 
 示例如下：
 ```yaml servers/sayhello/parameter.yaml icon="/images/yaml.svg"
-name: UltraRAG 2.0
+name: UltraRAG v3
 ```
-此处定义了参数 name，其默认值为 "UltraRAG v2"。
+此处定义了参数 name，其默认值为 "UltraRAG v3"。
 
 ### 参数注册机制
 
 <Note>若不同 Prompt Tool 存在参数命名冲突，请参考 [Prompt Server](/pages/cn/rag_servers/prompt) 中的“多 Prompt Tool 调用场景”部分了解解决方案。</Note>
 
-UR-v2 在 build 阶段会自动读取每个 Server 目录下的 `parameter.yaml` 文件，并据此感知并注册工具函数所需的参数。在使用时需注意以下几点：
+UltraRAG 在 build 阶段会自动读取每个 Server 目录下的 `parameter.yaml` 文件，并据此感知并注册工具函数所需的参数。在使用时需注意以下几点：
 
 - 参数共享机制：当多个 Tool 需要共用同一个参数（如 template、model_name_or_path 等），可在 `parameter.yaml` 中仅声明一次并复用，无需重复定义。
 - 字段覆盖风险：若多个 Tool 所需参数的名称相同但含义或默认值不同，应显式区分字段名，使用不同的名称，以避免在自动生成的配置文件中被覆盖。
-- 上下文自动推断机制：若工具函数中的某些输入参数未出现在 ·parameter.yaml· 中，UR-v2 会默认尝试从运行时上下文中推断（即从上游 Tool 的输出中获取）。因此，仅需在参数无法通过上下文自动传递时，才需要在 `parameter.yaml` 中显式定义。
+- 上下文自动推断机制：若工具函数中的某些输入参数未出现在 ·parameter.yaml· 中，UltraRAG 会默认尝试从运行时上下文中推断（即从上游 Tool 的输出中获取）。因此，仅需在参数无法通过上下文自动传递时，才需要在 `parameter.yaml` 中显式定义。
 
 ### 基于类封装共享变量
 
