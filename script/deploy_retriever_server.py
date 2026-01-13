@@ -39,6 +39,7 @@ class SearchRequest(BaseModel):
     query_list: List[str]
     top_k: int = 5
     query_instruction: str = ""
+    collection_name: str = ""
 
 
 class SearchResponse(BaseModel):
@@ -73,6 +74,8 @@ async def startup_event():
         backend=retriever_cfg.get("backend", "sentence_transformers"),
         index_backend=retriever_cfg.get("index_backend", "faiss"),
         index_backend_configs=retriever_cfg.get("index_backend_configs", {}),
+        is_demo=retriever_cfg.get("is_demo", False),
+        collection_name=retriever_cfg.get("collection_name", ""),
     )
 
     app.logger.info("[http retriever] retriever_init completed (corpus & index loaded)")
@@ -89,6 +92,7 @@ async def search(req: SearchRequest):
         query_list=req.query_list,
         top_k=req.top_k,
         query_instruction=req.query_instruction,
+        collection_name=req.collection_name,
     )
 
     return SearchResponse(ret_psg=rets["ret_psg"])
