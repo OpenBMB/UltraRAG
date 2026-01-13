@@ -15,7 +15,7 @@ backend_configs:
   openai:
     model_name: text-embedding-3-small
     base_url: "https://api.openai.com/v1"
-    api_key: ""
+    api_key: "abc"
 
 gpu_ids: 0
 top_k: 5
