@@ -698,6 +698,116 @@
     </div>
   </dialog>
 
+  <!-- AI Assistant Panel -->
+  <div class="ai-assistant-container" id="ai-assistant-container">
+    <!-- 收起状态的触发按钮 -->
+    <button class="ai-assistant-trigger" id="ai-assistant-trigger" title="AI Assistant">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+    </button>
+    
+    <!-- 展开状态的面板 -->
+    <div class="ai-assistant-panel" id="ai-assistant-panel">
+      <!-- 左侧拖拽边框 -->
+      <div class="ai-panel-resizer" id="ai-panel-resizer"></div>
+      
+      <!-- 面板内容 -->
+      <div class="ai-panel-content">
+        <!-- 头部 -->
+        <div class="ai-panel-header">
+          <div class="ai-panel-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+            <span>AI Assistant</span>
+          </div>
+          <div class="ai-panel-actions">
+            <button class="ai-panel-btn" id="ai-settings-btn" title="Settings">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <button class="ai-panel-btn" id="ai-clear-btn" title="Clear Chat">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+            <button class="ai-panel-btn" id="ai-close-btn" title="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- 连接状态 -->
+        <div class="ai-connection-status" id="ai-connection-status">
+          <span class="ai-status-dot disconnected"></span>
+          <span class="ai-status-text">Not connected</span>
+        </div>
+        
+        <!-- 消息列表 -->
+        <div class="ai-messages" id="ai-messages">
+          <div class="ai-welcome">
+            <div class="ai-welcome-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+            </div>
+            <h4>UltraRAG AI Assistant</h4>
+            <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
+            <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
+          </div>
+        </div>
+        
+        <!-- 输入区域 -->
+        <div class="ai-input-area">
+          <div class="ai-input-wrapper">
+            <textarea id="ai-input" class="ai-input" placeholder="Ask me anything about your pipeline..." rows="1"></textarea>
+            <button class="ai-send-btn" id="ai-send-btn" title="Send">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+          </div>
+          <div class="ai-input-hint">
+            <span>Press Enter to send, Shift+Enter for new line</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 设置面板 - 必须在 ai-assistant-panel 内部 -->
+      <div class="ai-settings-panel" id="ai-settings-panel">
+        <div class="ai-settings-header">
+          <h4>AI Settings</h4>
+          <button class="ai-panel-btn" id="ai-settings-close" title="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="ai-settings-body">
+          <div class="ai-settings-group">
+            <label class="ai-settings-label">Provider</label>
+            <select id="ai-provider" class="ai-settings-input">
+              <option value="openai">OpenAI</option>
+              <option value="azure">Azure OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="custom">Custom API</option>
+            </select>
+          </div>
+          <div class="ai-settings-group">
+            <label class="ai-settings-label">API Base URL</label>
+            <input type="text" id="ai-base-url" class="ai-settings-input" placeholder="https://api.openai.com/v1" />
+          </div>
+          <div class="ai-settings-group">
+            <label class="ai-settings-label">API Key</label>
+            <div class="ai-settings-input-wrapper">
+              <input type="password" id="ai-api-key" class="ai-settings-input" placeholder="sk-..." />
+              <button class="ai-toggle-visibility" id="ai-toggle-key" title="Toggle visibility">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+          <div class="ai-settings-group">
+            <label class="ai-settings-label">Model</label>
+            <input type="text" id="ai-model" class="ai-settings-input" placeholder="gpt-4" />
+          </div>
+          <div class="ai-settings-actions">
+            <button class="btn btn-sm btn-outline-secondary" id="ai-test-connection">Test Connection</button>
+            <button class="btn btn-sm btn-dark" id="ai-save-settings">Save Settings</button>
+          </div>
+          <div class="ai-settings-status" id="ai-settings-status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Local vendor JS for offline use -->
   <script src="vendor/js/bootstrap.bundle.min.js"></script>
   <script src="vendor/js/purify.min.js"></script>

@@ -3372,6 +3372,12 @@ function setMode(mode) {
   if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
   if (els.parameterPanel) els.parameterPanel.classList.toggle("d-none", mode !== Modes.PARAMETERS);
   if (els.chatView) els.chatView.classList.toggle("d-none", mode !== Modes.CHAT);
+  
+  // AI助手只在管理员界面显示（非Chat模式）
+  const aiContainer = document.getElementById('ai-assistant-container');
+  if (aiContainer) {
+    aiContainer.classList.toggle('d-none', mode === Modes.CHAT);
+  }
 }
 
 // ... (Node Picker Helpers - keep same) ...
@@ -5479,4 +5485,677 @@ bootstrap();
 // 初始化工作区
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(initWorkspace, 100);
+    setTimeout(initAIAssistant, 200);
 });
+
+// =========================================
+// AI Assistant
+// =========================================
+
+const aiState = {
+    isOpen: false,
+    isConnected: false,
+    isLoading: false,
+    settings: {
+        provider: 'openai',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: '',
+        model: 'gpt-4'
+    },
+    messages: [],
+    conversationHistory: []
+};
+
+function initAIAssistant() {
+    const trigger = document.getElementById('ai-assistant-trigger');
+    const panel = document.getElementById('ai-assistant-panel');
+    const closeBtn = document.getElementById('ai-close-btn');
+    const settingsBtn = document.getElementById('ai-settings-btn');
+    const settingsPanel = document.getElementById('ai-settings-panel');
+    const settingsClose = document.getElementById('ai-settings-close');
+    const clearBtn = document.getElementById('ai-clear-btn');
+    const resizer = document.getElementById('ai-panel-resizer');
+    const input = document.getElementById('ai-input');
+    const sendBtn = document.getElementById('ai-send-btn');
+    
+    if (!trigger || !panel) return;
+    
+    // 加载保存的设置
+    loadAISettings();
+    
+    // 打开面板
+    trigger.addEventListener('click', () => {
+        openAIPanel();
+    });
+    
+    // 关闭面板
+    closeBtn?.addEventListener('click', () => {
+        closeAIPanel();
+    });
+    
+    // 设置面板
+    settingsBtn?.addEventListener('click', () => {
+        settingsPanel?.classList.add('open');
+    });
+    
+    settingsClose?.addEventListener('click', () => {
+        settingsPanel?.classList.remove('open');
+    });
+    
+    // 清空对话
+    clearBtn?.addEventListener('click', () => {
+        clearAIChat();
+    });
+    
+    // 拖拽调整大小
+    initAIPanelResizer(resizer, panel);
+    
+    // 发送消息
+    sendBtn?.addEventListener('click', () => {
+        sendAIMessage();
+    });
+    
+    // 输入框事件
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendAIMessage();
+        }
+    });
+    
+    // 自动调整输入框高度
+    input?.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+    
+    // 设置面板事件
+    initAISettingsPanel();
+}
+
+function openAIPanel() {
+    const trigger = document.getElementById('ai-assistant-trigger');
+    const panel = document.getElementById('ai-assistant-panel');
+    
+    trigger?.classList.add('hidden');
+    panel?.classList.add('open');
+    aiState.isOpen = true;
+    
+    // 聚焦输入框
+    setTimeout(() => {
+        document.getElementById('ai-input')?.focus();
+    }, 100);
+}
+
+function closeAIPanel() {
+    const trigger = document.getElementById('ai-assistant-trigger');
+    const panel = document.getElementById('ai-assistant-panel');
+    
+    trigger?.classList.remove('hidden');
+    panel?.classList.remove('open');
+    aiState.isOpen = false;
+}
+
+function initAIPanelResizer(resizer, panel) {
+    if (!resizer || !panel) return;
+    
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+    
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = panel.offsetWidth;
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        
+        const diff = startX - e.clientX;
+        const newWidth = Math.min(Math.max(startWidth + diff, 300), 600);
+        panel.style.width = newWidth + 'px';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
+
+function initAISettingsPanel() {
+    const providerSelect = document.getElementById('ai-provider');
+    const baseUrlInput = document.getElementById('ai-base-url');
+    const apiKeyInput = document.getElementById('ai-api-key');
+    const modelInput = document.getElementById('ai-model');
+    const toggleKeyBtn = document.getElementById('ai-toggle-key');
+    const testBtn = document.getElementById('ai-test-connection');
+    const saveBtn = document.getElementById('ai-save-settings');
+    
+    // 填充当前设置
+    if (providerSelect) providerSelect.value = aiState.settings.provider;
+    if (baseUrlInput) baseUrlInput.value = aiState.settings.baseUrl;
+    if (apiKeyInput) apiKeyInput.value = aiState.settings.apiKey;
+    if (modelInput) modelInput.value = aiState.settings.model;
+    
+    // Provider 变化时更新 baseUrl
+    providerSelect?.addEventListener('change', (e) => {
+        const provider = e.target.value;
+        const defaultUrls = {
+            openai: 'https://api.openai.com/v1',
+            azure: 'https://YOUR_RESOURCE.openai.azure.com',
+            anthropic: 'https://api.anthropic.com/v1',
+            custom: ''
+        };
+        if (baseUrlInput && defaultUrls[provider]) {
+            baseUrlInput.value = defaultUrls[provider];
+        }
+    });
+    
+    // 切换密钥可见性
+    toggleKeyBtn?.addEventListener('click', () => {
+        if (apiKeyInput) {
+            apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+        }
+    });
+    
+    // 测试连接
+    testBtn?.addEventListener('click', async () => {
+        await testAIConnection();
+    });
+    
+    // 保存设置
+    saveBtn?.addEventListener('click', () => {
+        saveAISettings();
+    });
+}
+
+function loadAISettings() {
+    try {
+        const saved = localStorage.getItem('ultrarag_ai_settings');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            aiState.settings = { ...aiState.settings, ...parsed };
+            updateAIConnectionStatus();
+        }
+    } catch (e) {
+        console.error('Failed to load AI settings:', e);
+    }
+}
+
+function saveAISettings() {
+    const providerSelect = document.getElementById('ai-provider');
+    const baseUrlInput = document.getElementById('ai-base-url');
+    const apiKeyInput = document.getElementById('ai-api-key');
+    const modelInput = document.getElementById('ai-model');
+    const statusEl = document.getElementById('ai-settings-status');
+    
+    aiState.settings = {
+        provider: providerSelect?.value || 'openai',
+        baseUrl: baseUrlInput?.value || '',
+        apiKey: apiKeyInput?.value || '',
+        model: modelInput?.value || 'gpt-4'
+    };
+    
+    try {
+        localStorage.setItem('ultrarag_ai_settings', JSON.stringify(aiState.settings));
+        
+        if (statusEl) {
+            statusEl.textContent = 'Settings saved successfully!';
+            statusEl.className = 'ai-settings-status success';
+            setTimeout(() => {
+                statusEl.className = 'ai-settings-status';
+            }, 3000);
+        }
+        
+        updateAIConnectionStatus();
+    } catch (e) {
+        if (statusEl) {
+            statusEl.textContent = 'Failed to save settings: ' + e.message;
+            statusEl.className = 'ai-settings-status error';
+        }
+    }
+}
+
+async function testAIConnection() {
+    const statusEl = document.getElementById('ai-settings-status');
+    const testBtn = document.getElementById('ai-test-connection');
+    
+    if (!aiState.settings.apiKey) {
+        if (statusEl) {
+            statusEl.textContent = 'Please enter an API key';
+            statusEl.className = 'ai-settings-status error';
+        }
+        return;
+    }
+    
+    if (testBtn) testBtn.disabled = true;
+    if (statusEl) {
+        statusEl.textContent = 'Testing connection...';
+        statusEl.className = 'ai-settings-status';
+        statusEl.style.display = 'block';
+    }
+    
+    try {
+        const response = await fetch('/api/ai/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aiState.settings)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            aiState.isConnected = true;
+            if (statusEl) {
+                statusEl.textContent = 'Connection successful! Model: ' + (result.model || aiState.settings.model);
+                statusEl.className = 'ai-settings-status success';
+            }
+        } else {
+            aiState.isConnected = false;
+            if (statusEl) {
+                statusEl.textContent = 'Connection failed: ' + (result.error || 'Unknown error');
+                statusEl.className = 'ai-settings-status error';
+            }
+        }
+        
+        updateAIConnectionStatus();
+    } catch (e) {
+        aiState.isConnected = false;
+        if (statusEl) {
+            statusEl.textContent = 'Connection failed: ' + e.message;
+            statusEl.className = 'ai-settings-status error';
+        }
+    } finally {
+        if (testBtn) testBtn.disabled = false;
+    }
+}
+
+function updateAIConnectionStatus() {
+    const statusEl = document.getElementById('ai-connection-status');
+    if (!statusEl) return;
+    
+    const dot = statusEl.querySelector('.ai-status-dot');
+    const text = statusEl.querySelector('.ai-status-text');
+    
+    if (aiState.settings.apiKey) {
+        if (aiState.isConnected) {
+            dot?.classList.remove('disconnected', 'connecting');
+            dot?.classList.add('connected');
+            if (text) text.textContent = 'Connected to ' + aiState.settings.model;
+        } else {
+            dot?.classList.remove('connected', 'connecting');
+            dot?.classList.add('disconnected');
+            if (text) text.textContent = 'Configured - Click to test';
+        }
+    } else {
+        dot?.classList.remove('connected', 'connecting');
+        dot?.classList.add('disconnected');
+        if (text) text.textContent = 'Not configured';
+    }
+}
+
+function clearAIChat() {
+    aiState.messages = [];
+    aiState.conversationHistory = [];
+    
+    const messagesEl = document.getElementById('ai-messages');
+    if (messagesEl) {
+        messagesEl.innerHTML = `
+            <div class="ai-welcome">
+                <div class="ai-welcome-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+                </div>
+                <h4>UltraRAG AI Assistant</h4>
+                <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
+                <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
+            </div>
+        `;
+    }
+}
+
+async function sendAIMessage() {
+    const input = document.getElementById('ai-input');
+    const message = input?.value?.trim();
+    
+    if (!message || aiState.isLoading) return;
+    
+    if (!aiState.settings.apiKey) {
+        addAIMessage('assistant', 'Please configure your API settings first. Click the settings icon in the top right.');
+        return;
+    }
+    
+    // 清空输入框
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+    }
+    
+    // 添加用户消息
+    addAIMessage('user', message);
+    
+    // 显示思考中状态
+    showAIThinking();
+    
+    aiState.isLoading = true;
+    
+    try {
+        // 构建上下文
+        const context = buildAIContext();
+        
+        // 添加到对话历史
+        aiState.conversationHistory.push({ role: 'user', content: message });
+        
+        // 发送请求
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                settings: aiState.settings,
+                messages: aiState.conversationHistory,
+                context: context
+            })
+        });
+        
+        const result = await response.json();
+        
+        // 隐藏思考中状态
+        hideAIThinking();
+        
+        if (result.error) {
+            addAIMessage('assistant', 'Error: ' + result.error);
+        } else {
+            // 处理AI响应
+            const content = result.content || result.message || 'No response';
+            aiState.conversationHistory.push({ role: 'assistant', content });
+            
+            // 检查是否有操作建议
+            if (result.actions && result.actions.length > 0) {
+                addAIMessageWithActions('assistant', content, result.actions);
+            } else {
+                addAIMessage('assistant', content);
+            }
+            
+            aiState.isConnected = true;
+            updateAIConnectionStatus();
+        }
+    } catch (e) {
+        hideAIThinking();
+        addAIMessage('assistant', 'Failed to get response: ' + e.message);
+    } finally {
+        aiState.isLoading = false;
+    }
+}
+
+function buildAIContext() {
+    const context = {
+        currentMode: workspaceState.currentMode,
+        selectedPipeline: state.selectedPipeline,
+        isBuilt: state.isBuilt
+    };
+    
+    // 根据当前模式添加相关上下文
+    if (workspaceState.currentMode === 'pipeline') {
+        // 获取当前pipeline YAML
+        const yamlEditor = document.getElementById('yaml-editor');
+        if (yamlEditor) {
+            context.pipelineYaml = yamlEditor.value;
+        }
+    } else if (workspaceState.currentMode === 'parameters') {
+        // 获取当前参数
+        context.parameters = state.parameterData;
+    } else if (workspaceState.currentMode === 'prompts') {
+        // 获取当前prompt
+        const promptEditor = document.getElementById('prompt-editor');
+        if (promptEditor && workspaceState.prompts.currentFile) {
+            context.currentPromptFile = workspaceState.prompts.currentFile;
+            context.promptContent = promptEditor.value;
+        }
+    }
+    
+    return context;
+}
+
+function addAIMessage(role, content) {
+    const messagesEl = document.getElementById('ai-messages');
+    if (!messagesEl) return;
+    
+    // 移除欢迎消息
+    const welcome = messagesEl.querySelector('.ai-welcome');
+    if (welcome) welcome.remove();
+    
+    const messageEl = document.createElement('div');
+    messageEl.className = `ai-message ${role}`;
+    
+    const avatarSvg = role === 'assistant' 
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+    
+    // 渲染Markdown
+    const renderedContent = renderMarkdown(content);
+    
+    messageEl.innerHTML = `
+        <div class="ai-message-avatar">${avatarSvg}</div>
+        <div class="ai-message-content">${renderedContent}</div>
+    `;
+    
+    messagesEl.appendChild(messageEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    
+    aiState.messages.push({ role, content });
+}
+
+function addAIMessageWithActions(role, content, actions) {
+    const messagesEl = document.getElementById('ai-messages');
+    if (!messagesEl) return;
+    
+    // 移除欢迎消息
+    const welcome = messagesEl.querySelector('.ai-welcome');
+    if (welcome) welcome.remove();
+    
+    const messageEl = document.createElement('div');
+    messageEl.className = `ai-message ${role}`;
+    
+    // 渲染Markdown
+    const renderedContent = renderMarkdown(content);
+    
+    // 构建操作块HTML
+    let actionsHtml = '';
+    actions.forEach((action, index) => {
+        const typeLabel = {
+            'modify_pipeline': 'Pipeline Modification',
+            'modify_prompt': 'Prompt Modification',
+            'modify_parameter': 'Parameter Change'
+        }[action.type] || 'Modification';
+        
+        const typeIcon = {
+            'modify_pipeline': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+            'modify_prompt': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+            'modify_parameter': '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle></svg>'
+        }[action.type] || '';
+        
+        actionsHtml += `
+            <div class="ai-action-block" data-action-index="${index}">
+                <div class="ai-action-header">
+                    <span class="ai-action-type">${typeIcon} ${typeLabel}</span>
+                    <div class="ai-action-buttons">
+                        <button class="ai-action-btn apply" data-action="apply" data-index="${index}">Apply</button>
+                        <button class="ai-action-btn reject" data-action="reject" data-index="${index}">Reject</button>
+                    </div>
+                </div>
+                <pre class="ai-action-preview">${escapeHtml(action.preview || action.content || '')}</pre>
+            </div>
+        `;
+    });
+    
+    messageEl.innerHTML = `
+        <div class="ai-message-avatar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
+        </div>
+        <div class="ai-message-content">
+            ${renderedContent}
+            ${actionsHtml}
+        </div>
+    `;
+    
+    // 绑定操作按钮事件
+    messageEl.querySelectorAll('.ai-action-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const actionType = e.target.dataset.action;
+            const actionIndex = parseInt(e.target.dataset.index);
+            const action = actions[actionIndex];
+            
+            if (actionType === 'apply') {
+                applyAIAction(action, e.target.closest('.ai-action-block'));
+            } else {
+                rejectAIAction(e.target.closest('.ai-action-block'));
+            }
+        });
+    });
+    
+    messagesEl.appendChild(messageEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    
+    aiState.messages.push({ role, content, actions });
+}
+
+function showAIThinking() {
+    const messagesEl = document.getElementById('ai-messages');
+    if (!messagesEl) return;
+    
+    const thinkingEl = document.createElement('div');
+    thinkingEl.className = 'ai-message assistant';
+    thinkingEl.id = 'ai-thinking';
+    thinkingEl.innerHTML = `
+        <div class="ai-message-avatar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
+        </div>
+        <div class="ai-message-content">
+            <div class="ai-thinking">
+                <span class="ai-thinking-dot"></span>
+                <span class="ai-thinking-dot"></span>
+                <span class="ai-thinking-dot"></span>
+            </div>
+        </div>
+    `;
+    
+    messagesEl.appendChild(thinkingEl);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function hideAIThinking() {
+    const thinkingEl = document.getElementById('ai-thinking');
+    if (thinkingEl) thinkingEl.remove();
+}
+
+async function applyAIAction(action, blockEl) {
+    try {
+        let success = false;
+        
+        switch (action.type) {
+            case 'modify_pipeline':
+                success = await applyPipelineModification(action);
+                break;
+            case 'modify_prompt':
+                success = await applyPromptModification(action);
+                break;
+            case 'modify_parameter':
+                success = await applyParameterModification(action);
+                break;
+            default:
+                log('Unknown action type: ' + action.type);
+        }
+        
+        if (success) {
+            blockEl.style.opacity = '0.5';
+            blockEl.querySelector('.ai-action-buttons').innerHTML = '<span style="color: #22c55e; font-size: 0.75rem;">✓ Applied</span>';
+            log('AI modification applied successfully.');
+        }
+    } catch (e) {
+        log('Failed to apply modification: ' + e.message);
+    }
+}
+
+function rejectAIAction(blockEl) {
+    blockEl.style.opacity = '0.5';
+    blockEl.querySelector('.ai-action-buttons').innerHTML = '<span style="color: #94a3b8; font-size: 0.75rem;">Rejected</span>';
+}
+
+async function applyPipelineModification(action) {
+    const yamlEditor = document.getElementById('yaml-editor');
+    if (!yamlEditor) return false;
+    
+    if (action.content) {
+        yamlEditor.value = action.content;
+        updateYamlLineNumbers();
+        syncYamlToCanvasOnly();
+        
+        // 自动保存
+        if (state.selectedPipeline) {
+            await handleSubmit();
+        }
+    }
+    
+    return true;
+}
+
+async function applyPromptModification(action) {
+    const promptEditor = document.getElementById('prompt-editor');
+    if (!promptEditor) return false;
+    
+    // 如果指定了文件名，先切换到该文件
+    if (action.filename && action.filename !== workspaceState.prompts.currentFile) {
+        const file = workspaceState.prompts.files.find(f => f.name === action.filename || f.path === action.filename);
+        if (file) {
+            await selectPromptFile(file);
+        }
+    }
+    
+    if (action.content) {
+        promptEditor.value = action.content;
+        workspaceState.prompts.modified = true;
+        updatePromptLineNumbers();
+        updatePromptUI();
+        
+        // 自动保存
+        await saveCurrentPrompt();
+    }
+    
+    return true;
+}
+
+async function applyParameterModification(action) {
+    if (!action.path || action.value === undefined) return false;
+    
+    setNestedValue(state.parameterData, action.path, action.value);
+    renderParameterFormInline();
+    
+    // 自动保存
+    await persistParameterData();
+    
+    return true;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function renderMarkdown(text) {
+    if (typeof marked !== 'undefined') {
+        try {
+            return marked.parse(text);
+        } catch (e) {
+            return text.replace(/\n/g, '<br>');
+        }
+    }
+    return text.replace(/\n/g, '<br>');
+}
