@@ -2066,6 +2066,7 @@ function openChatView() {
   renderChatHistory();
   renderChatSidebar();
   setMode(Modes.CHAT);
+  updateUrlForView(Modes.CHAT);
 
   backToChatView();
   
@@ -3366,6 +3367,41 @@ function initConsole() {
   });
 }
 
+// 从 URL 推断初始视图（支持 /chat 或 ?view=chat）
+function getInitialModeFromUrl() {
+  const path = (window.location.pathname || "").toLowerCase();
+  const hash = (window.location.hash || "").toLowerCase();
+  const params = new URLSearchParams(window.location.search);
+  const viewParam = (params.get('view') || "").toLowerCase();
+  
+  if (viewParam === 'chat' || path.startsWith('/chat') || hash === '#chat') {
+    return Modes.CHAT;
+  }
+  if (viewParam === 'builder' || viewParam === 'config' || path.startsWith('/config')) {
+    return Modes.BUILDER;
+  }
+  return null;
+}
+
+// 根据当前视图同步地址栏，便于直接输入 URL 访问
+function updateUrlForView(mode, replace = false) {
+  let targetPath = null;
+  const currentPath = window.location.pathname;
+  
+  if (mode === Modes.CHAT) {
+    targetPath = "/chat";
+  } else if (mode === Modes.BUILDER) {
+    // 如果本就在 /config 下则保持 /config，否则使用根路径
+    targetPath = currentPath.startsWith("/config") ? "/config" : "/";
+  }
+  
+  if (!targetPath || currentPath === targetPath) return;
+  
+  const url = new URL(window.location.href);
+  const method = replace ? 'replaceState' : 'pushState';
+  window.history[method](null, "", targetPath + url.search + url.hash);
+}
+
 function setMode(mode) {
   state.mode = mode;
   if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
@@ -4077,6 +4113,7 @@ function bindEvents() {
             
             // 返回到Builder界面（Pipeline模式）
             setMode(Modes.BUILDER);
+            updateUrlForView(Modes.BUILDER);
             // 确保显示Pipeline面板
             if (typeof switchWorkspaceMode === 'function') {
                 switchWorkspaceMode('pipeline');
@@ -4175,6 +4212,7 @@ window.updateKbLabel = function(selectEl) {
 };
 
 async function bootstrap() {
+  const initialModeFromUrl = getInitialModeFromUrl();
   // 0. 首先获取应用模式配置
   try {
       const modeConfig = await fetchJSON('/api/config/mode');
@@ -4184,14 +4222,24 @@ async function bootstrap() {
       state.adminMode = true;
   }
   
-  // 根据模式决定初始视图
+  // 根据模式和 URL 决定初始视图
+  let initialMode;
   if (state.adminMode) {
-      setMode(Modes.BUILDER);
+      initialMode = initialModeFromUrl || Modes.BUILDER;
   } else {
+      initialMode = Modes.CHAT;
+  }
+  
+  setMode(initialMode);
+  
+  if (!state.adminMode && initialMode === Modes.CHAT) {
       // Chat-only 模式：直接进入 Chat 视图
-      setMode(Modes.CHAT);
       applyChatOnlyMode();
   }
+  
+  // 同步地址栏，保证直接访问 /chat 可进入聊天界面
+  updateUrlForView(initialMode, true);
+  const startInChat = initialMode === Modes.CHAT;
   
   resetContextStack(); 
   renderSteps(); 
@@ -4253,7 +4301,7 @@ async function bootstrap() {
   }
   
   // Chat-only 模式下，初始化 Chat 界面
-  if (!state.adminMode) {
+  if (startInChat) {
       await initChatOnlyView();
   }
 }

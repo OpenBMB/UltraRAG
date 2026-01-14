@@ -65,6 +65,15 @@ def create_app(admin_mode: bool = False) -> Flask:
     def index():
         return send_from_directory(app.static_folder, "index.html")
 
+    # 直接访问 /chat 或 /config 也返回前端入口，便于分离配置/对话页
+    @app.route("/chat")
+    def chat_page():
+        return send_from_directory(app.static_folder, "index.html")
+
+    @app.route("/config")
+    def config_page():
+        return send_from_directory(app.static_folder, "index.html")
+
     @app.route("/api/config/mode", methods=["GET"])
     def get_app_mode():
         """Return the application mode (admin or chat-only)"""
