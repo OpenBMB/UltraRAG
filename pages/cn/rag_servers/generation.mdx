@@ -5,7 +5,7 @@ icon: "pen-nib"
 
 ## 作用
 
-Generation Server 是 UR-v2 中负责 调用和部署大语言模型（LLM） 的核心模块。
+Generation Server 是 UltraRAG 中负责 调用和部署大语言模型（LLM） 的核心模块。
 它接收来自 Prompt Server 构建的输入提示（Prompt），并生成相应的输出结果。
 该模块支持 文本生成 与 图像-文本多模态生成 两种模式，可灵活适配不同任务场景（如问答、推理、总结、视觉问答等）。
 
@@ -76,7 +76,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -86,12 +86,12 @@ generation:
       dtype: auto
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
-      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -177,10 +177,10 @@ generation:
     hf:
       batch_size: 8
       gpu_ids: 2,3
-      model_name_or_path: openbmb/MiniCPM4-8B 
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -193,9 +193,11 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
       model_name_or_path: openbmb/MiniCPM-V-4 # [!code ++]
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  image_tag: null
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -209,31 +211,34 @@ prompt:
 ultrarag run examples/vanilla_vlm.yaml
 ```
 
+<Tip>注意：你可以设置 `image_tag` 如 `<IMG>` 来指定你希望图像输入的位置，为空默认为最左侧输入。</Tip>
 
 ### 部署模型
 
-UR-v2 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的模型都可以直接接入，无需额外适配或修改代码。
+UltraRAG 完全兼容 OpenAI API 接口规范，因此任何符合该接口标准的模型都可以直接接入，无需额外适配或修改代码。
 以下示例展示如何使用 [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) 部署本地模型。
 
 **step1: 后台部署模型**
 
-推荐使用 Screen 方式后台运行，以便实时查看日志和状态。
+以 Qwen3-32B 为例，建议使用多卡并行以保证推理速度。
 
-进入一个新的 Screen 会话：
+**Screen (宿主机直接运行)**
+
+1. 新建会话会话：
 
 ```shell
 screen -S llm
 ```
 
-执行以下命令部署模型（以 Qwen3-8B 为例）：
+2. 启动命令：
 
-```shell script/vllm_serve_emb.sh
+```shell script/vllm_serve.sh
 CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
-    --served-model-name qwen3-8b \
-    --model Qwen/Qwen3-8B \
+    --served-model-name qwen3-32b \
+    --model Qwen/Qwen3-32B \
     --trust-remote-code \
-    --host 127.0.0.1 \
-    --port 65501 \
+    --host 0.0.0.0 \
+    --port 65503 \
     --max-model-len 32768 \
     --gpu-memory-utilization 0.9 \
     --tensor-parallel-size 2 \
@@ -248,7 +253,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
 (APIServer pid=2811812) INFO:     Application startup complete.
 ```
 
-按下 Ctrl + A + D 可退出并保持服务在后台运行。
+3. 退出会话：按下 `Ctrl + A + D` 可退出并保持服务在后台运行。
 如需重新进入该会话，可执行：
 
 ```shell
@@ -291,7 +296,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1 # [!code --]
       base_url: http://127.0.0.1:65501/v1 # [!code ++]
@@ -303,11 +308,12 @@ generation:
       dtype: auto
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B 
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8

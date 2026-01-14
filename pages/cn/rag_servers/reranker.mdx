@@ -5,7 +5,7 @@ icon: "ranking-star"
 
 ## 作用
 
-Reranker Server 是 UR-v2 中用于 对检索结果进行精排的模块。
+Reranker Server 是 UltraRAG 中用于 对检索结果进行精排的模块。
 它接收来自 Retriever Server 的初步检索结果，并基于语义相关性对候选文档进行重新排序，
 从而提升检索阶段的精度与最终生成结果的质量。
 该模块原生支持多种主流后端包括 [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers)、
@@ -76,20 +76,19 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -97,20 +96,40 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
   gpu_ids: 0,1 # [!code --]
   gpu_ids: 1 # [!code ++]
-  index_chunk_size: 50000
-  index_path: index/index.index
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
   overwrite: false
   query_instruction: ''
   top_k: 5
-
 ```
 
 运行 Pipeline：
