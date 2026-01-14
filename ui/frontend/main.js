@@ -57,7 +57,6 @@ const els = {
   pipelineMenu: document.getElementById("pipeline-menu"),
   refreshPipelines: document.getElementById("refresh-pipelines"),
   newPipelineBtn: document.getElementById("new-pipeline-btn"),
-  shutdownApp: document.getElementById("shutdown-app"),
   heroSelectedPipeline: document.getElementById("hero-selected-pipeline"),
   heroStatus: document.getElementById("hero-status"),
 
@@ -2818,16 +2817,6 @@ function setHeroStatusLabel(status) {
   if (!els.heroStatus) return;
   els.heroStatus.dataset.status = status; els.heroStatus.textContent = status.toUpperCase();
 }
-async function requestShutdown() { 
-    const confirmed = await showConfirm("Exit UltraRAG UI?", {
-        title: "Exit Application",
-        type: "confirm",
-        confirmText: "Exit"
-    });
-    if (!confirmed) return; 
-    fetch("/api/system/shutdown", { method: "POST" }); 
-    setTimeout(() => window.close(), 800); 
-}
 
 async function fetchJSON(url, options = {}) {
   const resp = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
@@ -3265,6 +3254,12 @@ function initYamlEditor() {
   
   // 监听 Tab 键，插入空格而非切换焦点
   els.yamlEditor.addEventListener('keydown', (e) => {
+    const isSaveShortcut = (e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey);
+    if (isSaveShortcut) {
+      e.preventDefault();
+      handleSubmit(e);
+      return;
+    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = els.yamlEditor.selectionStart;
@@ -4033,7 +4028,6 @@ function bindEvents() {
     els.name.addEventListener("blur", handlePipelineNameBlur);
     
     if (els.newPipelineBtn) els.newPipelineBtn.addEventListener("click", createNewPipeline); 
-    if (els.shutdownApp) els.shutdownApp.onclick = requestShutdown;
     
     if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
@@ -5219,6 +5213,14 @@ function initPromptEditor() {
         });
         
         editor.addEventListener('keydown', (e) => {
+            const isSaveShortcut = (e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey);
+            if (isSaveShortcut) {
+                e.preventDefault();
+                if (saveBtn && !saveBtn.disabled) {
+                    saveCurrentPrompt();
+                }
+                return;
+            }
             if (e.key === 'Tab') {
                 e.preventDefault();
                 const start = editor.selectionStart;
