@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
 from pathlib import Path
 from typing import Any, Dict
 
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_from_directory, Response, stream_with_context
 
 from . import pipeline_manager as pm
 
@@ -745,6 +746,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         settings = payload.get("settings", {})
         messages = payload.get("messages", [])
         context = payload.get("context", {})
+        stream_response = payload.get("stream", False)
         
         provider = settings.get("provider", "openai")
         base_url = settings.get("baseUrl", "").rstrip("/")
@@ -761,6 +763,62 @@ def create_app(admin_mode: bool = False) -> Flask:
         full_messages = [{"role": "system", "content": system_prompt}] + messages
         
         try:
+            if stream_response and (provider == "openai" or provider == "custom"):
+                def stream_openai_chat():
+                    import requests
+                    try:
+                        headers = {
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json"
+                        }
+                        chat_url = f"{base_url}/chat/completions"
+                        chat_payload = {
+                            "model": model,
+                            "messages": full_messages,
+                            "temperature": 0.7,
+                            "stream": True
+                        }
+                        resp = requests.post(chat_url, headers=headers, json=chat_payload, stream=True, timeout=120)
+                        
+                        if resp.status_code != 200:
+                            yield f"data: {json.dumps({'type': 'error', 'message': f'API error: {resp.status_code}'})}\n\n"
+                            return
+                        
+                        full_text = ""
+                        for raw_line in resp.iter_lines(decode_unicode=True):
+                            if not raw_line:
+                                continue
+                            
+                            line = raw_line.strip()
+                            if not line:
+                                continue
+                            
+                            if line.startswith("data:"):
+                                line = line[len("data:"):].strip()
+                            
+                            if line == "[DONE]":
+                                break
+                            
+                            try:
+                                data = json.loads(line)
+                            except Exception:
+                                continue
+                            
+                            delta = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            if delta:
+                                full_text += delta
+                                yield f"data: {json.dumps({'type': 'token', 'content': delta, 'is_final': False})}\n\n"
+                        
+                        actions = parse_ai_actions(full_text, context)
+                        yield f"data: {json.dumps({'type': 'final', 'content': full_text, 'actions': actions})}\n\n"
+                    except requests.Timeout:
+                        yield f"data: {json.dumps({'type': 'error', 'message': 'Request timeout'})}\n\n"
+                    except Exception as e:
+                        LOGGER.error(f"AI chat stream error: {e}")
+                        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+                
+                return Response(stream_with_context(stream_openai_chat()), mimetype="text/event-stream")
+            
             if provider == "openai" or provider == "custom":
                 headers = {
                     "Authorization": f"Bearer {api_key}",

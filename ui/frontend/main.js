@@ -5498,10 +5498,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // AI Assistant
 // =========================================
 
+const AI_HISTORY_KEY = 'ultrarag_ai_history';
+
 const aiState = {
     isOpen: false,
     isConnected: false,
     isLoading: false,
+    controller: null,
+    isComposing: false,
     settings: {
         provider: 'openai',
         baseUrl: 'https://api.openai.com/v1',
@@ -5511,6 +5515,17 @@ const aiState = {
     messages: [],
     conversationHistory: []
 };
+
+const AI_WELCOME_HTML = `
+    <div class="ai-welcome">
+        <div class="ai-welcome-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+        </div>
+        <h4>UltraRAG AI Assistant</h4>
+        <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
+        <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
+    </div>
+`;
 
 function initAIAssistant() {
     const trigger = document.getElementById('ai-assistant-trigger');
@@ -5526,57 +5541,47 @@ function initAIAssistant() {
     
     if (!trigger || !panel) return;
     
-    // 加载保存的设置
     loadAISettings();
+    loadAIConversation();
+    renderAIConversationFromState();
     
-    // 打开面板
-    trigger.addEventListener('click', () => {
-        openAIPanel();
-    });
+    trigger.addEventListener('click', () => openAIPanel());
+    closeBtn?.addEventListener('click', () => closeAIPanel());
     
-    // 关闭面板
-    closeBtn?.addEventListener('click', () => {
-        closeAIPanel();
-    });
+    settingsBtn?.addEventListener('click', () => settingsPanel?.classList.add('open'));
+    settingsClose?.addEventListener('click', () => settingsPanel?.classList.remove('open'));
     
-    // 设置面板
-    settingsBtn?.addEventListener('click', () => {
-        settingsPanel?.classList.add('open');
-    });
+    clearBtn?.addEventListener('click', () => clearAIChat());
     
-    settingsClose?.addEventListener('click', () => {
-        settingsPanel?.classList.remove('open');
-    });
-    
-    // 清空对话
-    clearBtn?.addEventListener('click', () => {
-        clearAIChat();
-    });
-    
-    // 拖拽调整大小
     initAIPanelResizer(resizer, panel);
     
-    // 发送消息
     sendBtn?.addEventListener('click', () => {
         sendAIMessage();
     });
     
-    // 输入框事件
-    input?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendAIMessage();
-        }
-    });
+    if (input) {
+        input.addEventListener('compositionstart', () => { aiState.isComposing = true; });
+        input.addEventListener('compositionend', () => { aiState.isComposing = false; });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !aiState.isComposing) {
+                e.preventDefault();
+                sendAIMessage();
+            }
+        });
+        input.addEventListener('input', () => {
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        });
+    }
     
-    // 自动调整输入框高度
-    input?.addEventListener('input', () => {
-        input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-    });
-    
-    // 设置面板事件
     initAISettingsPanel();
+}
+
+function updateAIPanelOffset(panel) {
+    if (!panel) return;
+    const width = panel.getBoundingClientRect().width || parseInt(getComputedStyle(panel).width, 10) || 380;
+    document.documentElement.style.setProperty('--ai-panel-width', `${width}px`);
+    document.body.classList.add('ai-panel-open');
 }
 
 function openAIPanel() {
@@ -5586,8 +5591,8 @@ function openAIPanel() {
     trigger?.classList.add('hidden');
     panel?.classList.add('open');
     aiState.isOpen = true;
+    updateAIPanelOffset(panel);
     
-    // 聚焦输入框
     setTimeout(() => {
         document.getElementById('ai-input')?.focus();
     }, 100);
@@ -5599,6 +5604,7 @@ function closeAIPanel() {
     
     trigger?.classList.remove('hidden');
     panel?.classList.remove('open');
+    document.body.classList.remove('ai-panel-open');
     aiState.isOpen = false;
 }
 
@@ -5624,6 +5630,7 @@ function initAIPanelResizer(resizer, panel) {
         const diff = startX - e.clientX;
         const newWidth = Math.min(Math.max(startWidth + diff, 300), 600);
         panel.style.width = newWidth + 'px';
+        updateAIPanelOffset(panel);
     });
     
     document.addEventListener('mouseup', () => {
@@ -5808,171 +5815,99 @@ function updateAIConnectionStatus() {
     }
 }
 
-function clearAIChat() {
-    aiState.messages = [];
-    aiState.conversationHistory = [];
-    
-    const messagesEl = document.getElementById('ai-messages');
-    if (messagesEl) {
-        messagesEl.innerHTML = `
-            <div class="ai-welcome">
-                <div class="ai-welcome-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
-                </div>
-                <h4>UltraRAG AI Assistant</h4>
-                <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
-                <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
-            </div>
-        `;
+function persistAIConversation() {
+    try {
+        localStorage.setItem(AI_HISTORY_KEY, JSON.stringify({
+            messages: aiState.messages,
+            conversationHistory: aiState.conversationHistory
+        }));
+    } catch (e) {
+        console.warn('Failed to persist AI conversation', e);
     }
 }
 
-async function sendAIMessage() {
-    const input = document.getElementById('ai-input');
-    const message = input?.value?.trim();
+function loadAIConversation() {
+    try {
+        const saved = localStorage.getItem(AI_HISTORY_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            aiState.messages = parsed.messages || [];
+            aiState.conversationHistory = parsed.conversationHistory || [];
+        }
+    } catch (e) {
+        console.warn('Failed to load AI conversation', e);
+    }
+}
+
+function renderAIConversationFromState() {
+    const messagesEl = document.getElementById('ai-messages');
+    if (!messagesEl) return;
     
-    if (!message || aiState.isLoading) return;
-    
-    if (!aiState.settings.apiKey) {
-        addAIMessage('assistant', 'Please configure your API settings first. Click the settings icon in the top right.');
+    messagesEl.innerHTML = '';
+    if (!aiState.messages.length) {
+        messagesEl.innerHTML = AI_WELCOME_HTML;
         return;
     }
     
-    // 清空输入框
-    if (input) {
-        input.value = '';
-        input.style.height = 'auto';
-    }
-    
-    // 添加用户消息
-    addAIMessage('user', message);
-    
-    // 显示思考中状态
-    showAIThinking();
-    
-    aiState.isLoading = true;
-    
-    try {
-        // 构建上下文
-        const context = buildAIContext();
-        
-        // 添加到对话历史
-        aiState.conversationHistory.push({ role: 'user', content: message });
-        
-        // 发送请求
-        const response = await fetch('/api/ai/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                settings: aiState.settings,
-                messages: aiState.conversationHistory,
-                context: context
-            })
-        });
-        
-        const result = await response.json();
-        
-        // 隐藏思考中状态
-        hideAIThinking();
-        
-        if (result.error) {
-            addAIMessage('assistant', 'Error: ' + result.error);
-        } else {
-            // 处理AI响应
-            const content = result.content || result.message || 'No response';
-            aiState.conversationHistory.push({ role: 'assistant', content });
-            
-            // 检查是否有操作建议
-            if (result.actions && result.actions.length > 0) {
-                addAIMessageWithActions('assistant', content, result.actions);
-            } else {
-                addAIMessage('assistant', content);
-            }
-            
-            aiState.isConnected = true;
-            updateAIConnectionStatus();
-        }
-    } catch (e) {
-        hideAIThinking();
-        addAIMessage('assistant', 'Failed to get response: ' + e.message);
-    } finally {
-        aiState.isLoading = false;
-    }
-}
-
-function buildAIContext() {
-    const context = {
-        currentMode: workspaceState.currentMode,
-        selectedPipeline: state.selectedPipeline,
-        isBuilt: state.isBuilt
-    };
-    
-    // 根据当前模式添加相关上下文
-    if (workspaceState.currentMode === 'pipeline') {
-        // 获取当前pipeline YAML
-        const yamlEditor = document.getElementById('yaml-editor');
-        if (yamlEditor) {
-            context.pipelineYaml = yamlEditor.value;
-        }
-    } else if (workspaceState.currentMode === 'parameters') {
-        // 获取当前参数
-        context.parameters = state.parameterData;
-    } else if (workspaceState.currentMode === 'prompts') {
-        // 获取当前prompt
-        const promptEditor = document.getElementById('prompt-editor');
-        if (promptEditor && workspaceState.prompts.currentFile) {
-            context.currentPromptFile = workspaceState.prompts.currentFile;
-            context.promptContent = promptEditor.value;
-        }
-    }
-    
-    return context;
-}
-
-function addAIMessage(role, content) {
-    const messagesEl = document.getElementById('ai-messages');
-    if (!messagesEl) return;
-    
-    // 移除欢迎消息
-    const welcome = messagesEl.querySelector('.ai-welcome');
-    if (welcome) welcome.remove();
-    
-    const messageEl = document.createElement('div');
-    messageEl.className = `ai-message ${role}`;
-    
-    const avatarSvg = role === 'assistant' 
-        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>'
-        : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-    
-    // 渲染Markdown
-    const renderedContent = renderMarkdown(content);
-    
-    messageEl.innerHTML = `
-        <div class="ai-message-avatar">${avatarSvg}</div>
-        <div class="ai-message-content">${renderedContent}</div>
-    `;
-    
-    messagesEl.appendChild(messageEl);
+    aiState.messages.forEach(msg => {
+        renderAIMessage(msg.role, msg.content, msg.actions || []);
+    });
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    
-    aiState.messages.push({ role, content });
 }
 
-function addAIMessageWithActions(role, content, actions) {
+function clearAIChat() {
+    if (aiState.controller) {
+        aiState.controller.abort();
+        aiState.controller = null;
+    }
+    aiState.messages = [];
+    aiState.conversationHistory = [];
+    aiState.controller = null;
+    aiState.isLoading = false;
+    
     const messagesEl = document.getElementById('ai-messages');
-    if (!messagesEl) return;
+    if (messagesEl) {
+        messagesEl.innerHTML = AI_WELCOME_HTML;
+    }
+    persistAIConversation();
+    setAIRunning(false);
+}
+
+function stopAIResponse() {
+    if (aiState.controller) {
+        aiState.controller.abort();
+    }
+}
+
+function setAIRunning(isRunning) {
+    const sendBtn = document.getElementById('ai-send-btn');
+    const iconWrapper = document.getElementById('ai-send-icon');
+    const input = document.getElementById('ai-input');
     
-    // 移除欢迎消息
-    const welcome = messagesEl.querySelector('.ai-welcome');
-    if (welcome) welcome.remove();
+    aiState.isLoading = isRunning;
     
-    const messageEl = document.createElement('div');
-    messageEl.className = `ai-message ${role}`;
-    
-    // 渲染Markdown
-    const renderedContent = renderMarkdown(content);
-    
-    // 构建操作块HTML
+    if (isRunning) {
+        if (input) input.disabled = true;
+        if (sendBtn) sendBtn.disabled = false;
+        sendBtn?.classList.add('stop');
+        if (iconWrapper) {
+            iconWrapper.innerHTML = '<span class="icon-stop"></span>';
+        }
+    } else {
+        if (input) input.disabled = false;
+        sendBtn?.classList.remove('stop');
+        if (iconWrapper) {
+            iconWrapper.innerHTML = `
+              <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="19" x2="12" y2="5"></line>
+                <polyline points="5 12 12 5 19 12"></polyline>
+              </svg>
+            `;
+        }
+    }
+}
+
+function buildAIActionHtml(actions) {
     let actionsHtml = '';
     actions.forEach((action, index) => {
         const typeLabel = {
@@ -6000,19 +5935,12 @@ function addAIMessageWithActions(role, content, actions) {
             </div>
         `;
     });
-    
-    messageEl.innerHTML = `
-        <div class="ai-message-avatar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
-        </div>
-        <div class="ai-message-content">
-            ${renderedContent}
-            ${actionsHtml}
-        </div>
-    `;
-    
-    // 绑定操作按钮事件
-    messageEl.querySelectorAll('.ai-action-btn').forEach(btn => {
+    return actionsHtml;
+}
+
+function bindAIActionButtons(container, actions) {
+    if (!container) return;
+    container.querySelectorAll('.ai-action-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const actionType = e.target.dataset.action;
             const actionIndex = parseInt(e.target.dataset.index);
@@ -6025,11 +5953,228 @@ function addAIMessageWithActions(role, content, actions) {
             }
         });
     });
+}
+
+function renderAIMessage(role, content, actions = []) {
+    const messagesEl = document.getElementById('ai-messages');
+    if (!messagesEl) return null;
+    
+    const welcome = messagesEl.querySelector('.ai-welcome');
+    if (welcome) welcome.remove();
+    
+    const messageEl = document.createElement('div');
+    messageEl.className = `ai-message ${role}`;
+    
+    const avatarSvg = role === 'assistant' 
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+    
+    const renderedContent = renderMarkdown(content || '');
+    const actionsHtml = actions && actions.length ? buildAIActionHtml(actions) : '';
+    
+    messageEl.innerHTML = `
+        <div class="ai-message-avatar">${avatarSvg}</div>
+        <div class="ai-message-content">${renderedContent}${actionsHtml}</div>
+    `;
     
     messagesEl.appendChild(messageEl);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     
+    if (actions && actions.length) {
+        bindAIActionButtons(messageEl, actions);
+    }
+    
+    return messageEl;
+}
+
+function addAIMessage(role, content, options = {}) {
+    const { actions = [], addToHistory = false, skipState = false, persist = true } = options;
+    const el = renderAIMessage(role, content, actions);
+    if (skipState) return el;
+    
     aiState.messages.push({ role, content, actions });
+    if (addToHistory) {
+        aiState.conversationHistory.push({ role, content });
+    }
+    if (persist) persistAIConversation();
+    return el;
+}
+
+function addAIMessageWithActions(role, content, actions) {
+    return addAIMessage(role, content, { actions: actions || [], addToHistory: role === 'assistant' });
+}
+
+async function sendAIMessage() {
+    const input = document.getElementById('ai-input');
+    const messagesEl = document.getElementById('ai-messages');
+    
+    if (aiState.isLoading) {
+        stopAIResponse();
+        return;
+    }
+    
+    const message = input?.value?.trim();
+    if (!message) return;
+    
+    if (!aiState.settings.apiKey) {
+        addAIMessage('assistant', 'Please configure your API settings first. Click the settings icon in the top right.');
+        return;
+    }
+    
+    if (input) {
+        input.value = '';
+        input.style.height = 'auto';
+    }
+    
+    addAIMessage('user', message, { addToHistory: true });
+    showAIThinking();
+    
+    aiState.controller = new AbortController();
+    aiState.isLoading = true;
+    setAIRunning(true);
+    
+    const controller = aiState.controller;
+    const context = buildAIContext();
+    let accumulated = '';
+    let finalActions = [];
+    let placeholderEl = null;
+    
+    try {
+        const response = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                settings: aiState.settings,
+                messages: aiState.conversationHistory,
+                context: context,
+                stream: true
+            }),
+            signal: controller.signal
+        });
+        
+        hideAIThinking();
+        
+        if (!response.ok) {
+            throw new Error(response.statusText || 'Request failed');
+        }
+        
+        const isStream = (response.headers.get('content-type') || '').includes('text/event-stream');
+        
+        if (!isStream) {
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            accumulated = result.content || result.message || 'No response';
+            finalActions = result.actions || [];
+            renderAIStreamingResult(accumulated, finalActions);
+            aiState.isConnected = true;
+            updateAIConnectionStatus();
+            return;
+        }
+        
+        placeholderEl = renderAIMessage('assistant', '', []);
+        const contentEl = placeholderEl?.querySelector('.ai-message-content');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const chunks = buffer.split("\n\n");
+            buffer = chunks.pop();
+            
+            for (const chunk of chunks) {
+                const trimmed = chunk.trim();
+                if (!trimmed.startsWith('data:')) continue;
+                const jsonStr = trimmed.slice(5).trim();
+                if (!jsonStr) continue;
+                
+                let data;
+                try { data = JSON.parse(jsonStr); } catch (_) { continue; }
+                
+                if (data.type === 'token') {
+                    if (data.content) {
+                        accumulated += data.content;
+                        if (contentEl) {
+                            contentEl.innerHTML = renderMarkdown(accumulated);
+                            messagesEl.scrollTop = messagesEl.scrollHeight;
+                        }
+                    }
+                } else if (data.type === 'final') {
+                    accumulated = data.content || accumulated;
+                    finalActions = data.actions || [];
+                } else if (data.type === 'error') {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            }
+        }
+        
+        renderAIStreamingResult(accumulated, finalActions, placeholderEl);
+        aiState.isConnected = true;
+        updateAIConnectionStatus();
+    } catch (e) {
+        hideAIThinking();
+        if (e.name === 'AbortError') {
+            if (accumulated) {
+                renderAIStreamingResult(`${accumulated}\n\n*(Stopped)*`, finalActions, placeholderEl);
+            } else if (placeholderEl) {
+                placeholderEl.remove();
+            }
+        } else {
+            addAIMessage('assistant', 'Failed to get response: ' + e.message);
+        }
+    } finally {
+        aiState.isLoading = false;
+        setAIRunning(false);
+        aiState.controller = null;
+    }
+}
+
+function renderAIStreamingResult(content, actions = [], placeholderEl) {
+    const targetEl = placeholderEl || renderAIMessage('assistant', '', []);
+    const contentEl = targetEl?.querySelector('.ai-message-content');
+    const finalText = content || 'No response';
+    
+    if (contentEl) {
+        const actionsHtml = actions && actions.length ? buildAIActionHtml(actions) : '';
+        contentEl.innerHTML = `${renderMarkdown(finalText)}${actionsHtml}`;
+        if (actions && actions.length) {
+            bindAIActionButtons(targetEl, actions);
+        }
+    }
+    
+    aiState.messages.push({ role: 'assistant', content: finalText, actions });
+    aiState.conversationHistory.push({ role: 'assistant', content: finalText });
+    persistAIConversation();
+    
+    const messagesEl = document.getElementById('ai-messages');
+    if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function buildAIContext() {
+    const context = {
+        currentMode: workspaceState.currentMode,
+        selectedPipeline: state.selectedPipeline,
+        isBuilt: state.isBuilt
+    };
+    
+    if (workspaceState.currentMode === 'pipeline') {
+        const yamlEditor = document.getElementById('yaml-editor');
+        if (yamlEditor) {
+            context.pipelineYaml = yamlEditor.value;
+        }
+    } else if (workspaceState.currentMode === 'parameters') {
+        context.parameters = state.parameterData;
+    } else if (workspaceState.currentMode === 'prompts') {
+        const promptEditor = document.getElementById('prompt-editor');
+        if (promptEditor && workspaceState.prompts.currentFile) {
+            context.currentPromptFile = workspaceState.prompts.currentFile;
+            context.promptContent = promptEditor.value;
+        }
+    }
+    
+    return context;
 }
 
 function showAIThinking() {

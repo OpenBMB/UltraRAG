@@ -4587,6 +4587,15 @@ textarea.parameter-input {
 /* =========================================
    AI Assistant Panel
    ========================================= */
+:root {
+  --ai-panel-width: 380px;
+}
+
+body.ai-panel-open .canvas-main {
+  padding-right: var(--ai-panel-width, 380px);
+  box-sizing: border-box;
+  transition: padding-right 0.2s ease;
+}
 
 .ai-assistant-container {
   position: fixed;
@@ -4633,7 +4642,7 @@ textarea.parameter-input {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 380px;
+  width: var(--ai-panel-width, 380px);
   min-width: 300px;
   max-width: 600px;
   background: #fff;
@@ -5001,11 +5010,13 @@ textarea.parameter-input {
 
 .ai-input-wrapper {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
   background: #fff;
   border: 1px solid var(--border-subtle, #e2e8f0);
   border-radius: 20px;
-  padding: 8px 16px;
+  padding: 8px 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease;
 }
@@ -5026,6 +5037,10 @@ textarea.parameter-input {
   color: #1e293b;
 }
 
+.ai-input {
+  width: 100%;
+}
+
 .ai-input:focus {
   outline: none;
 }
@@ -5035,28 +5050,8 @@ textarea.parameter-input {
 }
 
 .ai-send-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  transition: all 0.15s;
-}
-
-.ai-send-btn:hover {
-  transform: scale(1.05);
-}
-
-.ai-send-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
+  padding: 0;
 }
 
 .ai-input-hint {
