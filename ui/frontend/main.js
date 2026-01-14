@@ -1658,11 +1658,15 @@ async function showInterruptConfirmDialog(onConfirm) {
 function saveCurrentSession(force = false) {
     if (!state.chat.currentSessionId) return;
     
-    // 如果当前没有任何消息，且不是强制保存，则不保存（避免产生大量空会话）
-    if (!force && state.chat.history.length === 0) {
-        // 从列表中移除当前空会话
+    // 如果没有任何有效消息（包含空文本的“新建”会话），则不保存到历史
+    const hasContent = state.chat.history.some(m => {
+        if (!m) return false;
+        if (typeof m.text === "string" && m.text.trim() !== "") return true;
+        if (m.meta && Object.keys(m.meta).length > 0) return true;
+        return false;
+    });
+    if (!hasContent) {
         state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
-        // 更新 UI 和 本地存储
         renderChatSidebar();
         localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
         return;
