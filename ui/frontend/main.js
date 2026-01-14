@@ -5506,6 +5506,9 @@ const aiState = {
     isLoading: false,
     controller: null,
     isComposing: false,
+    view: 'home',
+    sessions: [],
+    currentSessionId: null,
     settings: {
         provider: 'openai',
         baseUrl: 'https://api.openai.com/v1',
@@ -5543,15 +5546,24 @@ function initAIAssistant() {
     
     loadAISettings();
     loadAIConversation();
+    ensureAISession();
     renderAIConversationFromState();
+    setAIView('home');
     
     trigger.addEventListener('click', () => openAIPanel());
     closeBtn?.addEventListener('click', () => closeAIPanel());
+    document.getElementById('ai-back-btn')?.addEventListener('click', () => enterAIHome());
     
     settingsBtn?.addEventListener('click', () => settingsPanel?.classList.add('open'));
     settingsClose?.addEventListener('click', () => settingsPanel?.classList.remove('open'));
     
     clearBtn?.addEventListener('click', () => clearAIChat());
+    document.getElementById('ai-session-new')?.addEventListener('click', () => {
+        handleNewAISessionClick();
+    });
+    document.getElementById('ai-session-delete')?.addEventListener('click', () => {
+        deleteAISession();
+    });
     
     initAIPanelResizer(resizer, panel);
     
@@ -5591,10 +5603,13 @@ function openAIPanel() {
     trigger?.classList.add('hidden');
     panel?.classList.add('open');
     aiState.isOpen = true;
+    setAIView('home');
     updateAIPanelOffset(panel);
     
     setTimeout(() => {
-        document.getElementById('ai-input')?.focus();
+        if (aiState.view === 'chat') {
+            document.getElementById('ai-input')?.focus();
+        }
     }, 100);
 }
 
@@ -5815,11 +5830,180 @@ function updateAIConnectionStatus() {
     }
 }
 
+function setAIView(view) {
+    const home = document.getElementById('ai-home-view');
+    const chat = document.getElementById('ai-chat-view');
+    const backBtn = document.getElementById('ai-back-btn');
+    aiState.view = view;
+    if (home) {
+        home.classList.toggle('active', view === 'home');
+        home.classList.toggle('d-none', view !== 'home');
+    }
+    if (chat) {
+        chat.classList.toggle('active', view === 'chat');
+        chat.classList.toggle('d-none', view !== 'chat');
+    }
+    if (backBtn) {
+        backBtn.classList.toggle('d-none', view === 'home');
+    }
+}
+
+function enterAIHome() {
+    setAIView('home');
+    renderAISessionList();
+}
+
+function enterAIChat(sessionId) {
+    if (sessionId) {
+        switchAISession(sessionId);
+    } else {
+        setAIView('chat');
+        renderAIConversationFromState();
+    }
+}
+
+function currentSessionHasContent() {
+    const current = aiState.sessions.find(s => s.id === aiState.currentSessionId);
+    return Boolean(current && current.messages && current.messages.length);
+}
+
+function deriveAISessionTitle(messages = []) {
+    const firstUser = messages.find(m => m.role === 'user');
+    if (!firstUser || !firstUser.content) return 'New Session';
+    const text = firstUser.content.trim().replace(/\s+/g, ' ');
+    if (text.length <= 24) return text;
+    return text.slice(0, 24) + '…';
+}
+
+function syncCurrentAISession() {
+    if (!aiState.currentSessionId) return;
+    const idx = aiState.sessions.findIndex(s => s.id === aiState.currentSessionId);
+    if (idx === -1) return;
+    const session = aiState.sessions[idx];
+    session.messages = [...aiState.messages];
+    session.conversationHistory = [...aiState.conversationHistory];
+    session.updatedAt = Date.now();
+    session.title = deriveAISessionTitle(session.messages);
+    aiState.sessions[idx] = session;
+}
+
+function renderAISessionList() {
+    const listEl = document.getElementById('ai-session-list');
+    const deleteBtn = document.getElementById('ai-session-delete');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (!aiState.sessions.length) {
+        const empty = document.createElement('div');
+        empty.className = 'ai-session-empty';
+        empty.textContent = 'No sessions yet';
+        listEl.appendChild(empty);
+        if (deleteBtn) deleteBtn.disabled = true;
+        return;
+    }
+    aiState.sessions.forEach(session => {
+        const btn = document.createElement('button');
+        btn.className = 'ai-session-item' + (session.id === aiState.currentSessionId ? ' active' : '');
+        const title = escapeHtml(session.title || 'New Session');
+        const time = session.updatedAt ? new Date(session.updatedAt).toLocaleString() : '';
+        btn.innerHTML = `
+            <div class="ai-session-title-text">${title}</div>
+            <div class="ai-session-meta">${time}</div>
+        `;
+        btn.addEventListener('click', () => {
+            switchAISession(session.id);
+        });
+        listEl.appendChild(btn);
+    });
+    if (deleteBtn) deleteBtn.disabled = aiState.sessions.length === 0;
+}
+
+function applyAISessionState(session, options = {}) {
+    const keepView = options.keepView;
+    aiState.messages = session.messages || [];
+    aiState.conversationHistory = session.conversationHistory || [];
+    aiState.currentSessionId = session.id;
+    aiState.isLoading = false;
+    aiState.controller = null;
+    renderAIConversationFromState();
+    setAIRunning(false);
+    renderAISessionList();
+    if (!keepView) setAIView('chat');
+    persistAIConversation();
+}
+
+function createNewAISession(skipRender = false) {
+    const id = `ai_${Date.now()}`;
+    const session = {
+        id,
+        title: 'New Session',
+        messages: [],
+        conversationHistory: [],
+        updatedAt: Date.now()
+    };
+    aiState.sessions.unshift(session);
+    aiState.currentSessionId = id;
+    if (!skipRender) {
+        applyAISessionState(session);
+    }
+    renderAISessionList();
+}
+
+function handleNewAISessionClick() {
+    const hasContent = currentSessionHasContent();
+    if (!hasContent) {
+        setAIView('chat');
+        renderAIConversationFromState();
+        return;
+    }
+    createNewAISession();
+    setAIView('chat');
+}
+
+function switchAISession(id) {
+    if (aiState.controller) {
+        aiState.controller.abort();
+        aiState.controller = null;
+    }
+    syncCurrentAISession();
+    const session = aiState.sessions.find(s => s.id === id);
+    if (session) {
+        applyAISessionState(session);
+    }
+}
+
+function deleteAISession(id) {
+    const targetId = id || aiState.currentSessionId;
+    if (!targetId) return;
+    aiState.sessions = aiState.sessions.filter(s => s.id !== targetId);
+    if (!aiState.sessions.length) {
+        createNewAISession(true);
+    }
+    const next = aiState.sessions[0];
+    applyAISessionState(next, { keepView: true });
+    setAIView('home');
+}
+
+function ensureAISession() {
+    if (!aiState.sessions.length) {
+        createNewAISession(true);
+    }
+    if (!aiState.currentSessionId) {
+        aiState.currentSessionId = aiState.sessions[0].id;
+    }
+    const current = aiState.sessions.find(s => s.id === aiState.currentSessionId);
+    if (current) {
+        applyAISessionState(current, { keepView: true });
+    } else {
+        createNewAISession(false);
+    }
+}
+
 function persistAIConversation() {
     try {
+        syncCurrentAISession();
         localStorage.setItem(AI_HISTORY_KEY, JSON.stringify({
-            messages: aiState.messages,
-            conversationHistory: aiState.conversationHistory
+            sessions: aiState.sessions,
+            currentSessionId: aiState.currentSessionId
         }));
     } catch (e) {
         console.warn('Failed to persist AI conversation', e);
@@ -5827,12 +6011,24 @@ function persistAIConversation() {
 }
 
 function loadAIConversation() {
+    let parsed = null;
     try {
         const saved = localStorage.getItem(AI_HISTORY_KEY);
         if (saved) {
-            const parsed = JSON.parse(saved);
-            aiState.messages = parsed.messages || [];
-            aiState.conversationHistory = parsed.conversationHistory || [];
+            parsed = JSON.parse(saved);
+            aiState.sessions = parsed.sessions || [];
+            aiState.currentSessionId = parsed.currentSessionId || null;
+        }
+        // 兼容旧数据：只存了一份 messages
+        if ((!aiState.sessions || !aiState.sessions.length) && parsed?.messages) {
+            aiState.sessions = [{
+                id: `ai_${Date.now()}`,
+                title: deriveAISessionTitle(parsed.messages),
+                messages: parsed.messages || [],
+                conversationHistory: parsed.conversationHistory || [],
+                updatedAt: Date.now()
+            }];
+            aiState.currentSessionId = aiState.sessions[0].id;
         }
     } catch (e) {
         console.warn('Failed to load AI conversation', e);
@@ -5871,6 +6067,7 @@ function clearAIChat() {
     }
     persistAIConversation();
     setAIRunning(false);
+    renderAISessionList();
 }
 
 function stopAIResponse() {
@@ -5997,6 +6194,7 @@ function addAIMessage(role, content, options = {}) {
         aiState.conversationHistory.push({ role, content });
     }
     if (persist) persistAIConversation();
+    renderAISessionList();
     return el;
 }
 
@@ -6020,6 +6218,8 @@ async function sendAIMessage() {
         addAIMessage('assistant', 'Please configure your API settings first. Click the settings icon in the top right.');
         return;
     }
+    
+    setAIView('chat');
     
     if (input) {
         input.value = '';
@@ -6147,6 +6347,7 @@ function renderAIStreamingResult(content, actions = [], placeholderEl) {
     aiState.messages.push({ role: 'assistant', content: finalText, actions });
     aiState.conversationHistory.push({ role: 'assistant', content: finalText });
     persistAIConversation();
+    renderAISessionList();
     
     const messagesEl = document.getElementById('ai-messages');
     if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
