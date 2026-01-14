@@ -2155,7 +2155,13 @@ function showSourceDetail(title, content) {
 
         // 2. 清洗文本 (处理 PDF 乱码)
         const rawText = content || "No content available.";
-        const cleanedText = cleanPDFText(rawText);
+        let cleanedText = cleanPDFText(rawText);
+
+        // remove bibkey:textidXX
+        const bibkeyMatch = cleanedText.match(/^bibkey:\s*\S+\s+([\s\S]*)/i)
+        if (bibkeyMatch) {
+            cleanedText = bibkeyMatch[1].trim();
+        }
 
         // 3. 检查是否包含 Title: 和 Content: 格式，如果有则分别渲染
         const titleMatch = cleanedText.match(/^Title:\s*(.+?)(?:\n|Content:)/i);
@@ -2306,8 +2312,14 @@ function renderSources(bubble, sources, usedIds = null) {
         };
         
         // 处理引用条目的显示文本：标题拼在开头，后面跟内容
-        const content = src.content || "";
+        let content = src.content || "";
         let displayText = "";
+
+        // remove bibkey:textidXX
+        const bibkeyMatch = content.match(/^bibkey:\s*\S+\s+([\s\S]*)/i)
+        if (bibkeyMatch) {
+            content = bibkeyMatch[1].trim();
+        }
         
         // 检查 content 是否包含 "Title:" 和 "Content:" 格式
         const titleMatch = content.match(/^Title:\s*(.+?)(?:\n|Content:)/i);
@@ -2325,7 +2337,7 @@ function renderSources(bubble, sources, usedIds = null) {
             displayText = afterContent.split('\n')[0].trim();
         } else {
             // 普通格式，使用原始 title
-            displayText = src.title || content.split('\n')[0].trim();
+            displayText = content.split('\n')[0].trim() || src.title || "";
         }
         
         // 截断过长的文本
