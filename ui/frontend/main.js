@@ -1341,32 +1341,34 @@ async function renderChatCollectionOptions() {
         const data = await fetchJSON('/api/kb/files');
         const collections = data.index || []; // data.index 存放的是 collection 列表
         
-        els.chatCollectionSelect.innerHTML = '<option value="">No Knowledge Base</option>';
-        
-        collections.forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = c.name;
-            // 显示名字和数据量
-            opt.textContent = `${c.name} (${c.count || 0})`;
-            els.chatCollectionSelect.appendChild(opt);
-        });
+        // 渲染新的自定义下拉菜单
+        renderKbDropdownOptions(collections);
         
         // 尝试恢复选中状态
         if (currentVal) {
-            // 检查新列表里是否还有这个值
             const exists = collections.find(c => c.name === currentVal);
-            if (exists) els.chatCollectionSelect.value = currentVal;
+            if (exists) {
+                els.chatCollectionSelect.value = currentVal;
+                // 更新下拉菜单的选中状态
+                const menu = document.getElementById('kb-dropdown-menu');
+                if (menu) {
+                    menu.querySelectorAll('.kb-dropdown-item').forEach(item => {
+                        item.classList.remove('selected');
+                        if (item.dataset.value === currentVal) {
+                            item.classList.add('selected');
+                        }
+                    });
+                }
+            }
         }
 
         // 渲染完 options 后，手动触发一次视觉更新
-        // 确保 "Knowledge Base" 这里的文字显示正确（比如维持之前选中的状态）
         if (window.updateKbLabel && els.chatCollectionSelect) {
             window.updateKbLabel(els.chatCollectionSelect);
         }
         
     } catch (e) {
         console.error("Failed to load collections for chat:", e);
-        // 出错时不覆盖默认选项，或者显示错误
     }
 }
 
@@ -2155,13 +2157,37 @@ function showSourceDetail(title, content) {
         const rawText = content || "No content available.";
         const cleanedText = cleanPDFText(rawText);
 
-        if (typeof renderMarkdown === 'function') {
-            contentDiv.innerHTML = renderMarkdown(cleanedText);
-            renderLatex(contentDiv);
+        // 3. 检查是否包含 Title: 和 Content: 格式，如果有则分别渲染
+        const titleMatch = cleanedText.match(/^Title:\s*(.+?)(?:\n|Content:)/i);
+        const contentMatch = cleanedText.match(/Content:\s*([\s\S]*)/i);
+        
+        let renderedHtml = "";
+        
+        if (titleMatch && contentMatch) {
+            // 有标题和内容格式，分别渲染
+            const docTitle = titleMatch[1].trim();
+            const docContent = contentMatch[1].trim();
+            
+            // 标题加粗显示
+            renderedHtml = `<div class="source-doc-title">${escapeHtmlForDetail(docTitle)}</div>`;
+            
+            // 内容正常渲染
+            if (typeof renderMarkdown === 'function') {
+                renderedHtml += renderMarkdown(docContent);
+            } else {
+                renderedHtml += `<p>${escapeHtmlForDetail(docContent).replace(/\n/g, '<br>')}</p>`;
+            }
         } else {
-            // 降级处理：直接显示清洗后的纯文本，也比之前好读很多
-            contentDiv.innerText = cleanedText;
+            // 普通格式，直接渲染
+            if (typeof renderMarkdown === 'function') {
+                renderedHtml = renderMarkdown(cleanedText);
+            } else {
+                renderedHtml = `<p>${escapeHtmlForDetail(cleanedText).replace(/\n/g, '<br>')}</p>`;
+            }
         }
+        
+        contentDiv.innerHTML = renderedHtml;
+        renderLatex(contentDiv);
 
         // 4. 滚动回顶部 (防止上次看到底部，这次打开还在底部)
         contentDiv.scrollTop = 0;
@@ -2169,6 +2195,13 @@ function showSourceDetail(title, content) {
         // 展开面板
         panel.classList.add("show");
     }
+}
+
+// HTML 转义辅助函数（用于详情面板）
+function escapeHtmlForDetail(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // [新增] 关闭右侧详情栏 (绑定到了 HTML 的 x 按钮)
@@ -2271,12 +2304,48 @@ function renderSources(bubble, sources, usedIds = null) {
             item.classList.add("active-highlight");
             showSourceDetail(`Reference [${showId}]`, src.content);
         };
+        
+        // 处理引用条目的显示文本：标题拼在开头，后面跟内容
+        const content = src.content || "";
+        let displayText = "";
+        
+        // 检查 content 是否包含 "Title:" 和 "Content:" 格式
+        const titleMatch = content.match(/^Title:\s*(.+?)(?:\n|Content:)/i);
+        const contentMatch = content.match(/Content:\s*([\s\S]*)/i);
+        
+        if (titleMatch && contentMatch) {
+            // 有标题和内容格式：标题 + 内容
+            const docTitle = titleMatch[1].trim();
+            const afterContent = contentMatch[1].trim();
+            const firstLine = afterContent.split('\n')[0].trim();
+            displayText = `${docTitle}: ${firstLine}`;
+        } else if (contentMatch) {
+            // 只有 Content: 格式
+            const afterContent = contentMatch[1].trim();
+            displayText = afterContent.split('\n')[0].trim();
+        } else {
+            // 普通格式，使用原始 title
+            displayText = src.title || content.split('\n')[0].trim();
+        }
+        
+        // 截断过长的文本
+        if (displayText.length > 80) {
+            displayText = displayText.substring(0, 80) + "...";
+        }
+        
         item.innerHTML = `
             <span class="ref-id">[${showId}]</span>
-            <span class="ref-title">${src.title}</span>
+            <span class="ref-title">${escapeHtml(displayText)}</span>
         `;
         return item;
     };
+    
+    // HTML 转义辅助函数
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
     
     // 渲染已使用的引用
     if (usedSources.length > 0) {
@@ -4183,31 +4252,135 @@ function bindEvents() {
     if (els.nodePickerConfirm) els.nodePickerConfirm.onclick = handleNodePickerConfirm;
 }
 
-// [新增] 更新知识库选择器的显示文本
+// [新增] 知识库下拉菜单控制函数
+window.toggleKbDropdown = function() {
+    const wrapper = document.querySelector('.kb-dropdown-wrapper');
+    if (wrapper) {
+        wrapper.classList.toggle('open');
+    }
+};
+
+// 点击其他地方关闭下拉菜单
+document.addEventListener('click', function(e) {
+    const wrapper = document.querySelector('.kb-dropdown-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+    }
+});
+
+// 选择知识库选项
+window.selectKbOption = function(itemEl) {
+    const value = itemEl.dataset.value;
+    const menu = document.getElementById('kb-dropdown-menu');
+    const trigger = document.getElementById('kb-dropdown-trigger');
+    const label = document.getElementById('kb-label-text');
+    const hiddenSelect = document.getElementById('chat-collection-select');
+    
+    // 更新所有选项的选中状态
+    menu.querySelectorAll('.kb-dropdown-item').forEach(item => {
+        item.classList.remove('selected');
+    });
+    itemEl.classList.add('selected');
+    
+    // 更新隐藏的 select 值
+    if (hiddenSelect) {
+        hiddenSelect.value = value;
+    }
+    
+    // 更新触发器显示
+    if (value) {
+        const cleanName = itemEl.querySelector('.kb-item-text').textContent.split('(')[0].trim();
+        label.textContent = cleanName;
+        trigger.classList.add('active');
+    } else {
+        label.textContent = "Knowledge Base";
+        trigger.classList.remove('active');
+    }
+    
+    // 关闭下拉菜单
+    document.querySelector('.kb-dropdown-wrapper').classList.remove('open');
+};
+
+// 渲染知识库下拉选项
+function renderKbDropdownOptions(collections) {
+    const menu = document.getElementById('kb-dropdown-menu');
+    const hiddenSelect = document.getElementById('chat-collection-select');
+    if (!menu) return;
+    
+    const currentVal = hiddenSelect ? hiddenSelect.value : '';
+    
+    // 清空并重建选项
+    menu.innerHTML = `
+        <div class="kb-dropdown-item ${!currentVal ? 'selected' : ''}" data-value="" onclick="selectKbOption(this)">
+            <span class="kb-item-check">✓</span>
+            <span class="kb-item-text">No Knowledge Base</span>
+        </div>
+    `;
+    
+    collections.forEach(c => {
+        const isSelected = c.name === currentVal;
+        const item = document.createElement('div');
+        item.className = `kb-dropdown-item ${isSelected ? 'selected' : ''}`;
+        item.dataset.value = c.name;
+        item.onclick = function() { selectKbOption(this); };
+        item.innerHTML = `
+            <span class="kb-item-check">✓</span>
+            <span class="kb-item-text">${escapeHtmlForDropdown(c.name)}</span>
+            <span class="kb-item-count">${c.count || 0}</span>
+        `;
+        menu.appendChild(item);
+    });
+    
+    // 同步隐藏 select 的选项
+    if (hiddenSelect) {
+        hiddenSelect.innerHTML = '<option value="">No Knowledge Base</option>';
+        collections.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = c.name;
+            opt.textContent = `${c.name} (${c.count || 0})`;
+            if (c.name === currentVal) opt.selected = true;
+            hiddenSelect.appendChild(opt);
+        });
+    }
+    
+    // 更新触发器显示状态
+    const trigger = document.getElementById('kb-dropdown-trigger');
+    const label = document.getElementById('kb-label-text');
+    if (currentVal && trigger) {
+        const selectedCollection = collections.find(c => c.name === currentVal);
+        if (selectedCollection) {
+            label.textContent = selectedCollection.name;
+            trigger.classList.add('active');
+        } else {
+            label.textContent = "Knowledge Base";
+            trigger.classList.remove('active');
+        }
+    }
+}
+
+// HTML 转义辅助函数（用于下拉菜单）
+function escapeHtmlForDropdown(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// [兼容] 更新知识库选择器的显示文本 (兼容旧代码)
 window.updateKbLabel = function(selectEl) {
     const label = document.getElementById('kb-label-text');
-    const visualBtn = document.querySelector('.kb-visual-btn');
-    if (!label || !visualBtn) return;
+    const trigger = document.getElementById('kb-dropdown-trigger');
+    if (!label || !trigger) return;
     
-    // 获取选中的文本
-    const selectedText = selectEl.options[selectEl.selectedIndex].text;
     const selectedVal = selectEl.value;
 
     if (!selectedVal) {
-        // 没选时，显示默认
         label.textContent = "Knowledge Base";
-        label.style.color = ""; 
-        visualBtn.style.background = ""; // 恢复默认背景
+        trigger.classList.remove('active');
     } else {
-        // 选中时，显示具体名字
-        // 我们可以只显示名字部分，去掉括号里的数量，让它更像 Tag
-        // 例如 "wiki_v1 (50)" -> "wiki_v1"
+        const selectedText = selectEl.options[selectEl.selectedIndex].text;
         const cleanName = selectedText.split('(')[0].trim();
         label.textContent = cleanName;
-        
-        // 可选：选中后给个高亮背景，表示“已激活”
-        visualBtn.style.background = "#e0e7ff"; 
-        label.style.color = "#2563eb";
+        trigger.classList.add('active');
     }
 };
 

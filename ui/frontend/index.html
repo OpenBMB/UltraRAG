@@ -361,16 +361,25 @@
             <div class="actions-row">
                 
                 <div class="left-actions">
-                    <div class="kb-tool-wrapper">
-                         <div class="kb-visual-btn">
+                    <div class="kb-dropdown-wrapper">
+                         <button type="button" class="kb-dropdown-trigger" id="kb-dropdown-trigger" onclick="toggleKbDropdown()">
                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="kb-icon-svg">
                                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                              </svg>
                              <span id="kb-label-text">Knowledge Base</span>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="kb-chevron">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                             </svg>
+                         </button>
+                         <div class="kb-dropdown-menu" id="kb-dropdown-menu">
+                             <div class="kb-dropdown-item selected" data-value="" onclick="selectKbOption(this)">
+                                 <span class="kb-item-check">✓</span>
+                                 <span class="kb-item-text">No Knowledge Base</span>
+                             </div>
                          </div>
-                         
-                         <select id="chat-collection-select" class="kb-select-hidden" onchange="updateKbLabel(this)">
+                         <!-- 隐藏的原生select，用于表单提交和状态管理 -->
+                         <select id="chat-collection-select" class="kb-select-hidden" style="display:none;">
                              <option value="" selected>No Knowledge Base</option>
                          </select>
                     </div>
