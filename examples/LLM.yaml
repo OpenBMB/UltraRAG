@@ -1,0 +1,14 @@
+# LLM Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  prompt: servers/prompt
+  generation: servers/generation
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- prompt.qa_boxed
+- generation.generation_init
+- generation.generate
