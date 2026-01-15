@@ -1,1 +1,3 @@
-hard_mode: true
+surveycpm_hard_mode: true
+surveycpm_max_step: 140
+surveycpm_max_extend_step: 12
