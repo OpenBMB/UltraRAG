@@ -70,6 +70,15 @@
                   "pages/cn/develop_guide/parallel",
                   "pages/cn/develop_guide/code_integration"
                 ]
+              },
+              {
+                "group": "典型实现",
+                "pages": [
+                  "pages/cn/pipeline/rag",
+                  "pages/cn/pipeline/light_deepresearch",
+                  "pages/cn/pipeline/visrag",
+                  "pages/cn/pipeline/search_o1"
+                ]
               }
             ]
           },
@@ -83,12 +92,12 @@
                 ]
               },
               {
-                "group": "Pipeline",
+                "group": "典型场景",
                 "pages": [
-                  "pages/cn/pipeline/rag",
-                  "pages/cn/pipeline/light_deepresearch",
-                  "pages/cn/pipeline/visrag",
-                  "pages/cn/pipeline/search_o1"
+                  "pages/cn/demo/llm",
+                  "pages/cn/demo/rag",
+                  "pages/cn/demo/lightresearch",
+                  "pages/cn/demo/deepresearch"
                 ]
               }
             ]

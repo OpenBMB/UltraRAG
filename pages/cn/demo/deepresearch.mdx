@@ -1,0 +1,241 @@
+---
+title: "DeepResearch"
+icon: "flask"
+---
+
+DeepResearch 是 UltraRAG 目前最强大的研究推理流程，专为生成万字以上、学术级深度综述而设计。它通过复杂的状态机调度，自主完成搜索、计划制定、内容撰写及大纲扩展。
+
+<Tip>为了获得最佳生成效果，我们强烈推荐下载并使用配套的专有模型 SurveyCPM。</Tip>
+
+## 1. Pipeline 结构概览
+
+DeepResearch Pipeline 采用了高度灵活的状态路由逻辑（Router），包含多个核心阶段的循环往复。
+
+```yaml examples/DeepResearch.yaml icon="/images/yaml.svg"
+# DeepResearch Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data:
+    output:
+      q_ls: instruction_ls
+- retriever.retriever_init
+- generation.generation_init
+- custom.surveycpm_init_citation_registry
+- custom.surveycpm_state_init
+- loop:
+    times: 140
+    steps:
+    - branch:
+        router:
+        - router.surveycpm_state_router
+        branches:
+          search:
+          - prompt.surveycpm_search:
+              output:
+                prompt_ls: search_prompt_ls          
+          - generation.generate:
+              input:
+                prompt_ls: search_prompt_ls
+              output:
+                ans_ls: search_response_ls
+          - custom.surveycpm_parse_search_response:
+              input:
+                response_ls: search_response_ls       
+          - retriever.retriever_batch_search:
+              input:
+                batch_query_list: keywords_ls
+          - custom.surveycpm_process_passages_with_citation
+          - custom.surveycpm_update_state
+          analyst-init_plan:
+          - prompt.surveycpm_init_plan:
+              output:
+                prompt_ls: init_plan_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: init_plan_prompt_ls
+              output:
+                ans_ls: init_plan_response_ls
+          - custom.surveycpm_after_init_plan:
+              input:
+                response_ls: init_plan_response_ls
+          - custom.surveycpm_update_state
+          write:
+          - prompt.surveycpm_write:
+              output:
+                prompt_ls: write_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: write_prompt_ls
+              output:
+                ans_ls: write_response_ls
+          - custom.surveycpm_after_write:
+              input:
+                response_ls: write_response_ls
+          - custom.surveycpm_update_state
+          analyst-extend_plan:
+          - prompt.surveycpm_extend_plan:
+              output:
+                prompt_ls: extend_prompt_ls         
+          - generation.generate:
+              input:
+                prompt_ls: extend_prompt_ls
+              output:
+                ans_ls: extend_response_ls
+          - custom.surveycpm_after_extend:
+              input:
+                response_ls: extend_response_ls
+          - custom.surveycpm_update_state
+          done: []
+- custom.surveycpm_format_output:
+    output:
+      ans_ls: final_survey_ls
+
+```
+
+## 2. 编译Pipeline文件
+
+执行以下命令编译该工作流：
+
+```shell
+ultrarag build examples/DeepResearch.yaml
+```
+
+## 3. 配置运行参数
+
+修改 `examples/parameter/DeepResearch_parameter.yaml`。
+
+<Note>想要调整调研深度？ 请在 `custom` 配置中按需调整：增加 `surveycpm_max_step` 以延长研究时间，提高 `surveycpm_max_extend_step` 以获得更详实的扩写内容。若对质量有极高要求，请务必开启 `surveycpm_hard_mode`（硬核模式）。</Note>
+
+```yaml examples/parameter/DeepResearch_parameter.yaml icon="/images/yaml.svg" 
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom:
+  surveycpm_hard_mode: false
+  surveycpm_max_extend_step: 12
+  surveycpm_max_step: 140
+generation:
+  backend: vllm  # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: http://localhost:65506/v1 # [!code ++]
+      concurrency: 8
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: surveycpm # [!code ++]
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: '' # [!code --]
+  system_prompt: '你是一个专业的UltraRAG问答助手。请一定记住使用中文回答问题。' # [!code ++]
+prompt:
+  surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja
+  surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+  surveycpm_search_template: prompt/surveycpm_search.jinja
+  surveycpm_write_template: prompt/surveycpm_write.jinja
+retriever: 
+  backend: sentence_transformers # [!code --]
+  backend: openai   # [!code ++]
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_url: https://api.openai.com/v1 # [!code --]
+      base_url: http://localhost:65504/v1 # [!code ++]
+      model_name: text-embedding-3-small # [!code --]
+      model_name: qwen-embedding # [!code ++]
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  query_instruction: '' # [!code --]
+  query_instruction: 'Query: ' # [!code ++]
+  top_k: 5 # [!code --]
+  top_k: 20 # [!code ++]
+```
+
+## 4. 效果演示
+
+配置完成后，在 UltraRAG UI 中启动 DeepResearch Pipeline。
+
+<Note>由于万字综述的生成涉及大量并发检索与多轮推理，耗时通常在 10 分钟以上。您可以利用 UI 的挂后台运行功能，任务完成后再回来查看最终报告。</Note>
+
+
+![](/images/demo/deepresearch.png)

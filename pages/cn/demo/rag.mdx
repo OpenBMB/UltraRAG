@@ -1,0 +1,159 @@
+---
+title: "RAG"
+icon: "magnifying-glass"
+---
+
+为了在 UltraRAG UI 中深度体验检索增强生成（RAG）能力，我们提供了一个标准化的 RAG Pipeline。该流程集成了文档检索、引用标注及增强生成的完整链路。
+
+## 1. Pipeline 结构概览
+
+```yaml examples/RAG.yaml icon="/images/yaml.svg"
+# RAG Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- retriever.retriever_search
+- custom.assign_citation_ids
+- prompt.qa_rag_boxed
+- generation.generate
+```
+
+## 2. 编译Pipeline文件
+
+在终端执行以下命令进行编译：
+
+```shell
+ultrarag build examples/RAG.yaml
+```
+
+## 3. 配置运行参数
+
+修改 `examples/parameter/RAG_parameter.yaml`。在 RAG 场景中，除了配置 LLM 生成后端外，还需要重点配置 Embedding 检索后端。
+
+```yaml examples/parameter/RAG_parameter.yaml icon="/images/yaml.svg" 
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+generation:
+  backend: vllm  # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: http://localhost:65503/v1 # [!code ++]
+      concurrency: 8
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: qwen3-32b # [!code ++]
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: '' # [!code --]
+  system_prompt: '你是一个专业的UltraRAG问答助手。请一定记住使用中文回答问题。' # [!code ++]
+prompt:
+  template: prompt/qa_boxed.jinja # [!code --]
+  template: prompt/qa_rag_citation.jinja # [!code ++]
+retriever: 
+  backend: sentence_transformers # [!code --]
+  backend: openai   # [!code ++]
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_url: https://api.openai.com/v1 # [!code --]
+      base_url: http://localhost:65504/v1 # [!code ++]
+      model_name: text-embedding-3-small # [!code --]
+      model_name: qwen-embedding # [!code ++]
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  query_instruction: '' # [!code --]
+  query_instruction: 'Query: ' # [!code ++]
+  top_k: 5 # [!code --]
+  top_k: 20 # [!code ++]
+
+```
+
+## 4. 效果演示
+
+配置完成后，启动 UltraRAG UI，在界面中选择 RAG Pipeline，并选取对应的知识库。您将看到 LLM 如何结合检索到的文档片段给出更精准、带引用的回答。
+
+![](/images/demo/RAG.png)

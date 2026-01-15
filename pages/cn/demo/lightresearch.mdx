@@ -1,0 +1,199 @@
+---
+title: "LightResearch"
+icon: "lightbulb"
+---
+
+LightResearch 是一个轻量级的深度研究（Deep Research）实现。它通过自动化生成调研计划、多轮迭代检索、子问题拆解以及长篇综述生成，模拟专家级的调研分析过程。
+
+## 1. Pipeline 结构概览
+
+```yaml examples/LightResearch.yaml icon="/images/yaml.svg"
+# LightResearch Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- generation.generation_init
+- custom.init_citation_registry
+- prompt.webnote_gen_plan
+- generation.generate:
+    output:
+      ans_ls: plan_ls
+- prompt.webnote_init_page
+- generation.generate:
+    output:
+      ans_ls: page_ls
+- loop:
+    times: 10
+    steps:
+    - branch:
+        router:
+        - router.webnote_check_page
+        branches:
+          incomplete:
+          - prompt.webnote_gen_subq
+          - generation.generate:
+              output:
+                ans_ls: subq_ls
+          - retriever.retriever_search:
+              input:
+                query_list: subq_ls
+              output:
+                ret_psg: psg_ls
+          - custom.assign_citation_ids_stateful:
+              input:
+                ret_psg: psg_ls
+              output:
+                ret_psg: psg_ls
+          - prompt.webnote_fill_page
+          - generation.generate:
+              output:
+                ans_ls: page_ls
+          complete: []
+- prompt.webnote_gen_answer
+- generation.generate
+
+```
+
+## 2. 编译Pipeline文件
+
+执行以下命令编译该复杂工作流
+
+```shell
+ultrarag build examples/LightResearch.yaml
+```
+
+## 3. 配置运行参数
+
+修改 `examples/parameter/LightResearch_parameter.yaml`。
+
+```yaml examples/parameter/LightResearch_parameter.yaml icon="/images/yaml.svg" 
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+generation:
+  backend: vllm  # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: http://localhost:65503/v1 # [!code ++]
+      concurrency: 8
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: qwen3-32b # [!code ++]
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: '' # [!code --]
+  system_prompt: '你是一个专业的UltraRAG问答助手。请一定记住使用中文回答问题。' # [!code ++]
+prompt:
+  webnote_fill_page_template: prompt/webnote_fill_page.jinja # [!code --]
+  webnote_fill_page_template: prompt/webnote_fill_page_citation.jinja # [!code ++]
+  webnote_gen_answer_template: prompt/webnote_gen_answer.jinja # [!code --]
+  webnote_gen_answer_template: prompt/webnote_gen_report.jinja # [!code ++]
+  webnote_gen_plan_template: prompt/webnote_gen_plan.jinja
+  webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
+  webnote_init_page_template: prompt/webnote_init_page.jinja
+retriever: 
+  backend: sentence_transformers # [!code --]
+  backend: openai   # [!code ++]
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_url: https://api.openai.com/v1 # [!code --]
+      base_url: http://localhost:65504/v1 # [!code ++]
+      model_name: text-embedding-3-small # [!code --]
+      model_name: qwen-embedding # [!code ++]
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  query_instruction: '' # [!code --]
+  query_instruction: 'Query: ' # [!code ++]
+  top_k: 5
+```
+
+## 4. 效果演示
+
+配置完成后，在 UltraRAG UI 中启动 LightResearch Pipeline。
+
+与标准 RAG 不同，你会观察到系统在给出最终回答前，会经历多轮自主思考与检索过程，最终生成一份包含多级标题、详实论据且带有准确引用的深度综述。
+
+![](/images/demo/lightresearch.png)
