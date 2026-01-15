@@ -25,6 +25,8 @@ const state = {
     // 引擎连接状态
     engineSessionId: null, // 当前选中的 Pipeline 对应的 SessionID
     activeEngines: {},     // 映射表: { "pipelineName": "sessionId" }
+    engineStartSeq: 0,     // 用于避免并发启动导致的状态乱序
+    engineStartingFor: null, // 正在尝试启动的 pipeline 名
     
     demoLoading: false
   },
@@ -1237,18 +1239,61 @@ async function createNewPipeline() {
 
 // --- Demo Session / Engine Control ---
 
+// 挂起除目标 Pipeline 外的所有引擎，避免端口/资源冲突
+async function suspendOtherEngines(targetPipeline = null) {
+    const entries = Object.entries(state.chat.activeEngines || {});
+    if (!entries.length) return;
+
+    const stopPromises = [];
+    for (const [name, sid] of entries) {
+        if (targetPipeline && name === targetPipeline) continue;
+
+        stopPromises.push(
+            fetchJSON(`/api/pipelines/demo/stop`, {
+                method: "POST",
+                body: JSON.stringify({ session_id: sid })
+            }).catch(err => console.warn(`Suspend engine ${name} failed`, err))
+        );
+
+        if (state.chat.engineSessionId === sid) {
+            state.chat.engineSessionId = null;
+        }
+        delete state.chat.activeEngines[name];
+    }
+
+    if (stopPromises.length) {
+        setChatStatus("Suspending...", "warn");
+        await Promise.allSettled(stopPromises);
+    }
+}
+
 // 1. 启动引擎 (幂等操作：如果已启动则忽略)
 async function startEngine(pipelineName) {
     if (!pipelineName) return;
     
-    // 如果当前已经有正在运行且是同一个 Pipeline，直接返回
-    if (state.chat.engineSessionId && state.chat.activeEngines[pipelineName] === state.chat.engineSessionId) {
-        return;
+    // 如果当前 session 属于其它 Pipeline，先停掉以确保状态一致
+    const currentPipeline = Object.entries(state.chat.activeEngines || {})
+        .find(([, sid]) => sid === state.chat.engineSessionId)?.[0];
+    if (state.chat.engineSessionId && currentPipeline && currentPipeline !== pipelineName) {
+        await stopEngine();
     }
 
-    // 如果有别的引擎在跑，先停掉
-    if (state.chat.engineSessionId) {
-        await stopEngine();
+    // 挂起其它 Pipeline 的引擎，防止端口冲突
+    await suspendOtherEngines(pipelineName);
+
+    const existingSid = state.chat.activeEngines[pipelineName];
+
+    // 如果目标 Pipeline 已有活跃引擎，直接复用并同步 UI
+    if (state.chat.engineSessionId && existingSid === state.chat.engineSessionId) {
+        setChatStatus("Ready", "ready");
+        updateDemoControls();
+        return;
+    }
+    if (!state.chat.engineSessionId && existingSid) {
+        state.chat.engineSessionId = existingSid;
+        setChatStatus("Ready", "ready");
+        updateDemoControls();
+        return;
     }
 
     state.chat.demoLoading = true;
