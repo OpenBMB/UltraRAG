@@ -27,6 +27,7 @@ const state = {
     activeEngines: {},     // 映射表: { "pipelineName": "sessionId" }
     engineStartSeq: 0,     // 用于避免并发启动导致的状态乱序
     engineStartingFor: null, // 正在尝试启动的 pipeline 名
+    engineStartPromise: null, // 引擎启动中的 Promise（用于串行化启动）
     
     demoLoading: false
   },
@@ -1270,62 +1271,87 @@ async function suspendOtherEngines(targetPipeline = null) {
 // 1. 启动引擎 (幂等操作：如果已启动则忽略)
 async function startEngine(pipelineName) {
     if (!pipelineName) return;
-    
-    // 如果当前 session 属于其它 Pipeline，先停掉以确保状态一致
-    const currentPipeline = Object.entries(state.chat.activeEngines || {})
-        .find(([, sid]) => sid === state.chat.engineSessionId)?.[0];
-    if (state.chat.engineSessionId && currentPipeline && currentPipeline !== pipelineName) {
-        await stopEngine();
+    if (state.chat.engineStartPromise) {
+        await state.chat.engineStartPromise;
     }
 
-    // 挂起其它 Pipeline 的引擎，防止端口冲突
-    await suspendOtherEngines(pipelineName);
+    const startPromise = (async () => {
+        state.chat.engineStartingFor = pipelineName;
 
-    const existingSid = state.chat.activeEngines[pipelineName];
+        // 如果当前 session 属于其它 Pipeline，先停掉以确保状态一致
+        const currentPipeline = Object.entries(state.chat.activeEngines || {})
+            .find(([, sid]) => sid === state.chat.engineSessionId)?.[0];
+        if (state.chat.engineSessionId && currentPipeline && currentPipeline !== pipelineName) {
+            await stopEngine({ allowDuringStart: true });
+        }
 
-    // 如果目标 Pipeline 已有活跃引擎，直接复用并同步 UI
-    if (state.chat.engineSessionId && existingSid === state.chat.engineSessionId) {
-        setChatStatus("Ready", "ready");
-        updateDemoControls();
-        return;
-    }
-    if (!state.chat.engineSessionId && existingSid) {
-        state.chat.engineSessionId = existingSid;
-        setChatStatus("Ready", "ready");
-        updateDemoControls();
-        return;
-    }
+        // 挂起其它 Pipeline 的引擎，防止端口冲突
+        await suspendOtherEngines(pipelineName);
 
-    state.chat.demoLoading = true;
-    updateDemoControls(); // 更新 UI 显示 "Loading..."
-    setChatStatus("Initializing...", "warn");
+        const existingSid = state.chat.activeEngines[pipelineName];
 
+        // 如果目标 Pipeline 已有活跃引擎，直接复用并同步 UI
+        if (state.chat.engineSessionId && existingSid === state.chat.engineSessionId) {
+            setChatStatus("Ready", "ready");
+            updateDemoControls();
+            return;
+        }
+        if (!state.chat.engineSessionId && existingSid) {
+            state.chat.engineSessionId = existingSid;
+            setChatStatus("Ready", "ready");
+            updateDemoControls();
+            return;
+        }
+
+        state.chat.demoLoading = true;
+        updateDemoControls(); // 更新 UI 显示 "Loading..."
+        setChatStatus("Initializing...", "warn");
+        
+        try {
+            const newSid = uuidv4();
+            
+            // 调用后端启动
+            await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
+                 method: "POST", body: JSON.stringify({ session_id: newSid })
+            });
+            
+            state.chat.engineSessionId = newSid;
+            state.chat.activeEngines[pipelineName] = newSid;
+            
+            setChatStatus("Ready", "ready");
+            log(`Engine started for ${pipelineName}`);
+            
+        } catch (err) {
+            console.error(err);
+            setChatStatus("Engine Error", "error");
+            state.chat.engineSessionId = null;
+            const msg = err?.message ? String(err.message) : "Unknown error";
+            showModal(`Engine initialization failed: ${msg}`, { title: "Engine Error", type: "error" });
+        } finally {
+            state.chat.demoLoading = false;
+            updateDemoControls();
+        }
+    })();
+
+    state.chat.engineStartPromise = startPromise;
     try {
-        const newSid = uuidv4();
-        
-        // 调用后端启动
-        await fetchJSON(`/api/pipelines/${encodeURIComponent(pipelineName)}/demo/start`, { 
-             method: "POST", body: JSON.stringify({ session_id: newSid })
-        });
-        
-        state.chat.engineSessionId = newSid;
-        state.chat.activeEngines[pipelineName] = newSid;
-        
-        setChatStatus("Ready", "ready");
-        log(`Engine started for ${pipelineName}`);
-        
-    } catch (err) {
-        console.error(err);
-        setChatStatus("Engine Error", "error");
-        state.chat.engineSessionId = null;
+        await startPromise;
     } finally {
-        state.chat.demoLoading = false;
-        updateDemoControls();
+        if (state.chat.engineStartPromise === startPromise) {
+            state.chat.engineStartPromise = null;
+        }
+        if (state.chat.engineStartingFor === pipelineName) {
+            state.chat.engineStartingFor = null;
+        }
     }
 }
 
 // 2. 停止引擎
-async function stopEngine() {
+async function stopEngine(options = {}) {
+    const { allowDuringStart = false } = options;
+    if (!allowDuringStart && state.chat.engineStartPromise) {
+        await state.chat.engineStartPromise;
+    }
     if (!state.chat.engineSessionId) return;
 
     const sid = state.chat.engineSessionId;
@@ -1518,6 +1544,10 @@ async function switchChatPipeline(name) {
         showModal("Please wait for the current response to finish.", { title: "Please Wait", type: "info" });
         return;
     }
+
+    if (state.chat.engineStartPromise) {
+        await state.chat.engineStartPromise;
+    }
     
     // 1. 保存旧会话
     saveCurrentSession(true);
@@ -1601,7 +1631,7 @@ function createNewChatSession() {
     state.chat.currentSessionId = generateChatId();
     state.chat.history = [];
     renderChatHistory(); renderChatSidebar();
-    setChatStatus("Ready", "ready");
+    updateChatIdleStatus();
     if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
     backToChatView();
 }
@@ -1618,7 +1648,7 @@ function interruptAndCreateNewChat() {
     state.chat.currentSessionId = generateChatId();
     state.chat.history = [];
     renderChatHistory(); renderChatSidebar();
-    setChatStatus("Ready", "ready");
+    updateChatIdleStatus();
     if(els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
     backToChatView();
 }
@@ -1648,7 +1678,7 @@ function loadChatSession(sessionId) {
     
     renderChatHistory();
     renderChatSidebar();
-    setChatStatus("Ready", "ready");
+    updateChatIdleStatus();
     
     // 移动端适配：加载后自动收起侧边栏
     const sidebar = document.querySelector('.chat-sidebar');
@@ -1986,6 +2016,14 @@ function setChatStatus(message, variant = "info") {
   const badge = els.chatStatus;
   const variants = { info: "bg-light text-dark", ready: "bg-light text-dark", running: "bg-primary text-white", success: "bg-success text-white", warn: "bg-warning text-dark", error: "bg-danger text-white" };
   badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`; badge.textContent = message || "";
+}
+
+function updateChatIdleStatus() {
+  if (state.chat.engineSessionId) {
+      setChatStatus("Ready", "ready");
+  } else {
+      setChatStatus("Engine Offline", "info");
+  }
 }
 
 function setChatRunning(isRunning) {
@@ -2880,7 +2918,8 @@ async function handleChatSubmit(event) {
                 setChatStatus("Ready", "ready");
             } 
             else if (data.type === "error") {
-                appendChatMessage("system", `Backend Error: ${data.message}`);
+                const msg = data?.message ? String(data.message) : "Unknown error";
+                showModal(`Backend Error: ${msg}`, { title: "Chat Error", type: "error" });
                 setChatStatus("Error", "error");
             }
           } catch (e) { console.error(e); }
@@ -2919,7 +2958,8 @@ async function handleChatSubmit(event) {
           return;
       }
       console.error(err);
-      appendChatMessage("system", `Network Error: ${err.message}`);
+      const msg = err?.message ? String(err.message) : "Unknown error";
+      showModal(`Network Error: ${msg}`, { title: "Chat Error", type: "error" });
       setChatStatus("Error", "error");
   } finally {
       if (state.chat.controller) {
@@ -4443,6 +4483,9 @@ window.updateKbLabel = function(selectEl) {
 
 async function bootstrap() {
   const initialModeFromUrl = getInitialModeFromUrl();
+  if (initialModeFromUrl) {
+      setMode(initialModeFromUrl);
+  }
   // 0. 首先获取应用模式配置
   try {
       const modeConfig = await fetchJSON('/api/config/mode');
