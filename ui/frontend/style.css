@@ -2783,6 +2783,21 @@ textarea.parameter-input {
     object-fit: contain;
   }
   
+  .sidebar-logo-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .sidebar-logo-btn:focus-visible {
+    outline: 2px solid #4f46e5;
+    border-radius: 6px;
+  }
+  
   /* 侧边栏收缩时隐藏 logo */
   .chat-sidebar.collapsed .sidebar-logo {
     display: none !important;
