@@ -26,14 +26,14 @@ icon: "eyes"
 ```
 可以看到，模型虽然能生成语义流畅的回答，但由于缺乏真实文档支撑，往往会出现“似是而非”的结果。
 
-为了解决这一问题，UR-v2 基于 [VisRAG](https://arxiv.org/abs/2410.10594) 实现了一种多模态检索增强 Pipeline。
+为了解决这一问题，UltraRAG 基于 [VisRAG](https://arxiv.org/abs/2410.10594) 实现了一种多模态检索增强 Pipeline。
 它不再依赖繁琐的文本解析，而是直接将“相关文档的截图”输入给视觉语言模型，从而实现基于视觉语义的真实文档问答。
 
 ## 构建个人知识库
 
 以“尼康使用说明书”为例。你可以 [点击此处下载](https://download.nikonimglib.com/archive4/ywJ4K00fa2Lr05vv5OS00pV5Hg36/Z7Z6UM_TH(Sc)07.pdf) PDF 文件。
 
-我们使用 UR-v2 的 Corpus Server 将该 PDF 直接转换为图像语料库：
+我们使用 UltraRAG 的 Corpus Server 将该 PDF 直接转换为图像语料库：
 
 ```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -102,20 +102,19 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document # [!code --]
         psg_task: null # [!code --]
@@ -127,14 +126,34 @@ retriever:
         q_task: retrieval # [!code ++]
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl # [!code --]
   corpus_path: corpora/image.jsonl # [!code ++]
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
-  gpu_ids: 0,1 # [!code --]
-  gpu_ids: 1 # [!code ++]
-  index_chunk_size: 50000
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false # [!code --]
   is_multimodal: true # [!code ++]
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
@@ -208,7 +227,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -221,9 +240,11 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
       model_name_or_path: openbmb/MiniCPM-V-4 # [!code ++]
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  image_tag: null
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -236,20 +257,19 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document # [!code --]
         psg_task: null # [!code --]
@@ -260,19 +280,41 @@ retriever:
         q_prompt_name: query # [!code ++]
         q_task: retrieval # [!code ++]
       trust_remote_code: true
-  batch_size: 16 
+  batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl # [!code --]
   corpus_path: corpora/image.jsonl # [!code ++]
-  faiss_use_gpu: true
-  gpu_ids: 0,1 # [!code --]
-  gpu_ids: 1 # [!code ++]
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false # [!code --]
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   is_multimodal: true # [!code ++]
   model_name_or_path: jinaai/jina-embeddings-v4 # [!code ++]
   query_instruction: ''
   top_k: 5
+
 
 ```
 

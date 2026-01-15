@@ -1,6 +1,6 @@
 ---
-title: "LightResearch"
-icon: "lightbulb"
+title: "WebNote"
+icon: "cloud"
 ---
 
 <Note>我们为该 Demo 录制了一期讲解视频：[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)。</Note>
@@ -24,14 +24,14 @@ Deep Research（也称为 Agentic Deep Research）是指大语言模型（LLM）
 
 我们提供了两种方式传入 API Key：环境变量和显式参数。其中推荐使用 环境变量，更安全，也能避免 API Key 在日志中泄漏。
 
-在 UR-v2 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
+在 UltraRAG 根目录下，将模板文件 `.env.dev` 重命名为 `.env`，
 并填写你的密钥信息，例如：
 
 ```
 LLM_API_KEY="your llm key"
 TAVILY_API_KEY="your retriever key"
 ```
-UR-v2 会在启动时自动读取该文件并加载相关配置。
+UltraRAG 会在启动时自动读取该文件并加载相关配置。
 
 ## Pipeline介绍
 
@@ -62,7 +62,7 @@ UR-v2 会在启动时自动读取该文件并加载相关配置。
 
 这个示例的代码实现非常简洁，主要依赖 router 与 prompt tool 的自定义扩展。感兴趣的小伙伴可以直接查看源码。以下是完整的 pipeline 定义：
 
-```yaml examples/light_deepresearch.yaml icon="/images/yaml.svg"
+```yaml examples/webnote_websearch.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -124,12 +124,12 @@ pipeline:
 执行以下命令生成 pipeline 对应的参数文件：
 
 ```shell
-ultrarag build examples/light_deepresearch.yaml
+ultrarag build examples/webnote_websearch.yaml
 ```
 
 根据实际情况对参数进行修改，例如：
 
-```yaml
+```yaml examples/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -152,7 +152,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1 # [!code --]
       base_url: https://api.openai.com/v1 # [!code ++]
@@ -166,9 +166,10 @@ generation:
       gpu_memory_utilization: 0.9
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8 # [!code --]
@@ -189,7 +190,7 @@ retriever:
 
 在运行前，不要忘记设置你的 API Key：
 ```shell
-ultrarag run examples/light_deepresearch.yaml
+ultrarag examples/webnote_websearch.yaml
 ```
 
 运行完成后，你可以通过 Case Study Viewer 可视化地查看生成内容：

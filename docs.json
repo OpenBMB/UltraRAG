@@ -88,7 +88,9 @@
               {
                 "group": "使用指南",
                 "pages": [
-                  "pages/cn/ui/prepare"
+                  "pages/cn/ui/feature",
+                  "pages/cn/ui/prepare",
+                  "pages/cn/ui/start"
                 ]
               },
               {
