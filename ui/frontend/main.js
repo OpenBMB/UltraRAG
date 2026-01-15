@@ -8,6 +8,8 @@ const state = {
   editingPath: null,
   isBuilt: false,
   parametersReady: false,
+  lastSavedYaml: "",
+  unsavedChanges: false,
   mode: "builder",
   
   // 应用模式：true = admin (完整界面)，false = chat-only
@@ -32,6 +34,23 @@ const state = {
     demoLoading: false
   },
 };
+
+// 默认的 Vanilla LLM pipeline 模板
+const VANILLA_PIPELINE_TEMPLATE = {
+  servers: {
+    benchmark: "servers/benchmark",
+    generation: "servers/generation",
+    prompt: "servers/prompt",
+  },
+  pipeline: [
+    "benchmark.get_data",
+    "generation.generation_init",
+    "prompt.qa_boxed",
+    "generation.generate",
+  ],
+};
+
+const VANILLA_PIPELINE_STEPS = [...VANILLA_PIPELINE_TEMPLATE.pipeline];
 
 const els = {
   // View Containers
@@ -62,6 +81,8 @@ const els = {
   newPipelineBtn: document.getElementById("new-pipeline-btn"),
   heroSelectedPipeline: document.getElementById("hero-selected-pipeline"),
   heroStatus: document.getElementById("hero-status"),
+  builderLogo: document.getElementById("builder-logo-link"),
+  workspaceChatBtn: document.getElementById("workspace-chat-btn"),
 
   directChatBtn: document.getElementById("direct-chat-btn"),
   
@@ -94,6 +115,7 @@ const els = {
 
   chatSidebar: document.querySelector(".chat-sidebar"),
   chatSidebarToggleBtn: document.getElementById("sidebar-toggle-btn"),
+  chatLogoBtn: document.getElementById("chat-logo-btn"),
 
   // [新增] Chat 顶部控件
   chatPipelineLabel: document.getElementById("chat-pipeline-label"),
@@ -900,6 +922,48 @@ function log(message) {
   console.log(msg);
 }
 
+function markUnsavedChanges() {
+  state.unsavedChanges = true;
+}
+
+function clearUnsavedChanges() {
+  state.unsavedChanges = false;
+}
+
+function snapshotSavedYaml(content = "") {
+  state.lastSavedYaml = (content || "").trim();
+  clearUnsavedChanges();
+  showYamlError(null);
+  setYamlSyncStatus('synced');
+}
+
+function updateUnsavedFromEditor() {
+  if (!els.yamlEditor) return;
+  const current = (els.yamlEditor.value || "").trim();
+  const dirty = current !== state.lastSavedYaml;
+  state.unsavedChanges = dirty;
+  if (dirty) {
+    state.isBuilt = false;
+    state.parametersReady = false;
+  }
+}
+
+async function confirmUnsavedChanges(actionLabel = "continue") {
+  if (!state.unsavedChanges) return true;
+  
+  const confirmed = await showConfirm(
+    `You have unsaved changes. Continuing may discard them. Do you want to ${actionLabel}?`,
+    {
+      title: "Unsaved changes",
+      type: "warning",
+      confirmText: "Continue",
+      cancelText: "Cancel"
+    }
+  );
+  
+  return confirmed;
+}
+
 // Markdown 渲染（带简单降级）
 let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
@@ -1190,12 +1254,8 @@ function showPrompt(message, options = {}) {
 
 async function createNewPipeline() {
   // 如果有未保存的更改，先确认
-  if (state.steps.length > 0) {
-    const confirmed = await showConfirm("Create new pipeline? Unsaved changes will be lost.", {
-      title: "Create New Pipeline",
-      type: "warning",
-      confirmText: "Continue"
-    });
+  if (state.unsavedChanges) {
+    const confirmed = await confirmUnsavedChanges("create a new pipeline");
     if (!confirmed) return;
   }
   
@@ -1219,8 +1279,8 @@ async function createNewPipeline() {
   
   // 创建新 pipeline
   state.selectedPipeline = pipelineName; 
-  state.parameterData = null; 
-  state.steps = []; 
+  state.parameterData = null;
+  state.pipelineConfig = cloneDeep(VANILLA_PIPELINE_TEMPLATE);
   state.isBuilt = false; 
   state.parametersReady = false;
   
@@ -1229,9 +1289,9 @@ async function createNewPipeline() {
   setHeroPipelineLabel(pipelineName); 
   setHeroStatusLabel("idle");
   
-  resetContextStack(); 
-  renderSteps(); 
-  updatePipelinePreview(); 
+  setSteps(VANILLA_PIPELINE_STEPS, { markUnsaved: true });
+  setYamlSyncStatus('modified');
+  showYamlError(null);
   setMode(Modes.BUILDER); 
   updateActionButtons();
   
@@ -2137,8 +2197,20 @@ async function showKnowledgeBaseAlert() {
     }
 }
 
+async function safeOpenChatView() {
+  if (state.mode !== Modes.CHAT && state.unsavedChanges) {
+    const proceed = await confirmUnsavedChanges("enter Chat mode");
+    if (!proceed) return;
+  }
+  openChatView();
+}
+
 function openChatView() {
-  if (!canUseChat()) { log("Please build and save parameters first."); return; }
+  if (!canUseChat()) { 
+    log("Please build and save parameters first."); 
+    showModal("Please build and save parameters before entering Chat.", { title: "Pipeline not ready", type: "warning" });
+    return; 
+  }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
 
   renderChatPipelineMenu();
@@ -3305,6 +3377,51 @@ function parseSimpleYaml(yamlStr) {
   return result;
 }
 
+function extractStepsFromParsedYaml(parsed) {
+  let newSteps = [];
+  if (Array.isArray(parsed)) {
+    newSteps = parsed;
+  } else if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.pipeline)) {
+      newSteps = parsed.pipeline;
+    } else if (Array.isArray(parsed.steps)) {
+      newSteps = parsed.steps;
+    }
+  }
+
+  if (!Array.isArray(newSteps)) {
+    throw new Error('Invalid pipeline format: expected "pipeline" or "steps" array');
+  }
+
+  return newSteps;
+}
+
+function validateYamlEditorContent(options = {}) {
+  const { showModalOnError = false } = options;
+  if (!els.yamlEditor) return { valid: true, content: '', steps: [] };
+
+  const yamlContent = els.yamlEditor.value.trim();
+  if (!yamlContent) {
+    showYamlError(null);
+    return { valid: true, content: '', steps: [] };
+  }
+
+  try {
+    const parsed = parseSimpleYaml(yamlContent);
+    const steps = extractStepsFromParsedYaml(parsed);
+    showYamlError(null);
+    return { valid: true, content: yamlContent, steps };
+  } catch (err) {
+    const message = err?.message ? String(err.message) : "YAML parse failed";
+    showYamlError(message);
+    setYamlSyncStatus('error');
+    if (showModalOnError) {
+      showModal(`YAML cannot be parsed: ${message}`, { title: "YAML Error", type: "error" });
+    }
+    return { valid: false, error: message };
+  }
+}
+
 /**
  * 从 YAML 编辑器同步到画布 (YAML → Canvas)
  * 保留编辑器内容（含注释），不反向覆盖
@@ -3337,27 +3454,14 @@ function syncYamlToCanvasOnly() {
   
   try {
     setYamlSyncStatus('syncing');
-    
-    // 解析 YAML
-    const parsed = parseSimpleYaml(yamlContent);
-    
-    // 提取 pipeline/steps
-    let newSteps = [];
-    if (Array.isArray(parsed)) {
-      newSteps = parsed;
-    } else if (parsed && typeof parsed === 'object') {
-      if (Array.isArray(parsed.pipeline)) {
-        newSteps = parsed.pipeline;
-      } else if (Array.isArray(parsed.steps)) {
-        newSteps = parsed.steps;
-      }
+
+    const validation = validateYamlEditorContent();
+    if (!validation.valid) {
+      yamlEditorSyncLock = false;
+      return;
     }
-    
-    // 验证 steps 格式
-    if (!Array.isArray(newSteps)) {
-      throw new Error('Invalid pipeline format: expected "pipeline" or "steps" array');
-    }
-    
+    const newSteps = validation.steps;
+
     // 更新画布 (锁定防止循环，不触发 updatePipelinePreview)
     yamlEditorSyncLock = true;
     state.steps = cloneDeep(newSteps);
@@ -3410,6 +3514,8 @@ function initYamlEditor() {
     updateYamlLineNumbers();
     // 标记编辑器有未同步的更改
     setYamlSyncStatus('modified');
+    updateUnsavedFromEditor();
+    updateActionButtons();
   });
   
   // 监听滚动事件，同步行号滚动
@@ -3661,6 +3767,7 @@ function handleNodePickerConfirm() {
 function markPipelineDirty() { 
     state.isBuilt = false; 
     state.parametersReady = false; 
+    markUnsavedChanges();
     
     // [新增] 如果当前 Pipeline 被修改，强制废弃其 Engine Session
     const currentName = state.selectedPipeline;
@@ -3681,12 +3788,17 @@ function markPipelineDirty() {
     if (state.mode !== Modes.BUILDER) setMode(Modes.BUILDER); 
     updateActionButtons(); 
 }
-function setSteps(steps) { 
+function setSteps(steps, options = {}) { 
+    const { markUnsaved = false } = options;
     state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; 
     
     state.parameterData = null; 
     state.isBuilt = false; 
     state.parametersReady = false;
+
+    if (markUnsaved) {
+        markUnsavedChanges();
+    }
 
     resetChatSession(); 
     
@@ -3694,6 +3806,12 @@ function setSteps(steps) {
     renderSteps(); 
     updatePipelinePreview(); 
     updateActionButtons();
+
+    if (!markUnsaved) {
+        // After programmatic updates, align saved snapshot if appropriate
+        const currentYaml = els.yamlEditor ? els.yamlEditor.value : yamlStringify(buildPipelinePayloadForPreview());
+        snapshotSavedYaml(currentYaml);
+    }
 }
 function updateActionButtons() {
   // 控制 Parameter 面板里的按钮 (保持不变)
@@ -3847,7 +3965,11 @@ function enterStructureContext(type, stepPath, announce = true) {
     if (!stepPath) return; const segs = [...(stepPath.parentSegments||[]), { type, index: stepPath.index, ...(type==="branch"?{section:"router"}:{}) }]; setActiveLocation(createLocation(segs));
 }
 
-async function refreshPipelines() { const pipelines = await fetchJSON("/api/pipelines"); renderPipelineMenu(pipelines); }
+async function refreshPipelines() { 
+    const pipelines = await fetchJSON("/api/pipelines"); 
+    renderPipelineMenu(pipelines); 
+    return pipelines;
+}
 function renderPipelineMenu(items) {
     els.pipelineMenu.innerHTML = ""; if (!items.length) { const li = document.createElement("li"); li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>'; els.pipelineMenu.appendChild(li); return; }
     items.forEach(i => {
@@ -3855,7 +3977,13 @@ function renderPipelineMenu(items) {
         btn.onclick = () => { loadPipeline(i.name); btn.blur(); }; li.appendChild(btn); els.pipelineMenu.appendChild(li);
     });
 }
-async function loadPipeline(name) {
+async function loadPipeline(name, options = {}) {
+    const { ignoreUnsaved = false } = options;
+    if (!ignoreUnsaved && state.unsavedChanges && state.selectedPipeline && state.selectedPipeline !== name) {
+    const proceed = await confirmUnsavedChanges("switch to another pipeline");
+        if (!proceed) return;
+    }
+
     try {
         console.log(`[UI] Loading pipeline: ${name}`);
         const cfg = await fetchJSON(`/api/pipelines/${encodeURIComponent(name)}`);
@@ -3885,6 +4013,9 @@ async function loadPipeline(name) {
         }
 
         setSteps(safeSteps);
+        clearUnsavedChanges();
+        showYamlError(null);
+        setYamlSyncStatus('synced');
 
         if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = name;
         setHeroPipelineLabel(name);
@@ -3932,8 +4063,13 @@ function handleSubmit(e) {
     const name = els.name.value.trim(); 
     if (!name) return log("Pipeline name is required");
     
-    // 获取编辑器中的 YAML 内容
-    let yamlContent = els.yamlEditor ? els.yamlEditor.value.trim() : '';
+    // 获取编辑器中的 YAML 内容并校验
+    const validation = validateYamlEditorContent({ showModalOnError: true });
+    let yamlContent = validation.valid ? (validation.content || '') : null;
+    if (yamlContent === null) {
+        log("Save aborted due to YAML errors.");
+        return;
+    }
     
     // 如果编辑器有内容，使用 YAML API 直接保存
     if (yamlContent) {
@@ -3951,12 +4087,15 @@ function handleSubmit(e) {
             refreshPipelines(); 
             log("Pipeline saved."); 
             setYamlSyncStatus('synced');
+            snapshotSavedYaml(yamlContent);
             
             // 保存成功后，自动同步画布（不覆盖编辑器）
             syncYamlToCanvasOnly();
         })
         .catch(err => {
             log(`Error: ${err.message}`);
+            showYamlError(err.message);
+            showModal(`Save failed: ${err.message}`, { title: "Save Error", type: "error" });
         });
     } else {
         // 空内容，使用 JSON 方式保存
@@ -3974,11 +4113,16 @@ function saveWithJson(name) {
         refreshPipelines(); 
         log("Pipeline saved."); 
         setYamlSyncStatus('synced');
+        snapshotSavedYaml(yamlStringify(buildPipelinePayloadForPreview()));
         loadPipeline(s.name || name); 
     })
     .catch(e => log(e.message));
 }
 function buildSelectedPipeline() {
+    if (state.unsavedChanges) {
+        showModal("Please save the pipeline before building.", { title: "Unsaved changes", type: "warning" });
+        return;
+    }
     if(!state.selectedPipeline) return log("Please save the pipeline first.");
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
     .then(async () => { 
@@ -4010,7 +4154,18 @@ async function deleteSelectedPipeline() {
     });
     if (!confirmed) return;
     fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}`, { method: "DELETE" })
-    .then(() => { state.selectedPipeline=null; els.name.value=""; setSteps([]); refreshPipelines(); }).catch(e=>log(e.message));
+    .then(async () => { 
+        state.selectedPipeline=null; 
+        els.name.value=""; 
+        setSteps([]); 
+        clearUnsavedChanges();
+        showYamlError(null);
+        setYamlSyncStatus('synced');
+        const list = await refreshPipelines(); 
+        if (Array.isArray(list) && list.length > 0) {
+            loadPipeline(list[0].name, { ignoreUnsaved: true });
+        }
+    }).catch(e=>log(e.message));
 }
 
 // Pipeline 名称输入框失去焦点时触发重命名
@@ -4221,7 +4376,7 @@ function bindEvents() {
             type: "warning",
             confirmText: "Clear"
         });
-        if (confirmed) setSteps([]); 
+        if (confirmed) setSteps([], { markUnsaved: true }); 
     });
     els.buildPipeline.addEventListener("click", buildSelectedPipeline);
     els.deletePipeline.addEventListener("click", deleteSelectedPipeline);
@@ -4233,12 +4388,24 @@ function bindEvents() {
     
     if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
-    if (els.parameterChat) els.parameterChat.onclick = openChatView;
+    if (els.parameterChat) els.parameterChat.onclick = safeOpenChatView;
 
-    if (els.directChatBtn) els.directChatBtn.onclick = openChatView;
+    if (els.directChatBtn) els.directChatBtn.onclick = safeOpenChatView;
+
+    if (els.workspaceChatBtn) {
+        els.workspaceChatBtn.onclick = safeOpenChatView;
+    }
 
     if (els.kbBtn) {
         els.kbBtn.onclick = openKBView; 
+    }
+
+    if (els.builderLogo) {
+        els.builderLogo.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
+    }
+
+    if (els.chatLogoBtn) {
+        els.chatLogoBtn.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
     }
 
     if (els.chatSidebarToggleBtn && els.chatSidebar) {
@@ -4332,11 +4499,16 @@ function bindEvents() {
         try { setStepByPath(state.editingPath, parseStepInput(els.stepEditorValue.value)); closeStepEditor(); renderSteps(); updatePipelinePreview(); } catch(e){ log(e.message); }
     };
     document.getElementById("step-editor-cancel").onclick = closeStepEditor;
-    els.refreshPipelines.onclick = () => {
-        // 先同步YAML编辑器内容到画布
-        syncYamlToCanvas();
-        // 然后刷新pipeline列表
-        refreshPipelines();
+    els.refreshPipelines.onclick = async () => {
+        const canProceed = state.unsavedChanges ? await confirmUnsavedChanges("refresh pipeline list") : true;
+        if (!canProceed) return;
+
+        await refreshPipelines();
+
+        // 如果当前 pipeline 没有未保存修改，刷新后重新加载以防止画布偶发空白
+        if (state.selectedPipeline && !state.unsavedChanges) {
+            loadPipeline(state.selectedPipeline, { ignoreUnsaved: true });
+        }
     };
     els.name.oninput = updatePipelinePreview;
     
@@ -5258,9 +5430,9 @@ const workspaceState = {
 function initWorkspace() {
     // 绑定功能切换按钮
     document.querySelectorAll('.workspace-nav-btn[data-mode]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const mode = btn.dataset.mode;
-            switchWorkspaceMode(mode);
+            await switchWorkspaceMode(mode);
         });
     });
     
@@ -5292,7 +5464,15 @@ function initWorkspace() {
     initPromptEditor();
 }
 
-function switchWorkspaceMode(mode) {
+async function switchWorkspaceMode(mode) {
+    if (!mode) return;
+    if (mode === workspaceState.currentMode) return;
+
+    if (workspaceState.currentMode === 'pipeline' && mode !== 'pipeline') {
+        const ok = await confirmUnsavedChanges("切换视图");
+        if (!ok) return;
+    }
+
     workspaceState.currentMode = mode;
     
     // 更新导航按钮状态
