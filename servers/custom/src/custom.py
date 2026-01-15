@@ -922,10 +922,10 @@ def surveycpm_state_init(
     }
 
 
-@app.tool(output="response_ls,hard_mode->keywords_ls,parsed_ls")
+@app.tool(output="response_ls,surveycpm_hard_mode->keywords_ls,parsed_ls")
 def surveycpm_parse_search_response(
     response_ls: List[str],
-    hard_mode: bool = True
+    surveycpm_hard_mode: bool = True
 ) -> Dict[str, List]:
     keywords_ls = []
     parsed_ls = []
@@ -935,7 +935,7 @@ def surveycpm_parse_search_response(
             response_text=response, 
             is_json=True,
             valid_actions=["search"],
-            hard_mode=hard_mode
+            hard_mode=surveycpm_hard_mode
         )
         keywords = result.get("action", {}).get("keywords", [])
         keywords_ls.append(keywords)
@@ -984,12 +984,12 @@ def surveycpm_process_passages(
     return {"retrieved_info_ls": retrieved_info_ls}
 
 
-@app.tool(output="response_ls,survey_ls,instruction_ls,hard_mode->survey_ls,cursor_ls,parsed_ls")
+@app.tool(output="response_ls,survey_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls")
 def surveycpm_after_init_plan(
     response_ls: List[str],
     survey_ls: List[str], 
     instruction_ls: List[str],
-    hard_mode: bool = True
+    surveycpm_hard_mode: bool = True
 ) -> Dict[str, List]:
 
     import json
@@ -1003,7 +1003,7 @@ def surveycpm_after_init_plan(
             is_json=True,
             user_instruction=instruction,
             valid_actions=["init-plan"],
-            hard_mode=hard_mode
+            hard_mode=surveycpm_hard_mode
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
@@ -1027,14 +1027,14 @@ def surveycpm_after_init_plan(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,retrieved_info_ls,hard_mode->survey_ls,cursor_ls,parsed_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,retrieved_info_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls")
 def surveycpm_after_write(
     response_ls: List[str],
     survey_ls: List[str],
     cursor_ls: List[str | None],
     instruction_ls: List[str],
     retrieved_info_ls: List[str],
-    hard_mode: bool = True
+    surveycpm_hard_mode: bool = True
 ) -> Dict[str, List]:
 
     import json
@@ -1057,7 +1057,7 @@ def surveycpm_after_write(
             user_instruction=instruction,
             retrieved_bibkeys=retrieved_bibkeys,
             valid_actions=["write"],
-            hard_mode=hard_mode
+            hard_mode=surveycpm_hard_mode
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
@@ -1088,13 +1088,13 @@ def surveycpm_after_write(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,hard_mode->survey_ls,cursor_ls,extend_result_ls,parsed_ls")
+@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,extend_result_ls,parsed_ls")
 def surveycpm_after_extend(
     response_ls: List[str],
     survey_ls: List[str],  # JSON strings
     cursor_ls: List[str | None],
     instruction_ls: List[str],
-    hard_mode: bool = True
+    surveycpm_hard_mode: bool = True
 ) -> Dict[str, List]:
 
     import json
@@ -1112,7 +1112,7 @@ def surveycpm_after_extend(
             cursor=cursor,
             user_instruction=instruction,
             valid_actions=["extend-plan", "nop"],
-            hard_mode=hard_mode
+            hard_mode=surveycpm_hard_mode
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
@@ -1153,7 +1153,7 @@ def surveycpm_after_extend(
         "parsed_ls": parsed_ls,
     }
 
-@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls->state_ls,extend_time_ls,step_ls")
+@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls,surveycpm_max_step,surveycpm_max_extend_step->state_ls,extend_time_ls,step_ls")
 def surveycpm_update_state(
     state_ls: List[str],
     cursor_ls: List[str | None],
@@ -1161,7 +1161,8 @@ def surveycpm_update_state(
     extend_result_ls: List[str],
     step_ls: List[int],
     parsed_ls: List[bool],
-    max_step: int = 140,
+    surveycpm_max_step: int = 140,
+    surveycpm_max_extend_step: int = 12,
 ) -> Dict[str, List]:
     """Update state based on cursor and extend results.
     
@@ -1169,7 +1170,7 @@ def surveycpm_update_state(
     Handles all state transitions in one place to avoid length mismatch issues.
     
     State transition logic:
-    - If step >= max_step: -> done
+    - If step >= surveycpm_max_step: -> done
     - If parsed_ls is False: -> keep current state (retry)
     - If current state is 'search':
         - cursor == 'outline': -> analyst-init_plan
@@ -1180,8 +1181,8 @@ def surveycpm_update_state(
         - cursor == 'outline': -> analyst-init_plan (retry)
     - If current state is 'write':
         - cursor is not None: -> search (continue writing)
-        - cursor is None and extend_time < 10: -> analyst-extend_plan
-        - cursor is None and extend_time >= 10: -> done
+        - cursor is None and extend_time < surveycpm_max_extend_step: -> analyst-extend_plan
+        - cursor is None and extend_time >= surveycpm_max_extend_step: -> done
     - If current state is 'analyst-extend_plan':
         - extend_result == 'extended': -> search
         - extend_result == 'nop': -> done
@@ -1203,7 +1204,7 @@ def surveycpm_update_state(
         if extend_result == "<PAD>":
             extend_result = ""
         
-        if step >= max_step:
+        if step >= surveycpm_max_step:
             new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
             # still increment step
@@ -1217,7 +1218,7 @@ def surveycpm_update_state(
                 new_state_ls.append(state)
             else:
                 new_extend_time_ls.append(extend_time + 1)
-                if extend_time < 12:
+                if extend_time < surveycpm_max_extend_step:
                     new_state_ls.append("analyst-extend_plan")
                 else:
                     new_state_ls.append("done")
@@ -1244,7 +1245,7 @@ def surveycpm_update_state(
             if cursor is not None:
                 new_state_ls.append("search")
                 new_extend_time_ls.append(extend_time)
-            elif extend_time < 12:
+            elif extend_time < surveycpm_max_extend_step:
                 new_state_ls.append("analyst-extend_plan")
                 new_extend_time_ls.append(extend_time + 1)
             else:
@@ -1256,7 +1257,7 @@ def surveycpm_update_state(
                 new_state_ls.append("search")
             elif extend_result == "nop":
                 new_state_ls.append("done")
-            elif extend_time < 12:
+            elif extend_time < surveycpm_max_extend_step:
                 new_state_ls.append("analyst-extend_plan")
             else:
                 new_state_ls.append("done")
@@ -1275,21 +1276,21 @@ def surveycpm_update_state(
         "step_ls": new_step_ls,
     }
 
-@app.tool(output="step_ls,state_ls->state_ls")
+@app.tool(output="step_ls,state_ls,surveycpm_max_step->state_ls")
 def surveycpm_check_completion(
     step_ls: List[int],
     state_ls: List[str],
-    max_step: int = 140
+    surveycpm_max_step: int = 140
 ) -> Dict[str, List]:
     """Check completion status based on step count only.
     
     This runs OUTSIDE of branch, so all items are processed together.
     
     Note: The extend logic is now handled in surveycpm_after_write.
-    This function only checks if max_step is reached.
+    This function only checks if surveycpm_max_step is reached.
     
     Logic:
-    - If step >= max_step: -> done
+    - If step >= surveycpm_max_step: -> done
     - Otherwise: keep current state (which may already be analyst-extend_plan from surveycpm_after_write)
     """
     # If inputs are empty (due to framework filtering), return empty to avoid overwriting
@@ -1300,7 +1301,7 @@ def surveycpm_check_completion(
     new_state_ls = []
     
     for step, state in zip(step_ls, state_ls):
-        if step >= max_step:
+        if step >= surveycpm_max_step:
             new_state_ls.append("done")
         else:
             # Keep current state (analyst-extend_plan, search, write, done, etc.)
