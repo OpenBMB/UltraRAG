@@ -1,0 +1,16 @@
+corpus:
+  chunk_backend: sentence
+  chunk_backend_configs:
+    recursive:
+      min_characters_per_chunk: 12
+    sentence:
+      chunk_overlap: 50
+      delim: '[''.'', ''!'', ''?'', ''\n'']'
+      min_sentences_per_chunk: 1
+    token:
+      chunk_overlap: 50
+  chunk_path: corpora/chunks.jsonl
+  chunk_size: 384
+  raw_chunk_path: corpora/text.jsonl
+  tokenizer_or_token_counter: character
+  use_title: false

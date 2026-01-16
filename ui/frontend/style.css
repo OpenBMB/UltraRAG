@@ -1499,32 +1499,115 @@ textarea.parameter-input {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.kb-connection-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kb-conn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0; /* 极简模式，几乎没有内边距，像文字一样 */
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.kb-conn-chip:hover {
+  opacity: 0.7;
+}
+
+.kb-conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.kb-conn-dot.connected {
+  background: #10b981; /* Green-500 */
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.kb-conn-dot.connecting {
+  background: #f59e0b;
+  animation: pulse 1.5s infinite;
+}
+
+.kb-conn-dot.disconnected {
+  background: #cbd5e1;
+}
+
+.kb-conn-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.kb-conn-uri {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 仅 Hover 时显示 URI，或者直接一直显示但颜色很淡 */
+  opacity: 0; 
+  transition: opacity 0.2s;
+}
+
+.kb-connection-group:hover .kb-conn-uri {
+    opacity: 1;
+}
+
 /* 2. 三栏布局 */
 .kb-columns {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px; /* 底部留白 */
-  
-  /* 移除任何可能限制高度的属性 */
-  flex: none; 
-  height: auto;
-  overflow: visible;
+  gap: 16px; /* 列间距 */
+  width: 100%;
+  height: 100%; /* 撑满高度 */
+  overflow: hidden;
+  padding-bottom: 0;
 }
 
-.kb-col {
-  width: 100%; /* [修改] 占满全宽 */
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid var(--border-subtle);
+/* 强制每列平分宽度 */
+.pipeline-card {
+  flex: 1; /* 自动平分 */
+  min-width: 0; /* 允许内容压缩 */
   display: flex;
   flex-direction: column;
-  
-  /* [关键] 限制每一层的高度，防止某一层撑爆屏幕，同时也让长列表可滚动 */
-  min-height: 140px; 
-  max-height: 350px; 
-  flex-shrink: 0; /* 防止被挤压变形 */
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  height: 100%; /* 撑满高度 */
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+/* 覆盖之前可能存在的 .kb-pipeline-grid 样式 */
+.kb-pipeline-grid {
+  display: flex !important; /* 强制改为 Flex */
+  flex-direction: row !important; /* 强制水平排列 */
+  gap: 16px;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 响应式：如果屏幕真的很小，才允许变垂直，但一般弹窗够宽 */
+@media (max-width: 768px) {
+  .kb-pipeline-grid {
+    flex-direction: column !important;
+    height: auto;
+    overflow-y: auto;
+  }
+  .pipeline-card {
+    min-height: 300px;
+  }
 }
 
 .col-header {
@@ -1558,52 +1641,153 @@ textarea.parameter-input {
   margin: -4px 0; /* 拉近上下间距 */
 }
 
-/* 4. 文件列表项 */
+/* 4. 文件列表项 (Finder 风格: 双行 + 详细信息) */
 .file-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: block; /* 必须是block才能包裹内容 */
   background: #fff;
-  padding: 10px 12px;
   margin-bottom: 8px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.85rem;
-  color: var(--text-primary);
+  border: 1px solid #e5e7eb;
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  /* 移除 padding，由 inner 控制 */
+  padding: 0;
+  overflow: hidden; /* 确保圆角生效 */
 }
 
 .file-item:hover {
-  border-color: #cbd5e1;
+  border-color: #d1d5db;
   transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.04);
 }
 
-.file-name {
+.file-item-inner {
+  display: flex;
+  align-items: flex-start; /* 顶部对齐，如果是多行 */
+  padding: 10px 12px;
+  width: 100%;
+  cursor: pointer;
+  /* 确保整个区域可点 */
+}
+
+/* 图标容器 */
+.file-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  flex-shrink: 0;
+  background: #f8fafc;
+  border-radius: 6px;
+  color: #64748b;
+  margin-top: 2px; /* 视觉微调 */
+}
+
+/* 文件夹图标颜色 */
+.file-icon-wrapper svg.text-blue-500 {
+    color: #3b82f6;
+}
+
+/* 信息容器 */
+.file-info-wrapper {
+  flex: 1;
+  min-width: 0; /* 允许截断 */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden; /* [新增] 必须有，否则 flex 子元素不会截断 */
+}
+
+/* 主标题：文件名 */
+.file-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: none; /* [确认] 取消宽度限制 */
-  flex-grow: 1;    /* [新增] 自动占据剩余空间 */
+  line-height: 1.4;
+  width: 100%; /* [新增] 强制占满容器 */
+  display: block; /* [新增] 确保是块级元素 */
 }
 
-/* 列表项中的操作按钮 */
-.btn-action {
-  background: #f1f5f9;
-  color: var(--text-secondary);
-  border: 1px solid transparent;
-  padding: 4px 10px;
-  border-radius: 6px;
+/* 副标题：元数据 */
+.file-meta {
   font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+  white-space: nowrap; /* [新增] 防止元数据换行 */
+  overflow: hidden;    /* [新增] 超出截断 */
+  text-overflow: ellipsis;
 }
 
-.btn-action:hover {
-  background: var(--text-primary); /* 黑/深灰色 */
-  color: #fff;
+/* 查看详情链接 (作为文字显示) */
+.meta-link {
+  color: #3b82f6;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 0.75rem;
+}
+
+.file-item:hover .meta-link {
+  opacity: 1;
+}
+
+.meta-link:hover {
+  text-decoration: underline;
+}
+
+/* 操作区域 */
+.file-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  gap: 4px;
+}
+
+/* 纯图标删除按钮 */
+.btn-icon-only {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    line-height: 1;
+    background: transparent;
+    border: none;
+}
+.btn-icon-only:hover {
+    background-color: #fee2e2;
+}
+
+/* 文件夹详情列表 */
+.folder-file-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.folder-file-row:last-child {
+    border-bottom: none;
+}
+.file-row-icon {
+    margin-right: 8px;
+    font-size: 1rem;
+}
+.file-row-name {
+    font-size: 0.85rem;
+    color: #334155;
+    flex: 1;
+    min-width: 0;
 }
 
 /* 5. 状态通知条 */
@@ -2466,110 +2650,96 @@ textarea.parameter-input {
   padding-bottom: 40px;
 }
 
-/* 2. 书本/集合卡片 */
+/* 2. 书本/集合卡片 - 极简 Linear 风格 */
 .collection-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   position: relative;
-  aspect-ratio: 4/5; /* 类似书本比例 */
+  /* 比例调整：不再强制很高，适应内容 */
+  min-height: 140px; 
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* 悬停效果：浮起 */
+/* 悬停效果：轻微上浮 + 柔和阴影 */
 .collection-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  border-color: #d1d5db;
 }
 
-/* 书本封面区 */
-.book-cover {
-  flex: 1;
-  /* 统一使用极简的浅灰背景 */
-  background-color: #f8fafc; 
-  /* 或者用非常淡的渐变增加质感：
-  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9); 
-  */
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  
-  /* 图标默认颜色：深灰色 */
-  color: #94a3b8; 
-  transition: all 0.3s ease;
+.kb-card-main {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
-/* 悬停时：背景稍微变深，图标变深，更有交互感 */
-.collection-card:hover .book-cover {
-  background-color: #f1f5f9;
-  color: #475569;
+.kb-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    flex-shrink: 0;
 }
 
-/* [重要] 删除之前那段 .collection-card:nth-child(...) 的彩色代码 */
-/* 之前的 colorful 样式已废弃 */
-
-/* 书本 SVG 图标大小 */
-.book-icon svg {
-  width: 48px;
-  height: 48px;
-  opacity: 0.8;
+.kb-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-/* 书本信息区 */
-.book-info {
-  padding: 16px;
-  background: #fff;
-  border-top: 1px solid #f1f5f9;
-}
-
-.book-title {
+.kb-card-title {
   font-weight: 600;
   font-size: 1rem;
-  color: #1e293b;
-  margin-bottom: 4px;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-.book-meta {
-  font-size: 0.75rem;
+.kb-meta-count {
+  font-size: 0.8rem;
   color: #64748b;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  font-weight: 500;
 }
 
 /* 删除按钮 (悬停出现) */
 .btn-delete-book {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.9);
-  border: 1px solid #e2e8f0;
-  color: #ef4444;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8; /* 默认灰色 */
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
   cursor: pointer;
 }
+
 .collection-card:hover .btn-delete-book {
   opacity: 1;
 }
+
 .btn-delete-book:hover {
   background: #fee2e2;
-  border-color: #fee2e2;
+  color: #ef4444;
 }
 
 /* =========================================
@@ -2662,14 +2832,15 @@ textarea.parameter-input {
   box-shadow: 0 2px 6px rgba(37,99,235,0.15);
   position: relative;            /* 必须有，为了定位 badge */
   z-index: 1;                    /* 确保浮在其他元素上面一点 */
+  /* [修改] 确保内容区域不会遮挡 NEW 标签的显示空间，或者让 NEW 标签挂在里面 */
 }
 
 /* "NEW" 徽章 */
 .file-item.new-upload::after {
   content: "NEW";
   position: absolute;
-  top: -8px;                     /* 稍微挂在外面一点 */
-  right: -5px;
+  top: 6px;                      /* [修改] 改为内嵌显示，不再挂在外面 */
+  right: 6px;
   background: #2563eb;
   color: white;
   font-size: 9px;

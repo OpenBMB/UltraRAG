@@ -40,6 +40,7 @@ class MilvusIndexBackend(BaseIndexBackend):
         self.uri = str(self._resolve_index_path(self.config.get("uri")))  
         self.token = self.config.get("token")
         self.collection_name = self.config.get("collection_name")
+        self.collection_display_name = self.config.get("collection_display_name")
 
         self.id_field: str = str(self.config.get("id_field_name", "id"))
         self.vector_field: str = str(self.config.get("vector_field_name", "vector"))
@@ -106,7 +107,7 @@ class MilvusIndexBackend(BaseIndexBackend):
         schema = MilvusClient.create_schema(
             auto_id=False, 
             enable_dynamic_field=True,
-            description="Created by UltraRAG Retriever"
+            description=f"UltraRAG KB | display_name={self.collection_display_name or collection_name}"
         )
 
         schema.add_field(

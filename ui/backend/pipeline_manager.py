@@ -18,6 +18,7 @@ import uuid
 import shutil
 import re
 import unicodedata
+import hashlib
 from datetime import datetime
 
 try:
@@ -26,6 +27,29 @@ except ImportError:
     MilvusClient = None
 
 LOGGER = logging.getLogger(__name__)
+
+# Suppress noisy "Event loop is closed" errors triggered by fastmcp transport
+try:
+    from fastmcp.client.transports import StdioTransport  # type: ignore
+
+    _orig_stdio_del = getattr(StdioTransport, "__del__", None)
+
+    def _safe_stdio_del(self):
+        try:
+            if _orig_stdio_del:
+                _orig_stdio_del(self)
+        except RuntimeError as exc:  # pragma: no cover - best effort guard
+            if "Event loop is closed" in str(exc):
+                LOGGER.debug("Suppressed closed-loop warning in StdioTransport.__del__")
+                return
+            raise
+        except Exception as exc:  # pragma: no cover - best effort guard
+            LOGGER.debug("Suppressed StdioTransport.__del__ error: %s", exc)
+
+    if _orig_stdio_del:
+        StdioTransport.__del__ = _safe_stdio_del  # type: ignore
+except Exception as exc:  # pragma: no cover - defensive
+    LOGGER.warning("Failed to patch StdioTransport destructor: %s", exc)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = PROJECT_ROOT / "src"
@@ -45,6 +69,11 @@ KB_CORPUS_DIR = KB_ROOT / "corpus"
 KB_CHUNKS_DIR = KB_ROOT / "chunks" 
 KB_INDEX_DIR = KB_ROOT / "index"
 KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
+MAX_COLLECTION_NAME_LEN = 255
+
+# 默认 Session 保活时长，可通过环境变量覆盖；设置为 <=0 时表示不自动过期
+SESSION_TIMEOUT_SECONDS = int(os.getenv("ULTRARAG_SESSION_TIMEOUT", "86400"))
+BACKGROUND_SESSION_TIMEOUT_SECONDS = int(os.getenv("ULTRARAG_BG_SESSION_TIMEOUT", "172800"))
 
 
 def _secure_filename_unicode(filename: str) -> str:
@@ -57,6 +86,97 @@ def _secure_filename_unicode(filename: str) -> str:
     # 移除首尾空白和点
     filename = filename.strip().strip('.')
     return filename
+
+
+def _normalize_collection_name(raw_name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", str(raw_name or "")).strip()
+    normalized = re.sub(r"[^\w]+", "_", normalized, flags=re.UNICODE)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    if not normalized or not re.search(r"[A-Za-z0-9]", normalized):
+        return ""
+    return normalized[:MAX_COLLECTION_NAME_LEN]
+
+
+def _make_safe_collection_name(display_name: str) -> tuple[str, str]:
+    base = _normalize_collection_name(display_name)
+
+    if not base:
+        digest = hashlib.sha1(display_name.encode("utf-8")).hexdigest()[:8]
+        base = f"kb_{digest}"
+
+    safe_name = base
+
+    return safe_name, display_name
+
+
+def _transliterate_name(name: str) -> str:
+    """
+    将任意输入转换为可用于 collection_name 的 ASCII slug。
+    - 优先使用 pypinyin 转为拼音；若不可用则用 Unicode 分解再去除非 ASCII。
+    """
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    candidate = ""
+    try:
+        from pypinyin import lazy_pinyin  # type: ignore
+
+        candidate = "_".join(lazy_pinyin(raw))
+    except Exception:
+        normalized = unicodedata.normalize("NFKD", raw)
+        candidate = (
+            normalized.encode("ascii", "ignore").decode("ascii") if normalized else ""
+        )
+
+    candidate = re.sub(r"[^\w]+", "_", candidate, flags=re.UNICODE)
+    candidate = re.sub(r"_+", "_", candidate).strip("_")
+    if candidate and not re.match(r"[A-Za-z_]", candidate[0]):
+        candidate = f"kb_{candidate}"
+    if not candidate:
+        candidate = "kb"
+    return candidate[:MAX_COLLECTION_NAME_LEN]
+
+
+def _make_unique_name(base: str, taken: set[str]) -> str:
+    if base not in taken:
+        return base
+    i = 1
+    while True:
+        candidate = f"{base}_{i}"
+        if candidate not in taken:
+            return candidate[:MAX_COLLECTION_NAME_LEN]
+        i += 1
+
+
+def _make_unique_display(name: str, taken: set[str]) -> str:
+    if name not in taken:
+        return name
+    i = 1
+    while True:
+        candidate = f"{name} ({i})"
+        if candidate not in taken:
+            return candidate
+        i += 1
+
+
+def _extract_display_name_from_desc(desc: str, fallback: str) -> str:
+    """
+    从 Milvus collection 描述中解析显示名。
+    约定写入格式：'UltraRAG KB | display_name=<原始名称>'
+    """
+    if not desc:
+        return fallback
+    marker = "display_name="
+    if marker in desc:
+        try:
+            part = desc.split(marker, 1)[1]
+            # 去掉可能的前后分隔符
+            part = part.split("|", 1)[0].strip()
+            if part:
+                return part
+        except Exception:
+            pass
+    return fallback
 
 
 for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR, KB_INDEX_DIR]:
@@ -296,16 +416,18 @@ class DemoSession:
         return False
 
 class SessionManager:
-    def __init__(self, timeout_seconds: int = 1800): 
+    def __init__(self, timeout_seconds: int | None = 1800): 
         self._sessions: Dict[str, DemoSession] = {}
         self._lock = threading.Lock()
 
-        self.timeout = timeout_seconds
-        self._cleaner_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
-        self._cleaner_thread.start()
+        self.timeout = timeout_seconds if timeout_seconds and timeout_seconds > 0 else None
+        self._cleaner_thread = None
+        if self.timeout:
+            self._cleaner_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+            self._cleaner_thread.start()
 
     def _cleanup_loop(self):
-        while True:
+        while self.timeout:
             time.sleep(60)
             try:
                 self._check_timeouts()
@@ -313,6 +435,8 @@ class SessionManager:
                 LOGGER.error(f"Error in session cleanup loop: {e}")
 
     def _check_timeouts(self):
+        if self.timeout is None:
+            return
         now = time.time()
         ids_to_remove = []
         
@@ -352,7 +476,7 @@ class SessionManager:
         if session:
             session.stop()
 
-SESSION_MANAGER = SessionManager(timeout_seconds=3600)
+SESSION_MANAGER = SessionManager(timeout_seconds=SESSION_TIMEOUT_SECONDS)
 
 # ===== Background Chat Task Manager =====
 # 用于管理后台运行的聊天任务
@@ -950,7 +1074,31 @@ def list_pipelines() -> List[Dict[str, Any]]:
 def load_pipeline(name: str) -> Dict:
     p = _find_pipeline_file(name)
     if not p: raise PipelineManagerError(f"Pipeline {name} not found")
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    yaml_text = p.read_text(encoding="utf-8")
+    data = yaml.safe_load(yaml_text) or {}
+
+    # 额外返回原始 YAML 文本，便于前端保持内容一致
+    if isinstance(data, dict):
+        data["_raw_yaml"] = yaml_text
+    else:
+        data = {"pipeline": data, "_raw_yaml": yaml_text}
+
+    return data
+
+
+def parse_pipeline_yaml_content(yaml_content: str) -> Dict:
+    """
+    解析任意 YAML 文本，返回安全的 Python 对象。
+    """
+    if yaml_content is None:
+        raise PipelineManagerError("YAML content is empty")
+
+    try:
+        parsed = yaml.safe_load(yaml_content)
+    except yaml.YAMLError as exc:
+        raise PipelineManagerError(f"Invalid YAML syntax: {exc}") from exc
+
+    return parsed or {}
 
 def save_pipeline(payload: Dict) -> Dict:
     name = payload.get("name")
@@ -1252,7 +1400,7 @@ def interrupt_chat(session_id: str):
 # ===== Background Chat Execution =====
 
 # 专门用于后台任务的 Session 管理器（独立于前台）
-BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=7200)  # 后台任务 session 保持更长时间
+BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=BACKGROUND_SESSION_TIMEOUT_SECONDS)  # 后台任务 session 保持更长时间
 
 def run_background_chat(name: str, question: str, session_id: str, dynamic_params: Dict[str, Any] = None, user_id: str = "") -> str:
     """
@@ -1438,25 +1586,55 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         items = []
         if not d.exists(): return items
         
+        # 加载目录级别的显示名称映射（用于文件）
+        dir_display_map = _load_display_names_map(d)
+        
         for f in sorted(d.glob("*")):
             if f.name.startswith("."): continue
+            if f.name.startswith("_"): continue  # 跳过元数据文件 (_meta.json, _display_names.json)
 
             is_dir = f.is_dir()
             
             size = 0
+            file_count = 0
             if is_dir:
-                size = sum(p.stat().st_size for p in f.rglob('*') if p.is_file())
+                # 计算大小时排除 _meta.json
+                for p in f.rglob('*'):
+                    if p.is_file() and not p.name.startswith("_"):
+                        size += p.stat().st_size
+                        file_count += 1
             else:
                 size = f.stat().st_size
 
-            items.append({
+            # [新增] 读取 display_name
+            display_name = f.name  # 默认使用文件名
+            if is_dir:
+                # 文件夹：从 _meta.json 读取
+                meta = _read_folder_meta(f)
+                if meta and meta.get("display_name"):
+                    display_name = meta["display_name"]
+            else:
+                # 文件：从目录级别映射读取
+                if f.name in dir_display_map:
+                    display_name = dir_display_map[f.name]
+                else:
+                    # 默认显示去掉后缀的文件名
+                    display_name = f.stem
+
+            item = {
                 "name": f.name, 
+                "display_name": display_name,  # [新增]
                 "path": _as_project_relative(f), 
                 "size": size,
                 "mtime": f.stat().st_mtime,
                 "category": category,
                 "type": "folder" if is_dir else "file" 
-            })
+            }
+            
+            if is_dir and file_count > 0:
+                item["file_count"] = file_count
+                
+            items.append(item)
         return items
     
     collections = []
@@ -1467,8 +1645,13 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         for name in names:
             res = client.get_collection_stats(name)
             count = res.get("row_count", 0)
+            try:
+                desc = client.describe_collection(name).get("description", "")
+            except Exception:
+                desc = ""
             collections.append({
                 "name": name,
+                "display_name": _extract_display_name_from_desc(desc, name),
                 "count": count,
                 "category": "collection"
             })
@@ -1487,6 +1670,80 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         "db_config": load_kb_config() 
     }
 
+def _generate_display_name(original_names: List[str]) -> str:
+    """生成用户友好的显示名称"""
+    if not original_names:
+        return "Untitled"
+    
+    # 取第一个文件的原始名称（不含后缀）
+    first_name = Path(original_names[0]).stem
+    
+    if len(original_names) == 1:
+        # 单文件：直接使用文件名
+        return first_name
+    else:
+        # 多文件：第一个文件名 + 数量后缀
+        return f"{first_name} (+{len(original_names) - 1} more)"
+
+
+def _write_folder_meta(folder_path: Path, display_name: str, original_files: List[str]):
+    """写入文件夹元数据"""
+    meta_path = folder_path / "_meta.json"
+    meta_data = {
+        "display_name": display_name,
+        "original_files": original_files,
+        "created_at": datetime.now().isoformat()
+    }
+    try:
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        LOGGER.warning(f"Failed to write meta.json: {e}")
+
+
+def _read_folder_meta(folder_path: Path) -> Optional[Dict[str, Any]]:
+    """读取文件夹元数据"""
+    meta_path = folder_path / "_meta.json"
+    if not meta_path.exists():
+        return None
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        LOGGER.warning(f"Failed to read meta.json: {e}")
+        return None
+
+
+def _load_display_names_map(directory: Path) -> Dict[str, str]:
+    """加载目录级别的显示名称映射"""
+    map_path = directory / "_display_names.json"
+    if not map_path.exists():
+        return {}
+    try:
+        with open(map_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        LOGGER.warning(f"Failed to load display names map: {e}")
+        return {}
+
+
+def _save_display_names_map(directory: Path, name_map: Dict[str, str]):
+    """保存目录级别的显示名称映射"""
+    map_path = directory / "_display_names.json"
+    try:
+        with open(map_path, "w", encoding="utf-8") as f:
+            json.dump(name_map, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        LOGGER.warning(f"Failed to save display names map: {e}")
+
+
+def _register_display_name(directory: Path, filename: str, display_name: str):
+    """注册文件的显示名称"""
+    name_map = _load_display_names_map(directory)
+    name_map[filename] = display_name
+    _save_display_names_map(directory, name_map)
+
+
 def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
 
     if not file_objs:
@@ -1497,12 +1754,15 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
     session_dir.mkdir(parents=True, exist_ok=True)
 
     saved_files = []
+    original_names = []  # [新增] 记录原始文件名
     total_size = 0
 
     try:
         for file_obj in file_objs:
 
             original_name = file_obj.filename
+            original_names.append(original_name)  # [新增] 保存原始名
+            
             safe_name = _secure_filename_unicode(original_name)
             if not safe_name: 
                 safe_name = f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
@@ -1521,10 +1781,15 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
             saved_files.append(safe_name)
             total_size += save_path.stat().st_size
 
-        LOGGER.info(f"Created upload session: {session_dir} with {len(saved_files)} files.")
+        # [新增] 生成显示名并写入元数据
+        display_name = _generate_display_name(original_names)
+        _write_folder_meta(session_dir, display_name, original_names)
+
+        LOGGER.info(f"Created upload session: {session_dir} with {len(saved_files)} files. Display: {display_name}")
 
         return {
             "name": session_id,  
+            "display_name": display_name,  # [新增]
             "path": _as_project_relative(session_dir), 
             "size": total_size,
             "type": "folder",    
@@ -1645,7 +1910,8 @@ def run_kb_pipeline_tool(
     output_dir: str,
     collection_name: Optional[str] = None,
     index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖)
-    chunk_params: Optional[Dict[str, Any]] = None # [新增] 接收参数
+    chunk_params: Optional[Dict[str, Any]] = None, # [新增] 接收参数
+    embedding_params: Optional[Dict[str, Any]] = None # [新增] Embedding 配置 (用于 milvus_index)
 ) -> Dict[str, Any]:
 
     pipeline_cfg = load_pipeline(pipeline_name)
@@ -1660,6 +1926,21 @@ def run_kb_pipeline_tool(
     stem = target_file.stem
     override_params = {}
     
+    # [新增] 获取源文件的 display_name，用于传递给输出
+    source_display_name = None
+    if target_file.is_dir():
+        # 源是文件夹（Raw 阶段）
+        meta = _read_folder_meta(target_file)
+        if meta and meta.get("display_name"):
+            source_display_name = meta["display_name"]
+    else:
+        # 源是文件（Corpus/Chunks 阶段），从目录映射读取
+        parent_map = _load_display_names_map(target_file.parent)
+        if target_file.name in parent_map:
+            source_display_name = parent_map[target_file.name]
+        else:
+            source_display_name = target_file.stem
+    
     if pipeline_name == "build_text_corpus":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
         override_params = {
@@ -1668,6 +1949,9 @@ def run_kb_pipeline_tool(
                 "text_corpus_save_path": out_path,
             }
         }
+        # [新增] 注册输出文件的 display_name
+        if source_display_name:
+            _register_display_name(Path(output_dir), f"{stem}.jsonl", source_display_name)
 
     elif pipeline_name == "corpus_chunk":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
@@ -1688,28 +1972,75 @@ def run_kb_pipeline_tool(
         override_params = {
             "corpus": corpus_override
         }
+        # [新增] 注册输出文件的 display_name
+        if source_display_name:
+            _register_display_name(Path(output_dir), f"{stem}.jsonl", source_display_name)
         
     elif pipeline_name == "milvus_index":
-        final_collection_name = collection_name if collection_name else stem
+        requested_name = collection_name if collection_name else stem
+
+        # 获取已存在的 collection 名称与显示名，用于去重
+        existing_collections: set[str] = set()
+        existing_display_names: set[str] = set()
+        client = None
+        try:
+            client = _get_milvus_client()
+            existing_collections = set(client.list_collections())
+            for _name in existing_collections:
+                try:
+                    desc = client.describe_collection(_name).get("description", "")
+                except Exception:
+                    desc = ""
+                existing_display_names.add(_extract_display_name_from_desc(desc, _name))
+        except Exception as exc:
+            raise PipelineManagerError(f"Milvus connection failed: {exc}") from exc
+        finally:
+            try:
+                if client:
+                    client.close()
+            except Exception:
+                pass
+
+        # 转拼音 -> ASCII slug，再去重
+        slug_base = _transliterate_name(requested_name)
+        safe_collection_name = _make_unique_name(slug_base, existing_collections)
+
+        # 显示名按原输入，若重名则添加 (1) 递增
+        display_collection_name = _make_unique_display(requested_name, existing_display_names)
 
         is_overwrite = (index_mode == "overwrite")
 
         full_kb_cfg = load_kb_config()
-        milvus_config_dict = full_kb_cfg["milvus"] 
-        
+        milvus_config_dict = dict(full_kb_cfg["milvus"])
+        milvus_config_dict["collection_display_name"] = display_collection_name
+
         # 确保父目录存在
         KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-        override_params = {
-            "retriever": {
-                "corpus_path": str(target_file),
-                "collection_name": final_collection_name,
-                "overwrite": is_overwrite,
-                "index_backend": "milvus",
-                "index_backend_configs": {
-                    "milvus": milvus_config_dict
+        # [新增] 构建 embedding backend 配置
+        retriever_override = {
+            "corpus_path": str(target_file),
+            "collection_name": safe_collection_name,
+            "overwrite": is_overwrite,
+            "index_backend": "milvus",
+            "index_backend_configs": {
+                "milvus": milvus_config_dict
+            }
+        }
+
+        # 如果用户配置了 Embedding 参数，则使用 OpenAI backend
+        if embedding_params and embedding_params.get("api_key"):
+            retriever_override["backend"] = "openai"
+            retriever_override["backend_configs"] = {
+                "openai": {
+                    "api_key": embedding_params.get("api_key", ""),
+                    "base_url": embedding_params.get("base_url", "https://api.openai.com/v1"),
+                    "model_name": embedding_params.get("model_name", "text-embedding-3-small")
                 }
             }
+
+        override_params = {
+            "retriever": retriever_override
         }
 
     else:

@@ -1,3 +1,28 @@
+const ACTIVE_ENGINE_STORAGE_KEY = "ultrarag_active_engines";
+
+function loadActiveEnginesFromStorage() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_ENGINE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (e) {
+    console.warn("Failed to load active engine cache", e);
+  }
+  return {};
+}
+
+function persistActiveEngines() {
+  try {
+    localStorage.setItem(
+      ACTIVE_ENGINE_STORAGE_KEY,
+      JSON.stringify(state.chat?.activeEngines || {})
+    );
+  } catch (e) {
+    console.warn("Failed to persist active engines", e);
+  }
+}
+
 const state = {
   selectedPipeline: null,
   steps: [],
@@ -26,7 +51,7 @@ const state = {
     
     // 引擎连接状态
     engineSessionId: null, // 当前选中的 Pipeline 对应的 SessionID
-    activeEngines: {},     // 映射表: { "pipelineName": "sessionId" }
+    activeEngines: loadActiveEnginesFromStorage(),     // 映射表: { "pipelineName": "sessionId" }
     engineStartSeq: 0,     // 用于避免并发启动导致的状态乱序
     engineStartingFor: null, // 正在尝试启动的 pipeline 名
     engineStartPromise: null, // 引擎启动中的 Promise（用于串行化启动）
@@ -149,6 +174,8 @@ const els = {
   taskMsg: document.getElementById("task-msg"),
   // 数据库配置元素
   dbConnectionStatus: document.getElementById("db-connection-status"),
+  dbConnectionText: document.getElementById("db-connection-text"),
+  dbConnectionChip: document.getElementById("db-connection-chip"),
   dbUriDisplay: document.getElementById("db-uri-display"),
   dbConfigModal: document.getElementById("db-config-modal"), // 新增的配置弹窗
   cfgUri: document.getElementById("cfg-uri"),                 // 配置弹窗 - URI输入
@@ -179,6 +206,9 @@ const els = {
   consoleToggle: document.getElementById("console-toggle"),
   // --- [End] Console Elements ---
 };
+
+// 缓存 Build 按钮的初始内容，便于状态切换后恢复
+let buildBtnDefaultHtml = els.buildPipeline ? els.buildPipeline.innerHTML : "";
 
 const Modes = {
   BUILDER: "builder",
@@ -482,41 +512,62 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
     files.forEach(f => {
         const div = document.createElement('div');
         
-        // [核心修复] 高亮逻辑
-        // 如果这个文件的路径 不在 打开弹窗时的快照里，那它就是新的！
         const isNew = !existingFilesSnapshot.has(f.path);
         
         div.className = `file-item ${isNew ? 'new-upload' : ''}`;
         
-        // --- 以下 UI 生成代码保持不变 ---
+        // 1. 确定基本信息
         const isFolder = f.type === 'folder';
-        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
-        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        const displayText = f.display_name || f.name;
+        const tooltipText = f.display_name && f.display_name !== f.name 
+            ? `${f.display_name}\n(${f.name})` 
+            : f.name;
+        const sizeStr = (f.size / 1024).toFixed(1) + " KB";
+        
+        // 2. 图标 (SVG)
+        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
         const iconSvg = isFolder ? svgFolder : svgFile;
 
-        // View 按钮
-        let viewBtn = '';
-        if (isFolder) {
-            viewBtn = `<button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="window.inspectFolder('${f.category}', '${f.name}')" title="View"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`;
+        // 3. 元数据行内容
+        let metaText = sizeStr;
+        if (isFolder && f.file_count) {
+            metaText = `${f.file_count} files · ${sizeStr}`;
         }
 
-        // Action 按钮
-        let actionBtn = `<button class="btn btn-sm btn-light border ms-auto" style="font-size:0.75rem;" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">${actionLabel}</button>`;
+        // 4. Action 按钮
+        let actionBtn = `<button class="btn btn-sm btn-light border ms-auto flex-shrink-0" style="font-size:0.75rem;" onclick="event.stopPropagation(); window.handleKBAction('${f.path}', '${nextPipeline}')">${actionLabel}</button>`;
         
-        // Delete 按钮
+        // 5. Delete 按钮
         let deleteBtn = '';
         if (f.category !== 'collection') {
-            deleteBtn = `<button class="btn btn-sm text-danger ms-2" onclick="deleteKBFile('${f.category}', '${f.name}')">×</button>`;
+            deleteBtn = `<button class="btn btn-sm text-danger ms-2 btn-icon-only flex-shrink-0" onclick="event.stopPropagation(); deleteKBFile('${f.category}', '${f.name}')" title="Delete">×</button>`;
         }
 
+        // 6. 整卡点击事件
+        let onClickAttr = "";
+        if (isFolder) {
+            // 传递 display_name 供弹窗标题使用
+            onClickAttr = `onclick="window.inspectFolder('${f.category}', '${f.name}', '${displayText.replace(/'/g, "\\'")}')"`;
+        } else {
+            // 文件点击暂时无动作，或者可以做预览
+            onClickAttr = `onclick=""`; 
+        }
+
+        // 7. 构建 HTML (Finder 风格: 双行布局)
         div.innerHTML = `
-            <div class="d-flex align-items-center w-100">
-                <div class="text-muted me-2">${iconSvg}</div>
-                <div class="text-truncate small text-dark" style="max-width: 130px;" title="${f.name}">${f.name}</div>
-                ${isFolder && f.file_count ? `<span class="badge bg-light text-secondary border ms-1" style="font-size:0.6rem">${f.file_count}</span>` : ''}
-                ${viewBtn}
-                ${actionBtn}
-                ${deleteBtn}
+            <div class="file-item-inner" ${onClickAttr}>
+                <div class="file-icon-wrapper">${iconSvg}</div>
+                <div class="file-info-wrapper">
+                    <div class="file-title" title="${tooltipText}">${displayText}</div>
+                    <div class="file-meta">
+                        ${metaText}
+                    </div>
+                </div>
+                <div class="file-actions">
+                    ${actionBtn}
+                    ${deleteBtn}
+                </div>
             </div>
         `;
         container.appendChild(div);
@@ -524,13 +575,14 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
 }
 
 // 2. 新增查看函数 (挂载到 window)
-window.inspectFolder = async function(category, folderName) {
+// [修改] 增加 displayName 参数
+window.inspectFolder = async function(category, folderName, displayName) {
     const modal = document.getElementById('folder-detail-modal');
     const listContainer = document.getElementById('folder-detail-list');
     const title = document.getElementById('folder-detail-title');
     
-    // 设置标题
-    if (title) title.textContent = folderName;
+    // 设置标题 (优先使用 display_name)
+    if (title) title.textContent = displayName || folderName;
     
     // 显示 Loading
     if (listContainer) listContainer.innerHTML = '<div class="text-center text-muted p-3">Loading...</div>';
@@ -544,12 +596,20 @@ window.inspectFolder = async function(category, folderName) {
         const data = await res.json();
 
         if (data.files && data.files.length > 0) {
-            listContainer.innerHTML = data.files.map(f => `
-                <div class="folder-file-row">
-                    <span>📄 ${f.name}</span>
-                    <span class="text-muted">${(f.size/1024).toFixed(1)} KB</span>
-                </div>
-            `).join('');
+            // [修改] 过滤掉 _meta.json 等以 _ 开头的文件
+            const visibleFiles = data.files.filter(f => !f.name.startsWith('_'));
+            
+            if (visibleFiles.length > 0) {
+                listContainer.innerHTML = visibleFiles.map(f => `
+                    <div class="folder-file-row">
+                        <span class="file-row-icon">📄</span>
+                        <span class="file-row-name text-truncate">${f.name}</span>
+                        <span class="text-muted ms-auto" style="font-size:0.75rem;">${(f.size/1024).toFixed(1)} KB</span>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty (No visible files)</div>';
+            }
         } else {
             listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty Folder</div>';
         }
@@ -558,6 +618,50 @@ window.inspectFolder = async function(category, folderName) {
         console.error(e);
     }
 };
+
+// 渐变调色板与工具函数：使卡片颜色稳定且柔和
+const KB_COVER_PALETTE = [
+    "#e0f2fe", // sky-100
+    "#dcfce7", // green-100
+    "#f3e8ff", // purple-100
+    "#fee2e2", // red-100
+    "#ffedd5", // orange-100
+    "#f1f5f9", // slate-100
+    "#fae8ff", // fuchsia-100
+    "#e0e7ff", // indigo-100
+];
+
+const KB_TEXT_PALETTE = [
+    "#0369a1", // sky-700
+    "#15803d", // green-700
+    "#7e22ce", // purple-700
+    "#b91c1c", // red-700
+    "#c2410c", // orange-700
+    "#334155", // slate-700
+    "#a21caf", // fuchsia-700
+    "#4338ca", // indigo-700
+];
+
+function hashString(input = "") {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function pickKbColors(key = "") {
+    const idx = hashString(key) % KB_COVER_PALETTE.length;
+    return {
+        bg: KB_COVER_PALETTE[idx],
+        text: KB_TEXT_PALETTE[idx]
+    };
+}
+
+function getKbInitial(name = "") {
+    const initial = name.trim().charAt(0);
+    return initial ? initial.toUpperCase() : "?";
+}
 
 // [修改] 渲染 Collection 列表 -> 书架卡片模式
 function renderCollectionList(container, collections) {
@@ -577,35 +681,33 @@ function renderCollectionList(container, collections) {
         return;
     }
 
+    // 按显示名排序
+    const getLabel = c => (c.display_name || c.name || "").toLowerCase();
+    collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
+
     collections.forEach(c => {
+        const displayName = c.display_name || c.name || "Untitled";
         const card = document.createElement('div');
-        card.className = 'collection-card';
+        card.className = 'collection-card kb-card';
         
         const countStr = c.count !== undefined ? `${c.count} vectors` : 'Ready';
+        const colors = pickKbColors(displayName || c.name || "collection");
+        const coverInitial = getKbInitial(displayName || c.name || "C");
 
-        // [修改] 定义一个精致的书本 SVG (Stroke 风格)
-        const bookSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-        `;
-        
         // 渲染卡片
         card.innerHTML = `
-            <div class="book-cover">
-                <div class="book-icon">${bookSvg}</div>
+            <div class="kb-card-main">
+                <div class="kb-icon-box" style="background-color: ${colors.bg}; color: ${colors.text}">
+                    ${coverInitial}
+                </div>
+                <div class="kb-info-box">
+                     <div class="kb-card-title" title="${displayName}">${displayName}</div>
+                     <div class="kb-meta-count">${countStr}</div>
+                </div>
                 
                 <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="Delete Collection">
                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
-            </div>
-            <div class="book-info">
-                <div class="book-title" title="${c.name}">${c.name}</div>
-                <div class="book-meta">
-                    <span>${countStr}</span>
-                    <span class="badge bg-light text-dark border">Vector DB</span>
-                </div>
             </div>
         `;
         
@@ -617,21 +719,22 @@ function renderCollectionList(container, collections) {
 function updateDbStatusUI(status, config) {
     currentDbConfig = config; 
     
-    if (!els.dbConnectionStatus || !els.dbUriDisplay) return;
+    const chip = els.dbConnectionChip || document.getElementById('db-connection-chip');
+    const statusTextEl = els.dbConnectionText || document.getElementById('db-connection-text');
 
-    // 状态 Badge
-    if (status === 'connected') {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-success';
-        els.dbConnectionStatus.textContent = 'Connected';
-    } else {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-danger';
-        els.dbConnectionStatus.textContent = 'Disconnected';
-    }
-    
-    // URI 显示
-    let uri = config.milvus.uri || "Not configured";
-    if (uri.length > 50) uri = '...' + uri.slice(-45); // 截断长 URI
-    els.dbUriDisplay.textContent = uri;
+    if (!els.dbConnectionStatus || !els.dbUriDisplay || !chip || !statusTextEl) return;
+
+    // 状态点 & 文案
+    const statusClass = status === 'connected' ? 'connected' : (status === 'connecting' ? 'connecting' : 'disconnected');
+    els.dbConnectionStatus.className = `kb-conn-dot ${statusClass}`;
+    statusTextEl.textContent = status === 'connected' ? 'Connected' : (status === 'connecting' ? 'Connecting...' : 'Disconnected');
+    chip.setAttribute('data-status', statusClass);
+
+    // URI 显示：主文本用精简版本，完整地址放入 Tooltip
+    const fullUri = (config && config.milvus && config.milvus.uri) ? config.milvus.uri : "Not configured";
+    const shortUri = fullUri.length > 38 ? `${fullUri.slice(0, 16)}…${fullUri.slice(-12)}` : fullUri;
+    els.dbUriDisplay.textContent = shortUri;
+    chip.title = `Endpoint: ${fullUri}`;
 }
 
 // 5. 配置弹窗逻辑 (新增 - 挂载到 window)
@@ -680,11 +783,58 @@ window.saveDbConfig = async function() {
 // --- Chunk Configuration Logic ---
 // ==========================================
 
-// 1. 定义默认配置状态
-let chunkConfigState = {
-    chunk_backend: "sentence",
-    tokenizer_or_token_counter: "character",
-    chunk_size: 512,
+const CHUNK_CONFIG_STORAGE_KEY = "ultrarag_chunk_config";
+const INDEX_CONFIG_STORAGE_KEY = "ultrarag_index_config";
+
+// 从 localStorage 加载 Chunk 配置
+function loadChunkConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(CHUNK_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load chunk config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Chunk 配置到 localStorage
+function persistChunkConfig() {
+    try {
+        localStorage.setItem(CHUNK_CONFIG_STORAGE_KEY, JSON.stringify(chunkConfigState));
+    } catch (e) {
+        console.warn("Failed to persist chunk config", e);
+    }
+}
+
+// 从 localStorage 加载 Embedding 配置
+function loadIndexConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(INDEX_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load index config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Embedding 配置到 localStorage
+function persistIndexConfig() {
+    try {
+        localStorage.setItem(INDEX_CONFIG_STORAGE_KEY, JSON.stringify(indexConfigState));
+    } catch (e) {
+        console.warn("Failed to persist index config", e);
+    }
+}
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let chunkConfigState = loadChunkConfigFromStorage() || {
+    chunk_backend: "token",
+    tokenizer_or_token_counter: "gpt2",
+    chunk_size: 500,
     use_title: true
 };
 
@@ -721,12 +871,68 @@ window.saveChunkConfig = function() {
         use_title: (useTitleStr === "true")
     };
 
+    // 持久化到 localStorage
+    persistChunkConfig();
+
     const modal = document.getElementById('chunk-config-modal');
     if (modal) modal.close();
     
-    // 可选：给个提示
-    // alert("Chunk configuration saved!"); 
-    console.log("Chunk Config Updated:", chunkConfigState);
+    console.log("Chunk Config Updated & Saved:", chunkConfigState);
+};
+
+// ==========================================
+// --- Index (Embedding) Configuration Logic ---
+// ==========================================
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let indexConfigState = loadIndexConfigFromStorage() || {
+    api_key: "",
+    base_url: "https://api.openai.com/v1",
+    model_name: "text-embedding-3-small"
+};
+
+// 2. 打开配置弹窗 (回显当前状态)
+window.openIndexConfigModal = function() {
+    const modal = document.getElementById('index-config-modal');
+    
+    // 回显数据
+    document.getElementById('cfg-emb-api-key').value = indexConfigState.api_key;
+    document.getElementById('cfg-emb-base-url').value = indexConfigState.base_url;
+    document.getElementById('cfg-emb-model-name').value = indexConfigState.model_name;
+    
+    if (modal) modal.showModal();
+};
+
+// 3. 保存配置
+window.saveIndexConfig = function() {
+    const apiKey = document.getElementById('cfg-emb-api-key').value.trim();
+    const baseUrl = document.getElementById('cfg-emb-base-url').value.trim();
+    const modelName = document.getElementById('cfg-emb-model-name').value.trim();
+
+    if (!baseUrl) {
+        showModal("Base URL is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    if (!modelName) {
+        showModal("Model Name is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    // 更新全局状态
+    indexConfigState = {
+        api_key: apiKey,
+        base_url: baseUrl,
+        model_name: modelName
+    };
+
+    // 持久化到 localStorage
+    persistIndexConfig();
+
+    const modal = document.getElementById('index-config-modal');
+    if (modal) modal.close();
+    
+    console.log("Index Config Updated & Saved:", indexConfigState);
 };
 
 // ==========================================
@@ -767,10 +973,14 @@ window.confirmIndexTask = function() {
     
     if (els.milvusDialog) els.milvusDialog.close();
     
-    // 发起任务
+    // 发起任务，传递 embedding 配置
     runKBTask('milvus_index', currentTargetFile, {
         collection_name: collName,
-        index_mode: mode
+        index_mode: mode,
+        // OpenAI Embedding 参数
+        emb_api_key: indexConfigState.api_key,
+        emb_base_url: indexConfigState.base_url,
+        emb_model_name: indexConfigState.model_name
     });
 };
 
@@ -920,6 +1130,44 @@ function log(message) {
   const msg = `> [${stamp}] ${message}`;
   if (els.log) { els.log.textContent += msg + "\n"; els.log.scrollTop = els.log.scrollHeight; }
   console.log(msg);
+}
+
+function expandConsole() {
+  if (els.canvasConsole) {
+      els.canvasConsole.classList.remove("collapsed");
+  }
+}
+
+function setBuildButtonState(state = "idle", label = "") {
+  if (!els.buildPipeline) return;
+  if (!buildBtnDefaultHtml) buildBtnDefaultHtml = els.buildPipeline.innerHTML;
+
+  const reset = () => {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = buildBtnDefaultHtml;
+  };
+
+  if (state === "running") {
+      els.buildPipeline.disabled = true;
+      els.buildPipeline.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${label || "Building..."}`;
+      return;
+  }
+
+  if (state === "success") {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = `<span class="text-success me-1">✓</span>${label || "Build Success"}`;
+      setTimeout(reset, 1200);
+      return;
+  }
+
+  if (state === "error") {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = `<span class="text-danger me-1">⚠</span>${label || "Build Failed"}`;
+      setTimeout(reset, 1800);
+      return;
+  }
+
+  reset();
 }
 
 function markUnsavedChanges() {
@@ -1326,6 +1574,7 @@ async function suspendOtherEngines(targetPipeline = null) {
         setChatStatus("Suspending...", "warn");
         await Promise.allSettled(stopPromises);
     }
+    persistActiveEngines();
 }
 
 // 1. 启动引擎 (幂等操作：如果已启动则忽略)
@@ -1377,6 +1626,7 @@ async function startEngine(pipelineName) {
             
             state.chat.engineSessionId = newSid;
             state.chat.activeEngines[pipelineName] = newSid;
+            persistActiveEngines();
             
             setChatStatus("Ready", "ready");
             log(`Engine started for ${pipelineName}`);
@@ -1427,9 +1677,55 @@ async function stopEngine(options = {}) {
     
     state.chat.engineSessionId = null;
     if (currentName) delete state.chat.activeEngines[currentName];
+    persistActiveEngines();
     
     setChatStatus("Offline", "info");
     updateDemoControls();
+}
+
+// 4. 校验/恢复引擎（自动重连）
+async function ensureEngineReady(pipelineName, options = {}) {
+    const { forceRestart = false } = options;
+    if (!pipelineName) return false;
+
+    // 如果有缓存的 session id，先同步到状态
+    const cachedSid = state.chat.activeEngines?.[pipelineName];
+    if (!state.chat.engineSessionId && cachedSid) {
+        state.chat.engineSessionId = cachedSid;
+    }
+
+    // 尝试验证现有 session
+    if (!forceRestart && state.chat.engineSessionId) {
+        const ok = await verifyEngineSession(state.chat.engineSessionId);
+        if (ok) {
+            setChatStatus("Ready", "ready");
+            updateDemoControls();
+            return true;
+        }
+
+        // 当前 session 已失效，清理缓存
+        const currentName = Object.keys(state.chat.activeEngines || {}).find(
+            key => state.chat.activeEngines[key] === state.chat.engineSessionId
+        );
+        if (currentName) delete state.chat.activeEngines[currentName];
+        state.chat.engineSessionId = null;
+        persistActiveEngines();
+        setChatStatus("Reconnecting...", "warn");
+    }
+
+    await startEngine(pipelineName);
+    return Boolean(state.chat.engineSessionId);
+}
+
+async function verifyEngineSession(sessionId) {
+    if (!sessionId) return false;
+    try {
+        const res = await fetch(`/api/pipelines/chat/history?session_id=${encodeURIComponent(sessionId)}`);
+        if (res.ok) return true;
+    } catch (e) {
+        console.warn("Engine session verification failed:", e);
+    }
+    return false;
 }
 
 // 3. 原来的 toggle 函数保留作为兼容，或者直接废弃
@@ -1470,7 +1766,11 @@ async function renderChatCollectionOptions() {
     try {
         // 复用后端的列表接口
         const data = await fetchJSON('/api/kb/files');
-        const collections = data.index || []; // data.index 存放的是 collection 列表
+        let collections = data.index || []; // data.index 存放的是 collection 列表
+
+        // 按显示名排序，保持 chat 下拉有序
+        const getLabel = c => (c.display_name || c.name || "").toLowerCase();
+        collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
         
         // 渲染新的自定义下拉菜单
         renderKbDropdownOptions(collections);
@@ -1571,6 +1871,17 @@ async function renderChatPipelineMenu() {
     
     // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline
     const readyPipelines = pipelines.filter(p => p.is_ready);
+
+    // 如果当前还没有选中的 Pipeline，自动选择第一个可用的并加载
+    if (!state.selectedPipeline && readyPipelines.length > 0) {
+        const defaultName = readyPipelines[0].name;
+        try {
+            await loadPipeline(defaultName, { ignoreUnsaved: true });
+            state.selectedPipeline = defaultName;
+        } catch (e) {
+            console.warn("Auto-select pipeline failed:", e);
+        }
+    }
 
     if (readyPipelines.length === 0) {
         els.chatPipelineMenu.innerHTML = '<li class="dropdown-item text-muted small">No ready pipelines</li>';
@@ -2202,10 +2513,10 @@ async function safeOpenChatView() {
     const proceed = await confirmUnsavedChanges("enter Chat mode");
     if (!proceed) return;
   }
-  openChatView();
+  await openChatView();
 }
 
-function openChatView() {
+async function openChatView() {
   if (!canUseChat()) { 
     log("Please build and save parameters first."); 
     showModal("Please build and save parameters before entering Chat.", { title: "Pipeline not ready", type: "warning" });
@@ -2213,10 +2524,10 @@ function openChatView() {
   }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
 
-  renderChatPipelineMenu();
+  await renderChatPipelineMenu();
 
   // [新增] 进入聊天时，加载最新的 Collection 列表
-  renderChatCollectionOptions();
+  await renderChatCollectionOptions();
   
   if (!state.chat.currentSessionId) createNewChatSession();
   
@@ -2227,13 +2538,11 @@ function openChatView() {
 
   backToChatView();
   
-  // [核心新增] 进入界面时，如果没有引擎在跑，就自动跑起来
-    if (!state.chat.engineSessionId && state.selectedPipeline) {
-        startEngine(state.selectedPipeline);
-    } else {
-        // 如果已经在跑，更新一下 UI 状态
-        updateDemoControls();
-    }
+  // [核心新增] 进入界面时确保引擎可用（必要时自动重连/重启）
+  if (state.selectedPipeline) {
+      await ensureEngineReady(state.selectedPipeline);
+  }
+  updateDemoControls();
 
   // Initialize background tasks
   initBackgroundTasks();
@@ -2783,7 +3092,11 @@ async function handleChatSubmit(event) {
   if (event) event.preventDefault();
   if (state.chat.running) { await stopGeneration(); return; }
   if (!canUseChat()) return;
-  if (!state.chat.engineSessionId) { showModal("Please start the engine first.", { title: "Engine Required", type: "warning" }); return; }
+  const engineReady = await ensureEngineReady(state.selectedPipeline);
+  if (!engineReady) { 
+    showModal("Please start the engine first.", { title: "Engine Required", type: "warning" }); 
+    return; 
+  }
 
   const question = els.chatInput.value.trim();
   if (!question) return;
@@ -3177,18 +3490,45 @@ function yamlStringify(value, indent = 0, isArrayItem = false) {
     
     return `${itemPad}${yamlScalar(value)}`;
 }
+function isToolConfigStep(step) {
+    if (!step || typeof step !== "object" || Array.isArray(step)) return false;
+    if (step.loop || step.branch) return false;
+    const keys = Object.keys(step);
+    return keys.length === 1 && typeof keys[0] === "string";
+}
+
 function collectServersFromSteps(steps, set = new Set()) {
-    for (const step of steps) {
-        if (typeof step === "string") { const parts = step.split("."); if (parts.length > 1) set.add(parts[0]); }
-        else if (step && typeof step === "object") {
+    for (const step of steps || []) {
+        if (typeof step === "string") {
+            const parts = step.split(".");
+            if (parts.length > 1) set.add(parts[0]);
+        } else if (isToolConfigStep(step)) {
+            const toolName = Object.keys(step)[0];
+            const server = toolName.split(".")[0];
+            if (server) set.add(server);
+        } else if (step && typeof step === "object") {
             if (step.loop && Array.isArray(step.loop.steps)) collectServersFromSteps(step.loop.steps, set);
-            else if (step.branch) { collectServersFromSteps(step.branch.router || [], set); Object.values(step.branch.branches || {}).forEach(bs => collectServersFromSteps(bs || [], set)); }
+            else if (step.branch) {
+                collectServersFromSteps(step.branch.router || [], set);
+                Object.values(step.branch.branches || {}).forEach(bs => collectServersFromSteps(bs || [], set));
+            }
         }
     }
     return set;
 }
-function buildServersMapping(steps) { const mapping = {}; collectServersFromSteps(steps, new Set()).forEach((name) => { mapping[name] = `servers/${name}`; }); return mapping; }
-function buildPipelinePayloadForPreview() { return { servers: buildServersMapping(state.steps), pipeline: cloneDeep(state.steps) }; }
+
+function buildServersMapping(steps) {
+    const mapping = {};
+    collectServersFromSteps(steps, new Set()).forEach((name) => { mapping[name] = `servers/${name}`; });
+    return mapping;
+}
+
+function buildPipelinePayloadForPreview() {
+    const derivedServers = buildServersMapping(state.steps);
+    const baseServers = (state.pipelineConfig && typeof state.pipelineConfig === "object" && state.pipelineConfig.servers) ? state.pipelineConfig.servers : {};
+    const mergedServers = { ...derivedServers, ...(baseServers || {}) };
+    return { servers: cloneDeep(mergedServers), pipeline: cloneDeep(state.steps) };
+}
 
 // =========================================
 // YAML Editor Sync System
@@ -3377,6 +3717,31 @@ function parseSimpleYaml(yamlStr) {
   return result;
 }
 
+async function parseYamlContent(yamlStr) {
+  if (!yamlStr || !yamlStr.trim()) return {};
+  try {
+      const resp = await fetch("/api/pipelines/parse", {
+          method: "POST",
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+          body: yamlStr
+      });
+      if (!resp.ok) {
+          const detailText = await resp.text();
+          let message = detailText;
+          try {
+              const parsedErr = JSON.parse(detailText);
+              if (parsedErr && parsedErr.error) message = parsedErr.error;
+          } catch (_) {}
+          throw new Error(message || `Parse failed (${resp.status})`);
+      }
+      return await resp.json();
+  } catch (err) {
+      console.warn("Server YAML parse failed, fallback to simple parser:", err);
+      // 尝试使用前端简化解析器作为兜底
+      return parseSimpleYaml(yamlStr);
+  }
+}
+
 function extractStepsFromParsedYaml(parsed) {
   let newSteps = [];
   if (Array.isArray(parsed)) {
@@ -3396,21 +3761,21 @@ function extractStepsFromParsedYaml(parsed) {
   return newSteps;
 }
 
-function validateYamlEditorContent(options = {}) {
+async function validateYamlEditorContent(options = {}) {
   const { showModalOnError = false } = options;
-  if (!els.yamlEditor) return { valid: true, content: '', steps: [] };
+  if (!els.yamlEditor) return { valid: true, content: '', steps: [], parsed: {} };
 
-  const yamlContent = els.yamlEditor.value.trim();
-  if (!yamlContent) {
+  const yamlContent = els.yamlEditor.value;
+  if (!yamlContent.trim()) {
     showYamlError(null);
-    return { valid: true, content: '', steps: [] };
+    return { valid: true, content: '', steps: [], parsed: {} };
   }
 
   try {
-    const parsed = parseSimpleYaml(yamlContent);
+    const parsed = await parseYamlContent(yamlContent);
     const steps = extractStepsFromParsedYaml(parsed);
     showYamlError(null);
-    return { valid: true, content: yamlContent, steps };
+    return { valid: true, content: yamlContent, steps, parsed };
   } catch (err) {
     const message = err?.message ? String(err.message) : "YAML parse failed";
     showYamlError(message);
@@ -3427,14 +3792,15 @@ function validateYamlEditorContent(options = {}) {
  * 保留编辑器内容（含注释），不反向覆盖
  */
 function syncYamlToCanvas() {
-  syncYamlToCanvasOnly();
+  return syncYamlToCanvasOnly();
 }
 
 /**
  * 只同步到画布，不触发任何编辑器更新
  * 这样可以保留编辑器中的注释等内容
  */
-function syncYamlToCanvasOnly() {
+async function syncYamlToCanvasOnly(options = {}) {
+  const { markUnsaved = true } = options;
   if (!els.yamlEditor) return;
   
   const yamlContent = els.yamlEditor.value;
@@ -3442,9 +3808,8 @@ function syncYamlToCanvasOnly() {
   // 空内容时清空画布
   if (!yamlContent.trim()) {
     yamlEditorSyncLock = true;
-    state.steps = [];
-    resetContextStack();
-    renderSteps();
+    state.pipelineConfig = { servers: {}, pipeline: [], _raw_yaml: "" };
+    setSteps([], { markUnsaved, skipPreview: true });
     showYamlError(null);
     setYamlSyncStatus('synced');
     yamlEditorSyncLock = false;
@@ -3455,18 +3820,21 @@ function syncYamlToCanvasOnly() {
   try {
     setYamlSyncStatus('syncing');
 
-    const validation = validateYamlEditorContent();
+    const validation = await validateYamlEditorContent();
     if (!validation.valid) {
       yamlEditorSyncLock = false;
       return;
     }
-    const newSteps = validation.steps;
 
-    // 更新画布 (锁定防止循环，不触发 updatePipelinePreview)
+    const newSteps = validation.steps;
+    const parsedConfig = (validation.parsed && typeof validation.parsed === "object" && !Array.isArray(validation.parsed))
+        ? { ...validation.parsed }
+        : { pipeline: newSteps };
+    parsedConfig._raw_yaml = yamlContent;
+
     yamlEditorSyncLock = true;
-    state.steps = cloneDeep(newSteps);
-    resetContextStack();
-    renderSteps();
+    state.pipelineConfig = parsedConfig;
+    setSteps(newSteps, { markUnsaved, skipPreview: true });
     showYamlError(null);
     setYamlSyncStatus('synced');
     yamlEditorSyncLock = false;
@@ -3494,7 +3862,12 @@ function updatePipelinePreview() {
   if (els.yamlEditor && !yamlEditorSyncLock) {
     yamlEditorSyncLock = true;
     
-    const yamlContent = yamlStringify(buildPipelinePayloadForPreview());
+    const payload = buildPipelinePayloadForPreview();
+    const yamlContent = yamlStringify(payload);
+    if (!state.pipelineConfig || typeof state.pipelineConfig !== "object") {
+        state.pipelineConfig = {};
+    }
+    state.pipelineConfig._raw_yaml = yamlContent;
     els.yamlEditor.value = yamlContent;
     updateYamlLineNumbers();
     showYamlError(null);
@@ -3685,6 +4058,9 @@ function setMode(mode) {
   if (aiContainer) {
     aiContainer.classList.toggle('d-none', mode === Modes.CHAT);
   }
+
+  // 同步后台任务控件的可见性（仅 Chat 模式显示）
+  scheduleBackgroundTaskVisibilitySync();
 }
 
 // ... (Node Picker Helpers - keep same) ...
@@ -3782,6 +4158,7 @@ function markPipelineDirty() {
         if (state.chat.engineSessionId === sid) {
             state.chat.engineSessionId = null;
         }
+        persistActiveEngines();
         log(`Pipeline '${currentName}' modified. Engine invalidated.`);
     }
 
@@ -3789,8 +4166,20 @@ function markPipelineDirty() {
     updateActionButtons(); 
 }
 function setSteps(steps, options = {}) { 
-    const { markUnsaved = false } = options;
+    const { markUnsaved = false, skipPreview = false, snapshotContent } = options;
     state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; 
+    
+    // 同步 pipeline 配置，保留原有额外字段（如 _raw_yaml）
+    const derivedServers = buildServersMapping(state.steps);
+    if (!state.pipelineConfig || typeof state.pipelineConfig !== "object") {
+        state.pipelineConfig = {
+            servers: cloneDeep(derivedServers),
+            pipeline: cloneDeep(state.steps),
+        };
+    } else {
+        state.pipelineConfig.pipeline = cloneDeep(state.steps);
+        state.pipelineConfig.servers = { ...derivedServers, ...(state.pipelineConfig.servers || {}) };
+    }
     
     state.parameterData = null; 
     state.isBuilt = false; 
@@ -3804,12 +4193,14 @@ function setSteps(steps, options = {}) {
     
     resetContextStack(); 
     renderSteps(); 
-    updatePipelinePreview(); 
+    if (!skipPreview) updatePipelinePreview(); 
     updateActionButtons();
 
     if (!markUnsaved) {
         // After programmatic updates, align saved snapshot if appropriate
-        const currentYaml = els.yamlEditor ? els.yamlEditor.value : yamlStringify(buildPipelinePayloadForPreview());
+        const currentYaml = snapshotContent !== undefined
+            ? snapshotContent
+            : (els.yamlEditor ? els.yamlEditor.value : yamlStringify(buildPipelinePayloadForPreview()));
         snapshotSavedYaml(currentYaml);
     }
 }
@@ -3844,11 +4235,30 @@ function createInsertControl(location, insertIndex, { prominent = false, compact
 }
 
 // ... (Render Helpers - Tool/Loop/Branch Nodes - keep same) ...
-function renderToolNode(identifier, stepPath) {
+function truncateText(text, maxLen = 160) {
+  if (!text) return "";
+  return text.length > maxLen ? text.slice(0, maxLen - 3) + "..." : text;
+}
+
+function summarizeToolConfig(config) {
+  if (!config || typeof config !== "object") return "";
+  const parts = [];
+  if (config.input) parts.push(`input: ${truncateText(JSON.stringify(config.input))}`);
+  if (config.output) parts.push(`output: ${truncateText(JSON.stringify(config.output))}`);
+  if (config.branch) parts.push("branch");
+  if (config.loop) parts.push("loop");
+  if (!parts.length) {
+      const raw = truncateText(JSON.stringify(config));
+      return raw === "{}" ? "" : raw;
+  }
+  return parts.join(" | ");
+}
+
+function renderToolNode(identifier, stepPath, meta = {}) {
   const card = document.createElement("div"); card.className = "flow-node";
   const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
   const title = document.createElement("h6"); title.className = "flow-node-title"; title.textContent = identifier; header.appendChild(title);
-  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = identifier;
+  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = meta.description || identifier;
   const actions = document.createElement("div"); actions.className = "step-actions";
   const editBtn = document.createElement("button"); editBtn.className = "btn btn-outline-primary btn-sm me-1"; editBtn.textContent = "Edit"; editBtn.onclick = (e) => { e.stopPropagation(); openStepEditor(stepPath); };
   const removeBtn = document.createElement("button"); removeBtn.className = "btn btn-outline-danger btn-sm"; removeBtn.textContent = "Delete"; removeBtn.onclick = (e) => { e.stopPropagation(); removeStep(stepPath); };
@@ -3901,9 +4311,15 @@ function renderBranchNode(step, parentLocation, index) {
 function renderStepNode(step, parentLocation, index) {
   const stepPath = createStepPath(parentLocation, index);
   if (typeof step === "string") return renderToolNode(step, stepPath);
+  if (isToolConfigStep(step)) {
+      const toolName = Object.keys(step)[0];
+      const config = step[toolName];
+      const desc = summarizeToolConfig(config);
+      return renderToolNode(toolName, stepPath, { description: desc || toolName });
+  }
   if (step && typeof step === "object" && step.loop) return renderLoopNode(step, parentLocation, index);
   if (step && typeof step === "object" && step.branch) return renderBranchNode(step, parentLocation, index);
-  const card = renderToolNode("Custom Object", stepPath); card.querySelector(".flow-node-body").textContent = JSON.stringify(step); return card;
+  const card = renderToolNode("Custom Object", stepPath, { description: truncateText(JSON.stringify(step)) }); return card;
 }
 function renderStepList(steps, location, options = {}) {
   const safeSteps = Array.isArray(steps) ? steps : [];
@@ -3994,6 +4410,8 @@ async function loadPipeline(name, options = {}) {
         // [新增] 存储完整的 pipeline 配置（包括 servers）
         state.pipelineConfig = cfg;
 
+        const rawYaml = typeof cfg._raw_yaml === "string" ? cfg._raw_yaml : null;
+
         let safeSteps = [];
         
         if (Array.isArray(cfg)) {
@@ -4012,7 +4430,15 @@ async function loadPipeline(name, options = {}) {
             console.warn(`[Warn] Loaded pipeline '${name}' appears to be empty. Raw config:`, cfg);
         }
 
-        setSteps(safeSteps);
+        // 如果后端返回原始 YAML，则直接灌入编辑器，确保与文件一致
+        if (els.yamlEditor && rawYaml !== null) {
+            yamlEditorSyncLock = true;
+            els.yamlEditor.value = rawYaml;
+            updateYamlLineNumbers();
+            yamlEditorSyncLock = false;
+        }
+
+        setSteps(safeSteps, { skipPreview: Boolean(rawYaml), snapshotContent: rawYaml || undefined });
         clearUnsavedChanges();
         showYamlError(null);
         setYamlSyncStatus('synced');
@@ -4058,45 +4484,53 @@ async function checkPipelineReadiness(name) {
 
 
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
     if (e) e.preventDefault(); 
     const name = els.name.value.trim(); 
     if (!name) return log("Pipeline name is required");
     
     // 获取编辑器中的 YAML 内容并校验
-    const validation = validateYamlEditorContent({ showModalOnError: true });
+    const validation = await validateYamlEditorContent({ showModalOnError: true });
     let yamlContent = validation.valid ? (validation.content || '') : null;
     if (yamlContent === null) {
         log("Save aborted due to YAML errors.");
         return;
     }
+
+    // 同步最新解析结果到内存，便于后续 build/preview
+    if (validation.parsed) {
+        const parsedCfg = (validation.parsed && typeof validation.parsed === "object" && !Array.isArray(validation.parsed))
+            ? { ...validation.parsed }
+            : { pipeline: validation.steps };
+        parsedCfg._raw_yaml = yamlContent;
+        state.pipelineConfig = parsedCfg;
+    }
     
     // 如果编辑器有内容，使用 YAML API 直接保存
     if (yamlContent) {
-        fetch(`/api/pipelines/${encodeURIComponent(name)}/yaml`, { 
-            method: "PUT", 
-            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-            body: yamlContent,
-        })
-        .then(res => {
+        try {
+            const res = await fetch(`/api/pipelines/${encodeURIComponent(name)}/yaml`, { 
+                method: "PUT", 
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+                body: yamlContent,
+            });
             if (!res.ok) throw new Error(`Save failed: ${res.status}`);
-            return res.json();
-        })
-        .then(s => { 
+            await res.json();
+
             state.selectedPipeline = name; 
             refreshPipelines(); 
             log("Pipeline saved."); 
             setYamlSyncStatus('synced');
             snapshotSavedYaml(yamlContent);
             
-            // 保存成功后，自动同步画布（不覆盖编辑器）
-            syncYamlToCanvasOnly();
-        })
-        .catch(err => {
-            log(`Error: ${err.message}`);
-            showYamlError(err.message);
-            showModal(`Save failed: ${err.message}`, { title: "Save Error", type: "error" });
-        });
+            // 保存成功后，自动同步画布（不覆盖编辑器），但保持“已保存”状态
+            await syncYamlToCanvasOnly({ markUnsaved: false });
+        } catch (err) {
+            const msg = err?.message || "Unknown error";
+            log(`Error: ${msg}`);
+            showYamlError(msg);
+            showModal(`Save failed: ${msg}`, { title: "Save Error", type: "error" });
+        }
     } else {
         // 空内容，使用 JSON 方式保存
         saveWithJson(name);
@@ -4118,17 +4552,22 @@ function saveWithJson(name) {
     })
     .catch(e => log(e.message));
 }
-function buildSelectedPipeline() {
+async function buildSelectedPipeline() {
     if (state.unsavedChanges) {
         showModal("Please save the pipeline before building.", { title: "Unsaved changes", type: "warning" });
         return;
     }
     if(!state.selectedPipeline) return log("Please save the pipeline first.");
-    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
-    .then(async () => { 
+    expandConsole();
+    setBuildButtonState("running");
+    log(`Building pipeline "${state.selectedPipeline}"...`);
+    try {
+        await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" });
+        
         state.isBuilt = true; 
         state.parametersReady = false; 
         updateActionButtons(); 
+        setBuildButtonState("success");
         log("Pipeline built."); 
         
         // 加载参数数据
@@ -4142,7 +4581,11 @@ function buildSelectedPipeline() {
         if (typeof switchWorkspaceMode === 'function') {
             switchWorkspaceMode('parameters');
         }
-    }).catch(e => log(e.message));
+    } catch (e) {
+        setBuildButtonState("error");
+        log(`Build failed: ${e.message}`);
+        showModal(`Build failed: ${e.message}`, { title: "Build Error", type: "error" });
+    }
 }
 async function deleteSelectedPipeline() {
     if(!state.selectedPipeline) return;
@@ -4537,19 +4980,42 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// 清除知识库选择
+window.clearKbSelection = function(e) {
+    if (e) e.stopPropagation();
+    const hiddenSelect = document.getElementById('chat-collection-select');
+    if (hiddenSelect) {
+        hiddenSelect.value = "";
+    }
+    // 模拟选择空项
+    const mockItem = document.createElement('div');
+    mockItem.dataset.value = "";
+    mockItem.dataset.label = "Knowledge Base";
+    selectKbOption(mockItem);
+};
+
 // 选择知识库选项
 window.selectKbOption = function(itemEl) {
     const value = itemEl.dataset.value;
+    const labelText = itemEl.dataset.label || itemEl.querySelector('.kb-item-text')?.textContent || "";
     const menu = document.getElementById('kb-dropdown-menu');
     const trigger = document.getElementById('kb-dropdown-trigger');
     const label = document.getElementById('kb-label-text');
     const hiddenSelect = document.getElementById('chat-collection-select');
+    const clearBtn = document.getElementById('kb-clear-btn');
     
     // 更新所有选项的选中状态
     menu.querySelectorAll('.kb-dropdown-item').forEach(item => {
         item.classList.remove('selected');
     });
-    itemEl.classList.add('selected');
+    // 只有当 itemEl 真实存在于 menu 中时才添加 selected 类（避免 mockItem 报错）
+    if (itemEl.parentNode === menu) {
+        itemEl.classList.add('selected');
+    } else if (value) {
+        // 如果是 mockItem 但有 value，尝试在 menu 中找到对应项并选中
+        const target = menu.querySelector(`.kb-dropdown-item[data-value="${value}"]`);
+        if (target) target.classList.add('selected');
+    }
     
     // 更新隐藏的 select 值
     if (hiddenSelect) {
@@ -4558,12 +5024,13 @@ window.selectKbOption = function(itemEl) {
     
     // 更新触发器显示
     if (value) {
-        const cleanName = itemEl.querySelector('.kb-item-text').textContent.split('(')[0].trim();
-        label.textContent = cleanName;
+        label.textContent = labelText;
         trigger.classList.add('active');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
     } else {
         label.textContent = "Knowledge Base";
         trigger.classList.remove('active');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
     
     // 关闭下拉菜单
@@ -4579,23 +5046,19 @@ function renderKbDropdownOptions(collections) {
     const currentVal = hiddenSelect ? hiddenSelect.value : '';
     
     // 清空并重建选项
-    menu.innerHTML = `
-        <div class="kb-dropdown-item ${!currentVal ? 'selected' : ''}" data-value="" onclick="selectKbOption(this)">
-            <span class="kb-item-check">✓</span>
-            <span class="kb-item-text">No Knowledge Base</span>
-        </div>
-    `;
+    menu.innerHTML = '';
     
     collections.forEach(c => {
         const isSelected = c.name === currentVal;
+        const displayName = c.display_name || c.name;
         const item = document.createElement('div');
         item.className = `kb-dropdown-item ${isSelected ? 'selected' : ''}`;
         item.dataset.value = c.name;
+        item.dataset.label = displayName;
         item.onclick = function() { selectKbOption(this); };
         item.innerHTML = `
             <span class="kb-item-check">✓</span>
-            <span class="kb-item-text">${escapeHtmlForDropdown(c.name)}</span>
-            <span class="kb-item-count">${c.count || 0}</span>
+            <span class="kb-item-text">${escapeHtmlForDropdown(displayName)}</span>
         `;
         menu.appendChild(item);
     });
@@ -4604,9 +5067,10 @@ function renderKbDropdownOptions(collections) {
     if (hiddenSelect) {
         hiddenSelect.innerHTML = '<option value="">No Knowledge Base</option>';
         collections.forEach(c => {
+            const displayName = c.display_name || c.name;
             const opt = document.createElement("option");
             opt.value = c.name;
-            opt.textContent = `${c.name} (${c.count || 0})`;
+            opt.textContent = `${displayName}`;
             if (c.name === currentVal) opt.selected = true;
             hiddenSelect.appendChild(opt);
         });
@@ -4615,15 +5079,22 @@ function renderKbDropdownOptions(collections) {
     // 更新触发器显示状态
     const trigger = document.getElementById('kb-dropdown-trigger');
     const label = document.getElementById('kb-label-text');
+    const clearBtn = document.getElementById('kb-clear-btn');
     if (currentVal && trigger) {
         const selectedCollection = collections.find(c => c.name === currentVal);
         if (selectedCollection) {
-            label.textContent = selectedCollection.name;
+            label.textContent = selectedCollection.display_name || selectedCollection.name;
             trigger.classList.add('active');
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
         } else {
             label.textContent = "Knowledge Base";
             trigger.classList.remove('active');
+            if (clearBtn) clearBtn.style.display = 'none';
         }
+    } else if (trigger) {
+        label.textContent = "Knowledge Base";
+        trigger.classList.remove('active');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
 }
 
@@ -4647,8 +5118,7 @@ window.updateKbLabel = function(selectEl) {
         trigger.classList.remove('active');
     } else {
         const selectedText = selectEl.options[selectEl.selectedIndex].text;
-        const cleanName = selectedText.split('(')[0].trim();
-        label.textContent = cleanName;
+        label.textContent = selectedText;
         trigger.classList.add('active');
     }
 };
@@ -4782,10 +5252,39 @@ const backgroundTaskState = {
     notifiedTasks: new Set(), // Already notified task IDs
     backgroundModeEnabled: false, // Whether background mode is active
     cachedTasks: [], // Cached completed tasks from localStorage
+    detailLoadingTaskId: null,
+    loadToChatTaskId: null,
+    loadToChatTarget: null,
 };
 
 // LocalStorage key for background tasks
 const BG_TASKS_STORAGE_KEY = 'ultrarag_background_tasks';
+
+// Schedule background task UI visibility sync to avoid TDZ issues
+function scheduleBackgroundTaskVisibilitySync() {
+    if (typeof setTimeout === 'function') {
+        setTimeout(syncBackgroundTasksVisibility, 0);
+    }
+}
+
+// Ensure background task controls only appear in Chat mode
+function syncBackgroundTasksVisibility() {
+    const fab = document.getElementById('bg-tasks-fab');
+    const countEl = document.getElementById('bg-tasks-count');
+    const panel = document.getElementById('background-tasks-panel');
+    if (!fab || !countEl || !panel) return;
+
+    const isChatMode = state.mode === Modes.CHAT;
+    if (!isChatMode) {
+        fab.classList.add('d-none');
+        countEl.classList.add('d-none');
+        panel.classList.add('d-none');
+        backgroundTaskState.panelOpen = false;
+        return;
+    }
+
+    updateBackgroundTasksCount();
+}
 
 // Load cached background tasks from localStorage
 function loadCachedBackgroundTasks() {
@@ -4916,6 +5415,11 @@ async function requestBrowserNotification(title, message) {
 
 // Toggle background tasks panel
 window.toggleBackgroundPanel = function() {
+    if (state.mode !== Modes.CHAT) {
+        showNotification('info', 'Background Tasks', 'Please switch to Chat to view background tasks.');
+        return;
+    }
+
     const panel = document.getElementById('background-tasks-panel');
     if (!panel) return;
     
@@ -5021,6 +5525,13 @@ function updateBackgroundTasksCount() {
     const countEl = document.getElementById('bg-tasks-count');
     const fab = document.getElementById('bg-tasks-fab');
     if (!countEl || !fab) return;
+
+    const isChatMode = state.mode === Modes.CHAT;
+    if (!isChatMode) {
+        countEl.classList.add('d-none');
+        fab.classList.add('d-none');
+        return;
+    }
     
     const runningCount = backgroundTaskState.tasks.filter(t => t.status === 'running').length;
     
@@ -5036,8 +5547,56 @@ function updateBackgroundTasksCount() {
     }
 }
 
+function renderTaskDetailLoading(modal, message = 'Loading task details...') {
+    if (!modal) return;
+    modal.innerHTML = `
+        <div style="padding: 32px; text-align: center;">
+            <div class="spinner-border" style="color: #3b82f6; width: 2.5rem; height: 2.5rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div style="margin-top: 16px; color: var(--text-secondary);">${escapeHtml(message)}</div>
+        </div>
+    `;
+}
+
+function setLoadButtonsLoading(taskId, isLoading, target) {
+    const selector = target 
+        ? `[data-task-id="${taskId}"][data-load-target="${target}"]`
+        : `[data-task-id="${taskId}"][data-load-target]`;
+    document.querySelectorAll(selector).forEach(btn => {
+        if (!(btn instanceof HTMLElement)) return;
+        if (isLoading) {
+            btn.dataset.originalText = btn.dataset.originalText || btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${btn.dataset.loadTarget === 'new' ? 'Loading to new chat...' : 'Loading to chat...'}`;
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            if (btn.dataset.originalText) {
+                btn.innerHTML = btn.dataset.originalText;
+            }
+        }
+    });
+}
+
 // Show background task detail
 window.showBackgroundTaskDetail = async function(taskId) {
+    if (backgroundTaskState.detailLoadingTaskId) return;
+
+    // Create or get detail modal early and show loading state
+    let modal = document.getElementById('bg-task-detail-modal');
+    if (!modal) {
+        modal = document.createElement('dialog');
+        modal.id = 'bg-task-detail-modal';
+        modal.className = 'bg-task-detail-modal';
+        document.body.appendChild(modal);
+    }
+
+    renderTaskDetailLoading(modal, 'Loading task details...');
+    modal.showModal();
+    backgroundTaskState.detailLoadingTaskId = taskId;
+
     try {
         // Try to get from server first, fallback to cache
         let task;
@@ -5052,20 +5611,12 @@ window.showBackgroundTaskDetail = async function(taskId) {
             }
             if (!task) {
                 showNotification('error', 'Error', 'Task not found');
+                if (modal) modal.close();
+                backgroundTaskState.detailLoadingTaskId = null;
                 return;
             }
         }
-        
-        // Create or get detail modal
-        let modal = document.getElementById('bg-task-detail-modal');
-        if (!modal) {
-            modal = document.createElement('dialog');
-            modal.id = 'bg-task-detail-modal';
-            modal.className = 'bg-task-detail-modal';
-            document.body.appendChild(modal);
-        }
-        
-        const statusClass = task.status === 'completed' ? 'success' : task.status === 'failed' ? 'error' : 'info';
+
         const statusText = task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed';
         
         modal.innerHTML = `
@@ -5100,10 +5651,11 @@ window.showBackgroundTaskDetail = async function(taskId) {
                         <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">Processing your request...</div>
                     </div>
                 `}
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
-                        <button class="btn btn-outline-secondary" onclick="loadTaskToChat('${taskId}')">Load to Chat</button>
+                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">Load to Current Chat</button>
+                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">Load to New Chat</button>
                     ` : ''}
                     <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
                 </div>
@@ -5127,6 +5679,9 @@ window.showBackgroundTaskDetail = async function(taskId) {
         }
     } catch (e) {
         console.error('Failed to load task detail:', e);
+        renderTaskDetailLoading(modal, 'Failed to load task details.');
+    } finally {
+        backgroundTaskState.detailLoadingTaskId = null;
     }
 };
 
@@ -5153,7 +5708,13 @@ window.copyTaskResult = async function(taskId) {
 };
 
 // Load task result to chat
-window.loadTaskToChat = async function(taskId) {
+window.loadTaskToChat = async function(taskId, target = 'current') {
+    if (backgroundTaskState.loadToChatTaskId) return;
+
+    backgroundTaskState.loadToChatTaskId = taskId;
+    backgroundTaskState.loadToChatTarget = target;
+    setLoadButtonsLoading(taskId, true, target);
+
     try {
         // Try server first, fallback to cache
         let task;
@@ -5165,35 +5726,68 @@ window.loadTaskToChat = async function(taskId) {
                    backgroundTaskState.tasks.find(t => t.task_id === taskId);
         }
         
-        if (!task || task.status !== 'completed') return;
+        if (!task || task.status !== 'completed') {
+            showNotification('error', 'Not Ready', 'This task has not finished yet.');
+            return;
+        }
+
+        // Ensure we are in Chat view before injecting messages
+        if (state.mode !== Modes.CHAT) {
+            await safeOpenChatView();
+            if (state.mode !== Modes.CHAT) {
+                showNotification('error', 'Chat Unavailable', 'Please switch to Chat to load the result.');
+                return;
+            }
+        }
+
+        if (target === 'new') {
+            if (state.chat.history.length > 0) {
+                saveCurrentSession(true);
+            }
+            createNewChatSession();
+        } else if (!state.chat.currentSessionId) {
+            createNewChatSession();
+        }
         
-        // Close modal
-        const modal = document.getElementById('bg-task-detail-modal');
-        if (modal) modal.close();
-        
-        // Add to chat history
+        const createdAt = task.created_at ? new Date(task.created_at * 1000).toISOString() : new Date().toISOString();
+        const completedAt = task.completed_at ? new Date(task.completed_at * 1000).toISOString() : new Date().toISOString();
+
         state.chat.history.push({ 
             role: 'user', 
             text: task.full_question || task.question,
-            timestamp: new Date(task.created_at * 1000).toISOString()
+            timestamp: createdAt
         });
         state.chat.history.push({ 
             role: 'assistant', 
             text: task.result || '',
             meta: { sources: task.sources || [] },
-            timestamp: new Date(task.completed_at * 1000).toISOString()
+            timestamp: completedAt
         });
         
         // Save and render
-        saveCurrentSession();
+        saveCurrentSession(true);
         renderChatHistory();
+        renderChatSidebar();
+        backToChatView();
+        updateChatIdleStatus();
+
+        // Close background panel if open
+        if (backgroundTaskState.panelOpen) {
+            toggleBackgroundPanel();
+        }
+
+        // Close modal after successful load
+        const modal = document.getElementById('bg-task-detail-modal');
+        if (modal) modal.close();
         
-        // Close background panel
-        toggleBackgroundPanel();
-        
-        showNotification('success', 'Loaded', 'Background task result loaded to current chat');
+        showNotification('success', 'Loaded', target === 'new' ? 'Background task loaded to a new chat' : 'Background task loaded to the current chat');
     } catch (e) {
         console.error('Failed to load task to chat:', e);
+        showNotification('error', 'Load Failed', e.message || 'Unable to load task into chat.');
+    } finally {
+        backgroundTaskState.loadToChatTaskId = null;
+        backgroundTaskState.loadToChatTarget = null;
+        setLoadButtonsLoading(taskId, false, target);
     }
 };
 
@@ -5236,6 +5830,15 @@ window.deleteBackgroundTask = async function(taskId) {
 // Clear completed tasks
 window.clearCompletedTasks = async function() {
     try {
+        const confirmed = await showConfirm("This will remove all completed background tasks. Continue?", {
+            title: "Clear Completed Tasks",
+            type: "warning",
+            confirmText: "Clear",
+            cancelText: "Cancel",
+            danger: true
+        });
+        if (!confirmed) return;
+
         // Try to clear from server
         let serverCount = 0;
         const userId = getUserId();
@@ -5367,10 +5970,17 @@ async function initChatOnlyView() {
       }
   }
   
-  // 6. 更新 Demo 控制按钮状态
+  // 6. 确保引擎已就绪（若未启动则自动启动）
+  if (state.selectedPipeline) {
+      await ensureEngineReady(state.selectedPipeline);
+  } else {
+      updateChatIdleStatus();
+  }
+
+  // 7. 更新 Demo 控制按钮状态
   updateDemoControls();
   
-  // 7. Initialize background tasks state
+  // 8. Initialize background tasks state
   initBackgroundTasks();
 }
 
@@ -6948,7 +7558,7 @@ async function applyPipelineModification(action) {
     if (action.content) {
         yamlEditor.value = action.content;
         updateYamlLineNumbers();
-        syncYamlToCanvasOnly();
+        await syncYamlToCanvasOnly();
         
         // 自动保存
         if (state.selectedPipeline) {
