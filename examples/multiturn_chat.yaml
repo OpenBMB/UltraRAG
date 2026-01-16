@@ -1,13 +1,10 @@
-# Multi-turn Chat Pipeline
-# 多轮对话 Pipeline，用于处理会话中的后续问答（第二轮及以后）
+# Multi-turn Chat Pipeline for UltraRAG UI
 
 # MCP Server
 servers:
   generation: servers/generation
 
 # MCP Client Pipeline
-# 这是一个简化的 pipeline，只包含生成步骤
-# 接收 messages 列表（对话历史），直接调用模型生成
 pipeline:
 - generation.generation_init
 - generation.multiturn_generate
