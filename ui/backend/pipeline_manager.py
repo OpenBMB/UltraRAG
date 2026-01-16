@@ -28,6 +28,29 @@ except ImportError:
 
 LOGGER = logging.getLogger(__name__)
 
+# Suppress noisy "Event loop is closed" errors triggered by fastmcp transport
+try:
+    from fastmcp.client.transports import StdioTransport  # type: ignore
+
+    _orig_stdio_del = getattr(StdioTransport, "__del__", None)
+
+    def _safe_stdio_del(self):
+        try:
+            if _orig_stdio_del:
+                _orig_stdio_del(self)
+        except RuntimeError as exc:  # pragma: no cover - best effort guard
+            if "Event loop is closed" in str(exc):
+                LOGGER.debug("Suppressed closed-loop warning in StdioTransport.__del__")
+                return
+            raise
+        except Exception as exc:  # pragma: no cover - best effort guard
+            LOGGER.debug("Suppressed StdioTransport.__del__ error: %s", exc)
+
+    if _orig_stdio_del:
+        StdioTransport.__del__ = _safe_stdio_del  # type: ignore
+except Exception as exc:  # pragma: no cover - defensive
+    LOGGER.warning("Failed to patch StdioTransport destructor: %s", exc)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
@@ -47,6 +70,10 @@ KB_CHUNKS_DIR = KB_ROOT / "chunks"
 KB_INDEX_DIR = KB_ROOT / "index"
 KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
 MAX_COLLECTION_NAME_LEN = 255
+
+# 默认 Session 保活时长，可通过环境变量覆盖；设置为 <=0 时表示不自动过期
+SESSION_TIMEOUT_SECONDS = int(os.getenv("ULTRARAG_SESSION_TIMEOUT", "86400"))
+BACKGROUND_SESSION_TIMEOUT_SECONDS = int(os.getenv("ULTRARAG_BG_SESSION_TIMEOUT", "172800"))
 
 
 def _secure_filename_unicode(filename: str) -> str:
@@ -389,16 +416,18 @@ class DemoSession:
         return False
 
 class SessionManager:
-    def __init__(self, timeout_seconds: int = 1800): 
+    def __init__(self, timeout_seconds: int | None = 1800): 
         self._sessions: Dict[str, DemoSession] = {}
         self._lock = threading.Lock()
 
-        self.timeout = timeout_seconds
-        self._cleaner_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
-        self._cleaner_thread.start()
+        self.timeout = timeout_seconds if timeout_seconds and timeout_seconds > 0 else None
+        self._cleaner_thread = None
+        if self.timeout:
+            self._cleaner_thread = threading.Thread(target=self._cleanup_loop, daemon=True)
+            self._cleaner_thread.start()
 
     def _cleanup_loop(self):
-        while True:
+        while self.timeout:
             time.sleep(60)
             try:
                 self._check_timeouts()
@@ -406,6 +435,8 @@ class SessionManager:
                 LOGGER.error(f"Error in session cleanup loop: {e}")
 
     def _check_timeouts(self):
+        if self.timeout is None:
+            return
         now = time.time()
         ids_to_remove = []
         
@@ -445,7 +476,7 @@ class SessionManager:
         if session:
             session.stop()
 
-SESSION_MANAGER = SessionManager(timeout_seconds=3600)
+SESSION_MANAGER = SessionManager(timeout_seconds=SESSION_TIMEOUT_SECONDS)
 
 # ===== Background Chat Task Manager =====
 # 用于管理后台运行的聊天任务
@@ -1369,7 +1400,7 @@ def interrupt_chat(session_id: str):
 # ===== Background Chat Execution =====
 
 # 专门用于后台任务的 Session 管理器（独立于前台）
-BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=7200)  # 后台任务 session 保持更长时间
+BACKGROUND_SESSION_MANAGER = SessionManager(timeout_seconds=BACKGROUND_SESSION_TIMEOUT_SECONDS)  # 后台任务 session 保持更长时间
 
 def run_background_chat(name: str, question: str, session_id: str, dynamic_params: Dict[str, Any] = None, user_id: str = "") -> str:
     """
