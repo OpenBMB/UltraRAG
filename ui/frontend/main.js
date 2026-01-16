@@ -4919,6 +4919,20 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// 清除知识库选择
+window.clearKbSelection = function(e) {
+    if (e) e.stopPropagation();
+    const hiddenSelect = document.getElementById('chat-collection-select');
+    if (hiddenSelect) {
+        hiddenSelect.value = "";
+    }
+    // 模拟选择空项
+    const mockItem = document.createElement('div');
+    mockItem.dataset.value = "";
+    mockItem.dataset.label = "Knowledge Base";
+    selectKbOption(mockItem);
+};
+
 // 选择知识库选项
 window.selectKbOption = function(itemEl) {
     const value = itemEl.dataset.value;
@@ -4927,12 +4941,20 @@ window.selectKbOption = function(itemEl) {
     const trigger = document.getElementById('kb-dropdown-trigger');
     const label = document.getElementById('kb-label-text');
     const hiddenSelect = document.getElementById('chat-collection-select');
+    const clearBtn = document.getElementById('kb-clear-btn');
     
     // 更新所有选项的选中状态
     menu.querySelectorAll('.kb-dropdown-item').forEach(item => {
         item.classList.remove('selected');
     });
-    itemEl.classList.add('selected');
+    // 只有当 itemEl 真实存在于 menu 中时才添加 selected 类（避免 mockItem 报错）
+    if (itemEl.parentNode === menu) {
+        itemEl.classList.add('selected');
+    } else if (value) {
+        // 如果是 mockItem 但有 value，尝试在 menu 中找到对应项并选中
+        const target = menu.querySelector(`.kb-dropdown-item[data-value="${value}"]`);
+        if (target) target.classList.add('selected');
+    }
     
     // 更新隐藏的 select 值
     if (hiddenSelect) {
@@ -4943,9 +4965,11 @@ window.selectKbOption = function(itemEl) {
     if (value) {
         label.textContent = labelText;
         trigger.classList.add('active');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
     } else {
         label.textContent = "Knowledge Base";
         trigger.classList.remove('active');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
     
     // 关闭下拉菜单
@@ -4961,12 +4985,7 @@ function renderKbDropdownOptions(collections) {
     const currentVal = hiddenSelect ? hiddenSelect.value : '';
     
     // 清空并重建选项
-    menu.innerHTML = `
-        <div class="kb-dropdown-item ${!currentVal ? 'selected' : ''}" data-value="" onclick="selectKbOption(this)">
-            <span class="kb-item-check">✓</span>
-            <span class="kb-item-text">No Knowledge Base</span>
-        </div>
-    `;
+    menu.innerHTML = '';
     
     collections.forEach(c => {
         const isSelected = c.name === currentVal;
@@ -4999,15 +5018,22 @@ function renderKbDropdownOptions(collections) {
     // 更新触发器显示状态
     const trigger = document.getElementById('kb-dropdown-trigger');
     const label = document.getElementById('kb-label-text');
+    const clearBtn = document.getElementById('kb-clear-btn');
     if (currentVal && trigger) {
         const selectedCollection = collections.find(c => c.name === currentVal);
         if (selectedCollection) {
             label.textContent = selectedCollection.display_name || selectedCollection.name;
             trigger.classList.add('active');
+            if (clearBtn) clearBtn.style.display = 'inline-flex';
         } else {
             label.textContent = "Knowledge Base";
             trigger.classList.remove('active');
+            if (clearBtn) clearBtn.style.display = 'none';
         }
+    } else if (trigger) {
+        label.textContent = "Knowledge Base";
+        trigger.classList.remove('active');
+        if (clearBtn) clearBtn.style.display = 'none';
     }
 }
 
