@@ -4058,6 +4058,9 @@ function setMode(mode) {
   if (aiContainer) {
     aiContainer.classList.toggle('d-none', mode === Modes.CHAT);
   }
+
+  // 同步后台任务控件的可见性（仅 Chat 模式显示）
+  scheduleBackgroundTaskVisibilitySync();
 }
 
 // ... (Node Picker Helpers - keep same) ...
@@ -5249,10 +5252,39 @@ const backgroundTaskState = {
     notifiedTasks: new Set(), // Already notified task IDs
     backgroundModeEnabled: false, // Whether background mode is active
     cachedTasks: [], // Cached completed tasks from localStorage
+    detailLoadingTaskId: null,
+    loadToChatTaskId: null,
+    loadToChatTarget: null,
 };
 
 // LocalStorage key for background tasks
 const BG_TASKS_STORAGE_KEY = 'ultrarag_background_tasks';
+
+// Schedule background task UI visibility sync to avoid TDZ issues
+function scheduleBackgroundTaskVisibilitySync() {
+    if (typeof setTimeout === 'function') {
+        setTimeout(syncBackgroundTasksVisibility, 0);
+    }
+}
+
+// Ensure background task controls only appear in Chat mode
+function syncBackgroundTasksVisibility() {
+    const fab = document.getElementById('bg-tasks-fab');
+    const countEl = document.getElementById('bg-tasks-count');
+    const panel = document.getElementById('background-tasks-panel');
+    if (!fab || !countEl || !panel) return;
+
+    const isChatMode = state.mode === Modes.CHAT;
+    if (!isChatMode) {
+        fab.classList.add('d-none');
+        countEl.classList.add('d-none');
+        panel.classList.add('d-none');
+        backgroundTaskState.panelOpen = false;
+        return;
+    }
+
+    updateBackgroundTasksCount();
+}
 
 // Load cached background tasks from localStorage
 function loadCachedBackgroundTasks() {
@@ -5383,6 +5415,11 @@ async function requestBrowserNotification(title, message) {
 
 // Toggle background tasks panel
 window.toggleBackgroundPanel = function() {
+    if (state.mode !== Modes.CHAT) {
+        showNotification('info', 'Background Tasks', 'Please switch to Chat to view background tasks.');
+        return;
+    }
+
     const panel = document.getElementById('background-tasks-panel');
     if (!panel) return;
     
@@ -5488,6 +5525,13 @@ function updateBackgroundTasksCount() {
     const countEl = document.getElementById('bg-tasks-count');
     const fab = document.getElementById('bg-tasks-fab');
     if (!countEl || !fab) return;
+
+    const isChatMode = state.mode === Modes.CHAT;
+    if (!isChatMode) {
+        countEl.classList.add('d-none');
+        fab.classList.add('d-none');
+        return;
+    }
     
     const runningCount = backgroundTaskState.tasks.filter(t => t.status === 'running').length;
     
@@ -5503,8 +5547,56 @@ function updateBackgroundTasksCount() {
     }
 }
 
+function renderTaskDetailLoading(modal, message = 'Loading task details...') {
+    if (!modal) return;
+    modal.innerHTML = `
+        <div style="padding: 32px; text-align: center;">
+            <div class="spinner-border" style="color: #3b82f6; width: 2.5rem; height: 2.5rem;" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div style="margin-top: 16px; color: var(--text-secondary);">${escapeHtml(message)}</div>
+        </div>
+    `;
+}
+
+function setLoadButtonsLoading(taskId, isLoading, target) {
+    const selector = target 
+        ? `[data-task-id="${taskId}"][data-load-target="${target}"]`
+        : `[data-task-id="${taskId}"][data-load-target]`;
+    document.querySelectorAll(selector).forEach(btn => {
+        if (!(btn instanceof HTMLElement)) return;
+        if (isLoading) {
+            btn.dataset.originalText = btn.dataset.originalText || btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${btn.dataset.loadTarget === 'new' ? 'Loading to new chat...' : 'Loading to chat...'}`;
+        } else {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            if (btn.dataset.originalText) {
+                btn.innerHTML = btn.dataset.originalText;
+            }
+        }
+    });
+}
+
 // Show background task detail
 window.showBackgroundTaskDetail = async function(taskId) {
+    if (backgroundTaskState.detailLoadingTaskId) return;
+
+    // Create or get detail modal early and show loading state
+    let modal = document.getElementById('bg-task-detail-modal');
+    if (!modal) {
+        modal = document.createElement('dialog');
+        modal.id = 'bg-task-detail-modal';
+        modal.className = 'bg-task-detail-modal';
+        document.body.appendChild(modal);
+    }
+
+    renderTaskDetailLoading(modal, 'Loading task details...');
+    modal.showModal();
+    backgroundTaskState.detailLoadingTaskId = taskId;
+
     try {
         // Try to get from server first, fallback to cache
         let task;
@@ -5519,20 +5611,12 @@ window.showBackgroundTaskDetail = async function(taskId) {
             }
             if (!task) {
                 showNotification('error', 'Error', 'Task not found');
+                if (modal) modal.close();
+                backgroundTaskState.detailLoadingTaskId = null;
                 return;
             }
         }
-        
-        // Create or get detail modal
-        let modal = document.getElementById('bg-task-detail-modal');
-        if (!modal) {
-            modal = document.createElement('dialog');
-            modal.id = 'bg-task-detail-modal';
-            modal.className = 'bg-task-detail-modal';
-            document.body.appendChild(modal);
-        }
-        
-        const statusClass = task.status === 'completed' ? 'success' : task.status === 'failed' ? 'error' : 'info';
+
         const statusText = task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed';
         
         modal.innerHTML = `
@@ -5567,10 +5651,11 @@ window.showBackgroundTaskDetail = async function(taskId) {
                         <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">Processing your request...</div>
                     </div>
                 `}
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
-                        <button class="btn btn-outline-secondary" onclick="loadTaskToChat('${taskId}')">Load to Chat</button>
+                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">Load to Current Chat</button>
+                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">Load to New Chat</button>
                     ` : ''}
                     <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
                 </div>
@@ -5594,6 +5679,9 @@ window.showBackgroundTaskDetail = async function(taskId) {
         }
     } catch (e) {
         console.error('Failed to load task detail:', e);
+        renderTaskDetailLoading(modal, 'Failed to load task details.');
+    } finally {
+        backgroundTaskState.detailLoadingTaskId = null;
     }
 };
 
@@ -5620,7 +5708,13 @@ window.copyTaskResult = async function(taskId) {
 };
 
 // Load task result to chat
-window.loadTaskToChat = async function(taskId) {
+window.loadTaskToChat = async function(taskId, target = 'current') {
+    if (backgroundTaskState.loadToChatTaskId) return;
+
+    backgroundTaskState.loadToChatTaskId = taskId;
+    backgroundTaskState.loadToChatTarget = target;
+    setLoadButtonsLoading(taskId, true, target);
+
     try {
         // Try server first, fallback to cache
         let task;
@@ -5632,35 +5726,68 @@ window.loadTaskToChat = async function(taskId) {
                    backgroundTaskState.tasks.find(t => t.task_id === taskId);
         }
         
-        if (!task || task.status !== 'completed') return;
+        if (!task || task.status !== 'completed') {
+            showNotification('error', 'Not Ready', 'This task has not finished yet.');
+            return;
+        }
+
+        // Ensure we are in Chat view before injecting messages
+        if (state.mode !== Modes.CHAT) {
+            await safeOpenChatView();
+            if (state.mode !== Modes.CHAT) {
+                showNotification('error', 'Chat Unavailable', 'Please switch to Chat to load the result.');
+                return;
+            }
+        }
+
+        if (target === 'new') {
+            if (state.chat.history.length > 0) {
+                saveCurrentSession(true);
+            }
+            createNewChatSession();
+        } else if (!state.chat.currentSessionId) {
+            createNewChatSession();
+        }
         
-        // Close modal
-        const modal = document.getElementById('bg-task-detail-modal');
-        if (modal) modal.close();
-        
-        // Add to chat history
+        const createdAt = task.created_at ? new Date(task.created_at * 1000).toISOString() : new Date().toISOString();
+        const completedAt = task.completed_at ? new Date(task.completed_at * 1000).toISOString() : new Date().toISOString();
+
         state.chat.history.push({ 
             role: 'user', 
             text: task.full_question || task.question,
-            timestamp: new Date(task.created_at * 1000).toISOString()
+            timestamp: createdAt
         });
         state.chat.history.push({ 
             role: 'assistant', 
             text: task.result || '',
             meta: { sources: task.sources || [] },
-            timestamp: new Date(task.completed_at * 1000).toISOString()
+            timestamp: completedAt
         });
         
         // Save and render
-        saveCurrentSession();
+        saveCurrentSession(true);
         renderChatHistory();
+        renderChatSidebar();
+        backToChatView();
+        updateChatIdleStatus();
+
+        // Close background panel if open
+        if (backgroundTaskState.panelOpen) {
+            toggleBackgroundPanel();
+        }
+
+        // Close modal after successful load
+        const modal = document.getElementById('bg-task-detail-modal');
+        if (modal) modal.close();
         
-        // Close background panel
-        toggleBackgroundPanel();
-        
-        showNotification('success', 'Loaded', 'Background task result loaded to current chat');
+        showNotification('success', 'Loaded', target === 'new' ? 'Background task loaded to a new chat' : 'Background task loaded to the current chat');
     } catch (e) {
         console.error('Failed to load task to chat:', e);
+        showNotification('error', 'Load Failed', e.message || 'Unable to load task into chat.');
+    } finally {
+        backgroundTaskState.loadToChatTaskId = null;
+        backgroundTaskState.loadToChatTarget = null;
+        setLoadButtonsLoading(taskId, false, target);
     }
 };
 
@@ -5703,6 +5830,15 @@ window.deleteBackgroundTask = async function(taskId) {
 // Clear completed tasks
 window.clearCompletedTasks = async function() {
     try {
+        const confirmed = await showConfirm("This will remove all completed background tasks. Continue?", {
+            title: "Clear Completed Tasks",
+            type: "warning",
+            confirmText: "Clear",
+            cancelText: "Cancel",
+            danger: true
+        });
+        if (!confirmed) return;
+
         // Try to clear from server
         let serverCount = 0;
         const userId = getUserId();
