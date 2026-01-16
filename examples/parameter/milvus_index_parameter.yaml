@@ -1,0 +1,55 @@
+retriever:
+  backend: sentence_transformers
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_url: https://api.openai.com/v1
+      model_name: text-embedding-3-small
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  embedding_path: embedding/embedding.npy
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  overwrite: false

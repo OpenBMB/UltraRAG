@@ -1,0 +1,8 @@
+corpus:
+  parameter: servers/corpus/parameter.yaml
+  path: servers/corpus/src/corpus.py
+  tools:
+    build_text_corpus:
+      input:
+        parse_file_path: $parse_file_path
+        text_corpus_save_path: $text_corpus_save_path
