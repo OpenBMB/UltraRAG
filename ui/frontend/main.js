@@ -1683,6 +1683,51 @@ async function stopEngine(options = {}) {
     updateDemoControls();
 }
 
+// 4. 校验/恢复引擎（自动重连）
+async function ensureEngineReady(pipelineName, options = {}) {
+    const { forceRestart = false } = options;
+    if (!pipelineName) return false;
+
+    // 如果有缓存的 session id，先同步到状态
+    const cachedSid = state.chat.activeEngines?.[pipelineName];
+    if (!state.chat.engineSessionId && cachedSid) {
+        state.chat.engineSessionId = cachedSid;
+    }
+
+    // 尝试验证现有 session
+    if (!forceRestart && state.chat.engineSessionId) {
+        const ok = await verifyEngineSession(state.chat.engineSessionId);
+        if (ok) {
+            setChatStatus("Ready", "ready");
+            updateDemoControls();
+            return true;
+        }
+
+        // 当前 session 已失效，清理缓存
+        const currentName = Object.keys(state.chat.activeEngines || {}).find(
+            key => state.chat.activeEngines[key] === state.chat.engineSessionId
+        );
+        if (currentName) delete state.chat.activeEngines[currentName];
+        state.chat.engineSessionId = null;
+        persistActiveEngines();
+        setChatStatus("Reconnecting...", "warn");
+    }
+
+    await startEngine(pipelineName);
+    return Boolean(state.chat.engineSessionId);
+}
+
+async function verifyEngineSession(sessionId) {
+    if (!sessionId) return false;
+    try {
+        const res = await fetch(`/api/pipelines/chat/history?session_id=${encodeURIComponent(sessionId)}`);
+        if (res.ok) return true;
+    } catch (e) {
+        console.warn("Engine session verification failed:", e);
+    }
+    return false;
+}
+
 // 3. 原来的 toggle 函数保留作为兼容，或者直接废弃
 // (这里留着是为了防止 HTML 里有 onclick 报错，但实际上我们不再点它了)
 async function toggleDemoSession() {
@@ -1826,6 +1871,17 @@ async function renderChatPipelineMenu() {
     
     // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline
     const readyPipelines = pipelines.filter(p => p.is_ready);
+
+    // 如果当前还没有选中的 Pipeline，自动选择第一个可用的并加载
+    if (!state.selectedPipeline && readyPipelines.length > 0) {
+        const defaultName = readyPipelines[0].name;
+        try {
+            await loadPipeline(defaultName, { ignoreUnsaved: true });
+            state.selectedPipeline = defaultName;
+        } catch (e) {
+            console.warn("Auto-select pipeline failed:", e);
+        }
+    }
 
     if (readyPipelines.length === 0) {
         els.chatPipelineMenu.innerHTML = '<li class="dropdown-item text-muted small">No ready pipelines</li>';
@@ -2457,10 +2513,10 @@ async function safeOpenChatView() {
     const proceed = await confirmUnsavedChanges("enter Chat mode");
     if (!proceed) return;
   }
-  openChatView();
+  await openChatView();
 }
 
-function openChatView() {
+async function openChatView() {
   if (!canUseChat()) { 
     log("Please build and save parameters first."); 
     showModal("Please build and save parameters before entering Chat.", { title: "Pipeline not ready", type: "warning" });
@@ -2468,10 +2524,10 @@ function openChatView() {
   }
   if (els.chatPipelineName) els.chatPipelineName.textContent = state.selectedPipeline || "—";
 
-  renderChatPipelineMenu();
+  await renderChatPipelineMenu();
 
   // [新增] 进入聊天时，加载最新的 Collection 列表
-  renderChatCollectionOptions();
+  await renderChatCollectionOptions();
   
   if (!state.chat.currentSessionId) createNewChatSession();
   
@@ -2482,13 +2538,11 @@ function openChatView() {
 
   backToChatView();
   
-  // [核心新增] 进入界面时，如果没有引擎在跑，就自动跑起来
-    if (!state.chat.engineSessionId && state.selectedPipeline) {
-        startEngine(state.selectedPipeline);
-    } else {
-        // 如果已经在跑，更新一下 UI 状态
-        updateDemoControls();
-    }
+  // [核心新增] 进入界面时确保引擎可用（必要时自动重连/重启）
+  if (state.selectedPipeline) {
+      await ensureEngineReady(state.selectedPipeline);
+  }
+  updateDemoControls();
 
   // Initialize background tasks
   initBackgroundTasks();
@@ -3038,7 +3092,11 @@ async function handleChatSubmit(event) {
   if (event) event.preventDefault();
   if (state.chat.running) { await stopGeneration(); return; }
   if (!canUseChat()) return;
-  if (!state.chat.engineSessionId) { showModal("Please start the engine first.", { title: "Engine Required", type: "warning" }); return; }
+  const engineReady = await ensureEngineReady(state.selectedPipeline);
+  if (!engineReady) { 
+    showModal("Please start the engine first.", { title: "Engine Required", type: "warning" }); 
+    return; 
+  }
 
   const question = els.chatInput.value.trim();
   if (!question) return;
@@ -5776,10 +5834,17 @@ async function initChatOnlyView() {
       }
   }
   
-  // 6. 更新 Demo 控制按钮状态
+  // 6. 确保引擎已就绪（若未启动则自动启动）
+  if (state.selectedPipeline) {
+      await ensureEngineReady(state.selectedPipeline);
+  } else {
+      updateChatIdleStatus();
+  }
+
+  // 7. 更新 Demo 控制按钮状态
   updateDemoControls();
   
-  // 7. Initialize background tasks state
+  // 8. Initialize background tasks state
   initBackgroundTasks();
 }
 
