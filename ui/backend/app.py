@@ -124,6 +124,17 @@ def create_app(admin_mode: bool = False) -> Flask:
         yaml_content = request.get_data(as_text=True)
         return jsonify(pm.save_pipeline_yaml(name, yaml_content))
 
+    @app.route("/api/pipelines/parse", methods=["POST"])
+    def parse_pipeline_yaml():
+        """解析任意 YAML 文本，返回结构化数据（供前端校验/同步画布）"""
+        yaml_content = request.get_data(as_text=True)
+        parsed = pm.parse_pipeline_yaml_content(yaml_content)
+
+        # 同时返回原始文本，便于前端保持一致
+        if isinstance(parsed, dict):
+            parsed["_raw_yaml"] = yaml_content
+        return jsonify(parsed)
+
     @app.route("/api/pipelines/<string:name>", methods=["GET"])
     def get_pipeline(name: str):
         return jsonify(pm.load_pipeline(name))

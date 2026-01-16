@@ -205,6 +205,9 @@ const els = {
   // --- [End] Console Elements ---
 };
 
+// 缓存 Build 按钮的初始内容，便于状态切换后恢复
+let buildBtnDefaultHtml = els.buildPipeline ? els.buildPipeline.innerHTML : "";
+
 const Modes = {
   BUILDER: "builder",
   PARAMETERS: "parameters",
@@ -950,6 +953,44 @@ function log(message) {
   const msg = `> [${stamp}] ${message}`;
   if (els.log) { els.log.textContent += msg + "\n"; els.log.scrollTop = els.log.scrollHeight; }
   console.log(msg);
+}
+
+function expandConsole() {
+  if (els.canvasConsole) {
+      els.canvasConsole.classList.remove("collapsed");
+  }
+}
+
+function setBuildButtonState(state = "idle", label = "") {
+  if (!els.buildPipeline) return;
+  if (!buildBtnDefaultHtml) buildBtnDefaultHtml = els.buildPipeline.innerHTML;
+
+  const reset = () => {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = buildBtnDefaultHtml;
+  };
+
+  if (state === "running") {
+      els.buildPipeline.disabled = true;
+      els.buildPipeline.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${label || "Building..."}`;
+      return;
+  }
+
+  if (state === "success") {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = `<span class="text-success me-1">✓</span>${label || "Build Success"}`;
+      setTimeout(reset, 1200);
+      return;
+  }
+
+  if (state === "error") {
+      els.buildPipeline.disabled = false;
+      els.buildPipeline.innerHTML = `<span class="text-danger me-1">⚠</span>${label || "Build Failed"}`;
+      setTimeout(reset, 1800);
+      return;
+  }
+
+  reset();
 }
 
 function markUnsavedChanges() {
@@ -3214,18 +3255,45 @@ function yamlStringify(value, indent = 0, isArrayItem = false) {
     
     return `${itemPad}${yamlScalar(value)}`;
 }
+function isToolConfigStep(step) {
+    if (!step || typeof step !== "object" || Array.isArray(step)) return false;
+    if (step.loop || step.branch) return false;
+    const keys = Object.keys(step);
+    return keys.length === 1 && typeof keys[0] === "string";
+}
+
 function collectServersFromSteps(steps, set = new Set()) {
-    for (const step of steps) {
-        if (typeof step === "string") { const parts = step.split("."); if (parts.length > 1) set.add(parts[0]); }
-        else if (step && typeof step === "object") {
+    for (const step of steps || []) {
+        if (typeof step === "string") {
+            const parts = step.split(".");
+            if (parts.length > 1) set.add(parts[0]);
+        } else if (isToolConfigStep(step)) {
+            const toolName = Object.keys(step)[0];
+            const server = toolName.split(".")[0];
+            if (server) set.add(server);
+        } else if (step && typeof step === "object") {
             if (step.loop && Array.isArray(step.loop.steps)) collectServersFromSteps(step.loop.steps, set);
-            else if (step.branch) { collectServersFromSteps(step.branch.router || [], set); Object.values(step.branch.branches || {}).forEach(bs => collectServersFromSteps(bs || [], set)); }
+            else if (step.branch) {
+                collectServersFromSteps(step.branch.router || [], set);
+                Object.values(step.branch.branches || {}).forEach(bs => collectServersFromSteps(bs || [], set));
+            }
         }
     }
     return set;
 }
-function buildServersMapping(steps) { const mapping = {}; collectServersFromSteps(steps, new Set()).forEach((name) => { mapping[name] = `servers/${name}`; }); return mapping; }
-function buildPipelinePayloadForPreview() { return { servers: buildServersMapping(state.steps), pipeline: cloneDeep(state.steps) }; }
+
+function buildServersMapping(steps) {
+    const mapping = {};
+    collectServersFromSteps(steps, new Set()).forEach((name) => { mapping[name] = `servers/${name}`; });
+    return mapping;
+}
+
+function buildPipelinePayloadForPreview() {
+    const derivedServers = buildServersMapping(state.steps);
+    const baseServers = (state.pipelineConfig && typeof state.pipelineConfig === "object" && state.pipelineConfig.servers) ? state.pipelineConfig.servers : {};
+    const mergedServers = { ...derivedServers, ...(baseServers || {}) };
+    return { servers: cloneDeep(mergedServers), pipeline: cloneDeep(state.steps) };
+}
 
 // =========================================
 // YAML Editor Sync System
@@ -3414,6 +3482,31 @@ function parseSimpleYaml(yamlStr) {
   return result;
 }
 
+async function parseYamlContent(yamlStr) {
+  if (!yamlStr || !yamlStr.trim()) return {};
+  try {
+      const resp = await fetch("/api/pipelines/parse", {
+          method: "POST",
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+          body: yamlStr
+      });
+      if (!resp.ok) {
+          const detailText = await resp.text();
+          let message = detailText;
+          try {
+              const parsedErr = JSON.parse(detailText);
+              if (parsedErr && parsedErr.error) message = parsedErr.error;
+          } catch (_) {}
+          throw new Error(message || `Parse failed (${resp.status})`);
+      }
+      return await resp.json();
+  } catch (err) {
+      console.warn("Server YAML parse failed, fallback to simple parser:", err);
+      // 尝试使用前端简化解析器作为兜底
+      return parseSimpleYaml(yamlStr);
+  }
+}
+
 function extractStepsFromParsedYaml(parsed) {
   let newSteps = [];
   if (Array.isArray(parsed)) {
@@ -3433,21 +3526,21 @@ function extractStepsFromParsedYaml(parsed) {
   return newSteps;
 }
 
-function validateYamlEditorContent(options = {}) {
+async function validateYamlEditorContent(options = {}) {
   const { showModalOnError = false } = options;
-  if (!els.yamlEditor) return { valid: true, content: '', steps: [] };
+  if (!els.yamlEditor) return { valid: true, content: '', steps: [], parsed: {} };
 
-  const yamlContent = els.yamlEditor.value.trim();
-  if (!yamlContent) {
+  const yamlContent = els.yamlEditor.value;
+  if (!yamlContent.trim()) {
     showYamlError(null);
-    return { valid: true, content: '', steps: [] };
+    return { valid: true, content: '', steps: [], parsed: {} };
   }
 
   try {
-    const parsed = parseSimpleYaml(yamlContent);
+    const parsed = await parseYamlContent(yamlContent);
     const steps = extractStepsFromParsedYaml(parsed);
     showYamlError(null);
-    return { valid: true, content: yamlContent, steps };
+    return { valid: true, content: yamlContent, steps, parsed };
   } catch (err) {
     const message = err?.message ? String(err.message) : "YAML parse failed";
     showYamlError(message);
@@ -3464,14 +3557,15 @@ function validateYamlEditorContent(options = {}) {
  * 保留编辑器内容（含注释），不反向覆盖
  */
 function syncYamlToCanvas() {
-  syncYamlToCanvasOnly();
+  return syncYamlToCanvasOnly();
 }
 
 /**
  * 只同步到画布，不触发任何编辑器更新
  * 这样可以保留编辑器中的注释等内容
  */
-function syncYamlToCanvasOnly() {
+async function syncYamlToCanvasOnly(options = {}) {
+  const { markUnsaved = true } = options;
   if (!els.yamlEditor) return;
   
   const yamlContent = els.yamlEditor.value;
@@ -3479,9 +3573,8 @@ function syncYamlToCanvasOnly() {
   // 空内容时清空画布
   if (!yamlContent.trim()) {
     yamlEditorSyncLock = true;
-    state.steps = [];
-    resetContextStack();
-    renderSteps();
+    state.pipelineConfig = { servers: {}, pipeline: [], _raw_yaml: "" };
+    setSteps([], { markUnsaved, skipPreview: true });
     showYamlError(null);
     setYamlSyncStatus('synced');
     yamlEditorSyncLock = false;
@@ -3492,18 +3585,21 @@ function syncYamlToCanvasOnly() {
   try {
     setYamlSyncStatus('syncing');
 
-    const validation = validateYamlEditorContent();
+    const validation = await validateYamlEditorContent();
     if (!validation.valid) {
       yamlEditorSyncLock = false;
       return;
     }
-    const newSteps = validation.steps;
 
-    // 更新画布 (锁定防止循环，不触发 updatePipelinePreview)
+    const newSteps = validation.steps;
+    const parsedConfig = (validation.parsed && typeof validation.parsed === "object" && !Array.isArray(validation.parsed))
+        ? { ...validation.parsed }
+        : { pipeline: newSteps };
+    parsedConfig._raw_yaml = yamlContent;
+
     yamlEditorSyncLock = true;
-    state.steps = cloneDeep(newSteps);
-    resetContextStack();
-    renderSteps();
+    state.pipelineConfig = parsedConfig;
+    setSteps(newSteps, { markUnsaved, skipPreview: true });
     showYamlError(null);
     setYamlSyncStatus('synced');
     yamlEditorSyncLock = false;
@@ -3531,7 +3627,12 @@ function updatePipelinePreview() {
   if (els.yamlEditor && !yamlEditorSyncLock) {
     yamlEditorSyncLock = true;
     
-    const yamlContent = yamlStringify(buildPipelinePayloadForPreview());
+    const payload = buildPipelinePayloadForPreview();
+    const yamlContent = yamlStringify(payload);
+    if (!state.pipelineConfig || typeof state.pipelineConfig !== "object") {
+        state.pipelineConfig = {};
+    }
+    state.pipelineConfig._raw_yaml = yamlContent;
     els.yamlEditor.value = yamlContent;
     updateYamlLineNumbers();
     showYamlError(null);
@@ -3827,8 +3928,20 @@ function markPipelineDirty() {
     updateActionButtons(); 
 }
 function setSteps(steps, options = {}) { 
-    const { markUnsaved = false } = options;
+    const { markUnsaved = false, skipPreview = false, snapshotContent } = options;
     state.steps = Array.isArray(steps) ? cloneDeep(steps) : []; 
+    
+    // 同步 pipeline 配置，保留原有额外字段（如 _raw_yaml）
+    const derivedServers = buildServersMapping(state.steps);
+    if (!state.pipelineConfig || typeof state.pipelineConfig !== "object") {
+        state.pipelineConfig = {
+            servers: cloneDeep(derivedServers),
+            pipeline: cloneDeep(state.steps),
+        };
+    } else {
+        state.pipelineConfig.pipeline = cloneDeep(state.steps);
+        state.pipelineConfig.servers = { ...derivedServers, ...(state.pipelineConfig.servers || {}) };
+    }
     
     state.parameterData = null; 
     state.isBuilt = false; 
@@ -3842,12 +3955,14 @@ function setSteps(steps, options = {}) {
     
     resetContextStack(); 
     renderSteps(); 
-    updatePipelinePreview(); 
+    if (!skipPreview) updatePipelinePreview(); 
     updateActionButtons();
 
     if (!markUnsaved) {
         // After programmatic updates, align saved snapshot if appropriate
-        const currentYaml = els.yamlEditor ? els.yamlEditor.value : yamlStringify(buildPipelinePayloadForPreview());
+        const currentYaml = snapshotContent !== undefined
+            ? snapshotContent
+            : (els.yamlEditor ? els.yamlEditor.value : yamlStringify(buildPipelinePayloadForPreview()));
         snapshotSavedYaml(currentYaml);
     }
 }
@@ -3882,11 +3997,30 @@ function createInsertControl(location, insertIndex, { prominent = false, compact
 }
 
 // ... (Render Helpers - Tool/Loop/Branch Nodes - keep same) ...
-function renderToolNode(identifier, stepPath) {
+function truncateText(text, maxLen = 160) {
+  if (!text) return "";
+  return text.length > maxLen ? text.slice(0, maxLen - 3) + "..." : text;
+}
+
+function summarizeToolConfig(config) {
+  if (!config || typeof config !== "object") return "";
+  const parts = [];
+  if (config.input) parts.push(`input: ${truncateText(JSON.stringify(config.input))}`);
+  if (config.output) parts.push(`output: ${truncateText(JSON.stringify(config.output))}`);
+  if (config.branch) parts.push("branch");
+  if (config.loop) parts.push("loop");
+  if (!parts.length) {
+      const raw = truncateText(JSON.stringify(config));
+      return raw === "{}" ? "" : raw;
+  }
+  return parts.join(" | ");
+}
+
+function renderToolNode(identifier, stepPath, meta = {}) {
   const card = document.createElement("div"); card.className = "flow-node";
   const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
   const title = document.createElement("h6"); title.className = "flow-node-title"; title.textContent = identifier; header.appendChild(title);
-  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = identifier;
+  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = meta.description || identifier;
   const actions = document.createElement("div"); actions.className = "step-actions";
   const editBtn = document.createElement("button"); editBtn.className = "btn btn-outline-primary btn-sm me-1"; editBtn.textContent = "Edit"; editBtn.onclick = (e) => { e.stopPropagation(); openStepEditor(stepPath); };
   const removeBtn = document.createElement("button"); removeBtn.className = "btn btn-outline-danger btn-sm"; removeBtn.textContent = "Delete"; removeBtn.onclick = (e) => { e.stopPropagation(); removeStep(stepPath); };
@@ -3939,9 +4073,15 @@ function renderBranchNode(step, parentLocation, index) {
 function renderStepNode(step, parentLocation, index) {
   const stepPath = createStepPath(parentLocation, index);
   if (typeof step === "string") return renderToolNode(step, stepPath);
+  if (isToolConfigStep(step)) {
+      const toolName = Object.keys(step)[0];
+      const config = step[toolName];
+      const desc = summarizeToolConfig(config);
+      return renderToolNode(toolName, stepPath, { description: desc || toolName });
+  }
   if (step && typeof step === "object" && step.loop) return renderLoopNode(step, parentLocation, index);
   if (step && typeof step === "object" && step.branch) return renderBranchNode(step, parentLocation, index);
-  const card = renderToolNode("Custom Object", stepPath); card.querySelector(".flow-node-body").textContent = JSON.stringify(step); return card;
+  const card = renderToolNode("Custom Object", stepPath, { description: truncateText(JSON.stringify(step)) }); return card;
 }
 function renderStepList(steps, location, options = {}) {
   const safeSteps = Array.isArray(steps) ? steps : [];
@@ -4032,6 +4172,8 @@ async function loadPipeline(name, options = {}) {
         // [新增] 存储完整的 pipeline 配置（包括 servers）
         state.pipelineConfig = cfg;
 
+        const rawYaml = typeof cfg._raw_yaml === "string" ? cfg._raw_yaml : null;
+
         let safeSteps = [];
         
         if (Array.isArray(cfg)) {
@@ -4050,7 +4192,15 @@ async function loadPipeline(name, options = {}) {
             console.warn(`[Warn] Loaded pipeline '${name}' appears to be empty. Raw config:`, cfg);
         }
 
-        setSteps(safeSteps);
+        // 如果后端返回原始 YAML，则直接灌入编辑器，确保与文件一致
+        if (els.yamlEditor && rawYaml !== null) {
+            yamlEditorSyncLock = true;
+            els.yamlEditor.value = rawYaml;
+            updateYamlLineNumbers();
+            yamlEditorSyncLock = false;
+        }
+
+        setSteps(safeSteps, { skipPreview: Boolean(rawYaml), snapshotContent: rawYaml || undefined });
         clearUnsavedChanges();
         showYamlError(null);
         setYamlSyncStatus('synced');
@@ -4096,45 +4246,53 @@ async function checkPipelineReadiness(name) {
 
 
 
-function handleSubmit(e) {
+async function handleSubmit(e) {
     if (e) e.preventDefault(); 
     const name = els.name.value.trim(); 
     if (!name) return log("Pipeline name is required");
     
     // 获取编辑器中的 YAML 内容并校验
-    const validation = validateYamlEditorContent({ showModalOnError: true });
+    const validation = await validateYamlEditorContent({ showModalOnError: true });
     let yamlContent = validation.valid ? (validation.content || '') : null;
     if (yamlContent === null) {
         log("Save aborted due to YAML errors.");
         return;
     }
+
+    // 同步最新解析结果到内存，便于后续 build/preview
+    if (validation.parsed) {
+        const parsedCfg = (validation.parsed && typeof validation.parsed === "object" && !Array.isArray(validation.parsed))
+            ? { ...validation.parsed }
+            : { pipeline: validation.steps };
+        parsedCfg._raw_yaml = yamlContent;
+        state.pipelineConfig = parsedCfg;
+    }
     
     // 如果编辑器有内容，使用 YAML API 直接保存
     if (yamlContent) {
-        fetch(`/api/pipelines/${encodeURIComponent(name)}/yaml`, { 
-            method: "PUT", 
-            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-            body: yamlContent,
-        })
-        .then(res => {
+        try {
+            const res = await fetch(`/api/pipelines/${encodeURIComponent(name)}/yaml`, { 
+                method: "PUT", 
+                headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+                body: yamlContent,
+            });
             if (!res.ok) throw new Error(`Save failed: ${res.status}`);
-            return res.json();
-        })
-        .then(s => { 
+            await res.json();
+
             state.selectedPipeline = name; 
             refreshPipelines(); 
             log("Pipeline saved."); 
             setYamlSyncStatus('synced');
             snapshotSavedYaml(yamlContent);
             
-            // 保存成功后，自动同步画布（不覆盖编辑器）
-            syncYamlToCanvasOnly();
-        })
-        .catch(err => {
-            log(`Error: ${err.message}`);
-            showYamlError(err.message);
-            showModal(`Save failed: ${err.message}`, { title: "Save Error", type: "error" });
-        });
+            // 保存成功后，自动同步画布（不覆盖编辑器），但保持“已保存”状态
+            await syncYamlToCanvasOnly({ markUnsaved: false });
+        } catch (err) {
+            const msg = err?.message || "Unknown error";
+            log(`Error: ${msg}`);
+            showYamlError(msg);
+            showModal(`Save failed: ${msg}`, { title: "Save Error", type: "error" });
+        }
     } else {
         // 空内容，使用 JSON 方式保存
         saveWithJson(name);
@@ -4156,17 +4314,22 @@ function saveWithJson(name) {
     })
     .catch(e => log(e.message));
 }
-function buildSelectedPipeline() {
+async function buildSelectedPipeline() {
     if (state.unsavedChanges) {
         showModal("Please save the pipeline before building.", { title: "Unsaved changes", type: "warning" });
         return;
     }
     if(!state.selectedPipeline) return log("Please save the pipeline first.");
-    fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" })
-    .then(async () => { 
+    expandConsole();
+    setBuildButtonState("running");
+    log(`Building pipeline "${state.selectedPipeline}"...`);
+    try {
+        await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/build`, { method: "POST" });
+        
         state.isBuilt = true; 
         state.parametersReady = false; 
         updateActionButtons(); 
+        setBuildButtonState("success");
         log("Pipeline built."); 
         
         // 加载参数数据
@@ -4180,7 +4343,11 @@ function buildSelectedPipeline() {
         if (typeof switchWorkspaceMode === 'function') {
             switchWorkspaceMode('parameters');
         }
-    }).catch(e => log(e.message));
+    } catch (e) {
+        setBuildButtonState("error");
+        log(`Build failed: ${e.message}`);
+        showModal(`Build failed: ${e.message}`, { title: "Build Error", type: "error" });
+    }
 }
 async function deleteSelectedPipeline() {
     if(!state.selectedPipeline) return;
@@ -6987,7 +7154,7 @@ async function applyPipelineModification(action) {
     if (action.content) {
         yamlEditor.value = action.content;
         updateYamlLineNumbers();
-        syncYamlToCanvasOnly();
+        await syncYamlToCanvasOnly();
         
         // 自动保存
         if (state.selectedPipeline) {
