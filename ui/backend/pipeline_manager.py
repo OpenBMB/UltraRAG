@@ -1043,7 +1043,31 @@ def list_pipelines() -> List[Dict[str, Any]]:
 def load_pipeline(name: str) -> Dict:
     p = _find_pipeline_file(name)
     if not p: raise PipelineManagerError(f"Pipeline {name} not found")
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    yaml_text = p.read_text(encoding="utf-8")
+    data = yaml.safe_load(yaml_text) or {}
+
+    # 额外返回原始 YAML 文本，便于前端保持内容一致
+    if isinstance(data, dict):
+        data["_raw_yaml"] = yaml_text
+    else:
+        data = {"pipeline": data, "_raw_yaml": yaml_text}
+
+    return data
+
+
+def parse_pipeline_yaml_content(yaml_content: str) -> Dict:
+    """
+    解析任意 YAML 文本，返回安全的 Python 对象。
+    """
+    if yaml_content is None:
+        raise PipelineManagerError("YAML content is empty")
+
+    try:
+        parsed = yaml.safe_load(yaml_content)
+    except yaml.YAMLError as exc:
+        raise PipelineManagerError(f"Invalid YAML syntax: {exc}") from exc
+
+    return parsed or {}
 
 def save_pipeline(payload: Dict) -> Dict:
     name = payload.get("name")
