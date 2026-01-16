@@ -753,11 +753,58 @@ window.saveDbConfig = async function() {
 // --- Chunk Configuration Logic ---
 // ==========================================
 
-// 1. 定义默认配置状态
-let chunkConfigState = {
-    chunk_backend: "sentence",
-    tokenizer_or_token_counter: "character",
-    chunk_size: 512,
+const CHUNK_CONFIG_STORAGE_KEY = "ultrarag_chunk_config";
+const INDEX_CONFIG_STORAGE_KEY = "ultrarag_index_config";
+
+// 从 localStorage 加载 Chunk 配置
+function loadChunkConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(CHUNK_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load chunk config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Chunk 配置到 localStorage
+function persistChunkConfig() {
+    try {
+        localStorage.setItem(CHUNK_CONFIG_STORAGE_KEY, JSON.stringify(chunkConfigState));
+    } catch (e) {
+        console.warn("Failed to persist chunk config", e);
+    }
+}
+
+// 从 localStorage 加载 Embedding 配置
+function loadIndexConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(INDEX_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load index config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Embedding 配置到 localStorage
+function persistIndexConfig() {
+    try {
+        localStorage.setItem(INDEX_CONFIG_STORAGE_KEY, JSON.stringify(indexConfigState));
+    } catch (e) {
+        console.warn("Failed to persist index config", e);
+    }
+}
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let chunkConfigState = loadChunkConfigFromStorage() || {
+    chunk_backend: "token",
+    tokenizer_or_token_counter: "gpt2",
+    chunk_size: 500,
     use_title: true
 };
 
@@ -794,12 +841,68 @@ window.saveChunkConfig = function() {
         use_title: (useTitleStr === "true")
     };
 
+    // 持久化到 localStorage
+    persistChunkConfig();
+
     const modal = document.getElementById('chunk-config-modal');
     if (modal) modal.close();
     
-    // 可选：给个提示
-    // alert("Chunk configuration saved!"); 
-    console.log("Chunk Config Updated:", chunkConfigState);
+    console.log("Chunk Config Updated & Saved:", chunkConfigState);
+};
+
+// ==========================================
+// --- Index (Embedding) Configuration Logic ---
+// ==========================================
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let indexConfigState = loadIndexConfigFromStorage() || {
+    api_key: "",
+    base_url: "https://api.openai.com/v1",
+    model_name: "text-embedding-3-small"
+};
+
+// 2. 打开配置弹窗 (回显当前状态)
+window.openIndexConfigModal = function() {
+    const modal = document.getElementById('index-config-modal');
+    
+    // 回显数据
+    document.getElementById('cfg-emb-api-key').value = indexConfigState.api_key;
+    document.getElementById('cfg-emb-base-url').value = indexConfigState.base_url;
+    document.getElementById('cfg-emb-model-name').value = indexConfigState.model_name;
+    
+    if (modal) modal.showModal();
+};
+
+// 3. 保存配置
+window.saveIndexConfig = function() {
+    const apiKey = document.getElementById('cfg-emb-api-key').value.trim();
+    const baseUrl = document.getElementById('cfg-emb-base-url').value.trim();
+    const modelName = document.getElementById('cfg-emb-model-name').value.trim();
+
+    if (!baseUrl) {
+        showModal("Base URL is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    if (!modelName) {
+        showModal("Model Name is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    // 更新全局状态
+    indexConfigState = {
+        api_key: apiKey,
+        base_url: baseUrl,
+        model_name: modelName
+    };
+
+    // 持久化到 localStorage
+    persistIndexConfig();
+
+    const modal = document.getElementById('index-config-modal');
+    if (modal) modal.close();
+    
+    console.log("Index Config Updated & Saved:", indexConfigState);
 };
 
 // ==========================================
@@ -840,10 +943,14 @@ window.confirmIndexTask = function() {
     
     if (els.milvusDialog) els.milvusDialog.close();
     
-    // 发起任务
+    // 发起任务，传递 embedding 配置
     runKBTask('milvus_index', currentTargetFile, {
         collection_name: collName,
-        index_mode: mode
+        index_mode: mode,
+        // OpenAI Embedding 参数
+        emb_api_key: indexConfigState.api_key,
+        emb_base_url: indexConfigState.base_url,
+        emb_model_name: indexConfigState.model_name
     });
 };
 

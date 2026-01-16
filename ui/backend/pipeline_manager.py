@@ -1764,7 +1764,8 @@ def run_kb_pipeline_tool(
     output_dir: str,
     collection_name: Optional[str] = None,
     index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖)
-    chunk_params: Optional[Dict[str, Any]] = None # [新增] 接收参数
+    chunk_params: Optional[Dict[str, Any]] = None, # [新增] 接收参数
+    embedding_params: Optional[Dict[str, Any]] = None # [新增] Embedding 配置 (用于 milvus_index)
 ) -> Dict[str, Any]:
 
     pipeline_cfg = load_pipeline(pipeline_name)
@@ -1849,16 +1850,30 @@ def run_kb_pipeline_tool(
         # 确保父目录存在
         KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-        override_params = {
-            "retriever": {
-                "corpus_path": str(target_file),
-                "collection_name": safe_collection_name,
-                "overwrite": is_overwrite,
-                "index_backend": "milvus",
-                "index_backend_configs": {
-                    "milvus": milvus_config_dict
+        # [新增] 构建 embedding backend 配置
+        retriever_override = {
+            "corpus_path": str(target_file),
+            "collection_name": safe_collection_name,
+            "overwrite": is_overwrite,
+            "index_backend": "milvus",
+            "index_backend_configs": {
+                "milvus": milvus_config_dict
+            }
+        }
+
+        # 如果用户配置了 Embedding 参数，则使用 OpenAI backend
+        if embedding_params and embedding_params.get("api_key"):
+            retriever_override["backend"] = "openai"
+            retriever_override["backend_configs"] = {
+                "openai": {
+                    "api_key": embedding_params.get("api_key", ""),
+                    "base_url": embedding_params.get("base_url", "https://api.openai.com/v1"),
+                    "model_name": embedding_params.get("model_name", "text-embedding-3-small")
                 }
             }
+
+        override_params = {
+            "retriever": retriever_override
         }
 
     else:
