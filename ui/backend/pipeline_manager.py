@@ -1374,9 +1374,12 @@ def clear_completed_background_tasks(user_id: str = "") -> int:
 
 # Knowledge Base Management   
 def load_kb_config() -> Dict[str, Any]:
+    # Prefer env override (useful in Docker). Default to the compose Milvus service.
+    default_milvus_uri = os.environ.get("ULTRARAG_MILVUS_URI", "tcp://127.0.0.1:19530")
+
     default_config = {
         "milvus": {
-            "uri": "tcp://127.0.0.1:19530",
+            "uri": default_milvus_uri,
             "token": "",
             "id_field_name": "id",
             "vector_field_name": "vector",
