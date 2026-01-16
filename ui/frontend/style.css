@@ -1499,6 +1499,71 @@ textarea.parameter-input {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.kb-connection-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kb-conn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0; /* 极简模式，几乎没有内边距，像文字一样 */
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.kb-conn-chip:hover {
+  opacity: 0.7;
+}
+
+.kb-conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.kb-conn-dot.connected {
+  background: #10b981; /* Green-500 */
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.kb-conn-dot.connecting {
+  background: #f59e0b;
+  animation: pulse 1.5s infinite;
+}
+
+.kb-conn-dot.disconnected {
+  background: #cbd5e1;
+}
+
+.kb-conn-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.kb-conn-uri {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* 仅 Hover 时显示 URI，或者直接一直显示但颜色很淡 */
+  opacity: 0; 
+  transition: opacity 0.2s;
+}
+
+.kb-connection-group:hover .kb-conn-uri {
+    opacity: 1;
+}
+
 /* 2. 三栏布局 */
 .kb-columns {
   display: flex;
@@ -2466,110 +2531,96 @@ textarea.parameter-input {
   padding-bottom: 40px;
 }
 
-/* 2. 书本/集合卡片 */
+/* 2. 书本/集合卡片 - 极简 Linear 风格 */
 .collection-card {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   position: relative;
-  aspect-ratio: 4/5; /* 类似书本比例 */
+  /* 比例调整：不再强制很高，适应内容 */
+  min-height: 140px; 
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* 悬停效果：浮起 */
+/* 悬停效果：轻微上浮 + 柔和阴影 */
 .collection-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
-  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  border-color: #d1d5db;
 }
 
-/* 书本封面区 */
-.book-cover {
-  flex: 1;
-  /* 统一使用极简的浅灰背景 */
-  background-color: #f8fafc; 
-  /* 或者用非常淡的渐变增加质感：
-  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9); 
-  */
-  
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  
-  /* 图标默认颜色：深灰色 */
-  color: #94a3b8; 
-  transition: all 0.3s ease;
+.kb-card-main {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
-/* 悬停时：背景稍微变深，图标变深，更有交互感 */
-.collection-card:hover .book-cover {
-  background-color: #f1f5f9;
-  color: #475569;
+.kb-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    flex-shrink: 0;
 }
 
-/* [重要] 删除之前那段 .collection-card:nth-child(...) 的彩色代码 */
-/* 之前的 colorful 样式已废弃 */
-
-/* 书本 SVG 图标大小 */
-.book-icon svg {
-  width: 48px;
-  height: 48px;
-  opacity: 0.8;
+.kb-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-/* 书本信息区 */
-.book-info {
-  padding: 16px;
-  background: #fff;
-  border-top: 1px solid #f1f5f9;
-}
-
-.book-title {
+.kb-card-title {
   font-weight: 600;
   font-size: 1rem;
-  color: #1e293b;
-  margin-bottom: 4px;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 
-.book-meta {
-  font-size: 0.75rem;
+.kb-meta-count {
+  font-size: 0.8rem;
   color: #64748b;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  font-weight: 500;
 }
 
 /* 删除按钮 (悬停出现) */
 .btn-delete-book {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.9);
-  border: 1px solid #e2e8f0;
-  color: #ef4444;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8; /* 默认灰色 */
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
   cursor: pointer;
 }
+
 .collection-card:hover .btn-delete-book {
   opacity: 1;
 }
+
 .btn-delete-book:hover {
   background: #fee2e2;
-  border-color: #fee2e2;
+  color: #ef4444;
 }
 
 /* =========================================

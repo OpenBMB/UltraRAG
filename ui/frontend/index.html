@@ -417,10 +417,13 @@
         <header class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
             <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
             
-            <div class="d-flex gap-2">
-                <div class="d-flex align-items-center me-3 px-3 py-1 bg-light rounded-pill border">
-                    <div id="db-connection-status" class="status-dot disconnected me-2"></div>
-                    <small class="text-muted font-monospace" id="db-uri-display">Connecting...</small>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="kb-connection-group">
+                    <button type="button" class="kb-conn-chip" id="db-connection-chip" onclick="openDbConfigModal()" title="Endpoint">
+                        <span id="db-connection-status" class="kb-conn-dot disconnected"></span>
+                        <span id="db-connection-text" class="kb-conn-text">Connecting</span>
+                    </button>
+                    <small class="kb-conn-uri" id="db-uri-display">—</small>
                 </div>
 
                 <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">

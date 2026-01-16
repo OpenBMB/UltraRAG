@@ -174,6 +174,8 @@ const els = {
   taskMsg: document.getElementById("task-msg"),
   // 数据库配置元素
   dbConnectionStatus: document.getElementById("db-connection-status"),
+  dbConnectionText: document.getElementById("db-connection-text"),
+  dbConnectionChip: document.getElementById("db-connection-chip"),
   dbUriDisplay: document.getElementById("db-uri-display"),
   dbConfigModal: document.getElementById("db-config-modal"), // 新增的配置弹窗
   cfgUri: document.getElementById("cfg-uri"),                 // 配置弹窗 - URI输入
@@ -587,6 +589,50 @@ window.inspectFolder = async function(category, folderName) {
     }
 };
 
+// 渐变调色板与工具函数：使卡片颜色稳定且柔和
+const KB_COVER_PALETTE = [
+    "#e0f2fe", // sky-100
+    "#dcfce7", // green-100
+    "#f3e8ff", // purple-100
+    "#fee2e2", // red-100
+    "#ffedd5", // orange-100
+    "#f1f5f9", // slate-100
+    "#fae8ff", // fuchsia-100
+    "#e0e7ff", // indigo-100
+];
+
+const KB_TEXT_PALETTE = [
+    "#0369a1", // sky-700
+    "#15803d", // green-700
+    "#7e22ce", // purple-700
+    "#b91c1c", // red-700
+    "#c2410c", // orange-700
+    "#334155", // slate-700
+    "#a21caf", // fuchsia-700
+    "#4338ca", // indigo-700
+];
+
+function hashString(input = "") {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function pickKbColors(key = "") {
+    const idx = hashString(key) % KB_COVER_PALETTE.length;
+    return {
+        bg: KB_COVER_PALETTE[idx],
+        text: KB_TEXT_PALETTE[idx]
+    };
+}
+
+function getKbInitial(name = "") {
+    const initial = name.trim().charAt(0);
+    return initial ? initial.toUpperCase() : "?";
+}
+
 // [修改] 渲染 Collection 列表 -> 书架卡片模式
 function renderCollectionList(container, collections) {
     const grid = document.getElementById('bookshelf-grid');
@@ -610,35 +656,28 @@ function renderCollectionList(container, collections) {
     collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
 
     collections.forEach(c => {
-        const displayName = c.display_name || c.name;
+        const displayName = c.display_name || c.name || "Untitled";
         const card = document.createElement('div');
-        card.className = 'collection-card';
+        card.className = 'collection-card kb-card';
         
         const countStr = c.count !== undefined ? `${c.count} vectors` : 'Ready';
+        const colors = pickKbColors(displayName || c.name || "collection");
+        const coverInitial = getKbInitial(displayName || c.name || "C");
 
-        // [修改] 定义一个精致的书本 SVG (Stroke 风格)
-        const bookSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-        `;
-        
         // 渲染卡片
         card.innerHTML = `
-            <div class="book-cover">
-                <div class="book-icon">${bookSvg}</div>
+            <div class="kb-card-main">
+                <div class="kb-icon-box" style="background-color: ${colors.bg}; color: ${colors.text}">
+                    ${coverInitial}
+                </div>
+                <div class="kb-info-box">
+                     <div class="kb-card-title" title="${displayName}">${displayName}</div>
+                     <div class="kb-meta-count">${countStr}</div>
+                </div>
                 
                 <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="Delete Collection">
                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
-            </div>
-            <div class="book-info">
-                <div class="book-title" title="${displayName}">${displayName}</div>
-                <div class="book-meta">
-                    <span>${countStr}</span>
-                    <span class="badge bg-light text-dark border">Vector DB</span>
-                </div>
             </div>
         `;
         
@@ -650,21 +689,22 @@ function renderCollectionList(container, collections) {
 function updateDbStatusUI(status, config) {
     currentDbConfig = config; 
     
-    if (!els.dbConnectionStatus || !els.dbUriDisplay) return;
+    const chip = els.dbConnectionChip || document.getElementById('db-connection-chip');
+    const statusTextEl = els.dbConnectionText || document.getElementById('db-connection-text');
 
-    // 状态 Badge
-    if (status === 'connected') {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-success';
-        els.dbConnectionStatus.textContent = 'Connected';
-    } else {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-danger';
-        els.dbConnectionStatus.textContent = 'Disconnected';
-    }
-    
-    // URI 显示
-    let uri = config.milvus.uri || "Not configured";
-    if (uri.length > 50) uri = '...' + uri.slice(-45); // 截断长 URI
-    els.dbUriDisplay.textContent = uri;
+    if (!els.dbConnectionStatus || !els.dbUriDisplay || !chip || !statusTextEl) return;
+
+    // 状态点 & 文案
+    const statusClass = status === 'connected' ? 'connected' : (status === 'connecting' ? 'connecting' : 'disconnected');
+    els.dbConnectionStatus.className = `kb-conn-dot ${statusClass}`;
+    statusTextEl.textContent = status === 'connected' ? 'Connected' : (status === 'connecting' ? 'Connecting...' : 'Disconnected');
+    chip.setAttribute('data-status', statusClass);
+
+    // URI 显示：主文本用精简版本，完整地址放入 Tooltip
+    const fullUri = (config && config.milvus && config.milvus.uri) ? config.milvus.uri : "Not configured";
+    const shortUri = fullUri.length > 38 ? `${fullUri.slice(0, 16)}…${fullUri.slice(-12)}` : fullUri;
+    els.dbUriDisplay.textContent = shortUri;
+    chip.title = `Endpoint: ${fullUri}`;
 }
 
 // 5. 配置弹窗逻辑 (新增 - 挂载到 window)
