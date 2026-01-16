@@ -1552,25 +1552,55 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         items = []
         if not d.exists(): return items
         
+        # 加载目录级别的显示名称映射（用于文件）
+        dir_display_map = _load_display_names_map(d)
+        
         for f in sorted(d.glob("*")):
             if f.name.startswith("."): continue
+            if f.name.startswith("_"): continue  # 跳过元数据文件 (_meta.json, _display_names.json)
 
             is_dir = f.is_dir()
             
             size = 0
+            file_count = 0
             if is_dir:
-                size = sum(p.stat().st_size for p in f.rglob('*') if p.is_file())
+                # 计算大小时排除 _meta.json
+                for p in f.rglob('*'):
+                    if p.is_file() and not p.name.startswith("_"):
+                        size += p.stat().st_size
+                        file_count += 1
             else:
                 size = f.stat().st_size
 
-            items.append({
+            # [新增] 读取 display_name
+            display_name = f.name  # 默认使用文件名
+            if is_dir:
+                # 文件夹：从 _meta.json 读取
+                meta = _read_folder_meta(f)
+                if meta and meta.get("display_name"):
+                    display_name = meta["display_name"]
+            else:
+                # 文件：从目录级别映射读取
+                if f.name in dir_display_map:
+                    display_name = dir_display_map[f.name]
+                else:
+                    # 默认显示去掉后缀的文件名
+                    display_name = f.stem
+
+            item = {
                 "name": f.name, 
+                "display_name": display_name,  # [新增]
                 "path": _as_project_relative(f), 
                 "size": size,
                 "mtime": f.stat().st_mtime,
                 "category": category,
                 "type": "folder" if is_dir else "file" 
-            })
+            }
+            
+            if is_dir and file_count > 0:
+                item["file_count"] = file_count
+                
+            items.append(item)
         return items
     
     collections = []
@@ -1606,6 +1636,80 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         "db_config": load_kb_config() 
     }
 
+def _generate_display_name(original_names: List[str]) -> str:
+    """生成用户友好的显示名称"""
+    if not original_names:
+        return "Untitled"
+    
+    # 取第一个文件的原始名称（不含后缀）
+    first_name = Path(original_names[0]).stem
+    
+    if len(original_names) == 1:
+        # 单文件：直接使用文件名
+        return first_name
+    else:
+        # 多文件：第一个文件名 + 数量后缀
+        return f"{first_name} (+{len(original_names) - 1} more)"
+
+
+def _write_folder_meta(folder_path: Path, display_name: str, original_files: List[str]):
+    """写入文件夹元数据"""
+    meta_path = folder_path / "_meta.json"
+    meta_data = {
+        "display_name": display_name,
+        "original_files": original_files,
+        "created_at": datetime.now().isoformat()
+    }
+    try:
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        LOGGER.warning(f"Failed to write meta.json: {e}")
+
+
+def _read_folder_meta(folder_path: Path) -> Optional[Dict[str, Any]]:
+    """读取文件夹元数据"""
+    meta_path = folder_path / "_meta.json"
+    if not meta_path.exists():
+        return None
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        LOGGER.warning(f"Failed to read meta.json: {e}")
+        return None
+
+
+def _load_display_names_map(directory: Path) -> Dict[str, str]:
+    """加载目录级别的显示名称映射"""
+    map_path = directory / "_display_names.json"
+    if not map_path.exists():
+        return {}
+    try:
+        with open(map_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        LOGGER.warning(f"Failed to load display names map: {e}")
+        return {}
+
+
+def _save_display_names_map(directory: Path, name_map: Dict[str, str]):
+    """保存目录级别的显示名称映射"""
+    map_path = directory / "_display_names.json"
+    try:
+        with open(map_path, "w", encoding="utf-8") as f:
+            json.dump(name_map, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        LOGGER.warning(f"Failed to save display names map: {e}")
+
+
+def _register_display_name(directory: Path, filename: str, display_name: str):
+    """注册文件的显示名称"""
+    name_map = _load_display_names_map(directory)
+    name_map[filename] = display_name
+    _save_display_names_map(directory, name_map)
+
+
 def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
 
     if not file_objs:
@@ -1616,12 +1720,15 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
     session_dir.mkdir(parents=True, exist_ok=True)
 
     saved_files = []
+    original_names = []  # [新增] 记录原始文件名
     total_size = 0
 
     try:
         for file_obj in file_objs:
 
             original_name = file_obj.filename
+            original_names.append(original_name)  # [新增] 保存原始名
+            
             safe_name = _secure_filename_unicode(original_name)
             if not safe_name: 
                 safe_name = f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
@@ -1640,10 +1747,15 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
             saved_files.append(safe_name)
             total_size += save_path.stat().st_size
 
-        LOGGER.info(f"Created upload session: {session_dir} with {len(saved_files)} files.")
+        # [新增] 生成显示名并写入元数据
+        display_name = _generate_display_name(original_names)
+        _write_folder_meta(session_dir, display_name, original_names)
+
+        LOGGER.info(f"Created upload session: {session_dir} with {len(saved_files)} files. Display: {display_name}")
 
         return {
             "name": session_id,  
+            "display_name": display_name,  # [新增]
             "path": _as_project_relative(session_dir), 
             "size": total_size,
             "type": "folder",    
@@ -1764,7 +1876,8 @@ def run_kb_pipeline_tool(
     output_dir: str,
     collection_name: Optional[str] = None,
     index_mode: str = "append", # 'append' (追加), 'overwrite' (覆盖)
-    chunk_params: Optional[Dict[str, Any]] = None # [新增] 接收参数
+    chunk_params: Optional[Dict[str, Any]] = None, # [新增] 接收参数
+    embedding_params: Optional[Dict[str, Any]] = None # [新增] Embedding 配置 (用于 milvus_index)
 ) -> Dict[str, Any]:
 
     pipeline_cfg = load_pipeline(pipeline_name)
@@ -1779,6 +1892,21 @@ def run_kb_pipeline_tool(
     stem = target_file.stem
     override_params = {}
     
+    # [新增] 获取源文件的 display_name，用于传递给输出
+    source_display_name = None
+    if target_file.is_dir():
+        # 源是文件夹（Raw 阶段）
+        meta = _read_folder_meta(target_file)
+        if meta and meta.get("display_name"):
+            source_display_name = meta["display_name"]
+    else:
+        # 源是文件（Corpus/Chunks 阶段），从目录映射读取
+        parent_map = _load_display_names_map(target_file.parent)
+        if target_file.name in parent_map:
+            source_display_name = parent_map[target_file.name]
+        else:
+            source_display_name = target_file.stem
+    
     if pipeline_name == "build_text_corpus":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
         override_params = {
@@ -1787,6 +1915,9 @@ def run_kb_pipeline_tool(
                 "text_corpus_save_path": out_path,
             }
         }
+        # [新增] 注册输出文件的 display_name
+        if source_display_name:
+            _register_display_name(Path(output_dir), f"{stem}.jsonl", source_display_name)
 
     elif pipeline_name == "corpus_chunk":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
@@ -1807,6 +1938,9 @@ def run_kb_pipeline_tool(
         override_params = {
             "corpus": corpus_override
         }
+        # [新增] 注册输出文件的 display_name
+        if source_display_name:
+            _register_display_name(Path(output_dir), f"{stem}.jsonl", source_display_name)
         
     elif pipeline_name == "milvus_index":
         requested_name = collection_name if collection_name else stem
@@ -1849,16 +1983,30 @@ def run_kb_pipeline_tool(
         # 确保父目录存在
         KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-        override_params = {
-            "retriever": {
-                "corpus_path": str(target_file),
-                "collection_name": safe_collection_name,
-                "overwrite": is_overwrite,
-                "index_backend": "milvus",
-                "index_backend_configs": {
-                    "milvus": milvus_config_dict
+        # [新增] 构建 embedding backend 配置
+        retriever_override = {
+            "corpus_path": str(target_file),
+            "collection_name": safe_collection_name,
+            "overwrite": is_overwrite,
+            "index_backend": "milvus",
+            "index_backend_configs": {
+                "milvus": milvus_config_dict
+            }
+        }
+
+        # 如果用户配置了 Embedding 参数，则使用 OpenAI backend
+        if embedding_params and embedding_params.get("api_key"):
+            retriever_override["backend"] = "openai"
+            retriever_override["backend_configs"] = {
+                "openai": {
+                    "api_key": embedding_params.get("api_key", ""),
+                    "base_url": embedding_params.get("base_url", "https://api.openai.com/v1"),
+                    "model_name": embedding_params.get("model_name", "text-embedding-3-small")
                 }
             }
+
+        override_params = {
+            "retriever": retriever_override
         }
 
     else:

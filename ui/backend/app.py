@@ -22,7 +22,7 @@ FRONTEND_DIR = BASE_DIR.parent / "frontend"
 EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
 KB_TASKS = {}
 
-def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params=None):
+def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params=None, embedding_params=None):
     LOGGER.info(f"Task {task_id} started: {pipeline_name}")
     try:
         result = pm.run_kb_pipeline_tool(
@@ -32,6 +32,7 @@ def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collecti
             collection_name=collection_name,
             index_mode=index_mode,
             chunk_params=chunk_params,
+            embedding_params=embedding_params,
         )
         KB_TASKS[task_id]["status"] = "success"
         KB_TASKS[task_id]["result"] = result
@@ -500,6 +501,13 @@ def create_app(admin_mode: bool = False) -> Flask:
             "use_title": payload.get("use_title", True)
         }
 
+        # [新增] Embedding 参数 (用于 milvus_index)
+        embedding_params = {
+            "api_key": payload.get("emb_api_key", ""),
+            "base_url": payload.get("emb_base_url", "https://api.openai.com/v1"),
+            "model_name": payload.get("emb_model_name", "text-embedding-3-small")
+        }
+
         if not pipeline_name or not target_file:
             return jsonify({"error": "Missing pipeline_name or target_file"}), 400
 
@@ -520,7 +528,7 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         thread = threading.Thread(
             target=_run_kb_background,
-            args=(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params),
+            args=(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params, embedding_params),
             daemon=True # 设置为守护线程，主程序退出时它也会自动退出，防止挂起
         )
         thread.start()

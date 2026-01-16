@@ -417,10 +417,13 @@
         <header class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
             <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
             
-            <div class="d-flex gap-2">
-                <div class="d-flex align-items-center me-3 px-3 py-1 bg-light rounded-pill border">
-                    <div id="db-connection-status" class="status-dot disconnected me-2"></div>
-                    <small class="text-muted font-monospace" id="db-uri-display">Connecting...</small>
+            <div class="d-flex gap-2 align-items-center">
+                <div class="kb-connection-group">
+                    <button type="button" class="kb-conn-chip" id="db-connection-chip" onclick="openDbConfigModal()" title="Endpoint">
+                        <span id="db-connection-status" class="kb-conn-dot disconnected"></span>
+                        <span id="db-connection-text" class="kb-conn-text">Connecting</span>
+                    </button>
+                    <small class="kb-conn-uri" id="db-uri-display">—</small>
                 </div>
 
                 <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">
@@ -482,8 +485,9 @@
                                 <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">2</span>
                                 <span class="fw-bold text-dark small">Corpus</span>
                             </div>
-                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted" style="font-size: 0.8rem;" onclick="openChunkConfigModal()">
-                                Config
+                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick="openChunkConfigModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                Settings
                             </button>
                         </div>
                         <div class="card-body-scroll" id="list-corpus"></div>
@@ -495,6 +499,10 @@
                                 <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">3</span>
                                 <span class="fw-bold text-dark small">Chunks</span>
                             </div>
+                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick="openIndexConfigModal()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                Settings
+                            </button>
                         </div>
                         <div class="card-body-scroll" id="list-chunks"></div>
                     </div>
@@ -669,6 +677,41 @@
             <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
                 <button type="button" class="btn btn-sm btn-light border" onclick="document.getElementById('chunk-config-modal').close()">Cancel</button>
                 <button type="button" class="btn btn-sm btn-dark" onclick="saveChunkConfig()">Save Config</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="index-config-modal" style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
+        <div class="card" style="width: 420px; border:none;">
+            <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+                <h6 class="card-title m-0 fw-bold">Embedding Configuration</h6>
+                <button type="button" class="btn-close small" onclick="document.getElementById('index-config-modal').close()"></button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Configure the embedding model for vector indexing. Uses OpenAI-compatible API.</p>
+                <form id="index-config-form">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">API Key</label>
+                        <input type="password" id="cfg-emb-api-key" class="form-control form-control-sm" placeholder="sk-...">
+                        <div class="form-text text-xs">Your OpenAI or compatible API key.</div>
+                    </div>
+    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Base URL</label>
+                        <input type="text" id="cfg-emb-base-url" class="form-control form-control-sm" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
+                        <div class="form-text text-xs">API endpoint. Change for Azure, local models, etc.</div>
+                    </div>
+    
+                    <div class="mb-1">
+                        <label class="form-label small fw-bold text-muted">Model Name</label>
+                        <input type="text" id="cfg-emb-model-name" class="form-control form-control-sm" value="text-embedding-3-small" placeholder="text-embedding-3-small">
+                        <div class="form-text text-xs">e.g. text-embedding-3-small, text-embedding-ada-002</div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
+                <button type="button" class="btn btn-sm btn-light border" onclick="document.getElementById('index-config-modal').close()">Cancel</button>
+                <button type="button" class="btn btn-sm btn-dark" onclick="saveIndexConfig()">Save Config</button>
             </div>
         </div>
     </dialog>

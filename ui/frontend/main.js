@@ -174,6 +174,8 @@ const els = {
   taskMsg: document.getElementById("task-msg"),
   // 数据库配置元素
   dbConnectionStatus: document.getElementById("db-connection-status"),
+  dbConnectionText: document.getElementById("db-connection-text"),
+  dbConnectionChip: document.getElementById("db-connection-chip"),
   dbUriDisplay: document.getElementById("db-uri-display"),
   dbConfigModal: document.getElementById("db-config-modal"), // 新增的配置弹窗
   cfgUri: document.getElementById("cfg-uri"),                 // 配置弹窗 - URI输入
@@ -510,41 +512,62 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
     files.forEach(f => {
         const div = document.createElement('div');
         
-        // [核心修复] 高亮逻辑
-        // 如果这个文件的路径 不在 打开弹窗时的快照里，那它就是新的！
         const isNew = !existingFilesSnapshot.has(f.path);
         
         div.className = `file-item ${isNew ? 'new-upload' : ''}`;
         
-        // --- 以下 UI 生成代码保持不变 ---
+        // 1. 确定基本信息
         const isFolder = f.type === 'folder';
-        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
-        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        const displayText = f.display_name || f.name;
+        const tooltipText = f.display_name && f.display_name !== f.name 
+            ? `${f.display_name}\n(${f.name})` 
+            : f.name;
+        const sizeStr = (f.size / 1024).toFixed(1) + " KB";
+        
+        // 2. 图标 (SVG)
+        const svgFolder = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+        const svgFile = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
         const iconSvg = isFolder ? svgFolder : svgFile;
 
-        // View 按钮
-        let viewBtn = '';
-        if (isFolder) {
-            viewBtn = `<button class="btn btn-sm btn-link text-muted p-0 me-2" onclick="window.inspectFolder('${f.category}', '${f.name}')" title="View"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>`;
+        // 3. 元数据行内容
+        let metaText = sizeStr;
+        if (isFolder && f.file_count) {
+            metaText = `${f.file_count} files · ${sizeStr}`;
         }
 
-        // Action 按钮
-        let actionBtn = `<button class="btn btn-sm btn-light border ms-auto" style="font-size:0.75rem;" onclick="window.handleKBAction('${f.path}', '${nextPipeline}')">${actionLabel}</button>`;
+        // 4. Action 按钮
+        let actionBtn = `<button class="btn btn-sm btn-light border ms-auto flex-shrink-0" style="font-size:0.75rem;" onclick="event.stopPropagation(); window.handleKBAction('${f.path}', '${nextPipeline}')">${actionLabel}</button>`;
         
-        // Delete 按钮
+        // 5. Delete 按钮
         let deleteBtn = '';
         if (f.category !== 'collection') {
-            deleteBtn = `<button class="btn btn-sm text-danger ms-2" onclick="deleteKBFile('${f.category}', '${f.name}')">×</button>`;
+            deleteBtn = `<button class="btn btn-sm text-danger ms-2 btn-icon-only flex-shrink-0" onclick="event.stopPropagation(); deleteKBFile('${f.category}', '${f.name}')" title="Delete">×</button>`;
         }
 
+        // 6. 整卡点击事件
+        let onClickAttr = "";
+        if (isFolder) {
+            // 传递 display_name 供弹窗标题使用
+            onClickAttr = `onclick="window.inspectFolder('${f.category}', '${f.name}', '${displayText.replace(/'/g, "\\'")}')"`;
+        } else {
+            // 文件点击暂时无动作，或者可以做预览
+            onClickAttr = `onclick=""`; 
+        }
+
+        // 7. 构建 HTML (Finder 风格: 双行布局)
         div.innerHTML = `
-            <div class="d-flex align-items-center w-100">
-                <div class="text-muted me-2">${iconSvg}</div>
-                <div class="text-truncate small text-dark" style="max-width: 130px;" title="${f.name}">${f.name}</div>
-                ${isFolder && f.file_count ? `<span class="badge bg-light text-secondary border ms-1" style="font-size:0.6rem">${f.file_count}</span>` : ''}
-                ${viewBtn}
-                ${actionBtn}
-                ${deleteBtn}
+            <div class="file-item-inner" ${onClickAttr}>
+                <div class="file-icon-wrapper">${iconSvg}</div>
+                <div class="file-info-wrapper">
+                    <div class="file-title" title="${tooltipText}">${displayText}</div>
+                    <div class="file-meta">
+                        ${metaText}
+                    </div>
+                </div>
+                <div class="file-actions">
+                    ${actionBtn}
+                    ${deleteBtn}
+                </div>
             </div>
         `;
         container.appendChild(div);
@@ -552,13 +575,14 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
 }
 
 // 2. 新增查看函数 (挂载到 window)
-window.inspectFolder = async function(category, folderName) {
+// [修改] 增加 displayName 参数
+window.inspectFolder = async function(category, folderName, displayName) {
     const modal = document.getElementById('folder-detail-modal');
     const listContainer = document.getElementById('folder-detail-list');
     const title = document.getElementById('folder-detail-title');
     
-    // 设置标题
-    if (title) title.textContent = folderName;
+    // 设置标题 (优先使用 display_name)
+    if (title) title.textContent = displayName || folderName;
     
     // 显示 Loading
     if (listContainer) listContainer.innerHTML = '<div class="text-center text-muted p-3">Loading...</div>';
@@ -572,12 +596,20 @@ window.inspectFolder = async function(category, folderName) {
         const data = await res.json();
 
         if (data.files && data.files.length > 0) {
-            listContainer.innerHTML = data.files.map(f => `
-                <div class="folder-file-row">
-                    <span>📄 ${f.name}</span>
-                    <span class="text-muted">${(f.size/1024).toFixed(1)} KB</span>
-                </div>
-            `).join('');
+            // [修改] 过滤掉 _meta.json 等以 _ 开头的文件
+            const visibleFiles = data.files.filter(f => !f.name.startsWith('_'));
+            
+            if (visibleFiles.length > 0) {
+                listContainer.innerHTML = visibleFiles.map(f => `
+                    <div class="folder-file-row">
+                        <span class="file-row-icon">📄</span>
+                        <span class="file-row-name text-truncate">${f.name}</span>
+                        <span class="text-muted ms-auto" style="font-size:0.75rem;">${(f.size/1024).toFixed(1)} KB</span>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty (No visible files)</div>';
+            }
         } else {
             listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty Folder</div>';
         }
@@ -586,6 +618,50 @@ window.inspectFolder = async function(category, folderName) {
         console.error(e);
     }
 };
+
+// 渐变调色板与工具函数：使卡片颜色稳定且柔和
+const KB_COVER_PALETTE = [
+    "#e0f2fe", // sky-100
+    "#dcfce7", // green-100
+    "#f3e8ff", // purple-100
+    "#fee2e2", // red-100
+    "#ffedd5", // orange-100
+    "#f1f5f9", // slate-100
+    "#fae8ff", // fuchsia-100
+    "#e0e7ff", // indigo-100
+];
+
+const KB_TEXT_PALETTE = [
+    "#0369a1", // sky-700
+    "#15803d", // green-700
+    "#7e22ce", // purple-700
+    "#b91c1c", // red-700
+    "#c2410c", // orange-700
+    "#334155", // slate-700
+    "#a21caf", // fuchsia-700
+    "#4338ca", // indigo-700
+];
+
+function hashString(input = "") {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+    }
+    return hash;
+}
+
+function pickKbColors(key = "") {
+    const idx = hashString(key) % KB_COVER_PALETTE.length;
+    return {
+        bg: KB_COVER_PALETTE[idx],
+        text: KB_TEXT_PALETTE[idx]
+    };
+}
+
+function getKbInitial(name = "") {
+    const initial = name.trim().charAt(0);
+    return initial ? initial.toUpperCase() : "?";
+}
 
 // [修改] 渲染 Collection 列表 -> 书架卡片模式
 function renderCollectionList(container, collections) {
@@ -610,35 +686,28 @@ function renderCollectionList(container, collections) {
     collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
 
     collections.forEach(c => {
-        const displayName = c.display_name || c.name;
+        const displayName = c.display_name || c.name || "Untitled";
         const card = document.createElement('div');
-        card.className = 'collection-card';
+        card.className = 'collection-card kb-card';
         
         const countStr = c.count !== undefined ? `${c.count} vectors` : 'Ready';
+        const colors = pickKbColors(displayName || c.name || "collection");
+        const coverInitial = getKbInitial(displayName || c.name || "C");
 
-        // [修改] 定义一个精致的书本 SVG (Stroke 风格)
-        const bookSvg = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-            </svg>
-        `;
-        
         // 渲染卡片
         card.innerHTML = `
-            <div class="book-cover">
-                <div class="book-icon">${bookSvg}</div>
+            <div class="kb-card-main">
+                <div class="kb-icon-box" style="background-color: ${colors.bg}; color: ${colors.text}">
+                    ${coverInitial}
+                </div>
+                <div class="kb-info-box">
+                     <div class="kb-card-title" title="${displayName}">${displayName}</div>
+                     <div class="kb-meta-count">${countStr}</div>
+                </div>
                 
                 <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="Delete Collection">
                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
-            </div>
-            <div class="book-info">
-                <div class="book-title" title="${displayName}">${displayName}</div>
-                <div class="book-meta">
-                    <span>${countStr}</span>
-                    <span class="badge bg-light text-dark border">Vector DB</span>
-                </div>
             </div>
         `;
         
@@ -650,21 +719,22 @@ function renderCollectionList(container, collections) {
 function updateDbStatusUI(status, config) {
     currentDbConfig = config; 
     
-    if (!els.dbConnectionStatus || !els.dbUriDisplay) return;
+    const chip = els.dbConnectionChip || document.getElementById('db-connection-chip');
+    const statusTextEl = els.dbConnectionText || document.getElementById('db-connection-text');
 
-    // 状态 Badge
-    if (status === 'connected') {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-success';
-        els.dbConnectionStatus.textContent = 'Connected';
-    } else {
-        els.dbConnectionStatus.className = 'badge rounded-pill bg-danger';
-        els.dbConnectionStatus.textContent = 'Disconnected';
-    }
-    
-    // URI 显示
-    let uri = config.milvus.uri || "Not configured";
-    if (uri.length > 50) uri = '...' + uri.slice(-45); // 截断长 URI
-    els.dbUriDisplay.textContent = uri;
+    if (!els.dbConnectionStatus || !els.dbUriDisplay || !chip || !statusTextEl) return;
+
+    // 状态点 & 文案
+    const statusClass = status === 'connected' ? 'connected' : (status === 'connecting' ? 'connecting' : 'disconnected');
+    els.dbConnectionStatus.className = `kb-conn-dot ${statusClass}`;
+    statusTextEl.textContent = status === 'connected' ? 'Connected' : (status === 'connecting' ? 'Connecting...' : 'Disconnected');
+    chip.setAttribute('data-status', statusClass);
+
+    // URI 显示：主文本用精简版本，完整地址放入 Tooltip
+    const fullUri = (config && config.milvus && config.milvus.uri) ? config.milvus.uri : "Not configured";
+    const shortUri = fullUri.length > 38 ? `${fullUri.slice(0, 16)}…${fullUri.slice(-12)}` : fullUri;
+    els.dbUriDisplay.textContent = shortUri;
+    chip.title = `Endpoint: ${fullUri}`;
 }
 
 // 5. 配置弹窗逻辑 (新增 - 挂载到 window)
@@ -713,11 +783,58 @@ window.saveDbConfig = async function() {
 // --- Chunk Configuration Logic ---
 // ==========================================
 
-// 1. 定义默认配置状态
-let chunkConfigState = {
-    chunk_backend: "sentence",
-    tokenizer_or_token_counter: "character",
-    chunk_size: 512,
+const CHUNK_CONFIG_STORAGE_KEY = "ultrarag_chunk_config";
+const INDEX_CONFIG_STORAGE_KEY = "ultrarag_index_config";
+
+// 从 localStorage 加载 Chunk 配置
+function loadChunkConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(CHUNK_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load chunk config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Chunk 配置到 localStorage
+function persistChunkConfig() {
+    try {
+        localStorage.setItem(CHUNK_CONFIG_STORAGE_KEY, JSON.stringify(chunkConfigState));
+    } catch (e) {
+        console.warn("Failed to persist chunk config", e);
+    }
+}
+
+// 从 localStorage 加载 Embedding 配置
+function loadIndexConfigFromStorage() {
+    try {
+        const raw = localStorage.getItem(INDEX_CONFIG_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+    } catch (e) {
+        console.warn("Failed to load index config from storage", e);
+    }
+    return null;
+}
+
+// 保存 Embedding 配置到 localStorage
+function persistIndexConfig() {
+    try {
+        localStorage.setItem(INDEX_CONFIG_STORAGE_KEY, JSON.stringify(indexConfigState));
+    } catch (e) {
+        console.warn("Failed to persist index config", e);
+    }
+}
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let chunkConfigState = loadChunkConfigFromStorage() || {
+    chunk_backend: "token",
+    tokenizer_or_token_counter: "gpt2",
+    chunk_size: 500,
     use_title: true
 };
 
@@ -754,12 +871,68 @@ window.saveChunkConfig = function() {
         use_title: (useTitleStr === "true")
     };
 
+    // 持久化到 localStorage
+    persistChunkConfig();
+
     const modal = document.getElementById('chunk-config-modal');
     if (modal) modal.close();
     
-    // 可选：给个提示
-    // alert("Chunk configuration saved!"); 
-    console.log("Chunk Config Updated:", chunkConfigState);
+    console.log("Chunk Config Updated & Saved:", chunkConfigState);
+};
+
+// ==========================================
+// --- Index (Embedding) Configuration Logic ---
+// ==========================================
+
+// 1. 定义默认配置状态 (尝试从 localStorage 恢复)
+let indexConfigState = loadIndexConfigFromStorage() || {
+    api_key: "",
+    base_url: "https://api.openai.com/v1",
+    model_name: "text-embedding-3-small"
+};
+
+// 2. 打开配置弹窗 (回显当前状态)
+window.openIndexConfigModal = function() {
+    const modal = document.getElementById('index-config-modal');
+    
+    // 回显数据
+    document.getElementById('cfg-emb-api-key').value = indexConfigState.api_key;
+    document.getElementById('cfg-emb-base-url').value = indexConfigState.base_url;
+    document.getElementById('cfg-emb-model-name').value = indexConfigState.model_name;
+    
+    if (modal) modal.showModal();
+};
+
+// 3. 保存配置
+window.saveIndexConfig = function() {
+    const apiKey = document.getElementById('cfg-emb-api-key').value.trim();
+    const baseUrl = document.getElementById('cfg-emb-base-url').value.trim();
+    const modelName = document.getElementById('cfg-emb-model-name').value.trim();
+
+    if (!baseUrl) {
+        showModal("Base URL is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    if (!modelName) {
+        showModal("Model Name is required", { title: "Validation Error", type: "warning" });
+        return;
+    }
+
+    // 更新全局状态
+    indexConfigState = {
+        api_key: apiKey,
+        base_url: baseUrl,
+        model_name: modelName
+    };
+
+    // 持久化到 localStorage
+    persistIndexConfig();
+
+    const modal = document.getElementById('index-config-modal');
+    if (modal) modal.close();
+    
+    console.log("Index Config Updated & Saved:", indexConfigState);
 };
 
 // ==========================================
@@ -800,10 +973,14 @@ window.confirmIndexTask = function() {
     
     if (els.milvusDialog) els.milvusDialog.close();
     
-    // 发起任务
+    // 发起任务，传递 embedding 配置
     runKBTask('milvus_index', currentTargetFile, {
         collection_name: collName,
-        index_mode: mode
+        index_mode: mode,
+        // OpenAI Embedding 参数
+        emb_api_key: indexConfigState.api_key,
+        emb_base_url: indexConfigState.base_url,
+        emb_model_name: indexConfigState.model_name
     });
 };
 
