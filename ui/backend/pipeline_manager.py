@@ -18,6 +18,7 @@ import uuid
 import shutil
 import re
 import unicodedata
+import hashlib
 from datetime import datetime
 
 try:
@@ -45,6 +46,7 @@ KB_CORPUS_DIR = KB_ROOT / "corpus"
 KB_CHUNKS_DIR = KB_ROOT / "chunks" 
 KB_INDEX_DIR = KB_ROOT / "index"
 KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
+MAX_COLLECTION_NAME_LEN = 255
 
 
 def _secure_filename_unicode(filename: str) -> str:
@@ -57,6 +59,97 @@ def _secure_filename_unicode(filename: str) -> str:
     # 移除首尾空白和点
     filename = filename.strip().strip('.')
     return filename
+
+
+def _normalize_collection_name(raw_name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", str(raw_name or "")).strip()
+    normalized = re.sub(r"[^\w]+", "_", normalized, flags=re.UNICODE)
+    normalized = re.sub(r"_+", "_", normalized).strip("_")
+    if not normalized or not re.search(r"[A-Za-z0-9]", normalized):
+        return ""
+    return normalized[:MAX_COLLECTION_NAME_LEN]
+
+
+def _make_safe_collection_name(display_name: str) -> tuple[str, str]:
+    base = _normalize_collection_name(display_name)
+
+    if not base:
+        digest = hashlib.sha1(display_name.encode("utf-8")).hexdigest()[:8]
+        base = f"kb_{digest}"
+
+    safe_name = base
+
+    return safe_name, display_name
+
+
+def _transliterate_name(name: str) -> str:
+    """
+    将任意输入转换为可用于 collection_name 的 ASCII slug。
+    - 优先使用 pypinyin 转为拼音；若不可用则用 Unicode 分解再去除非 ASCII。
+    """
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    candidate = ""
+    try:
+        from pypinyin import lazy_pinyin  # type: ignore
+
+        candidate = "_".join(lazy_pinyin(raw))
+    except Exception:
+        normalized = unicodedata.normalize("NFKD", raw)
+        candidate = (
+            normalized.encode("ascii", "ignore").decode("ascii") if normalized else ""
+        )
+
+    candidate = re.sub(r"[^\w]+", "_", candidate, flags=re.UNICODE)
+    candidate = re.sub(r"_+", "_", candidate).strip("_")
+    if candidate and not re.match(r"[A-Za-z_]", candidate[0]):
+        candidate = f"kb_{candidate}"
+    if not candidate:
+        candidate = "kb"
+    return candidate[:MAX_COLLECTION_NAME_LEN]
+
+
+def _make_unique_name(base: str, taken: set[str]) -> str:
+    if base not in taken:
+        return base
+    i = 1
+    while True:
+        candidate = f"{base}_{i}"
+        if candidate not in taken:
+            return candidate[:MAX_COLLECTION_NAME_LEN]
+        i += 1
+
+
+def _make_unique_display(name: str, taken: set[str]) -> str:
+    if name not in taken:
+        return name
+    i = 1
+    while True:
+        candidate = f"{name} ({i})"
+        if candidate not in taken:
+            return candidate
+        i += 1
+
+
+def _extract_display_name_from_desc(desc: str, fallback: str) -> str:
+    """
+    从 Milvus collection 描述中解析显示名。
+    约定写入格式：'UltraRAG KB | display_name=<原始名称>'
+    """
+    if not desc:
+        return fallback
+    marker = "display_name="
+    if marker in desc:
+        try:
+            part = desc.split(marker, 1)[1]
+            # 去掉可能的前后分隔符
+            part = part.split("|", 1)[0].strip()
+            if part:
+                return part
+        except Exception:
+            pass
+    return fallback
 
 
 for d in [LEGACY_PIPELINES_DIR, CHAT_DATASET_DIR, OUTPUT_DIR, KB_RAW_DIR, KB_CORPUS_DIR, KB_CHUNKS_DIR, KB_INDEX_DIR]:
@@ -1464,8 +1557,13 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         for name in names:
             res = client.get_collection_stats(name)
             count = res.get("row_count", 0)
+            try:
+                desc = client.describe_collection(name).get("description", "")
+            except Exception:
+                desc = ""
             collections.append({
                 "name": name,
+                "display_name": _extract_display_name_from_desc(desc, name),
                 "count": count,
                 "category": "collection"
             })
@@ -1687,20 +1785,50 @@ def run_kb_pipeline_tool(
         }
         
     elif pipeline_name == "milvus_index":
-        final_collection_name = collection_name if collection_name else stem
+        requested_name = collection_name if collection_name else stem
+
+        # 获取已存在的 collection 名称与显示名，用于去重
+        existing_collections: set[str] = set()
+        existing_display_names: set[str] = set()
+        client = None
+        try:
+            client = _get_milvus_client()
+            existing_collections = set(client.list_collections())
+            for _name in existing_collections:
+                try:
+                    desc = client.describe_collection(_name).get("description", "")
+                except Exception:
+                    desc = ""
+                existing_display_names.add(_extract_display_name_from_desc(desc, _name))
+        except Exception as exc:
+            raise PipelineManagerError(f"Milvus connection failed: {exc}") from exc
+        finally:
+            try:
+                if client:
+                    client.close()
+            except Exception:
+                pass
+
+        # 转拼音 -> ASCII slug，再去重
+        slug_base = _transliterate_name(requested_name)
+        safe_collection_name = _make_unique_name(slug_base, existing_collections)
+
+        # 显示名按原输入，若重名则添加 (1) 递增
+        display_collection_name = _make_unique_display(requested_name, existing_display_names)
 
         is_overwrite = (index_mode == "overwrite")
 
         full_kb_cfg = load_kb_config()
-        milvus_config_dict = full_kb_cfg["milvus"] 
-        
+        milvus_config_dict = dict(full_kb_cfg["milvus"])
+        milvus_config_dict["collection_display_name"] = display_collection_name
+
         # 确保父目录存在
         KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
         override_params = {
             "retriever": {
                 "corpus_path": str(target_file),
-                "collection_name": final_collection_name,
+                "collection_name": safe_collection_name,
                 "overwrite": is_overwrite,
                 "index_backend": "milvus",
                 "index_backend_configs": {
