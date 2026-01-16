@@ -1,3 +1,28 @@
+const ACTIVE_ENGINE_STORAGE_KEY = "ultrarag_active_engines";
+
+function loadActiveEnginesFromStorage() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_ENGINE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch (e) {
+    console.warn("Failed to load active engine cache", e);
+  }
+  return {};
+}
+
+function persistActiveEngines() {
+  try {
+    localStorage.setItem(
+      ACTIVE_ENGINE_STORAGE_KEY,
+      JSON.stringify(state.chat?.activeEngines || {})
+    );
+  } catch (e) {
+    console.warn("Failed to persist active engines", e);
+  }
+}
+
 const state = {
   selectedPipeline: null,
   steps: [],
@@ -26,7 +51,7 @@ const state = {
     
     // 引擎连接状态
     engineSessionId: null, // 当前选中的 Pipeline 对应的 SessionID
-    activeEngines: {},     // 映射表: { "pipelineName": "sessionId" }
+    activeEngines: loadActiveEnginesFromStorage(),     // 映射表: { "pipelineName": "sessionId" }
     engineStartSeq: 0,     // 用于避免并发启动导致的状态乱序
     engineStartingFor: null, // 正在尝试启动的 pipeline 名
     engineStartPromise: null, // 引擎启动中的 Promise（用于串行化启动）
@@ -577,7 +602,12 @@ function renderCollectionList(container, collections) {
         return;
     }
 
+    // 按显示名排序
+    const getLabel = c => (c.display_name || c.name || "").toLowerCase();
+    collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
+
     collections.forEach(c => {
+        const displayName = c.display_name || c.name;
         const card = document.createElement('div');
         card.className = 'collection-card';
         
@@ -601,7 +631,7 @@ function renderCollectionList(container, collections) {
                 </button>
             </div>
             <div class="book-info">
-                <div class="book-title" title="${c.name}">${c.name}</div>
+                <div class="book-title" title="${displayName}">${displayName}</div>
                 <div class="book-meta">
                     <span>${countStr}</span>
                     <span class="badge bg-light text-dark border">Vector DB</span>
@@ -1326,6 +1356,7 @@ async function suspendOtherEngines(targetPipeline = null) {
         setChatStatus("Suspending...", "warn");
         await Promise.allSettled(stopPromises);
     }
+    persistActiveEngines();
 }
 
 // 1. 启动引擎 (幂等操作：如果已启动则忽略)
@@ -1377,6 +1408,7 @@ async function startEngine(pipelineName) {
             
             state.chat.engineSessionId = newSid;
             state.chat.activeEngines[pipelineName] = newSid;
+            persistActiveEngines();
             
             setChatStatus("Ready", "ready");
             log(`Engine started for ${pipelineName}`);
@@ -1427,6 +1459,7 @@ async function stopEngine(options = {}) {
     
     state.chat.engineSessionId = null;
     if (currentName) delete state.chat.activeEngines[currentName];
+    persistActiveEngines();
     
     setChatStatus("Offline", "info");
     updateDemoControls();
@@ -1470,7 +1503,11 @@ async function renderChatCollectionOptions() {
     try {
         // 复用后端的列表接口
         const data = await fetchJSON('/api/kb/files');
-        const collections = data.index || []; // data.index 存放的是 collection 列表
+        let collections = data.index || []; // data.index 存放的是 collection 列表
+
+        // 按显示名排序，保持 chat 下拉有序
+        const getLabel = c => (c.display_name || c.name || "").toLowerCase();
+        collections = collections.slice().sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
         
         // 渲染新的自定义下拉菜单
         renderKbDropdownOptions(collections);
@@ -3782,6 +3819,7 @@ function markPipelineDirty() {
         if (state.chat.engineSessionId === sid) {
             state.chat.engineSessionId = null;
         }
+        persistActiveEngines();
         log(`Pipeline '${currentName}' modified. Engine invalidated.`);
     }
 
@@ -4540,6 +4578,7 @@ document.addEventListener('click', function(e) {
 // 选择知识库选项
 window.selectKbOption = function(itemEl) {
     const value = itemEl.dataset.value;
+    const labelText = itemEl.dataset.label || itemEl.querySelector('.kb-item-text')?.textContent || "";
     const menu = document.getElementById('kb-dropdown-menu');
     const trigger = document.getElementById('kb-dropdown-trigger');
     const label = document.getElementById('kb-label-text');
@@ -4558,8 +4597,7 @@ window.selectKbOption = function(itemEl) {
     
     // 更新触发器显示
     if (value) {
-        const cleanName = itemEl.querySelector('.kb-item-text').textContent.split('(')[0].trim();
-        label.textContent = cleanName;
+        label.textContent = labelText;
         trigger.classList.add('active');
     } else {
         label.textContent = "Knowledge Base";
@@ -4588,14 +4626,15 @@ function renderKbDropdownOptions(collections) {
     
     collections.forEach(c => {
         const isSelected = c.name === currentVal;
+        const displayName = c.display_name || c.name;
         const item = document.createElement('div');
         item.className = `kb-dropdown-item ${isSelected ? 'selected' : ''}`;
         item.dataset.value = c.name;
+        item.dataset.label = displayName;
         item.onclick = function() { selectKbOption(this); };
         item.innerHTML = `
             <span class="kb-item-check">✓</span>
-            <span class="kb-item-text">${escapeHtmlForDropdown(c.name)}</span>
-            <span class="kb-item-count">${c.count || 0}</span>
+            <span class="kb-item-text">${escapeHtmlForDropdown(displayName)}</span>
         `;
         menu.appendChild(item);
     });
@@ -4604,9 +4643,10 @@ function renderKbDropdownOptions(collections) {
     if (hiddenSelect) {
         hiddenSelect.innerHTML = '<option value="">No Knowledge Base</option>';
         collections.forEach(c => {
+            const displayName = c.display_name || c.name;
             const opt = document.createElement("option");
             opt.value = c.name;
-            opt.textContent = `${c.name} (${c.count || 0})`;
+            opt.textContent = `${displayName}`;
             if (c.name === currentVal) opt.selected = true;
             hiddenSelect.appendChild(opt);
         });
@@ -4618,7 +4658,7 @@ function renderKbDropdownOptions(collections) {
     if (currentVal && trigger) {
         const selectedCollection = collections.find(c => c.name === currentVal);
         if (selectedCollection) {
-            label.textContent = selectedCollection.name;
+            label.textContent = selectedCollection.display_name || selectedCollection.name;
             trigger.classList.add('active');
         } else {
             label.textContent = "Knowledge Base";
@@ -4647,8 +4687,7 @@ window.updateKbLabel = function(selectEl) {
         trigger.classList.remove('active');
     } else {
         const selectedText = selectEl.options[selectEl.selectedIndex].text;
-        const cleanName = selectedText.split('(')[0].trim();
-        label.textContent = cleanName;
+        label.textContent = selectedText;
         trigger.classList.add('active');
     }
 };
