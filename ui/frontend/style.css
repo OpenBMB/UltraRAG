@@ -903,6 +903,21 @@ textarea.parameter-input {
   /* 3. 视觉微调 */
   padding-right: 4px;
 }
+.pipeline-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pipeline-ready-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 2px #e8f5ee;
+  flex-shrink: 0;
+}
 
 /* 针对滚动条的美化 (同时应用于两个菜单) */
 #pipeline-menu::-webkit-scrollbar,
@@ -4079,6 +4094,19 @@ textarea.parameter-input {
   flex-direction: column;
   padding: 16px 0;
   gap: 4px;
+}
+.workspace-nav-top {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.workspace-nav-spacer {
+  flex: 1;
+}
+.workspace-nav-divider {
+  height: 1px;
+  background: var(--border-subtle, #e5e7eb);
+  margin: 8px 12px 4px;
 }
 
 .workspace-nav-btn {

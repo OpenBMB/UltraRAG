@@ -108,8 +108,6 @@ const els = {
   heroStatus: document.getElementById("hero-status"),
   builderLogo: document.getElementById("builder-logo-link"),
   workspaceChatBtn: document.getElementById("workspace-chat-btn"),
-
-  directChatBtn: document.getElementById("direct-chat-btn"),
   
   // Parameter Controls
   parameterForm: document.getElementById("parameter-form"),
@@ -1869,8 +1867,10 @@ async function renderChatPipelineMenu() {
     
     els.chatPipelineMenu.innerHTML = "";
     
-    // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline
-    const readyPipelines = pipelines.filter(p => p.is_ready);
+    // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline，并按名称排序
+    const readyPipelines = pipelines
+        .filter(p => p.is_ready)
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" }));
 
     // 如果当前还没有选中的 Pipeline，自动选择第一个可用的并加载
     if (!state.selectedPipeline && readyPipelines.length > 0) {
@@ -2218,13 +2218,24 @@ async function deleteChatSession(sessionId) {
         danger: true
     });
     if (!confirmed) return;
-    
+
+    const wasCurrent = state.chat.currentSessionId === sessionId;
+
     state.chat.sessions = state.chat.sessions.filter(s => s.id !== sessionId);
     localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
     
     // [补全] 如果删除了当前会话，清理 last_active_id
-    if (state.chat.currentSessionId === sessionId) {
+    if (wasCurrent) {
         localStorage.removeItem("ultrarag_last_active_id"); // 清理
+
+        if (state.chat.controller) {
+            state.chat.controller.abort();
+            state.chat.controller = null;
+        }
+        setChatRunning(false);
+        state.chat.currentSessionId = null;
+        state.chat.history = [];
+        renderChatSidebar();
         createNewChatSession();
     } else {
         renderChatSidebar();
@@ -4208,16 +4219,6 @@ function updateActionButtons() {
   // 控制 Parameter 面板里的按钮 (保持不变)
   if (els.parameterSave) els.parameterSave.disabled = !(state.isBuilt && state.selectedPipeline);
   if (els.parameterChat) els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
-
-  // [新增] 控制 Builder 界面悬浮条里的 Chat 按钮
-  if (els.directChatBtn) {
-      // 只有当 Pipeline 已构建且参数已就绪时，才显示 Chat 按钮
-      if (state.isBuilt && state.parametersReady && state.selectedPipeline) {
-          els.directChatBtn.classList.remove("d-none");
-      } else {
-          els.directChatBtn.classList.add("d-none");
-      }
-  }
 }
 function insertStepAt(location, insertIndex, stepValue) {
   const stepsArray = resolveSteps(location); const index = Math.max(0, Math.min(insertIndex, stepsArray.length));
@@ -4387,10 +4388,38 @@ async function refreshPipelines() {
     return pipelines;
 }
 function renderPipelineMenu(items) {
-    els.pipelineMenu.innerHTML = ""; if (!items.length) { const li = document.createElement("li"); li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>'; els.pipelineMenu.appendChild(li); return; }
-    items.forEach(i => {
-        const li = document.createElement("li"); const btn = document.createElement("button"); btn.type = "button"; btn.className = "dropdown-item small"; btn.textContent = i.name;
-        btn.onclick = () => { loadPipeline(i.name); btn.blur(); }; li.appendChild(btn); els.pipelineMenu.appendChild(li);
+    els.pipelineMenu.innerHTML = "";
+    if (!items.length) {
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>';
+        els.pipelineMenu.appendChild(li);
+        return;
+    }
+
+    const sortedItems = items.slice().sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" })
+    );
+
+    sortedItems.forEach(i => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dropdown-item small pipeline-menu-item d-flex align-items-center justify-content-between gap-2";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = i.name;
+        btn.appendChild(nameSpan);
+
+        if (i.is_ready) {
+            const readyDot = document.createElement("span");
+            readyDot.className = "pipeline-ready-dot";
+            readyDot.title = "Built";
+            btn.appendChild(readyDot);
+        }
+
+        btn.onclick = () => { loadPipeline(i.name); btn.blur(); };
+        li.appendChild(btn);
+        els.pipelineMenu.appendChild(li);
     });
 }
 async function loadPipeline(name, options = {}) {
@@ -4670,7 +4699,7 @@ function renderParameterForm() {
         return;
     }
     
-    const entries = flattenParameters(state.parameterData);
+    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
     if (!entries.length) {
         container.innerHTML = '<div class="parameter-empty"><p>The current Pipeline has no editable parameters.</p></div>';
         return;
@@ -4833,8 +4862,6 @@ function bindEvents() {
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
     if (els.parameterChat) els.parameterChat.onclick = safeOpenChatView;
 
-    if (els.directChatBtn) els.directChatBtn.onclick = safeOpenChatView;
-
     if (els.workspaceChatBtn) {
         els.workspaceChatBtn.onclick = safeOpenChatView;
     }
@@ -4877,23 +4904,35 @@ function bindEvents() {
     }
 
     if (els.chatBack) {
-        els.chatBack.onclick = async () => {
-            // 1. 保存当前对话
+        const navigateBackToBuilder = async () => {
             try {
                 saveCurrentSession(true);
             } catch (e) {
                 console.error(e);
             }
-            
+
             setChatRunning(false);
-            
-            // 返回到Builder界面（Pipeline模式）
+
             setMode(Modes.BUILDER);
             updateUrlForView(Modes.BUILDER);
-            // 确保显示Pipeline面板
             if (typeof switchWorkspaceMode === 'function') {
                 switchWorkspaceMode('pipeline');
             }
+        };
+
+        els.chatBack.onclick = async () => {
+            if (state.chat.running) {
+                showInterruptConfirmDialog(async () => {
+                    if (state.chat.controller) {
+                        state.chat.controller.abort();
+                        state.chat.controller = null;
+                    }
+                    await navigateBackToBuilder();
+                });
+                return;
+            }
+
+            await navigateBackToBuilder();
         };
     }
     
@@ -6157,7 +6196,7 @@ function renderParameterFormInline() {
         return;
     }
     
-    const entries = flattenParameters(state.parameterData);
+    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
     if (!entries.length) {
         container.innerHTML = '<div class="params-empty"><p>No editable parameters.</p></div>';
         return;
@@ -6430,7 +6469,7 @@ async function selectPromptFile(file) {
 async function createNewPrompt() {
     const name = await showPrompt("Enter the prompt file name:", {
         title: "New Prompt",
-        placeholder: "e.g., my_prompt.jinja2"
+        placeholder: "e.g., my_prompt.jinja"
     });
     
     if (!name) return;
