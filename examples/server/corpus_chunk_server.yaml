@@ -1,13 +1,13 @@
 corpus:
-  parameter: servers/corpus/parameter.yaml
-  path: servers/corpus/src/corpus.py
   tools:
     chunk_documents:
       input:
-        chunk_backend: $chunk_backend
-        chunk_backend_configs: $chunk_backend_configs
-        chunk_path: $chunk_path
-        chunk_size: $chunk_size
         raw_chunk_path: $raw_chunk_path
+        chunk_backend_configs: $chunk_backend_configs
+        chunk_backend: $chunk_backend
         tokenizer_or_token_counter: $tokenizer_or_token_counter
+        chunk_size: $chunk_size
+        chunk_path: $chunk_path
         use_title: $use_title
+  parameter: servers/corpus/parameter.yaml
+  path: servers/corpus/src/corpus.py

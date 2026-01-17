@@ -1,16 +1,16 @@
 corpus:
-  chunk_backend: sentence
+  raw_chunk_path: corpora/text.jsonl
   chunk_backend_configs:
-    recursive:
-      min_characters_per_chunk: 12
-    sentence:
-      chunk_overlap: 50
-      delim: "['.', '!', '?', '；', '。', '！', '？', '\\n']"
-      min_sentences_per_chunk: 1
     token:
       chunk_overlap: 50
-  chunk_path: corpora/chunks.jsonl
-  chunk_size: 512
-  raw_chunk_path: corpora/text.jsonl
+    sentence:
+      chunk_overlap: 50
+      min_sentences_per_chunk: 1
+      delim: '[''.'', ''!'', ''?'', ''；'', ''。'', ''！'', ''？'', ''\n'']'
+    recursive:
+      min_characters_per_chunk: 12
+  chunk_backend: sentence
   tokenizer_or_token_counter: character
+  chunk_size: 512
+  chunk_path: corpora/chunks.jsonl
   use_title: false
