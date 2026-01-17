@@ -6504,7 +6504,7 @@ async function createNewPrompt() {
     // 确保文件名有正确扩展名
     let filename = name;
     if (!filename.endsWith('.jinja2') && !filename.endsWith('.jinja')) {
-        filename += '.jinja2';
+        filename += '.jinja';
     }
     
     try {
