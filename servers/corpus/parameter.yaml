@@ -12,15 +12,15 @@ mineru_extra_params:
 raw_chunk_path: corpora/text.jsonl
 chunk_path: corpora/chunks.jsonl
 use_title: false
-chunk_backend: token # choices=["token", "sentence", "recursive"]
+chunk_backend: sentence # choices=["token", "sentence", "recursive"]
 tokenizer_or_token_counter: character
-chunk_size: 256
+chunk_size: 512
 chunk_backend_configs:
   token:
     chunk_overlap: 50
   sentence:
     chunk_overlap: 50
     min_sentences_per_chunk: 1
-    delim: "['.', '!', '?', '\\n']"
+    delim: "['.', '!', '?', '；', '。', '！', '？', '\\n']"
   recursive:
     min_characters_per_chunk: 12
