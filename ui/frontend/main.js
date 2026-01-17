@@ -6504,7 +6504,7 @@ async function createNewPrompt() {
     // 确保文件名有正确扩展名
     let filename = name;
     if (!filename.endsWith('.jinja2') && !filename.endsWith('.jinja')) {
-        filename += '.jinja2';
+        filename += '.jinja';
     }
     
     try {
@@ -6690,7 +6690,7 @@ const aiState = {
         provider: 'openai',
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
-        model: 'gpt-4'
+        model: 'gpt-5-mini'
     },
     messages: [],
     conversationHistory: []
@@ -6906,7 +6906,7 @@ function saveAISettings() {
         provider: providerSelect?.value || 'openai',
         baseUrl: baseUrlInput?.value || '',
         apiKey: apiKeyInput?.value || '',
-        model: modelInput?.value || 'gpt-4'
+        model: modelInput?.value || 'gpt-5-mini'
     };
     
     try {

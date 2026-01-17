@@ -63,6 +63,63 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
+def reflow_paragraphs(text: str) -> str:
+    """
+    更智能地去掉段内硬换行，并允许在错误的空行处继续合并：
+    1) 先按空行切段；段内如果上一行未以句末标点结束，则与下一行合并。
+    2) 如果段落末尾没有句末标点，而下一个段落看起来是同一段的续写，则跨空行继续合并。
+    3) 处理末尾连字符断词。
+    """
+    if not text:
+        return ""
+
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+    end_punct_re = re.compile(r"[。！？!?；;…]\s*[”’」』》）】]*\s*$")
+    next_start_re = re.compile(r'^[\u4e00-\u9fff0-9a-zA-Z“"‘’《（(【\[「『<]')
+
+    def merge_lines_within_paragraph(para: str) -> str:
+        lines = para.split("\n")
+        segs: List[str] = []
+        for ln in lines:
+            ln = ln.strip()
+            if not ln:
+                continue
+            if not segs:
+                segs.append(ln)
+                continue
+            prev = segs[-1]
+            should_join = not end_punct_re.search(prev)
+            if should_join:
+                if prev.endswith("-") and len(prev) > 1:
+                    segs[-1] = prev[:-1] + ln
+                else:
+                    segs[-1] = prev + " " + ln
+            else:
+                segs.append(ln)
+        joined = " ".join(segs)
+        return re.sub(r"\s{2,}", " ", joined).strip()
+
+    # 第一次：段内合并
+    raw_paras = re.split(r"\n{2,}", text)
+    paras = [merge_lines_within_paragraph(p) for p in raw_paras if p.strip()]
+
+    # 第二次：跨段合并（处理错误空行导致的断句）
+    merged: List[str] = []
+    for p in paras:
+        if not merged:
+            merged.append(p)
+            continue
+        prev = merged[-1]
+        if prev and (not end_punct_re.search(prev)) and next_start_re.match(p):
+            connector = "" if prev.endswith("-") else " "
+            merged[-1] = re.sub(r"\s{2,}", " ", (prev.rstrip("-") + connector + p).strip())
+        else:
+            merged.append(p)
+
+    return "\n\n".join(merged).strip()
+
+
 @app.tool(output="parse_file_path,text_corpus_save_path->None")
 async def build_text_corpus(
     parse_file_path: str,
@@ -145,7 +202,7 @@ async def build_text_corpus(
             rows.append({
                 "id": stem,
                 "title": stem,
-                "contents": clean_text(content)
+                "contents": reflow_paragraphs(clean_text(content))
             })
 
     if os.path.isfile(in_path):
