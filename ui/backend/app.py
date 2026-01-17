@@ -690,7 +690,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         provider = payload.get("provider", "openai")
         base_url = payload.get("baseUrl", "").rstrip("/")
         api_key = payload.get("apiKey", "")
-        model = payload.get("model", "gpt-4")
+        model = payload.get("model", "gpt-5-mini")
         
         if not api_key:
             return jsonify({"success": False, "error": "API key is required"})
@@ -784,7 +784,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         provider = settings.get("provider", "openai")
         base_url = settings.get("baseUrl", "").rstrip("/")
         api_key = settings.get("apiKey", "")
-        model = settings.get("model", "gpt-4")
+        model = settings.get("model", "gpt-5-mini")
         
         if not api_key:
             return jsonify({"error": "API key is required"})
@@ -964,7 +964,7 @@ For Prompt modifications:
 ```
 
 For Parameter changes, describe them clearly with the full path like:
-"Set `generation.model_name` to `gpt-4`"
+"Set `generation.model_name` to `gpt-5-mini`"
 
 Be concise and helpful. Provide complete code when suggesting changes.
 """
