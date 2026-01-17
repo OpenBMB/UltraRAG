@@ -4898,11 +4898,11 @@ function bindEvents() {
     }
 
     if (els.builderLogo) {
-        els.builderLogo.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
+        els.builderLogo.onclick = (e) => { e.preventDefault(); setMode(Modes.BUILDER); };
     }
 
     if (els.chatLogoBtn) {
-        els.chatLogoBtn.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
+        els.chatLogoBtn.onclick = (e) => { e.preventDefault(); createNewChatSession(); };
     }
 
     if (els.chatSidebarToggleBtn && els.chatSidebar) {
