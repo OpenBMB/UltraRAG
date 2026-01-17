@@ -111,7 +111,7 @@ body {
 }
 
 .navbar.builder-navbar .navbar-logo-img {
-  height: 26px;
+  height: 20px; /* 与 Chat 界面侧边栏 Logo 保持一致 */
   width: auto;
   object-fit: contain;
 }

@@ -2086,6 +2086,19 @@ function interruptAndLoadSession(sessionId) {
     backToChatView();
 }
 
+// 判断会话内容是否发生变化（用于避免点击会话导致“更新”与排序）
+function hasHistoryChanged(session, history) {
+    if (!session) return true;
+    const prev = Array.isArray(session.messages) ? session.messages : [];
+    const curr = Array.isArray(history) ? history : [];
+    if (prev.length !== curr.length) return true;
+    if (prev.length === 0) return false;
+    const lastPrev = prev[prev.length - 1];
+    const lastCurr = curr[curr.length - 1];
+    // 只做末条消息的浅比较，性能友好且足以识别新生成内容
+    return JSON.stringify(lastPrev) !== JSON.stringify(lastCurr);
+}
+
 // 显示中断确认弹窗
 async function showInterruptConfirmDialog(onConfirm) {
     const confirmed = await showConfirm(
@@ -2120,6 +2133,15 @@ function saveCurrentSession(force = false) {
     }
     
     let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
+
+    // 仅在有新内容（或强制）时才更新 timestamp / 排序，避免“仅点击”导致置顶
+    const contentChanged = force || hasHistoryChanged(session, state.chat.history);
+    if (!contentChanged) {
+        if (state.chat.currentSessionId) {
+            localStorage.setItem("ultrarag_last_active_id", state.chat.currentSessionId);
+        }
+        return;
+    }
     
     // 生成标题：取第一条用户消息的前20个字
     let title = "New Chat";
@@ -4023,7 +4045,7 @@ function initConsole() {
   });
 }
 
-// 从 URL 推断初始视图（支持 /chat 或 ?view=chat）
+// 从 URL 推断初始视图（支持 /chat、/settings 或 ?view=chat）
 function getInitialModeFromUrl() {
   const path = (window.location.pathname || "").toLowerCase();
   const hash = (window.location.hash || "").toLowerCase();
@@ -4033,7 +4055,13 @@ function getInitialModeFromUrl() {
   if (viewParam === 'chat' || path.startsWith('/chat') || hash === '#chat') {
     return Modes.CHAT;
   }
-  if (viewParam === 'builder' || viewParam === 'config' || path.startsWith('/config')) {
+  if (
+    viewParam === 'builder' ||
+    viewParam === 'config' ||
+    viewParam === 'settings' ||
+    path.startsWith('/settings') ||
+    path.startsWith('/config')
+  ) {
     return Modes.BUILDER;
   }
   return null;
@@ -4045,10 +4073,9 @@ function updateUrlForView(mode, replace = false) {
   const currentPath = window.location.pathname;
   
   if (mode === Modes.CHAT) {
-    targetPath = "/chat";
+    targetPath = "/";
   } else if (mode === Modes.BUILDER) {
-    // 如果本就在 /config 下则保持 /config，否则使用根路径
-    targetPath = currentPath.startsWith("/config") ? "/config" : "/";
+    targetPath = "/settings";
   }
   
   if (!targetPath || currentPath === targetPath) return;
@@ -5179,7 +5206,7 @@ async function bootstrap() {
   // 根据模式和 URL 决定初始视图
   let initialMode;
   if (state.adminMode) {
-      initialMode = initialModeFromUrl || Modes.BUILDER;
+      initialMode = initialModeFromUrl || Modes.CHAT;
   } else {
       initialMode = Modes.CHAT;
   }
@@ -5191,7 +5218,7 @@ async function bootstrap() {
       applyChatOnlyMode();
   }
   
-  // 同步地址栏，保证直接访问 /chat 可进入聊天界面
+  // 同步地址栏，使刷新后仍保持当前视图路径（/ 与 /settings）
   updateUrlForView(initialMode, true);
   const startInChat = initialMode === Modes.CHAT;
   
