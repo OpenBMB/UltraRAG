@@ -70,35 +70,52 @@ class UltraRAG_MCP_Server(FastMCP):
         name = name or "UltraRAG"
         level = os.environ.get("log_level", "warn")
         self.logger = get_logger(name, level)
+        # fastmcp 3.x 移除/重命名了一些 __init__ 参数（例如 resource_prefix_format）
+        # 这里动态过滤仅保留当前版本支持的参数，兼容旧版 fastmcp。
+        super_kwargs = {
+            "version": version,
+            "auth": auth,
+            "middleware": middleware,
+            "lifespan": lifespan,
+            "tool_serializer": tool_serializer,
+            "on_duplicate_tools": on_duplicate_tools,
+            "on_duplicate_resources": on_duplicate_resources,
+            "on_duplicate_prompts": on_duplicate_prompts,
+            "resource_prefix_format": resource_prefix_format,
+            "tool_transformations": tool_transformations,
+            "mask_error_details": mask_error_details,
+            "tools": tools,
+            "dependencies": dependencies,
+            "include_tags": include_tags,
+            "exclude_tags": exclude_tags,
+            "include_fastmcp_meta": include_fastmcp_meta,
+            "log_level": log_level,
+            "debug": debug,
+            "host": host,
+            "port": port,
+            "sse_path": sse_path,
+            "message_path": message_path,
+            "streamable_http_path": streamable_http_path,
+            "json_response": json_response,
+            "stateless_http": stateless_http,
+        }
 
-        super().__init__(
-            name,
-            instructions,
-            version=version,
-            auth=auth,
-            lifespan=lifespan,
-            tool_serializer=tool_serializer,
-            on_duplicate_tools=on_duplicate_tools,
-            on_duplicate_resources=on_duplicate_resources,
-            on_duplicate_prompts=on_duplicate_prompts,
-            resource_prefix_format=resource_prefix_format,
-            mask_error_details=mask_error_details,
-            tools=tools,
-            tool_transformations=tool_transformations,
-            include_fastmcp_meta=include_fastmcp_meta,
-            dependencies=dependencies,
-            include_tags=include_tags,
-            exclude_tags=exclude_tags,
-            log_level=log_level,
-            debug=debug,
-            host=host,
-            port=port,
-            sse_path=sse_path,
-            message_path=message_path,
-            streamable_http_path=streamable_http_path,
-            json_response=json_response,
-            stateless_http=stateless_http,
-        )
+        init_params = inspect.signature(super().__init__).parameters
+        filtered_kwargs = {}
+        unsupported = []
+        for key, value in super_kwargs.items():
+            if key not in init_params:
+                unsupported.append(key)
+                continue
+            # 避免显式传递 None 覆盖 fastmcp 默认值
+            if value is None and init_params[key].default is not inspect._empty:
+                continue
+            filtered_kwargs[key] = value
+
+        if unsupported:
+            self.logger.debug("Ignoring unsupported FastMCP args: %s", unsupported)
+
+        super().__init__(name, instructions, **filtered_kwargs)
         self.output = {}
         self.fn_meta: dict[str, dict[str, Any]] = {}
         self.prompt_meta: dict[str, dict[str, Any]] = {}
@@ -123,6 +140,7 @@ class UltraRAG_MCP_Server(FastMCP):
         exclude_args: list[str] | None = None,
         meta: dict[str, Any] | None = None,
         enabled: bool | None = None,
+        **extra_kwargs: Any,
     ):
         if output is not None:
             if annotations is None:
@@ -132,19 +150,35 @@ class UltraRAG_MCP_Server(FastMCP):
             else:
                 annotations.output = output
 
-        return super().tool(
-            name_or_fn,
-            name=name,
-            title=title,
-            output_schema=output_schema,
-            description=description,
-            icons=icons,
-            tags=tags,
-            annotations=annotations,
-            exclude_args=exclude_args,
-            meta=meta,
-            enabled=enabled,
-        )
+        tool_kwargs = {
+            "name": name,
+            "title": title,
+            "output_schema": output_schema,
+            "description": description,
+            "icons": icons,
+            "tags": tags,
+            "annotations": annotations,
+            "exclude_args": exclude_args,
+            "meta": meta,
+            "enabled": enabled,
+            **extra_kwargs,
+        }
+
+        tool_params = inspect.signature(super().tool).parameters
+        filtered_kwargs = {}
+        unsupported = []
+        for key, value in tool_kwargs.items():
+            if key not in tool_params:
+                unsupported.append(key)
+                continue
+            if value is None and tool_params[key].default is not inspect._empty:
+                continue
+            filtered_kwargs[key] = value
+
+        if unsupported:
+            self.logger.debug("Ignoring unsupported FastMCP.tool args: %s", unsupported)
+
+        return super().tool(name_or_fn, **filtered_kwargs)
 
     def prompt(
         self,

@@ -51,6 +51,35 @@ try:
 except Exception as exc:  # pragma: no cover - defensive
     LOGGER.warning("Failed to patch StdioTransport destructor: %s", exc)
 
+# Suppress noisy "Event loop is closed" stack traces from fakeredis callbacks
+try:
+    import fakeredis._helpers as _fr_helpers
+
+    def _safe_notify_watch(self, key):  # type: ignore[no-untyped-def]
+        for sock in list(self._watches.get(key, set())):
+            try:
+                sock.notify_watch()
+            except RuntimeError as exc:
+                if "Event loop is closed" in str(exc):
+                    LOGGER.debug("Suppressing fakeredis watch callback on closed loop")
+                    continue
+                raise
+        self.condition.notify_all()
+        for callback in list(self._change_callbacks):
+            try:
+                callback()
+            except RuntimeError as exc:
+                if "Event loop is closed" in str(exc):
+                    LOGGER.debug("Suppressing fakeredis change callback on closed loop")
+                    continue
+                raise
+            except Exception as exc:
+                LOGGER.debug("Suppressing fakeredis change callback error: %s", exc)
+
+    _fr_helpers.Database.notify_watch = _safe_notify_watch  # type: ignore[attr-defined]
+except Exception as exc:  # pragma: no cover - defensive
+    LOGGER.debug("Skipping fakeredis notify_watch patch: %s", exc)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:

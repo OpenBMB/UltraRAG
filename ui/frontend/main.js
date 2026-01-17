@@ -108,8 +108,6 @@ const els = {
   heroStatus: document.getElementById("hero-status"),
   builderLogo: document.getElementById("builder-logo-link"),
   workspaceChatBtn: document.getElementById("workspace-chat-btn"),
-
-  directChatBtn: document.getElementById("direct-chat-btn"),
   
   // Parameter Controls
   parameterForm: document.getElementById("parameter-form"),
@@ -1869,8 +1867,10 @@ async function renderChatPipelineMenu() {
     
     els.chatPipelineMenu.innerHTML = "";
     
-    // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline
-    const readyPipelines = pipelines.filter(p => p.is_ready);
+    // [关键修改] 过滤掉还没有 Build (没有参数文件) 的 Pipeline，并按名称排序
+    const readyPipelines = pipelines
+        .filter(p => p.is_ready)
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" }));
 
     // 如果当前还没有选中的 Pipeline，自动选择第一个可用的并加载
     if (!state.selectedPipeline && readyPipelines.length > 0) {
@@ -2086,6 +2086,19 @@ function interruptAndLoadSession(sessionId) {
     backToChatView();
 }
 
+// 判断会话内容是否发生变化（用于避免点击会话导致“更新”与排序）
+function hasHistoryChanged(session, history) {
+    if (!session) return true;
+    const prev = Array.isArray(session.messages) ? session.messages : [];
+    const curr = Array.isArray(history) ? history : [];
+    if (prev.length !== curr.length) return true;
+    if (prev.length === 0) return false;
+    const lastPrev = prev[prev.length - 1];
+    const lastCurr = curr[curr.length - 1];
+    // 只做末条消息的浅比较，性能友好且足以识别新生成内容
+    return JSON.stringify(lastPrev) !== JSON.stringify(lastCurr);
+}
+
 // 显示中断确认弹窗
 async function showInterruptConfirmDialog(onConfirm) {
     const confirmed = await showConfirm(
@@ -2120,6 +2133,15 @@ function saveCurrentSession(force = false) {
     }
     
     let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
+
+    // 仅在有新内容（或强制）时才更新 timestamp / 排序，避免“仅点击”导致置顶
+    const contentChanged = force || hasHistoryChanged(session, state.chat.history);
+    if (!contentChanged) {
+        if (state.chat.currentSessionId) {
+            localStorage.setItem("ultrarag_last_active_id", state.chat.currentSessionId);
+        }
+        return;
+    }
     
     // 生成标题：取第一条用户消息的前20个字
     let title = "New Chat";
@@ -2218,13 +2240,24 @@ async function deleteChatSession(sessionId) {
         danger: true
     });
     if (!confirmed) return;
-    
+
+    const wasCurrent = state.chat.currentSessionId === sessionId;
+
     state.chat.sessions = state.chat.sessions.filter(s => s.id !== sessionId);
     localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
     
     // [补全] 如果删除了当前会话，清理 last_active_id
-    if (state.chat.currentSessionId === sessionId) {
+    if (wasCurrent) {
         localStorage.removeItem("ultrarag_last_active_id"); // 清理
+
+        if (state.chat.controller) {
+            state.chat.controller.abort();
+            state.chat.controller = null;
+        }
+        setChatRunning(false);
+        state.chat.currentSessionId = null;
+        state.chat.history = [];
+        renderChatSidebar();
         createNewChatSession();
     } else {
         renderChatSidebar();
@@ -4012,7 +4045,7 @@ function initConsole() {
   });
 }
 
-// 从 URL 推断初始视图（支持 /chat 或 ?view=chat）
+// 从 URL 推断初始视图（支持 /chat、/settings 或 ?view=chat）
 function getInitialModeFromUrl() {
   const path = (window.location.pathname || "").toLowerCase();
   const hash = (window.location.hash || "").toLowerCase();
@@ -4022,7 +4055,13 @@ function getInitialModeFromUrl() {
   if (viewParam === 'chat' || path.startsWith('/chat') || hash === '#chat') {
     return Modes.CHAT;
   }
-  if (viewParam === 'builder' || viewParam === 'config' || path.startsWith('/config')) {
+  if (
+    viewParam === 'builder' ||
+    viewParam === 'config' ||
+    viewParam === 'settings' ||
+    path.startsWith('/settings') ||
+    path.startsWith('/config')
+  ) {
     return Modes.BUILDER;
   }
   return null;
@@ -4034,10 +4073,9 @@ function updateUrlForView(mode, replace = false) {
   const currentPath = window.location.pathname;
   
   if (mode === Modes.CHAT) {
-    targetPath = "/chat";
+    targetPath = "/";
   } else if (mode === Modes.BUILDER) {
-    // 如果本就在 /config 下则保持 /config，否则使用根路径
-    targetPath = currentPath.startsWith("/config") ? "/config" : "/";
+    targetPath = "/settings";
   }
   
   if (!targetPath || currentPath === targetPath) return;
@@ -4208,16 +4246,6 @@ function updateActionButtons() {
   // 控制 Parameter 面板里的按钮 (保持不变)
   if (els.parameterSave) els.parameterSave.disabled = !(state.isBuilt && state.selectedPipeline);
   if (els.parameterChat) els.parameterChat.disabled = state.mode === Modes.CHAT || !canUseChat();
-
-  // [新增] 控制 Builder 界面悬浮条里的 Chat 按钮
-  if (els.directChatBtn) {
-      // 只有当 Pipeline 已构建且参数已就绪时，才显示 Chat 按钮
-      if (state.isBuilt && state.parametersReady && state.selectedPipeline) {
-          els.directChatBtn.classList.remove("d-none");
-      } else {
-          els.directChatBtn.classList.add("d-none");
-      }
-  }
 }
 function insertStepAt(location, insertIndex, stepValue) {
   const stepsArray = resolveSteps(location); const index = Math.max(0, Math.min(insertIndex, stepsArray.length));
@@ -4387,10 +4415,38 @@ async function refreshPipelines() {
     return pipelines;
 }
 function renderPipelineMenu(items) {
-    els.pipelineMenu.innerHTML = ""; if (!items.length) { const li = document.createElement("li"); li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>'; els.pipelineMenu.appendChild(li); return; }
-    items.forEach(i => {
-        const li = document.createElement("li"); const btn = document.createElement("button"); btn.type = "button"; btn.className = "dropdown-item small"; btn.textContent = i.name;
-        btn.onclick = () => { loadPipeline(i.name); btn.blur(); }; li.appendChild(btn); els.pipelineMenu.appendChild(li);
+    els.pipelineMenu.innerHTML = "";
+    if (!items.length) {
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="dropdown-item text-muted small">No pipelines</span>';
+        els.pipelineMenu.appendChild(li);
+        return;
+    }
+
+    const sortedItems = items.slice().sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" })
+    );
+
+    sortedItems.forEach(i => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dropdown-item small pipeline-menu-item d-flex align-items-center justify-content-between gap-2";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = i.name;
+        btn.appendChild(nameSpan);
+
+        if (i.is_ready) {
+            const readyDot = document.createElement("span");
+            readyDot.className = "pipeline-ready-dot";
+            readyDot.title = "Built";
+            btn.appendChild(readyDot);
+        }
+
+        btn.onclick = () => { loadPipeline(i.name); btn.blur(); };
+        li.appendChild(btn);
+        els.pipelineMenu.appendChild(li);
     });
 }
 async function loadPipeline(name, options = {}) {
@@ -4670,7 +4726,7 @@ function renderParameterForm() {
         return;
     }
     
-    const entries = flattenParameters(state.parameterData);
+    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
     if (!entries.length) {
         container.innerHTML = '<div class="parameter-empty"><p>The current Pipeline has no editable parameters.</p></div>';
         return;
@@ -4833,8 +4889,6 @@ function bindEvents() {
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
     if (els.parameterChat) els.parameterChat.onclick = safeOpenChatView;
 
-    if (els.directChatBtn) els.directChatBtn.onclick = safeOpenChatView;
-
     if (els.workspaceChatBtn) {
         els.workspaceChatBtn.onclick = safeOpenChatView;
     }
@@ -4844,11 +4898,11 @@ function bindEvents() {
     }
 
     if (els.builderLogo) {
-        els.builderLogo.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
+        els.builderLogo.onclick = (e) => { e.preventDefault(); setMode(Modes.BUILDER); };
     }
 
     if (els.chatLogoBtn) {
-        els.chatLogoBtn.onclick = (e) => { e.preventDefault(); safeOpenChatView(); };
+        els.chatLogoBtn.onclick = (e) => { e.preventDefault(); createNewChatSession(); };
     }
 
     if (els.chatSidebarToggleBtn && els.chatSidebar) {
@@ -4877,23 +4931,35 @@ function bindEvents() {
     }
 
     if (els.chatBack) {
-        els.chatBack.onclick = async () => {
-            // 1. 保存当前对话
+        const navigateBackToBuilder = async () => {
             try {
                 saveCurrentSession(true);
             } catch (e) {
                 console.error(e);
             }
-            
+
             setChatRunning(false);
-            
-            // 返回到Builder界面（Pipeline模式）
+
             setMode(Modes.BUILDER);
             updateUrlForView(Modes.BUILDER);
-            // 确保显示Pipeline面板
             if (typeof switchWorkspaceMode === 'function') {
                 switchWorkspaceMode('pipeline');
             }
+        };
+
+        els.chatBack.onclick = async () => {
+            if (state.chat.running) {
+                showInterruptConfirmDialog(async () => {
+                    if (state.chat.controller) {
+                        state.chat.controller.abort();
+                        state.chat.controller = null;
+                    }
+                    await navigateBackToBuilder();
+                });
+                return;
+            }
+
+            await navigateBackToBuilder();
         };
     }
     
@@ -5140,7 +5206,7 @@ async function bootstrap() {
   // 根据模式和 URL 决定初始视图
   let initialMode;
   if (state.adminMode) {
-      initialMode = initialModeFromUrl || Modes.BUILDER;
+      initialMode = initialModeFromUrl || Modes.CHAT;
   } else {
       initialMode = Modes.CHAT;
   }
@@ -5152,7 +5218,7 @@ async function bootstrap() {
       applyChatOnlyMode();
   }
   
-  // 同步地址栏，保证直接访问 /chat 可进入聊天界面
+  // 同步地址栏，使刷新后仍保持当前视图路径（/ 与 /settings）
   updateUrlForView(initialMode, true);
   const startInChat = initialMode === Modes.CHAT;
   
@@ -6157,7 +6223,7 @@ function renderParameterFormInline() {
         return;
     }
     
-    const entries = flattenParameters(state.parameterData);
+    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
     if (!entries.length) {
         container.innerHTML = '<div class="params-empty"><p>No editable parameters.</p></div>';
         return;
@@ -6430,7 +6496,7 @@ async function selectPromptFile(file) {
 async function createNewPrompt() {
     const name = await showPrompt("Enter the prompt file name:", {
         title: "New Prompt",
-        placeholder: "e.g., my_prompt.jinja2"
+        placeholder: "e.g., my_prompt.jinja"
     });
     
     if (!name) return;
@@ -6438,7 +6504,7 @@ async function createNewPrompt() {
     // 确保文件名有正确扩展名
     let filename = name;
     if (!filename.endsWith('.jinja2') && !filename.endsWith('.jinja')) {
-        filename += '.jinja2';
+        filename += '.jinja';
     }
     
     try {
@@ -6624,7 +6690,7 @@ const aiState = {
         provider: 'openai',
         baseUrl: 'https://api.openai.com/v1',
         apiKey: '',
-        model: 'gpt-4'
+        model: 'gpt-5-mini'
     },
     messages: [],
     conversationHistory: []
@@ -6840,7 +6906,7 @@ function saveAISettings() {
         provider: providerSelect?.value || 'openai',
         baseUrl: baseUrlInput?.value || '',
         apiKey: apiKeyInput?.value || '',
-        model: modelInput?.value || 'gpt-4'
+        model: modelInput?.value || 'gpt-5-mini'
     };
     
     try {

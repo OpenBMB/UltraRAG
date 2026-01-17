@@ -7,7 +7,7 @@ import threading
 from pathlib import Path
 from typing import Any, Dict
 
-from flask import Flask, jsonify, request, send_from_directory, Response, stream_with_context
+from flask import Flask, jsonify, request, send_from_directory, Response, stream_with_context, redirect
 
 from . import pipeline_manager as pm
 
@@ -66,14 +66,19 @@ def create_app(admin_mode: bool = False) -> Flask:
     def index():
         return send_from_directory(app.static_folder, "index.html")
 
-    # 直接访问 /chat 或 /config 也返回前端入口，便于分离配置/对话页
+    # 直接访问 /chat 或 /settings 也返回前端入口，便于分离配置/对话页
     @app.route("/chat")
     def chat_page():
         return send_from_directory(app.static_folder, "index.html")
 
+    @app.route("/settings")
+    def settings_page():
+        return send_from_directory(app.static_folder, "index.html")
+
     @app.route("/config")
     def config_page():
-        return send_from_directory(app.static_folder, "index.html")
+        # 兼容旧链接，重定向到新的设置页
+        return redirect("/settings")
 
     @app.route("/api/config/mode", methods=["GET"])
     def get_app_mode():
@@ -685,7 +690,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         provider = payload.get("provider", "openai")
         base_url = payload.get("baseUrl", "").rstrip("/")
         api_key = payload.get("apiKey", "")
-        model = payload.get("model", "gpt-4")
+        model = payload.get("model", "gpt-5-mini")
         
         if not api_key:
             return jsonify({"success": False, "error": "API key is required"})
@@ -779,7 +784,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         provider = settings.get("provider", "openai")
         base_url = settings.get("baseUrl", "").rstrip("/")
         api_key = settings.get("apiKey", "")
-        model = settings.get("model", "gpt-4")
+        model = settings.get("model", "gpt-5-mini")
         
         if not api_key:
             return jsonify({"error": "API key is required"})
@@ -959,7 +964,7 @@ For Prompt modifications:
 ```
 
 For Parameter changes, describe them clearly with the full path like:
-"Set `generation.model_name` to `gpt-4`"
+"Set `generation.model_name` to `gpt-5-mini`"
 
 Be concise and helpful. Provide complete code when suggesting changes.
 """

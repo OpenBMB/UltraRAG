@@ -101,128 +101,36 @@
 
 ## 安装
 
-### 使用 Conda 创建虚拟环境：
+### 使用 uv 同步依赖
 
-```shell
-conda create -n ultrarag python=3.11
-conda activate ultrarag
-```
-通过 git 克隆项目到本地或服务器：
-
-```shell
-git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
-cd UltraRAG
-```
-
-我们推荐使用 uv 来进行包管理，提供更快、更可靠的 Python 依赖管理体验：
-
-```shell
-pip install uv
-uv pip install -e .
-```
-
-如果您更习惯 pip，也可以直接运行：
-
-```shell
-pip install -e .
-```
-
-运行以下命令验证安装是否成功：
-
-```shell
-# 成功运行显示'Hello, UltraRAG 2.0!' 欢迎语
-ultrarag run examples/sayhello.yaml
-```
-
-
-【可选】UltraRAG v2 支持丰富的Server组件，开发者可根据实际任务灵活安装所需依赖：
-
-```shell
-# Retriever/Reranker Server依赖：
-# infinity
-uv pip install infinity_emb
-# sentence_transformers
-uv pip install sentence_transformers
-# openai
-uv pip install openai
-# bm25
-uv pip install bm25s
-# faiss（需要根据自己的硬件环境，手动编译安装 CPU 或 GPU 版本的 FAISS）
-# CPU版本：
-uv pip install faiss-cpu
-# GPU 版本（示例：CUDA 12.x）
-uv pip install faiss-gpu-cu12
-# 其他 CUDA 版本请安装对应的包（例如：CUDA 11.x 使用 faiss-gpu-cu11）
-# websearch
-# exa
-uv pip install exa_py
-# tavily
-uv pip install tavily-python
-# 一键安装：
-uv pip install -e ".[retriever]"
-
-# Generation Server依赖：
-# vllm
-uv pip install vllm
-# openai
-uv pip install openai
-# hf
-uv pip install transformers
-# 一键安装：
-uv pip install -e ".[generation]"
-
-# Corpus Server依赖：
-# chonkie
-uv pip install chonkie
-# pymupdf
-uv pip install pymupdf
-# mineru
-uv pip install "mineru[core]"
-# 一键安装：
-uv pip install -e ".[corpus]"
-
-# 安装所有依赖：
-uv pip install -e ".[all]"
-# 或使用conda导入环境：
-conda env create -f environment.yml
-```
+1. 安装 uv（未安装可执行 `pip install uv` 或 `curl -LsSf https://astral.sh/uv/install.sh | sh`）。
+2. 克隆项目并进入目录：
+   ```shell
+   git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
+   cd UltraRAG
+   ```
+3. 同步依赖：
+   - 全量功能（检索/生成/语料/评测）：  
+     `uv sync --extra retriever --extra generation --extra corpus --extra evaluation`
+   - 仅基础运行：`uv sync`
+   - 仅特定组件：按需保留对应 `--extra`，例如  
+     - 只用检索/重排：`uv sync --extra retriever`  
+     - 只用生成：`uv sync --extra generation`
+4. 验证安装：
+   ```shell
+   ultrarag run examples/sayhello.yaml
+   ```
 
 ### 使用 Docker 构建运行环境
 
-#### （方式一）本地构建镜像
-
-通过 git 克隆项目到本地或服务器：
-
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
+docker build -t ultrarag:latest .
+docker run -it --gpus all -p 5050:5050 ultrarag:latest
 ```
 
-构建镜像：
-
-```shell
-docker build -t ultrarag:v0.2.1 .
-```
-
-运行交互环境：
-
-```shell
-docker run -it --gpus all ultrarag:v0.2.1 /bin/bash
-```
-
-#### （方式二）使用预构建好的镜像
-
-拉取构建好的镜像：
-
-```shell
-docker pull hdxin2002/ultrarag:v0.2.1
-```
-
-运行交互环境：
-
-```shell
-docker run -it --gpus all hdxin2002/ultrarag:v0.2.1 /bin/bash
-```
+容器内默认命令：`ultrarag show ui --admin --port 5050 --host 0.0.0.0`，直接映射 5050 端口即可访问。
 
 运行以下命令验证安装是否成功：
 
@@ -233,8 +141,7 @@ ultrarag run examples/sayhello.yaml
 
 ## 快速开始
 
-我们提供了从入门到进阶的完整教学示例，欢迎访问[教程文档](https://ultrarag.openbmb.cn
-)快速上手 UltraRAG v2！
+我们提供了从入门到进阶的完整教学示例，欢迎访问[教程文档](https://ultrarag.openbmb.cn) 快速上手 UltraRAG v2！
 
 阅读[快速开始](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解如何基于 UltraRAG 运行一个完整的 RAG Pipeline。
 

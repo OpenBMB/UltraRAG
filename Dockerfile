@@ -1,30 +1,27 @@
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 
-ENV PATH="/opt/miniconda/bin:$PATH"
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    UV_PYTHON=python3.11 \
+    PATH="/root/.local/bin:${PATH}"
 
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends bzip2 ca-certificates curl git
-RUN update-ca-certificates
-RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3.11 python3.11-venv python3.11-distutils \
+        curl ca-certificates git build-essential && \
+    update-ca-certificates && \
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python3 && \
+    ln -sf /usr/bin/python3.11 /usr/local/bin/python && \
+    rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt
-ADD https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh /opt/miniconda.sh
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 WORKDIR /ultrarag
 COPY . .
 
-RUN chmod +x /opt/miniconda.sh
-RUN /opt/miniconda.sh -b -p /opt/miniconda 
-RUN rm -f /opt/miniconda.sh 
+RUN uv sync --system --frozen --no-dev \
+    --extra retriever --extra generation --extra corpus --extra evaluation
 
-RUN conda --version && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
-    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+EXPOSE 5050
 
-RUN conda env create -f environment.yml
-ENV PATH="/opt/miniconda/envs/ultrarag/bin:$PATH"
-RUN python -m ensurepip 
-RUN pip install uv
-RUN uv pip install -e . --system
-
-CMD ["ultrarag", "run", "examples/sayhello.yaml"]
+CMD ["ultrarag", "show", "ui", "--admin", "--port", "5050", "--host", "0.0.0.0"]
