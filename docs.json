@@ -1,9 +1,9 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "UltraRAG v3",
+  "name": "UltraRAG",
   "banner": {
-    "content": "📣 Tutorials have been updated and are now fully aligned with UltraRAG 3.0 — check out [what’s new](/pages/cn/getting_started/update).",
+    "content": "Tutorials updated for UltraRAG 3.0. See [what’s new](/pages/cn/getting_started/update).",
     "dismissible": true
   },
   "colors": {
@@ -86,15 +86,14 @@
             "tab": "UI",
             "groups": [
               {
-                "group": "使用指南",
+                "group": "开始使用",
                 "pages": [
-                  "pages/cn/ui/feature",
-                  "pages/cn/ui/prepare",
-                  "pages/cn/ui/start"
+                  "pages/cn/ui/start",
+                  "pages/cn/ui/prepare"
                 ]
               },
               {
-                "group": "典型场景",
+                "group": "典型实现",
                 "pages": [
                   "pages/cn/demo/llm",
                   "pages/cn/demo/rag",
@@ -231,12 +230,6 @@
     ]
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Project",
-        "href": "https://openbmb.github.io/UltraRAG/"
-      }
-    ],
     "primary": {
       "type": "button",
       "label": "⭐ Star on GitHub",
@@ -278,7 +271,7 @@
     "metatags": {
       "charset": "UTF-8",
       "viewport": "width=device-width, initial-scale=1.0",
-      "description": "UltraRAG v2 （UR-v2）是首个基于 Model Context Protocol (MCP) 架构设计的轻量级 RAG 系统构建框架，旨在为科研探索场景提供高效的建模支持。它将 RAG 中的核心组件标准化封装为独立的 MCP Server，并通过函数级 Tool 接口实现灵活调用与功能扩展。借助 MCP Client 作为流程调度器，开发者仅需编写简洁的 YAML 文件，便可高效构建支持串行、循环与条件分支等复杂控制结构的推理流程，显著降低搭建与调试复杂 RAG 系统的技术门槛与学习成本。",
+      "description": "UltraRAG 是首个基于 Model Context Protocol (MCP) 架构设计的轻量级 RAG 系统构建框架，旨在为科研探索场景提供高效的建模支持。它将 RAG 中的核心组件标准化封装为独立的 MCP Server，并通过函数级 Tool 接口实现灵活调用与功能扩展。借助 MCP Client 作为流程调度器，开发者仅需编写简洁的 YAML 文件，便可高效构建支持串行、循环与条件分支等复杂控制结构的推理流程，显著降低搭建与调试复杂 RAG 系统的技术门槛与学习成本。",
       "keywords": "UltraRAG, MCP, RAG",
       "google-site-verification": "ZItVyYo3SXQBd36Y3rbS-RDE9N-6AZ-EYJF649iTQQc",
       "copyright": "Copyright © 2025 UltraRAG"

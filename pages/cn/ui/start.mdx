@@ -1,4 +1,129 @@
 ---
-title: "开始使用"
-icon: "circle-play"
+title: "UltraRAG UI"
+icon: "atom"
 ---
+
+UltraRAG UI 不仅仅是一个聊天界面，它是一个完整的 RAG 开发与调试平台。
+
+![](/images/ui/chat_menu.png)
+
+## 启动命令
+
+使用以下命令启动 UI 服务：
+
+```bash
+ultrarag show ui [OPTIONS]
+```
+
+### 常用选项
+
+- `--port <INTEGER>`: 指定服务端口，默认为 `5050`。
+- `--host <TEXT>`: 指定绑定地址，默认为 `127.0.0.1`。
+- `--admin`: 启用管理员模式。默认情况下 UI 仅展示对话界面（Chat Only）。开启此选项后，将解锁 Pipeline Builder（可视化编排）、参数配置与在线 Prompt 编辑功能。此外，管理员界面内置了 AI 助手，可辅助您高效完成 Pipeline 的配置与调试。
+
+### 示例
+
+**启动完整功能的 Admin 模式：**
+
+```bash
+ultrarag show ui --admin
+```
+
+**仅启动对话界面（适合最终用户）：**
+
+```bash
+ultrarag show ui
+```
+
+启动后，在浏览器访问 `http://127.0.0.1:5050` 即可进入系统。
+
+## 1. Chat（对话）
+进入系统默认展示对话页面，您可以直接选择已编译的 Pipeline 开启对话。
+
+<Tip>我们在[典型场景](/pages/cn/demo/llm)中提供了多个开发好的 Pipeline 的部署教程，您也可以根据需求自定义 Pipeline。</Tip>
+
+![](/images/ui/chat_menu.png)
+
+### Pipline 切换
+
+通过左上角的下拉菜单，可以在已配置好参数的 Pipeline 之间快速切换。
+
+![](/images/ui/pipeline_select.png)
+
+### 选择知识库
+
+点击 Knowledge Base 图标，挂载已构建的知识库，即可进行基于文档的问答。
+
+![](/images/ui/kb_select.png)
+
+### 后台运行
+
+针对 Deep Research 等耗时较长的 Pipeline，支持后台运行模式。任务执行完成后，结果将自动加载至当前聊天窗口。
+
+![](/images/ui/background.png)
+
+## 2. Knowledge Base
+UltraRAG UI 提供了全流程的知识库管理功能，支持文件的上传、切片（Chunking）及向量化（Embedding）管理。
+
+![](/images/ui/kb_menu.png)
+
+### 连接向量库
+
+<Tip>不知道如何部署 Milvus 向量库？ 请参考[部署指南](/pages/cn/ui/prepare)。</Tip>
+
+点击 Configure DB，与部署好的 Milvus 向量库建立连接，即可使用知识库功能。
+
+![](/images/ui/kb_connect.png)
+
+### 构建知识库
+
+点击 New Collection，上传文档并创建专属知识库。
+
+![](/images/ui/kb_upload.png)
+
+点击 Settings 按钮，可自定义切片策略（Chunk）和 Embedding 模型的相关参数。
+
+<Tip>首次使用通常需要配置参数。若希望实现免配置部署（用户无需手动设置），请预先修改`examples/parameter/corpus_chunk_parameter.yaml`与`examples/parameter/milvus_index_parameter.yaml`中的相关参数，即可跳过下方设置步骤。</Tip>
+
+![](/images/ui/kb_chunk.png)
+![](/images/ui/kb_index.png)
+
+
+## 3. Pipeline Builder
+若启动时指定了 `--admin` 参数，侧边栏将显示 Settings 入口，点击即可进入高级配置页面。
+
+### Pipeline 可视化搭建
+
+支持左侧画布拖拽式编排与右侧代码编辑器的双向实时同步。您既可以像搭积木一样直观构建，也可以在代码编辑器中进行精细微调。
+
+![](/images/ui/pipeline_build.png)
+
+### 配置参数
+
+点击 Build 按钮解析 Pipeline 后，您可以在参数面板中查看并修改运行参数。
+
+![](/images/ui/pipeline_param.png)
+
+### Prompt 管理
+
+支持在线新建、编辑及删除 Prompt，并将其一键应用到 Pipeline 中。
+
+![](/images/ui/pipeline_prompt.png)
+
+### Ai 助手
+
+系统内置了 AI 助手，可辅助您搭建 Pipeline、调整参数及编写 Prompt。
+
+<Tip>首次使用该功能前，需先点击设置配置 API Key 及相关模型参数。</Tip>
+
+**使用示例：优化 Prompt**
+
+假设您已有一个基础 Prompt，希望将其调整为适配法律领域的风格：
+
+1. 打开 AI 助手，输入原始 Prompt 及修改需求。
+
+![](/images/ui/ai_1.png)
+
+2. 点击 Apply，AI 助手将自动生成优化后的内容并替换原有 Prompt。
+
+![](/images/ui/ai_2.png)
