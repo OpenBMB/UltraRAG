@@ -685,6 +685,7 @@ class UltraData:
 
 
 async def build(config_path: str):
+    global node_status
     logger.info(f"Building configuration {config_path}")
     cfg_path = Path(config_path)
     pipline_name = cfg_path.stem
@@ -900,7 +901,7 @@ async def build(config_path: str):
     logger.info(f"Saving all server configs to {server_save_path}")
 
     with open(param_save_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(parameter_all, f)
+        yaml.safe_dump(parameter_all, f, allow_unicode=True, sort_keys=False)
     logger.info(f"All parameters have been saved in {param_save_path}")
 
     for srv_name in server_all:
@@ -908,13 +909,14 @@ async def build(config_path: str):
             server_all[srv_name]["path"] = server_cfgs[srv_name]["path"]
 
     with open(server_save_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(server_all, f)
+        yaml.safe_dump(server_all, f, allow_unicode=True, sort_keys=False)
     logger.info(f"All server configurations have been saved in {server_save_path}")
 
 def load_pipeline_context(
     config_path: str,
     param_path: str | Path | None = None
 ) -> Dict[str, Any]:
+    global node_status
     cfg_path = Path(config_path)
     logger.info(f"Executing pipeline with configuration {config_path}")
     cfg = Configuration()
