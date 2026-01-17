@@ -1,0 +1,188 @@
+---
+title: "Custom"
+icon: "puzzle-piece"
+---
+
+## Search-R1 Tools
+
+### `search_r1_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def search_r1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：从模型回答中提取查询内容。
+- **逻辑**：使用正则 `r"<search>([^<]*)"` 提取最后一个 `<search>` 标签内的内容。如果未找到，返回 "There is no query."；如果查询未以 `?` 结尾，自动补全。
+
+### `r1_searcher_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：从 R1-Searcher 回答中提取查询。
+- **逻辑**：使用正则 `r"<|begin_of_query|>([^<]*)"` 提取最后一个标签内容。
+
+---
+
+## IRCoT & IterRetGen Tools
+
+### `iterretgen_nextquery`
+```python
+@app.tool(output="q_ls,ret_psg->nextq_ls")
+def iterretgen_nextquery(q_ls: List[str], ans_ls: List[str | Any]) -> Dict[str, List[str]]
+```
+- **功能**：迭代检索生成。
+- **逻辑**：`next_query = f"{q} {ans}"`。将原始问题与生成的回答拼接作为下一次检索的 Query。
+
+### `ircot_get_first_sent`
+```python
+@app.tool(output="ans_ls->q_ls")
+def ircot_get_first_sent(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：提取回答的第一句话（至句号或问号/感叹号结束）。
+
+### `ircot_extract_ans`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def ircot_extract_ans(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：提取最终答案。
+- **逻辑**：匹配 `so the answer is [...]` 后的内容。
+
+---
+
+## Search-o1 Tools
+
+### `search_o1_init_list`
+```python
+@app.tool(output="q_ls->total_subq_list,total_reason_list,total_final_info_list")
+def search_o1_init_list(q_ls: List[str]) -> Dict[str, List[Any]]
+```
+- **功能**：初始化 Search-o1 所需的累加列表（子问题、推理、最终信息），初始填充 `<PAD>`。
+
+### `search_o1_combine_list`
+```python
+@app.tool(output="total_subq_list, extract_query_list, total_reason_list, extract_reason_list->total_subq_list, total_reason_list")
+def search_o1_combine_list(...)
+```
+- **功能**：将当前步骤提取的 Query 和 Reasoning 追加到总列表中。
+
+### `search_o1_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：提取 `<|begin_search_query|>...<|end_search_query|>` 之间的内容。
+
+### `search_o1_reasoning_extract`
+```python
+@app.tool(output="ans_ls->extract_reason_list")
+def search_o1_reasoning_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：提取 `<|begin_search_query|>` 之前的所有文本作为推理过程。
+
+### `search_o1_extract_final_information`
+```python
+@app.tool(output="ans_ls->extract_final_infor_list")
+def search_o1_extract_final_information(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：提取 `**Final Information**` 标记之后的内容。
+
+---
+
+## Utility Tools
+
+### `output_extract_from_boxed`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：从 LaTeX `\boxed{...}` 中提取答案。支持嵌套括号处理和格式清理。
+
+### `merge_passages`
+```python
+@app.tool(output="temp_psg,ret_psg->ret_psg")
+def merge_passages(temp_psg: List[str | Any], ret_psg: List[str | Any]) -> Dict[str, List[str | Any]]
+```
+- **功能**：将 `temp_psg` 列表追加到 `ret_psg` 列表中。
+
+### `evisrag_output_extract_from_special`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：从 `<answer>...</answer>` 标签提取答案。
+
+### `assign_citation_ids` / `assign_citation_ids_stateful`
+- `assign_citation_ids`: 为检索到的段落分配 `[1]`, `[2]` 形式的引用 ID。
+- `assign_citation_ids_stateful`: 使用 `CitationRegistry` 类维护全局引用 ID（跨步骤去重）。
+- `init_citation_registry`: 重置全局引用注册表。
+
+---
+
+## SurveyCPM Tools
+
+### `surveycpm_state_init`
+```python
+@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls,retrieved_info_ls,parsed_ls")
+def surveycpm_state_init(instruction_ls: List[str]) -> Dict[str, List]
+```
+- **功能**：初始化 SurveyCPM 状态机。
+- **初始状态**：`state="search"`, `cursor="outline"`, `step=0`。
+
+### `surveycpm_parse_search_response`
+```python
+@app.tool(output="response_ls,surveycpm_hard_mode->keywords_ls,parsed_ls")
+def surveycpm_parse_search_response(response_ls: List[str], surveycpm_hard_mode: bool = True) -> Dict[str, List]
+```
+- **功能**：解析模型生成的搜索指令（JSON 或 XML 格式），提取关键词列表。
+
+### `surveycpm_process_passages`
+```python
+@app.tool(output="ret_psg_ls->retrieved_info_ls")
+def surveycpm_process_passages(ret_psg_ls: List[List[List[str]]]) -> Dict[str, List[str]]
+```
+- **功能**：处理检索段落，去重并限制数量（Top-K），拼接为字符串。
+
+### `surveycpm_after_init_plan` / `after_write` / `after_extend`
+- **功能**：解析 Agent 对不同阶段（初始化大纲、撰写内容、扩展计划）的响应。
+- **逻辑**：
+  - 调用 `surveycpm_parse_response` 验证格式和内容。
+  - 成功则更新 `survey_ls`（大纲结构）和 `cursor_ls`（当前光标位置）。
+  - 失败则保留原状态以便重试。
+
+### `surveycpm_update_state`
+```python
+@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls,surveycpm_max_step,surveycpm_max_extend_step->state_ls,extend_time_ls,step_ls")
+def surveycpm_update_state(...)
+```
+- **功能**：核心状态机逻辑。
+- **状态转移**：
+  - `search` -> `analyst-init_plan` (cursor="outline")
+  - `search` -> `write` (cursor=section-X)
+  - `write` -> `search` (继续写) 或 `analyst-extend_plan` (写完当前部分)
+  - `analyst-extend_plan` -> `search` (扩展成功) 或 `done` (无扩展)
+  - 超出最大步数 -> `done`
+
+### `surveycpm_format_output`
+```python
+@app.tool(output="survey_ls,instruction_ls->ans_ls")
+def surveycpm_format_output(survey_ls: List[str], instruction_ls: List[str]) -> Dict[str, List[str]]
+```
+- **功能**：将最终的 Survey JSON 转换为 Markdown 格式。
+- **处理**：自动处理标题层级（# ## ###）、引用格式化（`\cite{...}` 转 `[1]`）和文本清理。
+
+---
+
+## 参数配置
+
+```yaml servers/custom/parameter.yaml icon="/images/yaml.svg"
+surveycpm_hard_mode: false
+surveycpm_max_step: 140
+surveycpm_max_extend_step: 12
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `surveycpm_hard_mode` | bool | 是否启用 SurveyCPM 的严格解析模式（验证 JSON 字段完整性） |
+| `surveycpm_max_step` | int | 最大总执行步数，超过强制结束 |
+| `surveycpm_max_extend_step` | int | 最大扩展计划次数 |

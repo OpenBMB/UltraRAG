@@ -7,22 +7,26 @@ icon: "magnifying-glass"
 
 **签名**  
 ```python
-def retriever_init(
+async def retriever_init(
     model_name_or_path: str,
     backend_configs: Dict[str, Any],
     batch_size: int,
     corpus_path: str,
-    index_path: Optional[str] = None,
-    faiss_use_gpu: bool = False,
     gpu_ids: Optional[object] = None,
     is_multimodal: bool = False,
-    backend: str = "infinity",
+    backend: str = "sentence_transformers",
+    index_backend: str = "faiss",
+    index_backend_configs: Optional[Dict[str, Any]] = None,
+    is_demo: bool = False,
+    collection_name: str = "",
 ) -> None
 ```
 
 **功能**  
-- 初始化检索后端与语料索引
-
+- 初始化检索服务。
+- Embedding Backend (backend): 负责将文本/图像转换为向量 (Infinity, SentenceTransformers, OpenAI, BM25)。
+- Index Backend (index_backend): 负责向量的存储与检索 (FAISS, Milvus)。
+- Demo Mode: 若 is_demo=True，强制使用 OpenAI + Milvus 配置，忽略部分参数。
 
 ---
 
@@ -38,7 +42,8 @@ async def retriever_embed(
 ```
 
 **功能**  
-- 编码语料向量并保存到 `*.npy`：
+- (非 Demo 模式) 批量计算语料库的向量表示，并保存为 .npy 文件。
+- 仅适用于 Dense Retriever 后端（BM25 不支持）。
 
 
 ---
@@ -47,31 +52,18 @@ async def retriever_embed(
 
 **签名**  
 ```python
-def retriever_index(
+async def retriever_index(
     embedding_path: str,
-    index_path: Optional[str] = None,
     overwrite: bool = False,
-    index_chunk_size: int = 50000,
+    collection_name: str = "",
+    corpus_path: str = ""
 ) -> None
 ```
 
 **功能**  
-- 使用 FAISS 为向量嵌入构建倒排
-
----
-
-## `bm25_index`
-
-**签名**  
-```python
-def bm25_index(
-    index_path: Optional[str] = None,
-    overwrite: bool = False,
-) -> None
-```
-
-**功能**  
-- 建立 BM25 索引，保存停用词与词表。
+- 构建检索索引。
+- FAISS: 读取 embedding_path (.npy) 构建本地索引文件。
+- Milvus / Demo: 读取 corpus_path (.jsonl)，生成向量并插入到指定的 collection_name 中。
 
 ---
 
@@ -83,11 +75,13 @@ async def retriever_search(
     query_list: List[str],
     top_k: int = 5,
     query_instruction: str = "",
+    collection_name: str = "",
 ) -> Dict[str, List[List[str]]]
 ```
 
 **功能**  
-- 基于 **FAISS 向量索引** 的标准语义检索：`infinity` / `sentence_transformers` / `openai`。  
+- 对单条或多条查询进行检索。
+- 自动处理查询向量化（添加 query_instruction）并在指定 collection_name (针对 Milvus) 或默认索引中查找 Top-K。
 
 **输出格式（JSON）**  
 ```json
@@ -96,26 +90,39 @@ async def retriever_search(
 
 ---
 
-## `retriever_search_colbert_maxsim`
+## `retriever_batch_search`
 
 **签名**  
 ```python
-async def retriever_search_colbert_maxsim(
-    query_list: List[str],
-    embedding_path: str,
+async def retriever_batch_search(
+    batch_query_list: List[List[str]],
     top_k: int = 5,
     query_instruction: str = "",
-) -> Dict[str, List[List[str]]]
+    collection_name: str = "",
+) -> Dict[str, List[List[List[str]]]]
 ```
 
 **功能**  
-- 适配 **ColBERT/ColPali** 多向量检索（仅 `infinity` 后端）。
-- 读取 `embedding_path`（形状 `(N, Kd, D)` 或 `dtype=object` 的变长多向量），通过 **MaxSim** 聚合打分，返回 top-k。
+- etriever_search 的批处理版本，接受嵌套列表输入。
 
 **输出格式（JSON）**  
 ```json
-{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+{"ret_psg_ls": [[["psg 1-1"], ["psg 1-2"]], [["psg 2-1"]]]}
 ```
+
+---
+
+## `bm25_index`
+
+**签名**  
+```python
+async def bm25_index(
+    overwrite: bool = False,
+) -> None
+```
+
+**功能**  
+- 当 `backend="bm25"` 时，构建 BM25 稀疏索引并保存。
 
 ---
 
@@ -130,7 +137,29 @@ async def bm25_search(
 ```
 
 **功能**  
-- 使用 BM25 倒排检索，返回每个查询的 top-k 文本列表。
+- 基于 BM25 算法进行关键词检索。
+
+**输出格式（JSON）**  
+```json
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_deploy_search`
+
+**签名**  
+```python
+async def retriever_deploy_search(
+    retriever_url: str,
+    query_list: List[str],
+    top_k: int = 5,
+    query_instruction: str = "",
+) -> Dict[str, List[List[str]]]
+```
+
+**功能**  
+- 作为客户端，调用部署在 retriever_url 的远程检索服务进行查询。
 
 **输出格式（JSON）**  
 ```json
@@ -209,22 +238,21 @@ async def retriever_zhipuai_search(
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
-index_path: index/index.index
+collection_name: wiki
 
+# Embedding Backend Configuration
 backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
 backend_configs:
   infinity:
     bettertransformer: false
     pooling_method: auto
-    device: cuda
     model_warmup: false
     trust_remote_code: true
   sentence_transformers:
-    device: cuda
     trust_remote_code: true
     sentence_transformers_encode:
       normalize_embeddings: false
-      encode_chunk_size: 10000
+      encode_chunk_size: 256
       q_prompt_name: query
       psg_prompt_name: document
       psg_task: null
@@ -232,19 +260,37 @@ backend_configs:
   openai:
     model_name: text-embedding-3-small
     base_url: "https://api.openai.com/v1"
-    api_key: ""
+    api_key: "abc"
   bm25:
     lang: en
+    save_path: index/bm25
+
+# Index Backend Configuration
+index_backend: faiss # options: faiss, milvus
+index_backend_configs:
+  faiss:
+    index_use_gpu: True
+    index_chunk_size: 10000
+    index_path: index/index.index
+  milvus:
+    uri: index/milvus_demo.db # Local file for Lite, or http://host:port
+    token: null
+    id_field_name: id
+    vector_field_name: vector
+    text_field_name: contents
+    index_params:
+      index_type: AUTOINDEX
+      metric_type: IP
 
 batch_size: 16
 top_k: 5
-gpu_ids: "0,1"
+gpu_ids: "1"
 query_instruction: ""
 is_multimodal: false
-faiss_use_gpu: True
 overwrite: false
-index_chunk_size: 50000
 retrieve_thread_num: 1
+retriever_url: "http://127.0.0.1:64501"
+is_demo: false
 ```
 
 参数说明：
@@ -254,35 +300,36 @@ retrieve_thread_num: 1
 | `model_name_or_path` | str | 检索模型路径或名称（如 HuggingFace 模型 ID） |
 | `corpus_path` | str | 输入语料 JSONL 文件路径 |
 | `embedding_path` | str | 向量文件保存路径（`.npy`） |
-| `index_path` | str | FAISS/BM25 索引保存路径（`.index`） |
+| `collection_name` | str | Milvus 集合名称 |
 | `backend` | str | 选择检索后端：`infinity`、`sentence_transformers`、`openai`、`bm25` |
-| `backend_configs` | dict | 各后端的参数配置（见下） |
+| `index_backend` | str | 索引后端：`faiss`, `milvus` |
+| `backend_configs` | dict | 各后端的参数配置（见下表） |
+| `index_backend_configs` | dict | 各索引后端的参数配置（见下表） |
 | `batch_size` | int | 向量生成或检索的批大小 |
 | `top_k` | int | 返回的候选段落数量 |
 | `gpu_ids` | str | 指定可见 GPU 设备，如 `"0,1"` |
 | `query_instruction` | str | 查询前缀（instruction-tuning 模型使用） |
 | `is_multimodal` | bool | 是否启用多模态嵌入（如图像） |
-| `faiss_use_gpu` | bool | 是否使用 GPU 加速 FAISS 检索 |
 | `overwrite` | bool | 若已存在嵌入或索引文件是否覆盖 |
-| `index_chunk_size` | int | 构建索引时每批加入向量数 |
 | `retrieve_thread_num` | int | 外部 Web 检索（Exa/Tavily/Zhipu）并发线程数 |
+| `retriever_url` | str | 部署 retriever server 的 url |
+| `is_demo` | bool | 演示模式开关（强制使用 OpenAI+Milvus，简化配置） |
 
 `backend_configs` 子项：
 
-| 后端 | 参数 | 说明 |
-|-------|------|------|
-| **infinity** | `bettertransformer` | 是否启用高效推理优化 |
-|  | `pooling_method` | 池化方式（如 `auto`, `mean`） |
-|  | `device` | 运行设备（`cuda` 或 `cpu`） |
-|  | `model_warmup` | 是否预加载模型到显存 |
-|  | `trust_remote_code` | 是否信任远程代码（适用于自定义模型） |
-| **sentence_transformers** | `device` | 设备（`cuda` 或 `cpu`） |
-|  | `trust_remote_code` | 是否允许自定义模型代码 |
-|  | `sentence_transformers_encode` | 嵌入时的高级参数（如下） |
-| **openai** | `model_name` | OpenAI 模型名称（如 `text-embedding-3-small`） |
-|  | `base_url` | API 基地址 |
-|  | `api_key` | OpenAI API 密钥 |
-| **bm25** | `lang` | 语言（决定停用词与分词器） |
+| 后端 | 参数 | 类型 | 说明 |
+|-------|------|------|------|
+| **infinity** | `bettertransformer` | bool| 是否启用高效推理优化 |
+|  | `pooling_method` | str|池化方式（如 `auto`, `mean`） |
+|  | `model_warmup` |bool |是否预加载模型到显存 |
+|  | `trust_remote_code` |bool |是否信任远程代码（适用于自定义模型） |
+| **sentence_transformers** | `trust_remote_code` | bool|是否信任远程模型代码 |
+|  | `sentence_transformers_encode` |dict |编码详细参数，见下表 |
+| **openai** | `model_name` | str|OpenAI 模型名称（如 `text-embedding-3-small`） |
+|  | `base_url` | str|API 基地址 |
+|  | `api_key` | str|OpenAI API 密钥 |
+| **bm25** | `lang` | str|语言（决定停用词与分词器） |
+|  | `save_path` | str|BM25 稀疏索引的保存目录 |
 
 `sentence_transformers_encode` 参数：
 
@@ -292,7 +339,25 @@ retrieve_thread_num: 1
 | `encode_chunk_size` | int | 编码块大小（避免显存溢出） |
 | `q_prompt_name` | str | 查询模板名 |
 | `psg_prompt_name` | str | 段落模板名 |
-| `q_task` / `psg_task` | str/null | 任务标签（如需要 prompt 适配） |
+| `q_task`| str | 任务描述（针对特定模型需要指定 Task 的情况） |
+| `psg_task`| str | 任务描述（针对特定模型需要指定 Task 的情况） |
 
 
+`index_backend_configs` 参数：
 
+| 后端 | 参数 | 类型 | 说明 |
+|-------|------|------|------|
+|faiss	|index_use_gpu|	bool |是否使用 GPU 构建和检索索引|
+| |index_chunk_size	|int| 构建索引时的分批大小|
+| |index_path	|str| FAISS 索引文件的保存路径（.index）|
+|milvus|	uri|	str| Milvus 连接地址（本地文件路径即启用 Milvus Lite）|
+||token	|str |认证 Token（如需要）|
+||id_field_name	|str |主键字段名（默认 id）|
+||vector_field_name|	str|向量字段名（默认 vector）|
+||text_field_name|	str |文本内容字段名（默认 contents）|
+||id_max_length	|int| 字符串主键的最大长度|
+||text_max_length|	int |文本字段的最大长度（超过截断）|
+||metric_type|	str |距离度量方式（如 IP 内积, L2 欧式距离）|
+||index_params|	Dict| 索引构建参数（如 index_type: AUTOINDEX）|
+||search_params	|Dict |检索参数（如 nprobe 等）|
+||index_chunk_size|	int| 插入数据时的批处理大小|

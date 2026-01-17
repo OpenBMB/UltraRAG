@@ -108,14 +108,17 @@
             "tab": "SDK Reference",
             "groups": [
               {
-                "group": "RAG Servers",
+                "group": "Tools",
                 "pages": [
                   "pages/cn/api/corpus",
                   "pages/cn/api/benchmark",
                   "pages/cn/api/retriever",
                   "pages/cn/api/reranker",
+                  "pages/cn/api/prompt",
                   "pages/cn/api/generation",
-                  "pages/cn/api/evaluation"
+                  "pages/cn/api/evaluation",
+                  "pages/cn/api/router",
+                  "pages/cn/api/custom"
                 ]
               },
               {

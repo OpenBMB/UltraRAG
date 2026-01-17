@@ -5,22 +5,26 @@ icon: "pen-nib"
 
 ## `generation_init`
 
-**签名**  
+**签名**
 ```python
 def generation_init(
     backend_configs: Dict[str, Any],
     sampling_params: Dict[str, Any],
+    extra_params: Optional[Dict[str, Any]] = None,
     backend: str = "vllm",
 ) -> None
 ```
 
-**功能**  
+**功能**
 - 初始化推理后端与采样参数。
+- 支持 `vllm`, `openai`, `hf` 三种后端。
+- `extra_params` 可用于传递 `chat_template_kwargs` 或其他特定后端的参数。
+
 ---
 
 ## `generate`
 
-**签名**  
+**签名**
 ```python
 async def generate(
     prompt_ls: List[Union[str, Dict[str, Any]]],
@@ -28,40 +32,79 @@ async def generate(
 ) -> Dict[str, List[str]]
 ```
 
+**功能**
 - 纯文本对话生成。
+- 自动处理列表中的 Prompt，支持字符串或 OpenAI 格式的字典。
 
-**输出格式（JSON）**  
+**输出格式（JSON）**
 ```json
 {"ans_ls": ["answer for prompt_0", "answer for prompt_1", "..."]}
 ```
+
 ---
 
 ## `multimodal_generate`
 
-**签名**  
+**签名**
 ```python
 async def multimodal_generate(
     multimodal_path: List[List[str]],
     prompt_ls: List[Union[str, Dict[str, Any]]],
     system_prompt: str = "",
+    image_tag: Optional[str] = None,
 ) -> Dict[str, List[str]]
 ```
 
-**功能**  
+**功能**
 - 文图多模态对话生成。
+- `multimodal_path`: 对应每个 Prompt 的图片路径列表（支持本地路径或 URL）。
+- `image_tag`: 如果指定（如 `<img>`），则将图片插入到 Prompt 中该标签的位置；否则默认追加到 Prompt 末尾。
 
-**输出格式（JSON）**  
+**输出格式（JSON）**
 ```json
 {"ans_ls": ["answer with images for prompt_0", "..."]}
 ```
 
+---
+
+## `multiturn_generate`
+
+**签名**
+```python
+async def multiturn_generate(
+    messages: List[Dict[str, str]],
+    system_prompt: str = "",
+) -> Dict[str, List[str]]
+```
+
+**功能**
+- 多轮对话生成。
+- 仅支持单次调用的生成，不处理批量 Prompt。
+
+**输出格式（JSON）**
+```json
+{"ans_ls": ["assistant response"]}
+```
 
 ---
 
+## `vllm_shutdown`
+
+**签名**
+```python
+def vllm_shutdown() -> None
+```
+
+**功能**
+- 显式关闭 vLLM 引擎并释放显存资源。
+- 仅在使用 `vllm` 后端时有效。
+
+---
 
 ## 参数配置
 
 ```yaml servers/generation/parameter.yaml icon="/images/yaml.svg"
+# servers/generation/parameter.yaml
 backend: vllm # options: vllm, openai
 backend_configs:
   vllm:
@@ -73,7 +116,7 @@ backend_configs:
   openai:
     model_name: MiniCPM4-8B
     base_url: http://localhost:8000/v1
-    api_key: ""
+    api_key: "abc"
     concurrency: 8
     retries: 3
     base_delay: 1.0
@@ -82,15 +125,15 @@ backend_configs:
     gpu_ids: '2,3'
     trust_remote_code: true
     batch_size: 8
-
 sampling_params:
   temperature: 0.7
   top_p: 0.8
   max_tokens: 2048
+extra_params:
   chat_template_kwargs:
     enable_thinking: false
-
 system_prompt: ""
+image_tag: null
 ```
 
 参数说明：
@@ -100,7 +143,9 @@ system_prompt: ""
 | `backend` | str | 指定生成后端，可选 `vllm`、`openai` 或 `hf`（Transformers） |
 | `backend_configs` | dict | 各后端模型及运行环境配置 |
 | `sampling_params` | dict | 采样参数，用于控制生成多样性与长度 |
+| `extra_params` | dict | 额外参数，如 `chat_template_kwargs` |
 | `system_prompt` | str | 全局系统提示，将作为 `system` 消息加入上下文 |
+| `image_tag` | str | 图像占位符标签（如需） |
 
 `backend_configs` 详细说明：
 
@@ -129,8 +174,3 @@ system_prompt: ""
 | `temperature` | float | 控制随机性，越高生成越多样 |
 | `top_p` | float | nucleus sampling 阈值 |
 | `max_tokens` | int | 生成最大词元数 |
-| `chat_template_kwargs` | dict | 聊天模板额外参数 |
-| `enable_thinking` | bool | 是否启用思维链输出（如模型支持） |
-
-
-

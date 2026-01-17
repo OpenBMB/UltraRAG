@@ -1,0 +1,544 @@
+---
+title: "Prompt"
+icon: "terminal"
+---
+
+## QA Prompts
+
+### `qa_boxed`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,template->prompt_ls")
+def qa_boxed(
+    q_ls: List[str], 
+    template: str | Path
+) -> List[PromptMessage]
+```
+
+**功能**
+
+基础问答 Prompt。
+
+加载指定 Jinja2 模板，将问题列表中的每个问题渲染为 Prompt。
+
+模板变量: `{{ question }}`
+
+### `qa_boxed_multiple_choice`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,choices_ls,template->prompt_ls")
+def qa_boxed_multiple_choice(
+    q_ls: List[str],
+    choices_ls: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+多选问答 Prompt。
+
+自动将选项列表格式化为 "A: ..., B: ..." 的形式并注入模板。
+
+模板变量: `{{ question }}`, `{{ choices }}`
+
+### `qa_rag_boxed`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed(
+    q_ls: List[str], 
+    ret_psg: List[str | Any], 
+    template: str | Path
+) -> list[PromptMessage]
+```
+
+**功能**
+
+标准 RAG Prompt。
+
+将检索到的段落列表拼接后注入模板。
+
+模板变量: `{{ question }}`, `{{ documents }}`
+
+### `qa_rag_boxed_multiple_choice`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed_multiple_choice(
+    q_ls: List[str],
+    choices_ls: List[List[str]],
+    ret_psg: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+带检索上下文的多选问答 Prompt。
+
+模板变量: `{{ question }}`, `{{ documents }}`, `{{ choices }}`
+
+---
+
+## RankCoT Prompts
+
+### `RankCoT_kr`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,ret_psg,kr_template->prompt_ls")
+def RankCoT_kr(
+    q_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> list[PromptMessage]
+```
+
+**功能**
+
+RankCoT 第一阶段：知识检索 (Knowledge Retrieval) Prompt。
+
+模板变量: `{{ question }}`, `{{ documents }}`
+
+### `RankCoT_qa`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,kr_ls,qa_template->prompt_ls")
+def RankCoT_qa(
+    q_ls: List[str],
+    kr_ls: List[str],
+    template: str | Path,
+) -> list[PromptMessage]
+```
+
+**功能**
+
+RankCoT 第二阶段：基于思维链的问答 Prompt。
+
+模板变量: `{{ question }}`, `{{ CoT }}` (此处 CoT 通常为上一阶段生成的知识)
+
+---
+
+## IRCoT Prompts
+
+### `ircot_next_prompt`
+
+**签名**
+
+```python
+@app.prompt(output="memory_q_ls,memory_ret_psg,template->prompt_ls")
+def ircot_next_prompt(
+    memory_q_ls: List[List[str | None]],
+    memory_ret_psg: List[List[List[str]] | None],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+IRCoT (Interleaved Retrieval CoT) 迭代 Prompt 生成。
+
+根据历史轮次的检索结果和思维链，构建下一轮的 Prompt。支持单轮与多轮历史拼接。
+
+模板变量: `{{ documents }}`, `{{ question }}`, `{{ cur_answer }}`
+
+---
+
+## WebNote Prompts
+
+### `webnote_init_page`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,plan_ls,webnote_init_page_template->prompt_ls")
+def webnote_init_page(
+    q_ls: List[str],
+    plan_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+WebNote Agent：初始化笔记页面。
+
+模板变量: `{{ question }}`, `{{ plan }}`
+
+### `webnote_gen_plan`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,webnote_gen_plan_template->prompt_ls")
+def webnote_gen_plan(
+    q_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+WebNote Agent：生成搜索计划。
+
+模板变量: `{{ question }}`
+
+### `webnote_gen_subq`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,plan_ls,page_ls,webnote_gen_subq_template->prompt_ls")
+def webnote_gen_subq(
+    q_ls: List[str],
+    plan_ls: List[str],
+    page_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+WebNote Agent：生成子问题。
+
+模板变量: `{{ question }}`, `{{ plan }}`, `{{ page }}`
+
+### `webnote_fill_page`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,plan_ls,page_ls,subq_ls,psg_ls,webnote_fill_page_template->prompt_ls")
+def webnote_fill_page(
+    q_ls: List[str],
+    plan_ls: List[str],
+    page_ls: List[str],
+    subq_ls: List[str],
+    psg_ls: List[Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+WebNote Agent：根据检索结果填充笔记。
+
+模板变量: `{{ question }}`, `{{ plan }}`, `{{ sub_question }}`, `{{ docs_text }}`, `{{ page }}`
+
+### `webnote_gen_answer`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,page_ls,webnote_gen_answer_template->prompt_ls")
+def webnote_gen_answer(
+    q_ls: List[str],
+    page_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+WebNote Agent：基于笔记生成最终答案。
+
+模板变量: `{{ question }}`, `{{ page }}`
+
+---
+
+## Search-R1 & R1-Searcher
+
+### `search_r1_gen`
+
+**签名**
+
+```python
+@app.prompt(output="prompt_ls,ans_ls,ret_psg,search_r1_gen_template->prompt_ls")
+def search_r1_gen(
+    prompt_ls: List[PromptMessage],
+    ans_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+适用于 R1 风格的生成 Prompt。
+
+截取 Top-3 检索段落注入上下文。
+
+模板变量: `{{ history }}`, `{{ answer }}`, `{{ passages }}`
+
+### `r1_searcher_gen`
+
+**签名**
+
+```python
+@app.prompt(output="prompt_ls,ans_ls,ret_psg,r1_searcher_gen_template->prompt_ls")
+def r1_searcher_gen(
+    prompt_ls: List[PromptMessage],
+    ans_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+适用于 R1 Searcher 的生成 Prompt。
+
+截取 Top-5 检索段落。
+
+模板变量: `{{ history }}`, `{{ answer }}`, `{{ passages }}`
+
+---
+
+## Search-o1 Prompts
+
+### `search_o1_init`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,searcho1_reasoning_template->prompt_ls")
+def search_o1_init(
+    q_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Search-O1 初始推理 Prompt。
+
+模板变量: `{{ question }}`
+
+### `search_o1_reasoning_indocument`
+
+**签名**
+
+```python
+@app.prompt(output="extract_query_list,ret_psg,total_reason_list,searcho1_refine_template->prompt_ls")
+def search_o1_reasoning_indocument(
+    extract_query_list: List[str], 
+    ret_psg: List[List[str]],       
+    total_reason_list: List[List[str]], 
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Search-O1 推理细化 Prompt。
+
+将历史推理步骤（首步 + 末尾3步）与当前检索文档合并，用于下一步推理。
+
+模板变量: `{{ prev_reasoning }}`, `{{ search_query }}`, `{{ document }}`
+
+### `search_o1_insert`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls") 
+def search_o1_insert(
+    q_ls: List[str],
+    total_subq_list: List[List[str]], 
+    total_final_info_list: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Search-O1 格式化插入 Prompt。
+
+在 Prompt 中显式插入 `<|begin_search_query|>` 和搜索结果标记，构造完整的思维链上下文。
+
+---
+
+## EVisRAG & Multi-branch Prompts
+
+### `gen_subq`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")
+def gen_subq(
+    q_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Loop/Branch Demo：基于文档生成子问题。
+
+模板变量: `{{ question }}`, `{{ documents }}`
+
+### `evisrag_vqa`
+
+**签名**
+
+```python
+@app.prompt(output="q_ls,ret_psg,evisrag_template->prompt_ls")
+def evisrag_vqa(
+    q_ls: List[str], 
+    ret_psg: List[str | Any], 
+    template: str | Path
+) -> list[PromptMessage]
+```
+
+**功能**
+
+多模态 VQA RAG Prompt。
+
+根据检索到的图片数量，在 Prompt 中自动重复插入 `<image>` Token。
+
+模板变量: `{{ question }}` (含自动注入的 image tokens)
+
+---
+
+## SurveyCPM Prompts
+
+### `surveycpm_search`
+
+**签名**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls")
+def surveycpm_search(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    cursor_ls: List[str | None],
+    surveycpm_search_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Survey Agent：决定下一步搜索内容。
+
+解析 JSON 格式的大纲，生成当前大纲的文本描述。
+
+模板变量: `{{ user_query }}`, `{{ current_outline }}`, `{{ current_instruction }}`
+
+### `surveycpm_init_plan`
+
+**签名**
+
+```python
+@app.prompt(output="instruction_ls,retrieved_info_ls,surveycpm_init_plan_template->prompt_ls")
+def surveycpm_init_plan(
+    instruction_ls: List[str],
+    retrieved_info_ls: List[str],
+    surveycpm_init_plan_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Survey Agent：初始化大纲规划。
+
+模板变量: `{{ user_query }}`, `{{ current_information }}`
+
+### `surveycpm_write`
+
+**签名**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls")
+def surveycpm_write(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    cursor_ls: List[str | None],
+    retrieved_info_ls: List[str],
+    surveycpm_write_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Survey Agent：撰写具体章节内容。
+
+模板变量: `{{ user_query }}`, `{{ current_survey }}`, `{{ current_instruction }}`, `{{ current_information }}`
+
+### `surveycpm_extend_plan`
+
+**签名**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,surveycpm_extend_plan_template->prompt_ls")
+def surveycpm_extend_plan(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    surveycpm_extend_plan_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**功能**
+
+Survey Agent：扩展或修改大纲计划。
+
+模板变量: `{{ user_query }}`, `{{ current_survey }}`
+
+---
+
+## 参数配置
+
+```yaml servers/prompt/parameter.yaml icon="/images/yaml.svg"
+# QA
+template: prompt/qa_boxed.jinja
+
+# RankCoT
+kr_template: prompt/RankCoT_knowledge_refinement.jinja
+qa_template: prompt/RankCoT_question_answering.jinja
+
+# Search-R1
+search_r1_gen_template: prompt/search_r1_append.jinja
+
+# R1-Searcher
+r1_searcher_gen_template: prompt/r1_searcher_append.jinja
+
+# Search-o1
+searcho1_reasoning_template: prompt/search_o1_reasoning.jinja
+searcho1_refine_template: prompt/search_o1_refinement.jinja
+
+
+# For other prompts, please add parameters here as needed
+
+# Take webnote as an example:
+webnote_gen_plan_template: prompt/webnote_gen_plan.jinja
+webnote_init_page_template: prompt/webnote_init_page.jinja
+webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
+webnote_fill_page_template: prompt/webnote_fill_page.jinja
+webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
+
+# SurveyCPM
+surveycpm_search_template: prompt/surveycpm_search.jinja
+surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+surveycpm_write_template: prompt/surveycpm_write.jinja
+surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja
+```
+
+| 参数 | 说明 |
+|------|------|
+| `template` | 基础 QA 模板路径 |
+| `kr_template` | RankCoT 知识精炼模板路径 |
+| `qa_template` | RankCoT 问答模板路径 |
+| `*_template` | 对应各模块功能的 Jinja2 模板文件路径 |

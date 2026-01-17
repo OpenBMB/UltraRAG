@@ -1,0 +1,136 @@
+---
+title: "Router"
+icon: "code-branch"
+---
+
+## `route1` / `route2`
+
+**签名**
+```python
+@app.tool(output="query_list")
+def route1(query_list: List[str]) -> Dict[str, List[Dict[str, str]]]
+def route2(query_list: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- 基础路由示例。
+- `route1`: 如果查询内容为 "1"，状态设为 "state1"，否则 "state2"。
+- `route2`: 强制状态设为 "state2"。
+
+---
+
+## `ircot_check_end`
+
+**签名**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def ircot_check_end(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- IRCoT 流程检查。
+- 检查回答中是否包含 `"so the answer is"`（忽略大小写）。
+- 包含则标记状态为 `"complete"`，否则为 `"incomplete"`。
+
+---
+
+## `search_r1_check`
+
+**签名**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def search_r1_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- 检查 Search-R1 生成是否结束。
+- 依据：文本中包含 `<|endoftext|>` 或 `<|im_end|>`。
+- 满足条件标记为 `"complete"`，否则 `"incomplete"`。
+
+---
+
+## `webnote_check_page`
+
+**签名**
+```python
+@app.tool(output="page_ls->page_ls")
+def webnote_check_page(page_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- WebNote 流程检查。
+- 若页面内容包含 `"to be filled"`（忽略大小写），标记为 `"incomplete"`，否则 `"complete"`。
+
+---
+
+## `r1_searcher_check`
+
+**签名**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def r1_searcher_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- 检查 R1-Searcher 生成是否结束。
+- 依据：文本中包含 `<|endoftext|>`、`<|im_end|>` 或 `</answer>`。
+- 满足条件标记为 `"complete"`，否则 `"incomplete"`。
+
+---
+
+## `search_o1_check`
+
+**签名**
+```python
+@app.tool(output="ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list->ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list")
+def search_o1_check(
+    ans_ls: List[str],
+    q_ls: List[str],
+    total_subq_list: List[List[Any]],
+    total_reason_list: List[List[Any]],
+    total_final_info_list: List[List[Any]],
+) -> Dict[str, List[Dict[str, Any]]]
+```
+
+**功能**
+- Search-o1 流程状态检查。
+- 检查回答中的特殊标记：
+  - 若包含 `<|end_search_query|>`：状态设为 `"retrieve"`（继续检索）。
+  - 若包含 `<|im_end|>` 或其他情况：状态设为 `"stop"`（停止检索，输出答案）。
+- 将所有关联列表（`q_ls`, `subq`, `reason`, `info`）同步更新状态。
+
+---
+
+## `check_model_state`
+
+**签名**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**功能**
+- 通用模型状态检查。
+- 若回答中包含 `<search>` 标签，标记状态为 `"continue"`，否则 `"stop"`。
+
+---
+
+## `surveycpm_state_router`
+
+**签名**
+```python
+@app.tool(output="state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls")
+def surveycpm_state_router(
+    state_ls: List[str],
+    cursor_ls: List[str | None],
+    survey_ls: List[str],
+    step_ls: List[int],
+    extend_time_ls: List[int],
+    extend_result_ls: List[str],
+) -> Dict[str, List[Dict[str, Any]]]
+```
+
+**功能**
+- SurveyCPM 专用路由。
+- 这是一个 Pass-through 工具，它将所有输入的列表元素（状态、光标、大纲等）打包成带有 `"state"` 字段的字典。
+- 目的：使 UltraRAG 框架能够根据 `state` 字段自动分发数据到对应的 Pipeline 分支。

@@ -13,7 +13,9 @@ async def build_text_corpus(parse_file_path: str, text_corpus_save_path: str) ->
 ```
 
 **功能**  
-- 支持 **.txt / .md**；以及 **.pdf / .xps / .oxps / .epub / .mobi / .fb2**（经 `pymupdf` 纯文本抽取）。
+- 支持 .txt / .md；
+- 支持 .docx（读取段落与表格内容）；
+- 支持 .pdf / .xps / .oxps / .epub / .mobi / .fb2（经 pymupdf 纯文本抽取）。
 - 目录模式下会递归处理。
 
 **输出格式（JSONL）**  
@@ -45,7 +47,11 @@ async def build_image_corpus(parse_file_path: str, image_corpus_save_path: str) 
 **签名**  
 ```python
 @app.tool(output="parse_file_path,mineru_dir,mineru_extra_params->None")
-async def mineru_parse(parse_file_path: str, mineru_dir: str, mineru_extra_params: Optional[Dict[str, Any]] = None) -> None
+async def mineru_parse(
+    parse_file_path: str, 
+    mineru_dir: str, 
+    mineru_extra_params: Optional[Dict[str, Any]] = None
+) -> None
 ```
 
 **功能**  
@@ -57,8 +63,13 @@ async def mineru_parse(parse_file_path: str, mineru_dir: str, mineru_extra_param
 
 **签名**  
 ```python
-@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
-async def build_mineru_corpus(mineru_dir: str, parse_file_path: str, text_corpus_save_path: str, image_corpus_save_path: str) -> None
+@app.tool(output="mineru_dir,parse_file_path,text_corpus_save_path,image_corpus_save_path->None")
+async def build_mineru_corpus(
+    mineru_dir: str, 
+    parse_file_path: str, 
+    text_corpus_save_path: str, 
+    image_corpus_save_path: str
+) -> None
 ```
 
 **功能**  
@@ -80,18 +91,23 @@ async def build_mineru_corpus(mineru_dir: str, parse_file_path: str, text_corpus
 
 **签名**  
 ```python
-@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
+@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,tokenizer_or_token_counter,chunk_size,chunk_path,use_title->None")
 async def chunk_documents(
-  raw_chunk_path: str,
-  chunk_backend_configs: Dict[str, Any],
-  chunk_backend: str = "token",
-  chunk_path: Optional[str] = None,
-  use_title: bool = True,
+    raw_chunk_path: str,
+    chunk_backend_configs: Dict[str, Any],
+    chunk_backend: str = "token",
+    tokenizer_or_token_counter: str = "character",
+    chunk_size: int = 256,
+    chunk_path: Optional[str] = None,
+    use_title: bool = True,
 ) -> None
 ```
 
 **功能**  
-- 将输入文本语料（JSONL，含 `id/title/contents`）按所选后端切分为段落块：支持 `token` / `sentence` / `recursive`。  
+- 将输入文本语料（JSONL，含 `id/title/contents`）按所选后端切分为段落块：
+- Chunk Backend: 支持 `token` / `sentence` / `recursive`。  
+- Tokenizer: tokenizer_or_token_counter 可选 `word`、`character` 或 `tiktoken` 编码名称（如 `gpt2`）。
+- Chunk Size: 通过 `chunk_size` 控制块大小（overlap 默认为 size/4）。
 - 可选在每个块首部附加文档标题（`use_title`）。  
 
 **输出格式（JSONL）**  
@@ -104,6 +120,7 @@ async def chunk_documents(
 ## 参数配置
 
 ```yaml servers/corpus/parameter.yaml icon="/images/yaml.svg"
+# servers/corpus/parameter.yaml
 parse_file_path: data/UltraRAG.pdf
 text_corpus_save_path: corpora/text.jsonl
 image_corpus_save_path: corpora/image.jsonl
@@ -118,20 +135,16 @@ raw_chunk_path: corpora/text.jsonl
 chunk_path: corpora/chunks.jsonl
 use_title: false
 chunk_backend: token # choices=["token", "sentence", "recursive"]
+tokenizer_or_token_counter: character
+chunk_size: 256
 chunk_backend_configs:
   token:
-    tokenizer_or_token_counter: gpt2
-    chunk_size: 256
     chunk_overlap: 50
   sentence:
-    tokenizer_or_token_counter: character
-    chunk_size: 256
     chunk_overlap: 50
     min_sentences_per_chunk: 1
     delim: "['.', '!', '?', '\\n']"
   recursive:
-    tokenizer_or_token_counter: character
-    chunk_size: 256
     min_characters_per_chunk: 12
 ```
 
@@ -139,30 +152,27 @@ chunk_backend_configs:
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `parse_file_path` | str | 输入文件或目录路径，支持文本或 PDF |
+| `parse_file_path` | str | 输入文件或目录路径 |
 | `text_corpus_save_path` | str | 文本语料输出路径（JSONL） |
 | `image_corpus_save_path` | str | 图片语料索引输出路径（JSONL） |
 | `mineru_dir` | str | MinerU 输出根目录 |
 | `mineru_extra_params` | dict | MinerU 额外参数，如 `source`、`layout` 等 |
-| `raw_chunk_path` | str | 切块输入文件路径 |
+| `raw_chunk_path` | str | 切块输入文件路径（JSONL 格式） |
 | `chunk_path` | str | 切块输出路径 |
 | `use_title` | bool | 是否在每个切块开头附加文档标题 |
 | `chunk_backend` | str | 选择切块方式：`token`、`sentence`、`recursive` |
+| `tokenizer_or_token_counter` | str | 分词器或计数方式。可选：`word`, `character` 或 `tiktoken` 模型名（如 `gpt2`） |
+| `chunk_size` | int | 每个切块的目标大小 |
 | `chunk_backend_configs` | dict | 各切块方法的配置项（见下） |
 
 `chunk_backend_configs` 详细参数：
 
 | 后端类型 | 参数 | 说明 |
 |-----------|------|------|
-| **token** | `tokenizer_or_token_counter` | tiktoken 名称或 “word”“character” |
-|  | `chunk_size` | 每个块的最大 token 数 |
-|  | `chunk_overlap` | 块间重叠 token 数 |
-| **sentence** | `tokenizer_or_token_counter` | 同上 |
-|  | `chunk_size` | 每块最大 token 数 |
-|  | `chunk_overlap` | 块间重叠 |
-|  | `min_sentences_per_chunk` | 每块最少句子数 |
-|  | `delim` | 句子分隔符（支持中英文标点） |
-| **recursive** | `tokenizer_or_token_counter` | 同上 |
-|  | `chunk_size` | 每块最大 token 数 |
-|  | `min_characters_per_chunk` | 每块最少字符数 |
+| **token** | `chunk_overlap` | 块间重叠 token 数 |
+| **sentence** | `chunk_overlap` | 块间重叠数 |
+|  | `min_sentences_per_chunk` | 每个切块包含的最少句子数 |
+|  | `delim` | 句子分隔符列表（字符串形式的 Python 列表） |
+| **recursive** | `min_characters_per_chunk` | 递归切分时的最小字符单元 |
+
 

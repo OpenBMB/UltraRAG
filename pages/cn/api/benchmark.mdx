@@ -12,9 +12,10 @@ def get_data(benchmark: Dict[str, Any]) -> Dict[str, List[Any]]
 ```
 
 **功能**  
-- 从本地文件加载评测样本，支持 **.jsonl / .json / .parquet**。
-- 按 `key_map` 将原始字段映射为统一输出键（如 `q_ls`, `gt_ls`）。
-- 支持样本打乱（`shuffle`）与采样上限（`limit`）。
+- 多格式加载：支持从本地加载 `.jsonl`、`.json` 或 `.parquet` 格式的评测数据集。
+- 动态字段映射：利用 `key_map` 将原始数据中的不同列名（如 `question`, `answer`）统一映射为标准化输出键（通常为 `q_ls` 和 `gt_ls`）。
+- 数据预处理：内置支持随机打乱（`shuffle`）与数量截断（`limit`）。
+- Demo 里用来接收用户输入，将其视作一条数据（`q_ls`）。
 
 **输出格式（JSON）**  
 ```json
@@ -48,9 +49,9 @@ benchmark:
 | `name` | str | 评测集名称，仅用于日志与标识（示例：`nq`） |
 | `path` | str | 数据文件路径，支持 `.jsonl`、`.json`、`.parquet` |
 | `key_map` | dict | 字段映射表，将原始字段映射为工具输出键 |
-| `key_map.q_ls` | str | 问题字段名（如 `question`） |
-| `key_map.gt_ls` | str | 标准答案字段名（如 `golden_answers`，允许列表） |
+|  | `q_ls` | str| 映射为 问题列表 的原始字段名（如文件中的 question 列） |
+|  | `gt_ls` | str| 映射为 标准答案列表 的原始字段名（如文件中的 golden_answers 列） |
 | `shuffle` | bool | 是否打乱样本顺序（默认 `false`） |
 | `seed` | int | 随机种子（`shuffle=true` 时生效） |
-| `limit` | int | 采样上限，`-1` 表示全部，正整数表示前 `limit` 条 |
+| `limit` | int | 采样数据条数上限。默认为 -1（加载全部），正整数表示截取前 N 条 |
 

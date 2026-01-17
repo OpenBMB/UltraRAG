@@ -3,14 +3,13 @@ title: "CLI"
 icon: "command"
 ---
 
-
 ## help — 命令概览
 
 ```bash
 ultrarag --help
 ```
 
-```
+```text
 usage: ultrarag [-h] {build,run,show} ...
 
 UltraRAG CLI
@@ -40,8 +39,6 @@ ultrarag build <CONFIG> [--log_level DEBUG|INFO|WARN|ERROR]
 | `<CONFIG>` | Pipeline 配置文件路径，如 `examples/pipeline.yaml` |
 | `--log_level` | 日志级别，默认 `INFO` |
 
-
-
 ---
 
 ## run — 执行 Pipeline
@@ -49,13 +46,14 @@ ultrarag build <CONFIG> [--log_level DEBUG|INFO|WARN|ERROR]
 **用途**：启动 Pipeline 执行。
 
 ```bash
-ultrarag run <CONFIG> [--param <PARAM_FILE>] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag run <CONFIG> [--param <PARAM_FILE>] [--is_demo] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
 | 参数 | 描述 |
 |------|------|
 | `<CONFIG>` | 待执行的 `pipeline.yaml` 路径 |
 | `--param <PARAM_FILE>` | 自定义参数文件路径，覆盖默认 `parameter/` 下文件 |
+| `--is_demo` | 启用演示模式 |
 | `--log_level` | 日志级别，默认 `INFO` |
 
 ---
@@ -65,15 +63,14 @@ ultrarag run <CONFIG> [--param <PARAM_FILE>] [--log_level DEBUG|INFO|WARN|ERROR]
 **用途**： 启动UI界面。
 
 ```bash
-ultrarag show ui [--host 127.0.0.1] [--port 5050] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag show ui [--host 127.0.0.1] [--port 5050] [--admin] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
 | 参数 | 描述 |
 |------|------|
 | `--host` | 网页服务绑定 IP（默认 `127.0.0.1`） |
 | `--port` | 网页服务端口（默认 `5050`） |
+| `--admin` | 启动完整管理员 UI（含 Pipeline 构建器），默认仅启动 Chat 模式 |
 | `--log_level` | 日志级别，默认 `INFO` |
 
-启动后访问 `http://<host>:<port>` 即可使用 UI。  
-
-
+启动后访问 `http://<host>:<port>` 即可使用 UI。
