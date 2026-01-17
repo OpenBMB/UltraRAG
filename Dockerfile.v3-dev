@@ -1,0 +1,86 @@
+FROM python:3.11-slim
+
+# Keep logs unbuffered + make pip/uv nicer in containers
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Optional: Debian APT mirror for faster installs in CN networks.
+# Values:
+# - empty / default: keep upstream deb.debian.org
+# - aliyun: mirrors.aliyun.com
+# - tuna: mirrors.tuna.tsinghua.edu.cn
+ARG APT_MIRROR=tuna
+
+# Build-time PyTorch wheel index (set to cu121/cu124/cpu as needed).
+# We use it as an *extra* index so normal PyPI deps still resolve.
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+
+# Optional: Node.js (only needed if you use remote MCP servers via `npx mcp-remote`)
+ARG INSTALL_NODE=0
+# Extra pip packages to install on top of UltraRAG (e.g., faiss-cpu)
+ARG PIP_EXTRA_PACKAGES=
+
+WORKDIR /ultrarag
+
+# System deps:
+# - build-essential/gcc: build wheels for some optional deps
+# - git/curl/ca-certificates: common runtime + optional node install
+RUN set -eux; \
+    if [ -n "${APT_MIRROR:-}" ] && [ "${APT_MIRROR}" != "default" ]; then \
+      . /etc/os-release; \
+      codename="${VERSION_CODENAME:-bookworm}"; \
+      case "${APT_MIRROR}" in \
+        aliyun) mirror="http://mirrors.aliyun.com" ;; \
+        tuna)   mirror="http://mirrors.tuna.tsinghua.edu.cn" ;; \
+        *) echo "Unsupported APT_MIRROR='${APT_MIRROR}'. Use: aliyun | tuna | (empty)" >&2; exit 1 ;; \
+      esac; \
+      printf "deb %s/debian %s main contrib non-free non-free-firmware\n" "${mirror}" "${codename}" > /etc/apt/sources.list; \
+      printf "deb %s/debian %s-updates main contrib non-free non-free-firmware\n" "${mirror}" "${codename}" >> /etc/apt/sources.list; \
+      if [ "${APT_MIRROR}" = "tuna" ]; then \
+        printf "deb %s/debian-security %s-security main contrib non-free non-free-firmware\n" "${mirror}" "${codename}" >> /etc/apt/sources.list; \
+      else \
+        printf "deb %s/debian-security %s-security main contrib non-free non-free-firmware\n" "${mirror}" "${codename}" >> /etc/apt/sources.list; \
+      fi; \
+      echo "[apt] Using mirror: ${mirror} (${codename})"; \
+    fi; \
+    apt-get update && apt-get install -y --no-install-recommends \
+      build-essential gcc g++ \
+      libgomp1 \
+      git curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN if [ "$INSTALL_NODE" = "1" ]; then \
+      curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+      apt-get update && apt-get install -y --no-install-recommends nodejs && \
+      rm -rf /var/lib/apt/lists/* ; \
+    fi
+
+# Install uv (fast installer), then install UltraRAG from current v3-dev source tree.
+RUN pip install --no-cache-dir uv
+
+COPY . .
+
+# Optional extras: retriever/generation/corpus/all (see pyproject.toml)
+ARG ULTRARAG_EXTRAS=
+RUN if [ -n "$ULTRARAG_EXTRAS" ]; then \
+      uv pip install -e ".[${ULTRARAG_EXTRAS}]" --system ; \
+    else \
+      uv pip install -e . --system ; \
+    fi
+
+RUN if [ -n "$PIP_EXTRA_PACKAGES" ]; then \
+      # Disable shell globbing so tokens like "infinity-emb[torch]" are not treated as patterns.
+      set -f; \
+      # Ensure torch is installed from a configurable index (CPU by default).
+      if ! python -c 'import torch' >/dev/null 2>&1; then \
+        uv pip install --system --extra-index-url "$TORCH_INDEX_URL" torch ; \
+      fi; \
+      uv pip install --system $PIP_EXTRA_PACKAGES ; \
+    fi
+
+EXPOSE 5050
+
+CMD ["ultrarag", "run", "examples/sayhello.yaml"]
+
+

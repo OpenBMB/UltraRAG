@@ -56,15 +56,15 @@ class FaissIndexBackend(BaseIndexBackend):
     def _maybe_to_gpu(self, cpu_index):
         if not self.use_gpu:
             return cpu_index
-        co = faiss.GpuMultipleClonerOptions()
-        co.shard = True
-        co.useFloat16 = True
         try:
+            co = faiss.GpuMultipleClonerOptions()
+            co.shard = True
+            co.useFloat16 = True
             gpu_index = faiss.index_cpu_to_all_gpus(cpu_index, co)
             info_msg = f"[faiss] Loaded index to GPU(s) with {self.device_num} device(s)."
             self.logger.info(info_msg)
             return gpu_index
-        except RuntimeError as e:
+        except Exception as e:
             warn_msg = (
                 f"[faiss] GPU index load failed: {e}. Falling back to CPU."
             )

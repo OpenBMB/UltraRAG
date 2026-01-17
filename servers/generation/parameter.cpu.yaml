@@ -1,0 +1,29 @@
+# CPU-only defaults for servers/generation/parameter.yaml
+#
+# We use the OpenAI backend and point it to a local OpenAI-compatible server.
+# In docker-compose.cpu.yml this is provided by llama.cpp server container.
+backend: openai # options: vllm, openai, hf
+backend_configs:
+  openai:
+    # MUST match the served model name exposed by llama.cpp /v1/models
+    model_name: llamacpp
+    base_url: http://llama-cpp:8000/v1
+    api_key: "sk-no-key"
+    concurrency: 4
+    retries: 3
+    base_delay: 1.0
+
+sampling_params:
+  temperature: 0.7
+  top_p: 0.8
+  max_tokens: 1024
+
+extra_params:
+  chat_template_kwargs:
+    enable_thinking: false
+
+system_prompt: ""
+image_tag: null
+
+
+

@@ -1,5 +1,4 @@
-# servers/retriever/parameter.yaml
-
+# CPU-only defaults for servers/retriever/parameter.yaml
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
@@ -21,45 +20,25 @@ backend_configs:
       psg_prompt_name: document
       psg_task: null
       q_task: null
-  openai:
-    model_name: text-embedding-3-small
-    base_url: "https://api.openai.com/v1"
-    api_key: "abc"
-  bm25:
-    lang: en
-    save_path: index/bm25
 
 index_backend: faiss # options: faiss, milvus
 index_backend_configs:
   faiss:
-    # GPU-first default (requires CUDA + faiss-gpu).
-    index_use_gpu: True
+    index_use_gpu: false
     index_chunk_size: 10000
     index_path: index/index.index
-  milvus:
-    uri: index/milvus_demo.db # Milvus Lite local file (or http://localhost:19530 for server)
-    token: null
-    id_field_name: id
-    vector_field_name: vector
-    text_field_name: contents
-    id_max_length: 64
-    text_max_length: 60000
-    metric_type: IP
-    index_params:
-      index_type: AUTOINDEX
-      metric_type: IP
-    search_params:
-      metric_type: IP
-      params: {}
-    index_chunk_size: 1000
 
 batch_size: 16
 top_k: 5
-# GPU-first default. Override to null (or set RETRIEVER_FORCE_CPU=1) for CPU-only.
-gpu_ids: "0"
+gpu_ids: null
 query_instruction: ""
 is_multimodal: false
 overwrite: false
 retrieve_thread_num: 1
 retriever_url: "http://127.0.0.1:64501"
 is_demo: false
+
+
+
+
+
