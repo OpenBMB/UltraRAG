@@ -9,7 +9,9 @@ description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "fastmcp==2.13.0",
+    "fastmcp==2.14.3",
+    "mcp",
+    "rich",
     "pandas",
     "Jinja2",
     "openai",
@@ -22,9 +24,16 @@ dependencies = [
     "tabulate",
     "aiohttp",
     "pillow",
-    "rouge-score",
-    "pytrec-eval-terrier",
     "flask",
+    "numpy",
+    "fakeredis",
+    "pymilvus",
+    "pypinyin",
+    "charset-normalizer",
+    "python-docx",
+    "pymupdf",
+    "chonkie",
+    "tiktoken",
 ]
 
 [project.optional-dependencies]
@@ -38,27 +47,33 @@ retriever = [
     "tavily-python",
     "pymilvus",
     "numba",
+    "torch",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
 ]
 
 generation = [
-    "vllm",
+    "vllm>=0.13.0",
     "openai",
     "transformers",
+    "torch",
+]
+
+evaluation = [
+    "rouge-score",
+    "pytrec-eval-terrier",
 ]
 
 corpus = [
-    "chonkie",
-    "pymupdf",
     "mineru[core]",
-    "python-docx",
-    "charset-normalizer",
-    "tiktoken",
 ]
 
 all = [
     "ultrarag[retriever]",
     "ultrarag[generation]",
     "ultrarag[corpus]",
+    "ultrarag[evaluation]",
 ]
 
 [tool.setuptools.packages.find]
@@ -66,3 +81,14 @@ where = ["src"]
 
 [project.scripts]
 ultrarag = "ultrarag.client:main"
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "ipython",
+    "jupyter",
+    "pytest",
+]
+
+[tool.uv]
+package = true

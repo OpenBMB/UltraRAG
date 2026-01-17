@@ -101,133 +101,36 @@ By deeply integrating the **MCP architecture** with **native workflow control**,
 
 ## Installation
 
-### Create a virtual environment using Conda:
+### Sync dependencies with uv
 
-```shell
-conda create -n ultrarag python=3.11
-conda activate ultrarag
-```
-Clone the project locally or on a server via git:
-
+1) Install uv (if not already): `pip install uv` or `curl -LsSf https://astral.sh/uv/install.sh | sh`  
+2) Clone and enter the project:
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 ```
-
-We recommend using uv for package management, providing faster and more reliable Python dependency management:
-
+3) Sync dependencies:
+- Full features (retriever/generation/corpus/evaluation):  
+  `uv sync --extra retriever --extra generation --extra corpus --extra evaluation`
+- Base only: `uv sync`
+- Specific components: keep only the needed `--extra`, e.g.  
+  - retrieval/rerank only: `uv sync --extra retriever`  
+  - generation only: `uv sync --extra generation`
+4) Verify:
 ```shell
-pip install uv
-uv pip install -e .
-```
-
-If you prefer pip, you can directly run:
-
-```shell
-pip install -e .
-```
-
-Verify the installation:
-
-```shell
-# On success you'll see 'Hello, UltraRAG 2.0!'
 ultrarag run examples/sayhello.yaml
 ```
 
-
-[Optional] UltraRAG v2 supports rich Server components; developers can flexibly install dependencies according to actual tasks:
-
-```shell
-# Retriever/Reranker Server dependencies:
-# infinity
-uv pip install infinity_emb
-# sentence_transformers
-uv pip install sentence_transformers
-# openai
-uv pip install openai
-# bm25
-uv pip install bm25s
-# faiss (you need to manually compile and install the CPU or GPU version according to your hardware environment)
-# CPU version:
-uv pip install faiss-cpu
-# GPU version (example: CUDA 12.x)
-uv pip install faiss-gpu-cu12
-# For other CUDA versions, install the corresponding package (e.g., CUDA 11.x uses faiss-gpu-cu11)
-# websearch
-# exa
-uv pip install exa_py
-# tavily
-uv pip install tavily-python
-# One-click installation:
-uv pip install -e ".[retriever]"
-
-# Generation Server dependencies:
-# vllm
-uv pip install vllm
-# openai
-uv pip install openai
-# hf
-uv pip install transformers
-# One-click installation:
-uv pip install -e ".[generation]"
-
-# Corpus Server dependencies:
-# chonkie
-uv pip install chonkie
-# pymupdf
-uv pip install pymupdf
-# mineru
-uv pip install "mineru[core]"
-# One-click installation:
-uv pip install -e ".[corpus]"
-
-# Install all dependencies:
-uv pip install -e ".[all]"
-# Or use conda to import the environment:
-conda env create -f environment.yml
-```
-
-### Build and Run Environment with Docker
-
-(Option 1) Clone the project to your local machine or server via git:
+### Build & run with Docker
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
+docker build -t ultrarag:latest .
+docker run -it --gpus all -p 5050:5050 ultrarag:latest
 ```
 
-Build the image:
-
-```shell
-docker build -t ultrarag:v0.2.1 .
-```
-
-Run an interactive environment:
-
-```shell
-docker run -it --gpus all ultrarag:v0.2.1 /bin/bash
-```
-
-(Option 2) Use the Prebuilt Image
-
-Pull the prebuilt image:
-
-```shell
-docker pull hdxin2002/ultrarag:v0.2.1
-```
-
-Run an interactive environment:
-
-```shell
-docker run -it --gpus all hdxin2002/ultrarag:v0.2.1 /bin/bash
-```
-
-Run the following command to verify whether the installation is successful:
-
-```shell
-# If successful, it will display the welcome message 'Hello, UltraRAG 2.0!'
-ultrarag run examples/sayhello.yaml
-```
+Default container command: `ultrarag show ui --admin --port 5050 --host 0.0.0.0`. Just map port 5050 to access the UI.
 
 ## Quick Start
 
