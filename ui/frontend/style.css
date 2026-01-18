@@ -547,12 +547,22 @@ textarea.parameter-input {
 }
 .chat-bubble { max-width: 85%; padding: 0; line-height: 1.6; font-size: 1rem; }
 .chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: var(--text-primary); padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
-.chat-bubble.assistant { align-self: flex-start; padding-right: 1rem; }
+.chat-bubble.assistant {
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  padding-right: 0;
+}
+.chat-bubble.assistant .msg-content {
+  width: 100%;
+}
 .chat-bubble.assistant::before { content: 'AI'; display: block; font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); margin-bottom: 0.25rem; }
 .chat-bubble .msg-content {
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text-primary);
+  text-align: justify;
+  text-align-last: left;
 }
 .chat-bubble .msg-content > :first-child { margin-top: 0; }
 .chat-bubble .msg-content > :last-child { margin-bottom: 0; }
@@ -1125,6 +1135,7 @@ textarea.parameter-input {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  width: 100%;
 }
 
 /* 单个参考项 */
@@ -1140,6 +1151,7 @@ textarea.parameter-input {
   cursor: pointer;
   transition: all 0.2s;
   line-height: 1.4;
+  width: 100%;
 }
 
 .ref-item:hover {
@@ -1157,7 +1169,6 @@ textarea.parameter-input {
   margin-top: 1px;
 }
 
-/* 标题 - 只显示一行 */
 .ref-title {
   white-space: nowrap;
   overflow: hidden;
@@ -1166,6 +1177,7 @@ textarea.parameter-input {
   min-width: 0; /* 允许flex子元素缩小 */
   font-size: 0.85rem;
   color: #4b5563;
+  word-break: normal;
 }
 
 /* [合并与增强] 引用角标样式 */
@@ -5245,6 +5257,7 @@ body.ai-panel-open .canvas-main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  scrollbar-gutter: stable both-edges;
 }
 
 .ai-welcome {
@@ -5297,6 +5310,9 @@ body.ai-panel-open .canvas-main {
   gap: 0.5rem;
   animation: fadeIn 0.2s ease;
   max-width: 100%;
+  width: 100%;
+  align-self: stretch;
+  align-items: stretch;
 }
 
 @keyframes fadeIn {
@@ -5305,11 +5321,11 @@ body.ai-panel-open .canvas-main {
 }
 
 .ai-message.user {
-  align-self: flex-end;
+  align-items: flex-end;
 }
 
 .ai-message.assistant {
-  align-self: flex-start;
+  align-items: stretch;
 }
 
 /* 隐藏头像，使用与Chat一致的样式 */
@@ -5332,6 +5348,8 @@ body.ai-panel-open .canvas-main {
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text-primary, #1e293b);
+  text-align: justify;
+  text-align-last: left;
 }
 
 /* 用户消息 - 与Chat风格一致 */
