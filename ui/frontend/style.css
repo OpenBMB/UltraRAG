@@ -5096,12 +5096,36 @@ body.ai-panel-open .canvas-main {
 .ai-connection-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 16px;
   background: #f9f9fa;
   font-size: 0.75rem;
   color: var(--text-secondary, #64748b);
   border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.ai-status-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-status-text {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ai-context-hint {
+  font-size: 0.75rem;
+  color: #475569;
+  background: #eef2ff;
+  padding: 4px 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ai-status-dot {
@@ -5417,6 +5441,17 @@ body.ai-panel-open .canvas-main {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.ai-action-block.applied {
+  border-color: #22c55e;
+  box-shadow: 0 8px 24px rgba(34, 197, 94, 0.15);
+}
+
+.ai-action-block.rejected {
+  border-color: #cbd5e1;
+  opacity: 0.6;
 }
 
 .ai-action-header {
@@ -5485,6 +5520,48 @@ body.ai-panel-open .canvas-main {
   max-height: 200px;
   overflow-y: auto;
   white-space: pre-wrap;
+}
+
+.ai-apply-highlight {
+  position: relative;
+  animation: aiFlash 1.5s ease-out;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-radius: 6px;
+}
+
+@keyframes aiFlash {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35); }
+  60% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+
+.ai-error-card {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #9f1239;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ai-error-card .ai-retry-btn {
+  margin-left: auto;
+  background: #0f172a;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.ai-error-card .ai-retry-btn:hover {
+  background: #111827;
 }
 
 /* 输入区域 - 与Chat风格统一 */

@@ -1534,6 +1534,7 @@ async function createNewPipeline() {
   if (els.pipelineDropdownBtn) els.pipelineDropdownBtn.textContent = pipelineName;
   setHeroPipelineLabel(pipelineName); 
   setHeroStatusLabel("idle");
+  updateAIContextBanner('pipeline-new');
   
   setSteps(VANILLA_PIPELINE_STEPS, { markUnsaved: true });
   setYamlSyncStatus('modified');
@@ -4499,6 +4500,7 @@ async function loadPipeline(name, options = {}) {
 
         // [新增] 自动检查是否 Ready (跳过 Build 的关键)
         checkPipelineReadiness(name);
+        updateAIContextBanner('pipeline-load');
         
     } catch (err) {
         log(`Failed to load pipeline: ${err.message}`);
@@ -6140,11 +6142,13 @@ async function switchWorkspaceMode(mode) {
     if (mode === workspaceState.currentMode) return;
 
     if (workspaceState.currentMode === 'pipeline' && mode !== 'pipeline') {
-        const ok = await confirmUnsavedChanges("切换视图");
+        const ok = await confirmUnsavedChanges("change workspace mode will discard unsaved changes, are you sure?");
         if (!ok) return;
     }
 
     workspaceState.currentMode = mode;
+    
+    updateAIContextBanner('mode-change');
     
     // 更新导航按钮状态
     document.querySelectorAll('.workspace-nav-btn[data-mode]').forEach(btn => {
@@ -6198,6 +6202,7 @@ function loadParametersInline() {
             state.parameterData = cloneDeep(data);
             if (emptyEl) emptyEl.classList.add('d-none');
             renderParameterFormInline();
+            updateAIContextBanner('params-loaded');
         })
         .catch(e => {
             if (emptyEl) emptyEl.classList.remove('d-none');
@@ -6475,6 +6480,8 @@ async function selectPromptFile(file) {
             editor.value = content.content;
         }
         
+        updateAIContextBanner('prompt-select');
+        
         updatePromptUI();
         updatePromptLineNumbers();
         renderPromptList(workspaceState.prompts.files);
@@ -6681,6 +6688,8 @@ const aiState = {
     view: 'home',
     sessions: [],
     currentSessionId: null,
+    lastUserMessage: null,
+    lastContextSnapshot: null,
     settings: {
         provider: 'openai',
         baseUrl: 'https://api.openai.com/v1',
@@ -6717,10 +6726,12 @@ function initAIAssistant() {
     if (!trigger || !panel) return;
     
     loadAISettings();
+    updateAIConnectionStatus();
     loadAIConversation();
     ensureAISession();
     renderAIConversationFromState();
     setAIView('home');
+    updateAIContextBanner('init');
     
     trigger.addEventListener('click', () => openAIPanel());
     closeBtn?.addEventListener('click', () => closeAIPanel());
@@ -7386,6 +7397,8 @@ async function sendAIMessage() {
     const message = input?.value?.trim();
     if (!message) return;
     
+    aiState.lastUserMessage = message;
+    
     if (!aiState.settings.apiKey) {
         addAIMessage('assistant', 'Please configure your API settings first. Click the settings icon in the top right.');
         return;
@@ -7407,6 +7420,7 @@ async function sendAIMessage() {
     
     const controller = aiState.controller;
     const context = buildAIContext();
+    aiState.lastContextSnapshot = context;
     let accumulated = '';
     let finalActions = [];
     let placeholderEl = null;
@@ -7494,7 +7508,9 @@ async function sendAIMessage() {
                 placeholderEl.remove();
             }
         } else {
-            addAIMessage('assistant', 'Failed to get response: ' + e.message);
+            aiState.isConnected = false;
+            updateAIConnectionStatus();
+            showAIErrorWithRetry(e.message);
         }
     } finally {
         aiState.isLoading = false;
@@ -7525,8 +7541,26 @@ function renderAIStreamingResult(content, actions = [], placeholderEl) {
     if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-function buildAIContext() {
-    const context = {
+function describeAIContext(snapshot) {
+    if (!snapshot) return 'No active context';
+    const { currentMode, selectedPipeline, currentPromptFile } = snapshot;
+    if (currentMode === 'prompts') {
+        if (currentPromptFile) return `Editing prompt: ${currentPromptFile}`;
+        return 'Prompt panel';
+    }
+    if (currentMode === 'parameters') {
+        if (selectedPipeline) return `Editing parameters for ${selectedPipeline}`;
+        return 'Parameters panel (no pipeline selected)';
+    }
+    if (currentMode === 'pipeline') {
+        if (selectedPipeline) return `Editing pipeline: ${selectedPipeline}`;
+        return 'Pipeline canvas';
+    }
+    return 'No active context';
+}
+
+function getAIContextSnapshot() {
+    const snapshot = {
         currentMode: workspaceState.currentMode,
         selectedPipeline: state.selectedPipeline,
         isBuilt: state.isBuilt
@@ -7535,19 +7569,36 @@ function buildAIContext() {
     if (workspaceState.currentMode === 'pipeline') {
         const yamlEditor = document.getElementById('yaml-editor');
         if (yamlEditor) {
-            context.pipelineYaml = yamlEditor.value;
+            snapshot.pipelineYaml = yamlEditor.value;
         }
     } else if (workspaceState.currentMode === 'parameters') {
-        context.parameters = state.parameterData;
+        snapshot.parameters = state.parameterData;
     } else if (workspaceState.currentMode === 'prompts') {
         const promptEditor = document.getElementById('prompt-editor');
         if (promptEditor && workspaceState.prompts.currentFile) {
-            context.currentPromptFile = workspaceState.prompts.currentFile;
-            context.promptContent = promptEditor.value;
+            snapshot.currentPromptFile = workspaceState.prompts.currentFile;
+            snapshot.promptContent = promptEditor.value;
+            snapshot.promptModified = Boolean(workspaceState.prompts.modified);
         }
     }
     
-    return context;
+    snapshot.focusHint = describeAIContext(snapshot);
+    aiState.lastContextSnapshot = snapshot;
+    return snapshot;
+}
+
+function updateAIContextBanner(reason = '') {
+    const hintEl = document.getElementById('ai-context-hint');
+    const snapshot = getAIContextSnapshot();
+    if (hintEl) {
+        hintEl.textContent = snapshot && snapshot.focusHint 
+            ? `Current context: ${snapshot.focusHint}`
+            : 'Current context: None';
+    }
+}
+
+function buildAIContext() {
+    return getAIContextSnapshot();
 }
 
 function showAIThinking() {
@@ -7579,9 +7630,78 @@ function hideAIThinking() {
     if (thinkingEl) thinkingEl.remove();
 }
 
+function flashHighlight(el) {
+    if (!el) return;
+    el.classList.add('ai-apply-highlight');
+    setTimeout(() => el.classList.remove('ai-apply-highlight'), 1600);
+}
+
+function findParameterFieldByPath(path) {
+    if (!path) return null;
+    try {
+        const selector = `.parameter-label[title="${CSS?.escape ? CSS.escape(path) : path}"]`;
+        const label = document.querySelector(selector);
+        return label ? label.closest('.parameter-field') : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function mapAIErrorMessage(rawMessage = '') {
+    const msg = String(rawMessage || '').toLowerCase();
+    if (!rawMessage) return 'Request failed. Please try again.';
+    if (msg.includes('list index out of range')) {
+        return 'Upstream model returned an invalid response (list index out of range). Please retry or check model settings.';
+    }
+    if (msg.includes('timeout')) {
+        return 'Request timed out. Check network or model service status and retry.';
+    }
+    if (msg.includes('network') || msg.includes('fetch')) {
+        return 'Network error. Please check your connection or proxy settings.';
+    }
+    return `Request failed: ${rawMessage}`;
+}
+
+function showAIErrorWithRetry(rawMessage) {
+    const friendly = mapAIErrorMessage(rawMessage);
+    const msgEl = addAIMessage('assistant', friendly);
+    if (!msgEl) return;
+    const contentEl = msgEl.querySelector('.ai-message-content');
+    if (!contentEl) return;
+    
+    const card = document.createElement('div');
+    card.className = 'ai-error-card';
+    card.innerHTML = `
+        <span>${friendly}</span>
+        <button class="ai-retry-btn" type="button">Retry</button>
+    `;
+    const btn = card.querySelector('.ai-retry-btn');
+    btn?.addEventListener('click', () => retryLastAIRequest());
+    contentEl.appendChild(card);
+}
+
+async function retryLastAIRequest() {
+    if (!aiState.lastUserMessage) return;
+    const input = document.getElementById('ai-input');
+    if (input) {
+        input.value = aiState.lastUserMessage;
+    }
+    await sendAIMessage();
+}
+
 async function applyAIAction(action, blockEl) {
     try {
         let success = false;
+
+        if (action.type === 'modify_pipeline' && workspaceState.currentMode === 'parameters') {
+            showNotification(
+                'info',
+                'Pipeline change ignored',
+                'You are editing parameters. Ask explicitly to update the pipeline YAML or switch to Pipeline view.',
+                () => switchWorkspaceMode('pipeline')
+            );
+            return;
+        }
         
         switch (action.type) {
             case 'modify_pipeline':
@@ -7598,8 +7718,14 @@ async function applyAIAction(action, blockEl) {
         }
         
         if (success) {
-            blockEl.style.opacity = '0.5';
-            blockEl.querySelector('.ai-action-buttons').innerHTML = '<span style="color: #22c55e; font-size: 0.75rem;">✓ Applied</span>';
+            if (blockEl) {
+                blockEl.classList.add('applied');
+                const btns = blockEl.querySelector('.ai-action-buttons');
+                if (btns) {
+                    btns.innerHTML = '<span style="color: #22c55e; font-size: 0.75rem;">✓ Applied</span>';
+                }
+                flashHighlight(blockEl);
+            }
             log('AI modification applied successfully.');
         }
     } catch (e) {
@@ -7608,8 +7734,12 @@ async function applyAIAction(action, blockEl) {
 }
 
 function rejectAIAction(blockEl) {
-    blockEl.style.opacity = '0.5';
-    blockEl.querySelector('.ai-action-buttons').innerHTML = '<span style="color: #94a3b8; font-size: 0.75rem;">Rejected</span>';
+    if (!blockEl) return;
+    blockEl.classList.add('rejected');
+    const btns = blockEl.querySelector('.ai-action-buttons');
+    if (btns) {
+        btns.innerHTML = '<span style="color: #94a3b8; font-size: 0.75rem;">Rejected</span>';
+    }
 }
 
 async function applyPipelineModification(action) {
@@ -7625,6 +7755,15 @@ async function applyPipelineModification(action) {
         if (state.selectedPipeline) {
             await handleSubmit();
         }
+        
+        flashHighlight(yamlEditor);
+        updateAIContextBanner('pipeline-apply');
+        showNotification(
+            'success',
+            'Pipeline updated',
+            state.selectedPipeline ? `Replaced YAML for ${state.selectedPipeline}` : 'AI updated current YAML',
+            () => switchWorkspaceMode('pipeline')
+        );
     }
     
     return true;
@@ -7650,6 +7789,14 @@ async function applyPromptModification(action) {
         
         // 自动保存
         await saveCurrentPrompt();
+        flashHighlight(promptEditor);
+        updateAIContextBanner('prompt-apply');
+        showNotification(
+            'success',
+            'Prompt updated',
+            action.filename ? `Updated ${action.filename}` : 'AI updated the current prompt',
+            () => switchWorkspaceMode('prompts')
+        );
     }
     
     return true;
@@ -7658,11 +7805,34 @@ async function applyPromptModification(action) {
 async function applyParameterModification(action) {
     if (!action.path || action.value === undefined) return false;
     
+    // Ensure parameter data is present
+    if (!state.parameterData) {
+        if (state.selectedPipeline) {
+            try {
+                state.parameterData = cloneDeep(await fetchJSON(`/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/parameters`));
+            } catch (e) {
+                state.parameterData = {};
+                log(`Failed to load parameters before apply: ${e.message}`);
+            }
+        } else {
+            state.parameterData = {};
+        }
+    }
+    
     setNestedValue(state.parameterData, action.path, action.value);
     renderParameterFormInline();
     
     // 自动保存
     await persistParameterData();
+    const fieldEl = findParameterFieldByPath(action.path) || document.getElementById('parameter-form');
+    flashHighlight(fieldEl);
+    updateAIContextBanner('params-apply');
+    showNotification(
+        'success',
+        'Parameter updated',
+        `Set ${action.path}`,
+        () => switchWorkspaceMode('parameters')
+    );
     
     return true;
 }

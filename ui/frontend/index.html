@@ -802,7 +802,11 @@
         
         <!-- 连接状态 -->
         <div class="ai-connection-status" id="ai-connection-status">
-          <span class="ai-status-dot disconnected"></span>
+          <div class="ai-status-left">
+            <span class="ai-status-dot disconnected"></span>
+            <span class="ai-status-text" id="ai-status-text">Not configured</span>
+          </div>
+          <div class="ai-context-hint" id="ai-context-hint">Current context: No pipeline selected</div>
         </div>
 
         <!-- Home (Recent) -->
