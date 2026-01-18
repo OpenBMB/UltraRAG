@@ -14,6 +14,8 @@
 | 
 <a href="https://ultrarag.openbmb.cn"><b>教程文档</b></a> 
 | 
+<a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><b>数据集</b></a> 
+| 
 <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>每日论文</b></a> 
 | 
 <b>简体中文</b>
@@ -26,11 +28,13 @@
 
 *更新日志* 🔥
 
-- [2025.11.11] 🎉 UltraRAG 2.1 更新：强化知识接入与多模态支持，完善统一评估体系！
+- [2026.01.23] 🎉 UltraRAG 3.0 更新！
+- [2026.01.19] 🎉 发布 SurveyCPM 模型！
 
 <details>
 <summary>历史更新</summary>
 
+- [2025.11.11] 🎉 UltraRAG 2.1 更新：强化知识接入与多模态支持，完善统一评估体系！
 - [2025.09.23] 新增每日 RAG 论文分享，每日更新最新前沿 RAG 工作 👉 |[📖 论文](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
 - [2025.09.09] 发布轻量级 DeepResearch Pipeline 本地搭建教程 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/01_build_light_deepresearch.md)|
 - [2025.09.01] 发布 UltraRAG 安装与完整 RAG 跑通视频 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/00_Installing_and_Running_RAG.md)|
@@ -41,53 +45,11 @@
 
 ---
 
-## UltraRAG v2：面向科研的“RAG实验”加速器 
+## 关于 UltraRAG
 
-检索增强生成系统（RAG）正从早期“检索+生成”的简单拼接，走向融合 **自适应知识组织**、**多轮推理**、**动态检索** 的复杂知识系统。但这种复杂度的提升，使科研人员在 **方法复现**、**快速迭代新想法** 时，面临着高昂的工程实现成本。
+UltraRAG 是由清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、东北大学 [NEUIR](https://neuir.github.io) 实验室、[OpenBMB](https://www.openbmb.cn/home) 与 [AI9stars](https://github.com/AI9Stars) 联合推出的首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 开发框架。
 
-为了解决这一痛点，清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、东北大学 [NEUIR](https://neuir.github.io) 实验室、[OpenBMB](https://www.openbmb.cn/home) 与 [AI9stars](https://github.com/AI9Stars) 联合推出 UltraRAG v2 —— 首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的 RAG 框架。这一设计让科研人员只需编写 YAML 文件，就可以直接声明串行、循环、条件分支等复杂逻辑，从而以极低的代码量快速实现多阶段推理系统。
-
-其核心思路是：
-- 组件化封装：将RAG 的核心组件封装为**标准化的独立 MCP Server**；
-- 灵活调用与扩展：提供 **函数级 Tool** 接口，支持功能的灵活调用与扩展；
-- 轻量流程编排：借助 **MCP Client**，建立自上而下的简洁化链路搭建；
-
-与传统框架相比，UltraRAG v2 显著降低了复杂 RAG 系统的 **技术门槛与学习成本**，让研究者能够将更多精力投入到 **实验设计与算法创新** 上，而不是陷入冗长的工程实现。
-
-## 🌟 核心亮点
-
-- 🚀 **低代码构建复杂 Pipeline**  
-  - 原生支持 **串行、循环、条件分支** 等推理控制结构。开发者只需编写 YAML 文件，即可实现几十行代码构建的 **迭代式 RAG 流程**。  
-
-- 🖼️ **原生多模态支持：检索、生成、评估一体化**
-	- 统一检索、生成与评估，构建真正意义上的 多模态 RAG 全链路；
-	- 实现从 本地 PDF 建库 → 多模态检索 → 多模态生成 的闭环流程，显著提升复杂文档场景下的理解与问答能力。
-
-- ⚡ **快速复现与功能扩展**  
-  基于 **MCP 架构**，所有模块均封装为独立、可复用的 **Server**。  
-  - 用户可按需自定义 Server 或直接复用现有模块；  
-  - 每个 Server 的功能以函数级 **Tool** 注册，新增功能仅需添加一个函数即可接入完整流程；  
-  - 同时支持调用 **外部 MCP Server**，轻松扩展 Pipeline 能力与应用场景。 
-
-- 📚 **知识接入与语料构建自动化**
-	- 支持 PDF、Markdown、HTML、TXT 等多格式文档解析与分块建库；
-	- 与 MinerU 无缝集成，自动完成结构化抽取、多模态切块（文本/表格/图片）；
-	- 一键构建个人化与企业级知识库，适用于科研、企业文档、私有知识管理等场景。
-
-- 🔗 统一构建与评估的 RAG 工作流
-	- 同时适配多种检索引擎与多种生成推理后端；
-	- 内置标准化评估体系，支持全链路可视化调试与结果分析；
-
-- 📊 **统一评测与对比**  
-  内置 **标准化评测流程与指标管理**，开箱即用支持多个主流科研 Benchmark。  
-  - 持续集成最新基线；  
-  - 方便科研人员进行系统性对比与优化实验。  
-
-## 秘诀：MCP 架构与原生流程控制
-
-在不同的 RAG 系统中，检索、生成等核心能力在功能上具有高度相似性，但由于开发者实现策略各异，模块之间往往缺乏统一接口，难以跨项目复用。[Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 作为一种开放协议，规范了为大型语言模型（LLMs）提供上下文的标准方式，并采用 **Client–Server** 架构，使得遵循该协议开发的 Server 组件可以在不同系统间无缝复用。
-
-受此启发，UltraRAG v2 基于 **MCP 架构**，将 RAG 系统中的检索、生成、评测等核心功能抽象并封装为相互独立的 **MCP Server**，并通过标准化的函数级 **Tool 接口**实现调用。这一设计既保证了模块功能扩展的灵活性，又允许新模块以“热插拔”的方式接入，无需对全局代码进行侵入式修改。在科研场景中，这种架构让研究者能够以极低的代码量快速适配新的模型或算法，同时保持整体系统的稳定性与一致性。
+专为科研探索与工业原型设计打造，UltraRAG 将 RAG 中的核心组件（Retriever、Generation 等）标准化封装为独立的 **MCP Server**，配合 **MCP Client** 强大的流程调度能力，开发者仅需通过 YAML 配置，即可实现对条件分支、循环等复杂控制结构的精确编排。
 
 <p align="center">
   <picture>
@@ -95,135 +57,126 @@
   </picture>
 </p>
 
-复杂 RAG 推理框架的开发具有显著挑战，而 UltraRAG v2 之所以能够在**低代码**条件下支持复杂系统的构建，核心在于其底层对多结构 **Pipeline 流程控制**的原生支持。无论是串行、循环还是条件分支，所有控制逻辑均可在 YAML 层完成定义与调度，覆盖复杂推理任务所需的多种流程表达方式。在实际运行中，推理流程的调度由内置 **Client** 执行，其逻辑完全由用户编写的外部 **Pipeline YAML 脚本** 脚本描述，从而实现与底层实现的解耦。开发者可以像使用编程语言关键字一样调用 loop、step 等指令，以声明的方式快速构建多阶段推理流程。
+### UltraRAG UI：从“对话演示”到“全栈开发”
 
-通过将 **MCP 架构** 与 **原生流程控制**深度融合，UltraRAG v2 让复杂 RAG 系统的搭建像“编排流程”一样自然高效。此外，框架内置多个主流 benchmark 任务与多种高质量 baseline，配合统一的评测体系与知识库支持，进一步提升了系统开发的效率与实验的可复现性。
+UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试与演示于一体的 可视化的 RAG 全流程集成开发环境（IDE）。
+
+系统内置强大的 Pipeline Builder，支持‘画布拖拽’与‘代码编辑’的双向实时同步，并允许在线精细化调整 Pipeline 参数与 Prompt；更创新引入了 智能 AI 助手，深度辅助 Pipeline 结构设计、参数调优及 Prompt 生成的全开发流程。构建完成的逻辑流可 一键转化 为交互式对话系统，并无缝集成 知识库管理组件，支持用户构建专属知识库进行文档问答，真正实现了从底层逻辑构建、数据治理到上层应用交付的一站式闭环。
+
+<p align="center">
+  <picture>
+    <img alt="UltraRAG_UI" src="./docs/chat_menu.png" width=80%>
+  </picture>
+</p>
+
+
+### 核心亮点
+
+- 🚀 **低代码编排复杂流程**  
+  - **推理编排**：原生支持串行、循环与条件分支等控制结构。开发者仅需编写 YAML 配置文件，即可在数十行代码内实现复杂的迭代式 RAG 逻辑。
+
+- ⚡ **模块化扩展与复现**
+	- **原子化 Server**：基于 MCP 架构将功能解耦为独立 Server。新功能仅需以函数级 Tool 形式注册，即可无缝接入流程，实现极高的复用性。
+
+- 📊 **统一评测与基准对比**  
+  - **科研提效**：内置标准化评测流程，开箱即用主流科研 Benchmark。通过统一指标管理与基线集成，大幅提升实验的可复现性与对比效率。  
+
+- ✨ **交互原型快速生成**  
+  - **一键交付**：告别繁琐的 UI 开发。仅需一行命令，即可将 Pipeline 逻辑瞬间转化为可交互的对话式 Web UI，缩短从算法到演示的距离。  
+
 
 ## 安装
 
-### 使用 uv 同步依赖
+我们提供了两种安装方式：本地源码安装（推荐使用 `uv` 进行包管理）和 Docker 容器部署
 
-1. 安装 uv（未安装可执行 `pip install uv` 或 `curl -LsSf https://astral.sh/uv/install.sh | sh`）。
-2. 克隆项目并进入目录：
-   ```shell
-   git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
-   cd UltraRAG
-   ```
-3. 同步依赖：
-   - 全量功能（检索/生成/语料/评测）：  
-     `uv sync --extra retriever --extra generation --extra corpus --extra evaluation`
-   - 仅基础运行：`uv sync`
-   - 仅特定组件：按需保留对应 `--extra`，例如  
-     - 只用检索/重排：`uv sync --extra retriever`  
-     - 只用生成：`uv sync --extra generation`
-4. 验证安装：
-   ```shell
-   ultrarag run examples/sayhello.yaml
-   ```
+### 方式一：源码安装（推荐）
 
-### 使用 Docker 构建运行环境
+我们强烈推荐使用 [uv](https://github.com/astral-sh/uv) 来管理 Python 环境与依赖，它能极大地提升安装速度。
+
+**准备环境**
+
+如果您尚未安装 uv，请先执行：
+
+```shell
+## 直接安装
+pip install uv
+## 下载
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**下载源码**
 
 ```shell
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
-docker build -t ultrarag:latest .
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
 ```
 
-容器内默认命令：`ultrarag show ui --admin --port 5050 --host 0.0.0.0`，直接映射 5050 端口即可访问。
+**安装依赖**
 
-运行以下命令验证安装是否成功：
+请根据您的使用场景选择一种同步方式：
+
+- 核心依赖：如果您只需运行基础核心功能，如只使用 UltraRAG UI：
+  ```shell
+  uv sync
+  ```
+
+- 全量安装：如果您希望完整体验 UltraRAG 的检索、生成、语料处理及评测功能，请运行：
+  ```shell
+  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  ```
+- 按需安装：如果您只需运行定模块，按需保留对应 `--extra`，例如：
+
+  ```shell
+  uv sync --extra retriever   # 仅检索模块
+  uv sync --extra generation  # 仅生成模块
+  ```
+
+### 方式二：Docker 容器部署
+
+如果您不想配置本地 Python 环境，可以使用 Docker 一键启动。
 
 ```shell
-# 成功运行显示'Hello, UltraRAG 2.0!' 欢迎语
+# 1. 下载代码
+git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
+cd UltraRAG
+# 2. 构建镜像
+docker build -t ultrarag:latest .
+# 3. 启动容器（已自动映射 5050 端口）
+docker run -it --gpus all -p 5050:5050 ultrarag:latest
+```
+提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
+
+### 验证安装
+
+安装完成后，运行以下示例命令来检查环境是否正常：
+
+```shell
 ultrarag run examples/sayhello.yaml
 ```
 
+看到以下输出即代表安装成功：
+
+```
+Hello, UltraRAG v3!
+```
+
+
 ## 快速开始
 
-我们提供了从入门到进阶的完整教学示例，欢迎访问[教程文档](https://ultrarag.openbmb.cn) 快速上手 UltraRAG v2！
+我们提供了从入门到进阶的完整教学示例，无论您是进行学术研究还是构建工业级应用，都能在这里找到指引。欢迎访问[教程文档](https://ultrarag.openbmb.cn) 获取更多细节。
 
-阅读[快速开始](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)，了解如何基于 UltraRAG 运行一个完整的 RAG Pipeline。
+### 科研实验
+专为研究人员设计，提供数据、实验流程与可视化分析工具。
+- [实验上手](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)：了解如何基于 UltraRAG 快速跑通标准的 RAG 实验流程。
+- [评测数据](https://ultrarag.openbmb.cn/pages/cn/develop_guide/dataset)：下载 RAG 领域最常用的公开评测数据集以及大规模检索语料库，直接用于科研基准测试。
+- [案例分析](https://ultrarag.openbmb.cn/pages/cn/develop_guide/case_study)：提供可视化的 Case Study 界面，深入追踪工作流的每一步中间输出，辅助分析与错误归因。
+- [代码集成](https://ultrarag.openbmb.cn/pages/cn/develop_guide/code_integration)：了解如何在 Python 代码中直接调用 UltraRAG 组件，实现更灵活的定制化开发。
 
-## Demo使用
-
-运行以下命令启动ui：
-
-```shell
-ultrarag show ui
-```
-
-运行以下命令启动管理员ui：
-
-```shell
-ultrarag show ui --admin
-```
-
-
-## 支持
-
-UltraRAG v2 开箱即用，已在 [ModelScope](https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark) 和 [Huggingface](https://huggingface.co/datasets/UltraRAG/UltraRAG_Benchmark) 上同步发布当前 RAG 领域最常用的 **公开评测数据集**以及**大规模语料库**。
-用户可直接下载使用，无需额外清洗或转换，即可与 UltraRAG 的评测管线无缝对接。除此之外还可以参考[数据格式说明](https://ultrarag.openbmb.cn/pages/cn/develop_guide/dataset)，灵活地自定义并添加任意数据集或语料库。
-
-### 1. 支持的数据集
-
-| 任务类型         | 数据集名称           | 原始数据数量                               | 评测采样数量       |
-|:------------------|:----------------------|:--------------------------------------------|:--------------------|
-| QA               | [NQ](https://huggingface.co/datasets/google-research-datasets/nq_open)                   | 3,610                                      | 1,000              |
-| QA               | [TriviaQA](https://nlp.cs.washington.edu/triviaqa/)             | 11,313                                     | 1,000              |
-| QA               | [PopQA](https://huggingface.co/datasets/akariasai/PopQA)                | 14,267                                     | 1,000              |
-| QA               | [AmbigQA](https://huggingface.co/datasets/sewon/ambig_qa)              | 2,002                                      | 1,000              |
-| QA               | [MarcoQA](https://huggingface.co/datasets/microsoft/ms_marco/viewer/v2.1/validation)              | 55,636         | 1,000|
-| QA               | [WebQuestions](https://huggingface.co/datasets/stanfordnlp/web_questions)         | 2,032                                      | 1,000              |
-| VQA         | [MP-DocVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-MP-DocVQA)               | 591                        | 591                        |
-| VQA         | [ChartQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ChartQA)               | 63                        | 63                         |
-| VQA         | [InfoVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-InfoVQA)                | 718                         | 718                        |
-| VQA         | [PlotQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-PlotQA)                | 863                         | 863                         |
-| Multi-hop QA     | [HotpotQA](https://huggingface.co/datasets/hotpotqa/hotpot_qa)             | 7,405                                      | 1,000              |
-| Multi-hop QA     | [2WikiMultiHopQA](https://www.dropbox.com/scl/fi/heid2pkiswhfaqr5g0piw/data.zip?e=2&file_subpath=%2Fdata&rlkey=ira57daau8lxfj022xvk1irju)      | 12,576                                     | 1,000              |
-| Multi-hop QA     | [Musique](https://drive.google.com/file/d/1tGdADlNjWFaHLeZZGShh2IRcpO6Lv24h/view)              | 2,417                                      | 1,000              |
-| Multi-hop QA     | [Bamboogle](https://huggingface.co/datasets/chiayewken/bamboogle)            | 125                                        | 125                |
-| Multi-hop QA     | [StrategyQA](https://huggingface.co/datasets/tasksource/strategy-qa)          | 2,290                                      | 1,000              |
-| Multi-hop VQA         | [SlideVQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-SlideVQA)          | 556                        | 556                       |
-| Multiple-choice  | [ARC](https://huggingface.co/datasets/allenai/ai2_arc)                  | 3,548    | 1,000              |
-| Multiple-choice  | [MMLU](https://huggingface.co/datasets/cais/mmlu)                 | 14,042                      | 1,000              |
-| Multiple-choice VQA    | [ArXivQA](https://huggingface.co/datasets/openbmb/VisRAG-Ret-Test-ArxivQA)                 | 816      | 816                |
-| Long-form QA     | [ASQA](https://huggingface.co/datasets/din0s/asqa)                 | 948                                        | 948                |
-| Fact-verification| [FEVER](https://fever.ai/dataset/fever.html)                | 13,332    | 1,000              |
-| Dialogue         | [WoW](https://huggingface.co/datasets/facebook/kilt_tasks)                  | 3,054                                      | 1,000              |
-| Slot-filling     | [T-REx](https://huggingface.co/datasets/facebook/kilt_tasks)                | 5,000                                      | 1,000              |
-
----
-
-### 2. 支持的语料库
-
-| 语料库名称 | 文档数量     |
-|:--------------|:--------------|
-| Wiki-2018     | 21,015,324   |
-| Wiki-2024     | 30,463,973     |
-| MP-DocVQA    | 741   |
-| ChartQA     | 500  |
-| InfoVQA     | 459   |
-| PlotQA     | 9,593   |
-| SlideVQA     | 1,284  |
-| ArXivQA     | 8,066   |
-
----
-
-### 3. 支持的基线方法（持续更新）
-
-| 基线名称 | 脚本     |
-|:------------|:--------------|
-| Vanilla LLM   | examples/vanilla_llm.yaml   |
-| Vanilla RAG   | examples/rag.yaml     |
-| [IRCoT](https://arxiv.org/abs/2212.10509)   | examples/IRCoT.yaml   |
-| [IterRetGen](https://arxiv.org/abs/2305.15294)   | examples/IterRetGen.yaml     |
-| [RankCoT](https://arxiv.org/abs/2502.17888)   | examples/RankCoT.yaml   |
-| [R1-searcher](https://arxiv.org/abs/2503.05592)   | examples/r1_searcher.yaml     |
-| [Search-o1](https://arxiv.org/abs/2501.05366)   | examples/search_o1.yaml   |
-| [Search-r1](https://arxiv.org/abs/2503.09516)   | examples/search_r1.yaml     |
-| [VisRAG](https://arxiv.org/abs/2410.10594)   | examples/visrag.yaml     |
-| [VisRAG 2.0](https://arxiv.org/abs/2510.09733)   | examples/evisrag.yaml     |
+### 演示系统
+专为开发者与最终用户设计，提供完整的 UI 交互与复杂应用案例。
+- [快速启动](https://ultrarag.openbmb.cn/pages/cn/ui/start)：了解如何启动 UltraRAG UI，并熟悉管理员模式下的各项高级配置。
+- [部署指南](https://ultrarag.openbmb.cn/pages/cn/ui/prepare)：详细的生产环境部署教程，涵盖检索器 (Retriever)、生成模型 (LLM) 以及 Milvus 向量库的搭建。
+- [深度研究](https://ultrarag.openbmb.cn/pages/cn/demo/deepresearch)：旗舰案例，部署一个深度研究 Pipeline。配合 SurveyCPM 模型，可自动执行多步联网检索与整合，生成数万字的综述报告。
 
 ## 贡献
 
