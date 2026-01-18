@@ -3,76 +3,86 @@ title: "Code Integration"
 icon: "code-merge"
 ---
 
-UltraRAG provides two lightweight integration methods — **ToolCall** and **PipelineCall** — allowing you to invoke UltraRAG capabilities directly from your own Python code.
+Through two methods, **ToolCall** and **PipelineCall**, you can directly call UltraRAG's capabilities in your local code.
 
 ## ToolCall
 
-If you only need a specific UltraRAG feature such as data loading, embedding, or retrieval — without running a full RAG pipeline — you can call UltraRAG tools just like regular Python functions using `ToolCall`.
+When you only need a specific function of UltraRAG (such as data loading, encoding, retrieval, etc.) and do not need to run the full Pipeline, you can call it as a function via `ToolCall`.
 
-<Tip>Before using `ToolCall`, you must call `initialize` to specify which UltraRAG servers to activate.</Tip>
-<Tip>It is recommended to set `server_root` to the **absolute path** of the UltraRAG servers directory, such as `/home/user/project/UltraRAG/servers`.</Tip>
+<Tip>`ToolCall` requires using `initialize` to specify the Servers to be enabled first.</Tip>
+<Tip>`server_root` recommends using an absolute path, e.g., `/home/user/project/UltraRAG/servers`.</Tip>
 
 ```python script/api_usage_example.py
 from ultrarag.api import initialize, ToolCall
 
-initialize(["benchmark"], server_root="servers")
+
+initialize(["benchmark"], server_root="servers") 
 
 benchmark_param_dict = {
-    "key_map": {
-        "gt_ls": "golden_answers",
-        "q_ls": "question"
+    "key_map":{
+      "gt_ls": "golden_answers",
+      "q_ls": "question"
     },
     "limit": -1,
     "seed": 42,
     "name": "nq",
     "path": "data/sample_nq_10.jsonl",
+    
 }
-
 benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
+
 ```
 
-<Note>You can call the tool exactly like a normal Python function — simply pass the required arguments.</Note>
+<Note>The usage method is consistent with ordinary Python functions; just pass in the corresponding parameters as needed.</Note>
+
 
 ```python script/api_usage_example.py
 from ultrarag.api import initialize, ToolCall
 
-initialize(["benchmark", "retriever"], server_root="servers")
+
+initialize(["benchmark", "retriever"], server_root="servers") 
 
 benchmark_param_dict = {
-    "key_map": {
-        "gt_ls": "golden_answers",
-        "q_ls": "question"
+    "key_map":{
+      "gt_ls": "golden_answers",
+      "q_ls": "question"
     },
     "limit": -1,
     "seed": 42,
     "name": "nq",
     "path": "data/sample_nq_10.jsonl",
+    
 }
-
 benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
-query_list = benchmark["q_ls"]
+
+query_list = benchmark['q_ls']
+
 
 retriever_init_param_dict = {
     "model_name_or_path": "Qwen/Qwen3-Embedding-0.6B",
 }
 
-ToolCall.retriever.retriever_init(**retriever_init_param_dict)
+ToolCall.retriever.retriever_init(
+    **retriever_init_param_dict
+)
 
 result = ToolCall.retriever.retriever_search(
     query_list=query_list,
     top_k=5,
 )
 
-retrieve_passages = result["ret_psg"]
+retrieve_passages = result['ret_psg']
+
 ```
 
-<Note>You only need to provide parameters that you want to override. Other fields will be automatically filled using defaults from the server’s parameter file.</Note>
+<Note>Only pass the parameters you wish to modify; other parameters will be automatically completed from the Server's default parameter file.</Note>
+
 
 ## PipelineCall
 
-If you want to run an entire UltraRAG Pipeline programmatically and obtain the output of each step, you can use `PipelineCall`.
+If you wish to run an entire UltraRAG Pipeline directly locally and obtain the execution results of all steps, you can use `PipelineCall`.
 
-<Note>You must first generate `pipeline_parameter.yaml` and related configuration files using UR‑v2’s `build` command.</Note>
+<Note>You need to first generate the `pipeline_parameter.yaml` and parameter files for the corresponding Pipeline via UltraRAG's `build` function.</Note>
 
 ```python script/api_usage_example.py
 from ultrarag.api import PipelineCall
@@ -82,8 +92,9 @@ result = PipelineCall(
     parameter_file="examples/parameter/rag_deploy_parameter.yaml",
 )
 
-final_step_result = result["final_result"]
-all_steps_result = result["all_results"]
+final_step_result = result['final_result']
+all_steps_result = result['all_results']
+
 ```
 
-<Note>`final_result` contains the output of the pipeline’s last step, while `all_results` includes every step’s result.</Note>
+<Note>`final_result` is the running result of the last step of the Pipeline, and `all_steps_result` contains the running results of all steps.</Note>

@@ -5,22 +5,26 @@ icon: "pen-nib"
 
 ## `generation_init`
 
-**Signature**  
+**Signature**
 ```python
 def generation_init(
     backend_configs: Dict[str, Any],
     sampling_params: Dict[str, Any],
+    extra_params: Optional[Dict[str, Any]] = None,
     backend: str = "vllm",
 ) -> None
 ```
 
-**Function**  
-- Initializes the inference backend and sampling parameters.
+**Function**
+- Initializes inference backend and sampling parameters.
+- Supports `vllm`, `openai`, `hf` backends.
+- `extra_params` can be used to pass `chat_template_kwargs` or other backend-specific parameters.
+
 ---
 
 ## `generate`
 
-**Signature**  
+**Signature**
 ```python
 async def generate(
     prompt_ls: List[Union[str, Dict[str, Any]]],
@@ -28,40 +32,79 @@ async def generate(
 ) -> Dict[str, List[str]]
 ```
 
-- Pure text-based dialogue generation.
+**Function**
+- Plain text conversation generation.
+- Automatically handles Prompt in list, supports string or OpenAI format dictionary.
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
 {"ans_ls": ["answer for prompt_0", "answer for prompt_1", "..."]}
 ```
+
 ---
 
 ## `multimodal_generate`
 
-**Signature**  
+**Signature**
 ```python
 async def multimodal_generate(
     multimodal_path: List[List[str]],
     prompt_ls: List[Union[str, Dict[str, Any]]],
     system_prompt: str = "",
+    image_tag: Optional[str] = None,
 ) -> Dict[str, List[str]]
 ```
 
-**Function**  
-- Performs multimodal (text-image) dialogue generation.
+**Function**
+- Text-image multimodal conversation generation.
+- `multimodal_path`: List of image paths corresponding to each Prompt (supports local path or URL).
+- `image_tag`: If specified (e.g., `<img>`), inserts image at that tag's position in Prompt; otherwise defaults to appending to end of Prompt.
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
 {"ans_ls": ["answer with images for prompt_0", "..."]}
 ```
 
+---
+
+## `multiturn_generate`
+
+**Signature**
+```python
+async def multiturn_generate(
+    messages: List[Dict[str, str]],
+    system_prompt: str = "",
+) -> Dict[str, List[str]]
+```
+
+**Function**
+- Multi-turn conversation generation.
+- Supports only single-call generation, does not handle batch Prompts.
+
+**Output Format (JSON)**
+```json
+{"ans_ls": ["assistant response"]}
+```
 
 ---
 
+## `vllm_shutdown`
 
-## Parameter Configuration
+**Signature**
+```python
+def vllm_shutdown() -> None
+```
+
+**Function**
+- Explicitly shuts down vLLM engine and releases VRAM resources.
+- Valid only when using `vllm` backend.
+
+---
+
+## Configuration
 
 ```yaml servers/generation/parameter.yaml icon="/images/yaml.svg"
+# servers/generation/parameter.yaml
 backend: vllm # options: vllm, openai
 backend_configs:
   vllm:
@@ -73,7 +116,7 @@ backend_configs:
   openai:
     model_name: MiniCPM4-8B
     base_url: http://localhost:8000/v1
-    api_key: ""
+    api_key: "abc"
     concurrency: 8
     retries: 3
     base_delay: 1.0
@@ -82,55 +125,52 @@ backend_configs:
     gpu_ids: '2,3'
     trust_remote_code: true
     batch_size: 8
-
 sampling_params:
   temperature: 0.7
   top_p: 0.8
   max_tokens: 2048
+extra_params:
   chat_template_kwargs:
     enable_thinking: false
-
 system_prompt: ""
+image_tag: null
 ```
 
 Parameter Description:
 
 | Parameter | Type | Description |
-|------|------|------|
-| `backend` | str | Specifies the generation backend; options: `vllm`, `openai`, or `hf` (Transformers). |
-| `backend_configs` | dict | Configuration for model and runtime environments of each backend. |
-| `sampling_params` | dict | Sampling parameters controlling generation diversity and length. |
-| `system_prompt` | str | Global system prompt added as a `system` message in context. |
+|---|---|---|
+| `backend` | str | Specify generation backend, options `vllm`, `openai`, or `hf` (Transformers) |
+| `backend_configs` | dict | Model and runtime environment configuration for each backend |
+| `sampling_params` | dict | Sampling parameters to control generation diversity and length |
+| `extra_params` | dict | Extra parameters, e.g., `chat_template_kwargs` |
+| `system_prompt` | str | Global system prompt, added to context as `system` message |
+| `image_tag` | str | Image placeholder tag (if needed) |
 
-Detailed Description of `backend_configs`:
+`backend_configs` Detailed Description:
 
 | Backend | Parameter | Description |
-|------|------|------|
-| **vllm** | `model_name_or_path` | Model name or local path. |
-|  | `gpu_ids` | GPU IDs in use (e.g., `"0,1"`). |
-|  | `gpu_memory_utilization` | GPU memory usage ratio (0–1). |
-|  | `dtype` | Data type (e.g., `auto`, `bfloat16`). |
-|  | `trust_remote_code` | Whether to trust remote custom code. |
-| **openai** | `model_name` | Model name for OpenAI or self-hosted API-compatible model. |
-|  | `base_url` | API endpoint URL. |
-|  | `api_key` | API key for authentication. |
-|  | `concurrency` | Maximum number of concurrent requests. |
-|  | `retries` | Maximum retry count for API requests. |
-|  | `base_delay` | Base delay time (in seconds) between retries. |
-| **hf** | `model_name_or_path` | Model path for Transformers backend. |
-|  | `gpu_ids` | GPU IDs (same as above). |
-|  | `trust_remote_code` | Whether to trust remote custom code. |
-|  | `batch_size` | Batch size per inference. |
+|---|---|---|
+| **vllm** | `model_name_or_path` | Model name or path |
+|  | `gpu_ids` | GPU IDs used (e.g., `"0,1"`) |
+|  | `gpu_memory_utilization` | GPU memory utilization ratio (0–1) |
+|  | `dtype` | Data type (e.g., `auto`, `bfloat16`) |
+|  | `trust_remote_code` | Whether to trust remote code |
+| **openai** | `model_name` | OpenAI model name or self-hosted compatible model |
+|  | `base_url` | API base URL |
+|  | `api_key` | API Key |
+|  | `concurrency` | Max concurrent requests |
+|  | `retries` | API retry count |
+|  | `base_delay` | Base wait time for each retry (seconds) |
+| **hf** | `model_name_or_path` | Transformers model path |
+|  | `gpu_ids` | GPU IDs (same as above) |
+|  | `trust_remote_code` | Whether to trust remote code |
+|  | `batch_size` | Batch size per inference |
 
-Detailed Description of `sampling_params`:
+`sampling_params` Detailed Description:
 
 | Parameter | Type | Description |
-|------|------|------|
-| `temperature` | float | Controls randomness — higher values increase diversity. |
-| `top_p` | float | Nucleus sampling threshold. |
-| `max_tokens` | int | Maximum number of generated tokens. |
-| `chat_template_kwargs` | dict | Additional arguments for chat templates. |
-| `enable_thinking` | bool | Enables chain-of-thought style reasoning output (if supported by model). |
-
-
-
+|---|---|---|
+| `temperature` | float | Controls randomness, higher means more diverse generation |
+| `top_p` | float | Nucleus sampling threshold |
+| `max_tokens` | int | Max generated tokens |

@@ -3,14 +3,13 @@ title: "CLI"
 icon: "command"
 ---
 
-
 ## help — Command Overview
 
 ```bash
 ultrarag --help
 ```
 
-```
+```text
 usage: ultrarag [-h] {build,run,show} ...
 
 UltraRAG CLI
@@ -19,7 +18,7 @@ positional arguments:
   {build,run,show}
     build           Build the configuration
     run             Run the pipeline with the given configuration
-    show            Show UI interfaces
+    show            Show ui interfaces
 
 options:
   -h, --help        show this help message and exit
@@ -35,45 +34,43 @@ options:
 ultrarag build <CONFIG> [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| Argument | Description |
-|-----------|--------------|
-| `<CONFIG>` | Path to the Pipeline configuration file, e.g., `examples/pipeline.yaml` |
-| `--log_level` | Logging level, default is `INFO` |
-
-
+| Parameter | Description |
+|---|---|
+| `<CONFIG>` | Pipeline configuration file path, e.g., `examples/pipeline.yaml` |
+| `--log_level` | Log level, default `INFO` |
 
 ---
 
 ## run — Execute Pipeline
 
-**Purpose**: Start executing the Pipeline.
+**Purpose**: Start Pipeline execution.
 
 ```bash
-ultrarag run <CONFIG> [--param <PARAM_FILE>] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag run <CONFIG> [--param <PARAM_FILE>] [--is_demo] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| Argument | Description |
-|-----------|--------------|
-| `<CONFIG>` | Path to the `pipeline.yaml` to execute |
-| `--param <PARAM_FILE>` | Custom parameter file path, overriding the default file in the `parameter/` directory |
-| `--log_level` | Logging level, default is `INFO` |
+| Parameter | Description |
+|---|---|
+| `<CONFIG>` | Path to `pipeline.yaml` to be executed |
+| `--param <PARAM_FILE>` | Custom parameter file path, overrides default files under `parameter/` |
+| `--is_demo` | Enable demo mode |
+| `--log_level` | Log level, default `INFO` |
 
 ---
 
-## show ui — Launch Web Control Interface
+## show ui — Start Web Control Interface
 
-**Purpose**: Start the web-based UI.
+**Purpose**: Start UI interface.
 
 ```bash
-ultrarag show ui [--host 127.0.0.1] [--port 5050] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag show ui [--host 127.0.0.1] [--port 5050] [--admin] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
-| Argument | Description |
-|-----------|--------------|
-| `--host` | Host IP address for the web service (default: `127.0.0.1`) |
-| `--port` | Port for the web service (default: `5050`) |
-| `--log_level` | Logging level, default is `INFO` |
+| Parameter | Description |
+|---|---|
+| `--host` | Web service binding IP (default `127.0.0.1`) |
+| `--port` | Web service port (default `5050`) |
+| `--admin` | Start full administrator UI (including Pipeline Builder), default starts Chat mode only |
+| `--log_level` | Log level, default `INFO` |
 
-After startup, open `http://<host>:<port>` in your browser to access the UI.  
-
-
+Access `http://<host>:<port>` after startup to use the UI.

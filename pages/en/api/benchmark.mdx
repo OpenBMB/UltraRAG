@@ -5,18 +5,19 @@ icon: "chart-line"
 
 ## `get_data`
 
-**Signature**  
+**Signature**
 ```python
 @app.tool(output="benchmark->q_ls,gt_ls")
 def get_data(benchmark: Dict[str, Any]) -> Dict[str, List[Any]]
 ```
 
-**Function**  
-- Loads evaluation samples from a local file, supporting **.jsonl / .json / .parquet** formats.
-- Maps original fields to standardized output keys (e.g., `q_ls`, `gt_ls`) according to `key_map`.
-- Supports sample shuffling (`shuffle`) and limiting the number of samples (`limit`).
+**Function**
+- Multi-format Loading: Supports loading evaluation datasets in `.jsonl`, `.json`, or `.parquet` formats from local storage.
+- Dynamic Field Mapping: Uses `key_map` to map different column names in raw data (such as `question`, `answer`) to standardized output keys (usually `q_ls` and `gt_ls`).
+- Data Preprocessing: Built-in support for random shuffling (`shuffle`) and quantity truncation (`limit`).
+- Used in Demos to receive user input, treating it as a piece of data (`q_ls`).
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
 {
   "q_ls": ["Question 1", "Question 2"],
@@ -24,10 +25,9 @@ def get_data(benchmark: Dict[str, Any]) -> Dict[str, List[Any]]
 }
 ```
 
-
 ---
 
-## Parameter Configuration
+## Configuration
 
 ```yaml servers/benchmark/parameter.yaml icon="/images/yaml.svg"
 benchmark:
@@ -44,13 +44,12 @@ benchmark:
 Parameter Description:
 
 | Parameter | Type | Description |
-|------------|------|-------------|
-| `name` | str | Name of the benchmark dataset, used for logging and identification (e.g., `nq`) |
-| `path` | str | Path to the data file, supports `.jsonl`, `.json`, and `.parquet` |
-| `key_map` | dict | Field mapping table that maps original dataset fields to tool output keys |
-| `key_map.q_ls` | str | Name of the question field (e.g., `question`) |
-| `key_map.gt_ls` | str | Name of the ground truth field (e.g., `golden_answers`, supports lists) |
-| `shuffle` | bool | Whether to shuffle the samples (default: `false`) |
+|---|---|---|
+| `name` | str | Evaluation set name, used only for logging and identification (Example: `nq`) |
+| `path` | str | Data file path, supports `.jsonl`, `.json`, `.parquet` |
+| `key_map` | dict | Field mapping table, mapping raw fields to tool output keys |
+|  | `q_ls` | str| Raw field name mapped to Question List (e.g., question column in file) |
+|  | `gt_ls` | str| Raw field name mapped to Golden Answer List (e.g., golden_answers column in file) |
+| `shuffle` | bool | Whether to shuffle sample order (default `false`) |
 | `seed` | int | Random seed (effective when `shuffle=true`) |
-| `limit` | int | Sampling limit: `-1` means all samples, a positive integer specifies the number of samples to take |
-
+| `limit` | int | Upper limit of sampled data items. Default is -1 (load all), positive integer means truncation of first N items |

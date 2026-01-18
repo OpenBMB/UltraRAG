@@ -3,16 +3,13 @@ title: "Data Flow"
 icon: "arrows-split-up-and-left"
 ---
 
-In UR-v2, the Pipeline achieves **data binding through variable names**. Each Tool declares its input parameters and output variables during registration.  
-At runtime, the Pipeline uses these variable names to transfer and share data between different steps.
+In UltraRAG, the Pipeline achieves data binding through variable names: each tool declares its input parameters and output variables during registration, and the Pipeline relies on these variable names to pass and share data between steps during execution.
 
-This mechanism is simple and intuitive, making it easy to build sequential data flows.  
-However, in multi-round calls or complex control structures, variable name conflicts or data overwriting may occur.  
-To address this, UR-v2 provides a **parameter renaming mechanism**, allowing developers to flexibly rename variables in the Pipeline without modifying any source code.
+This mechanism is simple and intuitive, facilitating the construction of sequential data flows. However, in multi-turn calls or complex control structures, variable name conflicts or data overwriting issues may occur. For this reason, UltraRAG provides a parameter renaming mechanism, allowing developers to flexibly rename variables in the Pipeline without modifying the source code.
 
 ## How Does Data Flow?
 
-Each Tool declares its own input and output variable names during registration, defining the entry and exit points of the data flow. For example:
+Each tool declares its input and output variable names during registration, thereby determining the entry and exit of the data flow. For example:
 
 <CodeGroup>
 
@@ -39,35 +36,35 @@ def retriever_search(q_ls, top_k) -> ...
 
 </CodeGroup>
 
-This definition means:
+Here, the definition indicates:
 
-- The Tool receives two input variables: `q_ls` and `top_k`
-- The Tool returns one output variable: `ret_psg`
+- The tool receives two input variables: `q_ls` and `top_k`
+- The tool returns one output variable: `ret_psg`
 
-If you call the same Tool multiple times (e.g., `retriever_search`) but want to pass different input variables (such as `q_ls` for the first call and `subq_ls` for the second),  
-you need a way to tell the Pipeline that these variables are **“aliases”** of the same parameter.
+If you call the same tool (such as retriever_search) multiple times and wish to pass in different data variables (e.g., q_ls for the first time, subq_ls for the second time),
+you need a way to tell the Pipeline: these variables are actually **"synonyms"**.
 
 ## Parameter Renaming Mechanism
 
-To resolve variable name conflicts and binding ambiguities, UR-v2 provides a flexible **parameter renaming mechanism**.  
-You can directly use the `input:` and `output:` fields in the Pipeline YAML file to explicitly specify parameter-variable mappings—without modifying any Server code.
+To solve variable name conflicts and binding ambiguity issues, UltraRAG provides a flexible Parameter Renaming Mechanism.
+You can directly use `input:` and `output:` fields in `pipeline.yaml` to explicitly specify the mapping relationship between parameters and variables — without modifying the internal code of the Server, you can complete data binding redirection.
 
 ```yaml  icon="/images/yaml.svg"
 - module.tool:
     input:
-      function_parameter_name: pipeline_variable_name
+      function_parameter_name: variable_name_in_pipeline
     output:
-      tool_output_key: pipeline_variable_name
+      tool_output_key: variable_name_in_pipeline
 ```
 
-This mechanism follows the principle of *explicit name-based binding*:  
-`input:` maps to the function’s parameter names, while `output:` maps to the output keys defined during Tool registration.
+This mechanism follows the principle of "explicit binding by name":
+`input:` maps the function's input parameter names, and `output:` maps the output keys defined during tool registration.
 
-<Note>The simplest practice: keep input and output names consistent between function definitions and Tool registration to avoid confusion and unnecessary remapping.</Note>
+<Note>The simplest way: keep the input and output parameter names consistent during function definition and tool registration to directly avoid distinguishing the above two binding rules.</Note>
 
 ### Example 1: Input Variable Renaming
 
-Suppose the Tool function is defined as follows:
+Suppose the tool function is declared as follows:
 
 ```python icon="python"
 async def retriever_search(
@@ -87,13 +84,13 @@ You can explicitly rename the input variable in the Pipeline:
       query_list: sub_q_ls
 ```
 
-Here, the Tool originally expects a parameter named `query_list`, but we map it to the Pipeline variable `sub_q_ls`, achieving seamless data binding.
+Here, the tool originally expects to receive an input parameter named `query_list`, but we map it to the variable `sub_q_ls` in the Pipeline via `input:`, thereby achieving seamless binding.
 
-<Tip>Input mapping is based on the function’s parameter names.</Tip>
+<Tip>Input parameter mapping is performed based on the parameter names in the function declaration.</Tip>
 
 ### Example 2: Output Variable Renaming
 
-Suppose the Tool is registered as follows:
+Suppose the tool is defined as follows during registration:
 
 ```python icon="python"
 mcp_inst.tool(
@@ -102,7 +99,7 @@ mcp_inst.tool(
 )
 ```
 
-You can override the output variable name in the Pipeline:
+You can rewrite the output variable name in the Pipeline:
 
 ```yaml  icon="/images/yaml.svg"
 - retriever.retriever_search:
@@ -110,12 +107,12 @@ You can override the output variable name in the Pipeline:
       ret_psg: round1_result
 ```
 
-In this case, regardless of what the internal function returns, as long as the registered output key is `ret_psg`,  
-the result will be mapped to the variable `round1_result`, which can be accessed by subsequent steps.
+At this time, regardless of the return variable name inside the function, as long as the output key is specified as `ret_psg` during registration,
+the result will be mapped to `round1_result` for use in subsequent steps.
 
-<Tip>Output mapping is based on the output keys defined during Tool registration.</Tip>
+<Tip>Output variable mapping is performed based on the output key specified during tool registration.</Tip>
 
-If a downstream module depends on this output:
+If a downstream module depends on this output result:
 
 ```python icon="python"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -124,7 +121,7 @@ def qa_rag_boxed(
 ) -> list[PromptMessage]:
 ```
 
-You can explicitly redirect the input in the Pipeline:
+Then you can explicitly complete input redirection in the Pipeline:
 
 ```yaml  icon="/images/yaml.svg"
 - prompt.qa_rag_boxed:
@@ -132,9 +129,10 @@ You can explicitly redirect the input in the Pipeline:
       ret_psg: round1_result
 ```
 
-Now, the `qa_rag_boxed` Tool will read `ret_psg` from the variable `round1_result`, successfully achieving data transfer between steps.
+In this way, the input `ret_psg` expected by `qa_rag_boxed` will be read from `round1_result` of the previous step, achieving data transfer.
 
-### Example 3: Renaming Both Input and Output
+
+### Example 3: Renaming Input and Output Simultaneously
 
 ```yaml icon="/images/yaml.svg"
 - retriever.retriever_search:
@@ -144,6 +142,6 @@ Now, the `qa_rag_boxed` Tool will read `ret_psg` from the variable `round1_resul
       ret_psg: round1_result
 ```
 
-This approach is especially common in loop structures—each iteration can use unique input and output variable names, avoiding naming conflicts.
+This way of writing is particularly common in loop structures — each round of retrieval can use new input and output variables to avoid naming conflicts.
 
-<Tip>By using parameter renaming effectively, you can keep your RAG workflow clean and manageable even in complex scenarios involving multi-round iterations and dynamic branching—all without modifying any source code.</Tip>
+<Tip>Reasonable use of parameter renaming allows your RAG process to remain clean and controllable in complex scenarios such as multi-turn iterations and dynamic branches without modifying the source code.</Tip>

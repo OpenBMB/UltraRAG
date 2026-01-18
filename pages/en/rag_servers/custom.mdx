@@ -3,19 +3,19 @@ title: "Custom"
 icon: "puzzle-piece"
 ---
 
-## Overview
+## Function
 
-The **Custom Server** is used to store user-defined utility functions that do not belong to standard modules such as **Retriever**, **Generation**, or **Evaluation**.  
-It provides developers with a flexible extension space for implementing logic components that work in coordination with core RAG modules, such as:
-- Data cleaning and preprocessing  
-- Keyword extraction or feature construction  
-- Task-specific logic (e.g., answer extraction, formatting, filtering, etc.)
+The Custom Server is used to store custom tool functions that cannot be classified into standard modules (such as Retriever, Generation, Evaluation, etc.).
+It provides developers with a flexible extension space for implementing various logical components that cooperate with core RAG modules, such as:
+- Data cleaning and preprocessing
+- Keyword extraction or feature construction
+- Specific task logic (such as answer extraction, formatting, filtering, etc.)
 
-<Note>The Custom Server is your personal toolbox — any functionality not belonging to the core Servers can be defined and reused here.</Note>
+<Note>The Custom Server is your free toolbox — any functional logic that does not belong to core Servers can be defined and reused here.</Note>
 
 ## Implementation Example
 
-The following example demonstrates how to define and register a custom Tool, using a common function `output_extract_from_boxed` as an example.
+The following takes a common example `output_extract_from_boxed` to show how to customize and register a Tool.
 
 ```python servers/custom/src/custom.py icon="python"
 @app.tool(output="ans_ls->pred_ls")
@@ -48,12 +48,12 @@ def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]:
     return {"pred_ls": [extract(ans) for ans in ans_ls]}
 ```
 
-This Tool extracts the final answer text in the `\boxed{...}` format from model output strings.  
-The extracted results are mapped to the variable `pred_ls`, which can then be used by downstream evaluation or post-processing modules.
+The function of this tool is to extract the final answer text in `\boxed{...}` format from the model output string,
+and the output result will be mapped to the variable `pred_ls` for use by downstream evaluation or post-processing modules.
 
 ## Usage Example
 
-Once you have defined your custom Tool, simply register the `custom` module in the Pipeline and call the corresponding Tool:
+After defining the custom tool, you only need to register the custom module in the Pipeline and call the corresponding Tool:
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="8,20"
 # MCP Server
@@ -78,6 +78,5 @@ pipeline:
 - custom.output_extract_from_boxed
 - evaluation.evaluate
 ```
-
-In this example, `custom.output_extract_from_boxed` is used to extract standardized answers from model outputs,  
-which are then passed to `evaluation.evaluate` for further evaluation.
+In this example, `custom.output_extract_from_boxed` is used to extract the standardized answer from the model output,
+and then it is passed to `evaluation.evaluate` for evaluation.

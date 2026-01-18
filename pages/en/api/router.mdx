@@ -1,0 +1,136 @@
+---
+title: "Router"
+icon: "code-branch"
+---
+
+## `route1` / `route2`
+
+**Signature**
+```python
+@app.tool(output="query_list")
+def route1(query_list: List[str]) -> Dict[str, List[Dict[str, str]]]
+def route2(query_list: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- Basic routing examples.
+- `route1`: If query content is "1", state set to "state1", otherwise "state2".
+- `route2`: Forces state to "state2".
+
+---
+
+## `ircot_check_end`
+
+**Signature**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def ircot_check_end(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- IRCoT process check.
+- Checks if answer contains `"so the answer is"` (case insensitive).
+- If contained, marks state as `"complete"`, otherwise `"incomplete"`.
+
+---
+
+## `search_r1_check`
+
+**Signature**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def search_r1_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- Checks if Search-R1 generation has ended.
+- Criteria: Text contains `<|endoftext|>` or `<|im_end|>`.
+- If condition met, marks as `"complete"`, otherwise `"incomplete"`.
+
+---
+
+## `webnote_check_page`
+
+**Signature**
+```python
+@app.tool(output="page_ls->page_ls")
+def webnote_check_page(page_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- WebNote process check.
+- If page content contains `"to be filled"` (case insensitive), marks as `"incomplete"`, otherwise `"complete"`.
+
+---
+
+## `r1_searcher_check`
+
+**Signature**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def r1_searcher_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- Checks if R1-Searcher generation has ended.
+- Criteria: Text contains `<|endoftext|>`, `<|im_end|>` or `</answer>`.
+- If condition met, marks as `"complete"`, otherwise `"incomplete"`.
+
+---
+
+## `search_o1_check`
+
+**Signature**
+```python
+@app.tool(output="ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list->ans_ls,q_ls,total_subq_list,total_reason_list,total_final_info_list")
+def search_o1_check(
+    ans_ls: List[str],
+    q_ls: List[str],
+    total_subq_list: List[List[Any]],
+    total_reason_list: List[List[Any]],
+    total_final_info_list: List[List[Any]],
+) -> Dict[str, List[Dict[str, Any]]]
+```
+
+**Function**
+- Search-o1 process state check.
+- Checks special markers in answer:
+  - If contains `<|end_search_query|>`: State set to `"retrieve"` (continue retrieval).
+  - If contains `<|im_end|>` or other cases: State set to `"stop"` (stop retrieval, output answer).
+- Synchronously updates state for all associated lists (`q_ls`, `subq`, `reason`, `info`).
+
+---
+
+## `check_model_state`
+
+**Signature**
+```python
+@app.tool(output="ans_ls->ans_ls")
+def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]
+```
+
+**Function**
+- General model state check.
+- If answer contains `<search>` tag, marks state as `"continue"`, otherwise `"stop"`.
+
+---
+
+## `surveycpm_state_router`
+
+**Signature**
+```python
+@app.tool(output="state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls")
+def surveycpm_state_router(
+    state_ls: List[str],
+    cursor_ls: List[str | None],
+    survey_ls: List[str],
+    step_ls: List[int],
+    extend_time_ls: List[int],
+    extend_result_ls: List[str],
+) -> Dict[str, List[Dict[str, Any]]]
+```
+
+**Function**
+- SurveyCPM dedicated router.
+- This is a Pass-through tool that packages all input list elements (state, cursor, outline, etc.) into a dictionary with a `"state"` field.
+- Purpose: To enable UltraRAG framework to automatically dispatch data to corresponding Pipeline branches based on the `state` field.

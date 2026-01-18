@@ -1,0 +1,544 @@
+---
+title: "Prompt"
+icon: "terminal"
+---
+
+## QA Prompts
+
+### `qa_boxed`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,template->prompt_ls")
+def qa_boxed(
+    q_ls: List[str], 
+    template: str | Path
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Basic Q&A Prompt.
+
+Loads specified Jinja2 template, renders each question in the question list into a Prompt.
+
+Template Variable: `{{ question }}`
+
+### `qa_boxed_multiple_choice`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,choices_ls,template->prompt_ls")
+def qa_boxed_multiple_choice(
+    q_ls: List[str],
+    choices_ls: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Multiple Choice Q&A Prompt.
+
+Automatically formats choice list into "A: ..., B: ..." form and injects into template.
+
+Template Variables: `{{ question }}`, `{{ choices }}`
+
+### `qa_rag_boxed`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed(
+    q_ls: List[str], 
+    ret_psg: List[str | Any], 
+    template: str | Path
+) -> list[PromptMessage]
+```
+
+**Function**
+
+Standard RAG Prompt.
+
+Concatenates retrieved passage lists and injects into template.
+
+Template Variables: `{{ question }}`, `{{ documents }}`
+
+### `qa_rag_boxed_multiple_choice`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
+def qa_rag_boxed_multiple_choice(
+    q_ls: List[str],
+    choices_ls: List[List[str]],
+    ret_psg: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Multiple Choice Q&A Prompt with Retrieval Context.
+
+Template Variables: `{{ question }}`, `{{ documents }}`, `{{ choices }}`
+
+---
+
+## RankCoT Prompts
+
+### `RankCoT_kr`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,ret_psg,kr_template->prompt_ls")
+def RankCoT_kr(
+    q_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> list[PromptMessage]
+```
+
+**Function**
+
+RankCoT Phase 1: Knowledge Retrieval Prompt.
+
+Template Variables: `{{ question }}`, `{{ documents }}`
+
+### `RankCoT_qa`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,kr_ls,qa_template->prompt_ls")
+def RankCoT_qa(
+    q_ls: List[str],
+    kr_ls: List[str],
+    template: str | Path,
+) -> list[PromptMessage]
+```
+
+**Function**
+
+RankCoT Phase 2: Chain-of-Thought based Q&A Prompt.
+
+Template Variables: `{{ question }}`, `{{ CoT }}` (Here CoT is usually knowledge generated in the previous phase)
+
+---
+
+## IRCoT Prompts
+
+### `ircot_next_prompt`
+
+**Signature**
+
+```python
+@app.prompt(output="memory_q_ls,memory_ret_psg,template->prompt_ls")
+def ircot_next_prompt(
+    memory_q_ls: List[List[str | None]],
+    memory_ret_psg: List[List[List[str]] | None],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+IRCoT (Interleaved Retrieval CoT) Iterative Prompt Generation.
+
+Constructs next round's Prompt based on historical retrieval results and chain of thought. Supports single-turn and multi-turn history concatenation.
+
+Template Variables: `{{ documents }}`, `{{ question }}`, `{{ cur_answer }}`
+
+---
+
+## WebNote Prompts
+
+### `webnote_init_page`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,plan_ls,webnote_init_page_template->prompt_ls")
+def webnote_init_page(
+    q_ls: List[str],
+    plan_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+WebNote Agent: Initialize note page.
+
+Template Variables: `{{ question }}`, `{{ plan }}`
+
+### `webnote_gen_plan`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,webnote_gen_plan_template->prompt_ls")
+def webnote_gen_plan(
+    q_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+WebNote Agent: Generate search plan.
+
+Template Variable: `{{ question }}`
+
+### `webnote_gen_subq`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,plan_ls,page_ls,webnote_gen_subq_template->prompt_ls")
+def webnote_gen_subq(
+    q_ls: List[str],
+    plan_ls: List[str],
+    page_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+WebNote Agent: Generate sub-questions.
+
+Template Variables: `{{ question }}`, `{{ plan }}`, `{{ page }}`
+
+### `webnote_fill_page`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,plan_ls,page_ls,subq_ls,psg_ls,webnote_fill_page_template->prompt_ls")
+def webnote_fill_page(
+    q_ls: List[str],
+    plan_ls: List[str],
+    page_ls: List[str],
+    subq_ls: List[str],
+    psg_ls: List[Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+WebNote Agent: Fill notes based on retrieval results.
+
+Template Variables: `{{ question }}`, `{{ plan }}`, `{{ sub_question }}`, `{{ docs_text }}`, `{{ page }}`
+
+### `webnote_gen_answer`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,page_ls,webnote_gen_answer_template->prompt_ls")
+def webnote_gen_answer(
+    q_ls: List[str],
+    page_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+WebNote Agent: Generate final answer based on notes.
+
+Template Variables: `{{ question }}`, `{{ page }}`
+
+---
+
+## Search-R1 & R1-Searcher
+
+### `search_r1_gen`
+
+**Signature**
+
+```python
+@app.prompt(output="prompt_ls,ans_ls,ret_psg,search_r1_gen_template->prompt_ls")
+def search_r1_gen(
+    prompt_ls: List[PromptMessage],
+    ans_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Generation Prompt suitable for R1 style.
+
+Truncates Top-3 retrieval passages and injects into context.
+
+Template Variables: `{{ history }}`, `{{ answer }}`, `{{ passages }}`
+
+### `r1_searcher_gen`
+
+**Signature**
+
+```python
+@app.prompt(output="prompt_ls,ans_ls,ret_psg,r1_searcher_gen_template->prompt_ls")
+def r1_searcher_gen(
+    prompt_ls: List[PromptMessage],
+    ans_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Generation Prompt suitable for R1 Searcher.
+
+Truncates Top-5 retrieval passages.
+
+Template Variables: `{{ history }}`, `{{ answer }}`, `{{ passages }}`
+
+---
+
+## Search-o1 Prompts
+
+### `search_o1_init`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,searcho1_reasoning_template->prompt_ls")
+def search_o1_init(
+    q_ls: List[str],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Search-O1 Initial Reasoning Prompt.
+
+Template Variable: `{{ question }}`
+
+### `search_o1_reasoning_indocument`
+
+**Signature**
+
+```python
+@app.prompt(output="extract_query_list,ret_psg,total_reason_list,searcho1_refine_template->prompt_ls")
+def search_o1_reasoning_indocument(
+    extract_query_list: List[str], 
+    ret_psg: List[List[str]],       
+    total_reason_list: List[List[str]], 
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Search-O1 Reasoning Refinement Prompt.
+
+Merges historical reasoning steps (first + last 3 steps) with current retrieved documents for next step reasoning.
+
+Template Variables: `{{ prev_reasoning }}`, `{{ search_query }}`, `{{ document }}`
+
+### `search_o1_insert`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls") 
+def search_o1_insert(
+    q_ls: List[str],
+    total_subq_list: List[List[str]], 
+    total_final_info_list: List[List[str]],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Search-O1 Formatted Insertion Prompt.
+
+Explicitly inserts `<|begin_search_query|>` and search result tags into Prompt to construct complete chain-of-thought context.
+
+---
+
+## EVisRAG & Multi-branch Prompts
+
+### `gen_subq`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")
+def gen_subq(
+    q_ls: List[str],
+    ret_psg: List[str | Any],
+    template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Loop/Branch Demo: Generate sub-questions based on documents.
+
+Template Variables: `{{ question }}`, `{{ documents }}`
+
+### `evisrag_vqa`
+
+**Signature**
+
+```python
+@app.prompt(output="q_ls,ret_psg,evisrag_template->prompt_ls")
+def evisrag_vqa(
+    q_ls: List[str], 
+    ret_psg: List[str | Any], 
+    template: str | Path
+) -> list[PromptMessage]
+```
+
+**Function**
+
+Multimodal VQA RAG Prompt.
+
+Automatically repeatedly inserts `<image>` Token into Prompt according to the number of retrieved images.
+
+Template Variable: `{{ question }}` (contains automatically injected image tokens)
+
+---
+
+## SurveyCPM Prompts
+
+### `surveycpm_search`
+
+**Signature**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls")
+def surveycpm_search(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    cursor_ls: List[str | None],
+    surveycpm_search_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Survey Agent: Decide next search content.
+
+Parses JSON format outline, generates text description of current outline.
+
+Template Variables: `{{ user_query }}`, `{{ current_outline }}`, `{{ current_instruction }}`
+
+### `surveycpm_init_plan`
+
+**Signature**
+
+```python
+@app.prompt(output="instruction_ls,retrieved_info_ls,surveycpm_init_plan_template->prompt_ls")
+def surveycpm_init_plan(
+    instruction_ls: List[str],
+    retrieved_info_ls: List[str],
+    surveycpm_init_plan_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Survey Agent: Initialize outline plan.
+
+Template Variables: `{{ user_query }}`, `{{ current_information }}`
+
+### `surveycpm_write`
+
+**Signature**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls")
+def surveycpm_write(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    cursor_ls: List[str | None],
+    retrieved_info_ls: List[str],
+    surveycpm_write_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Survey Agent: Write specific section content.
+
+Template Variables: `{{ user_query }}`, `{{ current_survey }}`, `{{ current_instruction }}`, `{{ current_information }}`
+
+### `surveycpm_extend_plan`
+
+**Signature**
+
+```python
+@app.prompt(output="instruction_ls,survey_ls,surveycpm_extend_plan_template->prompt_ls")
+def surveycpm_extend_plan(
+    instruction_ls: List[str],
+    survey_ls: List[str],
+    surveycpm_extend_plan_template: str | Path,
+) -> List[PromptMessage]
+```
+
+**Function**
+
+Survey Agent: Extend or modify outline plan.
+
+Template Variables: `{{ user_query }}`, `{{ current_survey }}`
+
+---
+
+## Configuration
+
+```yaml servers/prompt/parameter.yaml icon="/images/yaml.svg"
+# QA
+template: prompt/qa_boxed.jinja
+
+# RankCoT
+kr_template: prompt/RankCoT_knowledge_refinement.jinja
+qa_template: prompt/RankCoT_question_answering.jinja
+
+# Search-R1
+search_r1_gen_template: prompt/search_r1_append.jinja
+
+# R1-Searcher
+r1_searcher_gen_template: prompt/r1_searcher_append.jinja
+
+# Search-o1
+searcho1_reasoning_template: prompt/search_o1_reasoning.jinja
+searcho1_refine_template: prompt/search_o1_refinement.jinja
+
+
+# For other prompts, please add parameters here as needed
+
+# Take webnote as an example:
+webnote_gen_plan_template: prompt/webnote_gen_plan.jinja
+webnote_init_page_template: prompt/webnote_init_page.jinja
+webnote_gen_subq_template: prompt/webnote_gen_subq.jinja
+webnote_fill_page_template: prompt/webnote_fill_page.jinja
+webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
+
+# SurveyCPM
+surveycpm_search_template: prompt/surveycpm_search.jinja
+surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+surveycpm_write_template: prompt/surveycpm_write.jinja
+surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja
+```
+
+| Parameter | Description |
+|---|---|
+| `template` | Basic QA template path |
+| `kr_template` | RankCoT knowledge refinement template path |
+| `qa_template` | RankCoT Q&A template path |
+| `*_template` | Jinja2 template file path corresponding to each module function |

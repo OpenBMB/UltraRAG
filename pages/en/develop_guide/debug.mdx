@@ -1,18 +1,17 @@
 ---
-title: "Code Debugging"
+title: "Debugging"
 icon: "bug"
 ---
 
-To develop and debug UltraRAG more efficiently, you can use **VSCode’s built-in debugging tools** to run a specified Pipeline configuration file and set breakpoints during execution.
+To develop and debug UltraRAG more efficiently, you can use the built-in debugging function of VSCode to run specific Pipeline configuration files and perform breakpoint debugging on the execution process.
 
 ## Step 1: Compile and Configure Parameters
 
-Using `examples/rag_full.yaml` as an example, first compile the Pipeline and complete the parameter configuration.  
-This process is identical to the one described in [Quick Start](/pages/en/getting_started/quick_start), except that **you do not need to execute the run command** in this case.
+Taking `examples/rag_full.yaml` as an example, first execute Pipeline Compilation and complete parameter configuration. This process is consistent with [Quick Start](/pages/en/getting_started/quick_start), the only difference is that there is no need to execute the run command here.
 
-## Step 2: Create a Debug Configuration File
+## Step 2: Create Debug Configuration File
 
-Create a `.vscode/launch.json` file in the project root directory and add the following content:
+Create a `.vscode/launch.json` file in the project root directory and write the following content:
 
 ```json .vscode/launch.json icon="/images/json.svg" highlight="11"
 {
@@ -33,12 +32,12 @@ Create a `.vscode/launch.json` file in the project root directory and add the fo
 }
 ```
 
-<Note>If you want to debug a different Pipeline, simply replace the path in `args` with the corresponding YAML file path.</Note>
+<Note>If you want to debug other Pipelines, just replace the path in args with the corresponding YAML file path.</Note>
 
 ## Step 3: Start Debugging
 
-1. Open the **Run and Debug** panel on the left sidebar of VSCode (shortcut: `Ctrl+Shift+D`).  
-2. In the debug configuration dropdown, select **UltraRAG Debug**.  
-3. Click the green ▶ **Start Debugging** button to run and debug the program directly in the integrated terminal of VSCode.
+1. Open the Debug panel on the left side of VSCode (shortcut Ctrl+Shift+D).
+2. Select **UltraRAG Debug** in the debug configuration.
+3. Click the green ▶ Start button to run and debug in the integrated terminal within VSCode.
 
-You can set breakpoints in any Python file to observe the execution flow and inspect variable states step by step.
+You can set breakpoints in any Python file to observe the execution flow and variable states step by step.

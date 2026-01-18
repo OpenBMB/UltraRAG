@@ -1,11 +1,9 @@
 ---
-title: "Sequential Structure"
+title: "Serial Structure"
 icon: "arrow-right-arrow-left"
 ---
 
-The **sequential structure** is the most fundamental and commonly used execution pattern in a Pipeline.  
-Multiple steps are executed in order, where the output of one step (if any) can serve as the input to the next, or each step can run independently.  
-A standard RAG workflow can typically be constructed using only the sequential structure, allowing smooth execution from data loading to final evaluation.
+The Serial Structure is the most basic and commonly used execution mode in the Pipeline. Multiple steps are executed sequentially. The output of the previous step (if any) can be used as the input for the next step, or it can be executed independently. Building a standard RAG workflow can usually be completed relying solely on the serial structure, clearly connecting everything from data loading to result evaluation.
 
 ## Usage Example
 
@@ -31,14 +29,13 @@ pipeline:
 - evaluation.evaluate
 ```
 
-In a sequential structure, each line in the Pipeline represents a call to a specific Tool.  
-The basic syntax is as follows:
+In the serial structure, each line of the Pipeline represents a call to a Tool. Its basic syntax is:
 
 ```yaml
 - server_name.tool_name
 ```
 
-- `server_name`: The name of the module being invoked. It must be declared in the `servers` section in advance.  
-- `tool_name`: The name of the function registered within that module using the `@tool(...)` or `@prompt(...)` decorator.
+- `server_name`: The module name called, which must be declared in advance in the servers section;
+- `tool_name`: The function name registered via `@tool(...)` or `@prompt(...)` decorator in that module.
 
-This structure is suitable for most single-turn question-answering or reasoning tasks and serves as the foundation for understanding more complex structures such as loops and branches.
+This structure is suitable for most single-turn Q&A or reasoning tasks and is also the basis for understanding more complex processes (such as loops, branches).

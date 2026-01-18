@@ -186,14 +186,9 @@
                   "pages/en/develop_guide/parallel",
                   "pages/en/develop_guide/code_integration"
                 ]
-              }
-            ]
-          },
-          {
-            "tab": "UI",
-            "groups": [
+              },
               {
-                "group": "Pipeline",
+                "group": "Typical Implementation",
                 "pages": [
                   "pages/en/pipeline/rag",
                   "pages/en/pipeline/light_deepresearch",
@@ -204,17 +199,41 @@
             ]
           },
           {
+            "tab": "UI",
+            "groups": [
+              {
+                "group": "Get Started",
+                "pages": [
+                  "pages/en/ui/start",
+                  "pages/en/ui/prepare"
+                ]
+              },
+              {
+                "group": "Typical Demo",
+                "pages": [
+                  "pages/en/demo/llm",
+                  "pages/en/demo/rag",
+                  "pages/en/demo/lightresearch",
+                  "pages/en/demo/deepresearch"
+                ]
+              }
+            ]
+          },
+          {
             "tab": "SDK Reference",
             "groups": [
               {
-                "group": "RAG Servers",
+                "group": "Tools",
                 "pages": [
                   "pages/en/api/corpus",
                   "pages/en/api/benchmark",
                   "pages/en/api/retriever",
                   "pages/en/api/reranker",
+                  "pages/en/api/prompt",
                   "pages/en/api/generation",
-                  "pages/en/api/evaluation"
+                  "pages/en/api/evaluation",
+                  "pages/en/api/router",
+                  "pages/en/api/custom"
                 ]
               },
               {

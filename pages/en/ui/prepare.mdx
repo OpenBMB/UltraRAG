@@ -1,0 +1,189 @@
+---
+title: "Deployment Guide"
+icon: "box"
+---
+
+This guide will walk you through the full-stack deployment of UltraRAG UI, including the Large Language Model (LLM), Retrieval Model (Embedding), and Milvus Vector Database.
+
+## Model Inference Service Deployment
+
+UltraRAG UI uniformly uses the OpenAI API protocol for invocation. You can choose to run directly on the host using `Screen` or use `Docker` for containerized deployment.
+
+### LLM Deployment
+
+Taking Qwen3-32B as an example, it is recommended to use multi-card parallelism to ensure inference speed.
+
+**Screen (Run directly on host)**
+
+1. Create session:
+
+```shell
+screen -S llm
+```
+
+2. Start command:
+
+```shell script/vllm_serve.sh
+CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
+    --served-model-name qwen3-32b \
+    --model Qwen/Qwen3-32B \
+    --trust-remote-code \
+    --host 0.0.0.0 \
+    --port 65503 \
+    --max-model-len 32768 \
+    --gpu-memory-utilization 0.9 \
+    --tensor-parallel-size 2 \
+    --enforce-eager
+```
+
+Seeing output similar to the following indicates that the model service has started successfully:
+
+```
+(APIServer pid=2811812) INFO:     Started server process [2811812]
+(APIServer pid=2811812) INFO:     Waiting for application startup.
+(APIServer pid=2811812) INFO:     Application startup complete.
+```
+
+3. Exit session: Press `Ctrl + A + D` to exit and keep the service running in the background.
+If you need to re-enter the session, execute:
+
+```shell
+screen -r llm
+```
+
+**Docker (Containerized Deployment)**
+
+```shell
+docker run -d --gpus all \
+  -e CUDA_VISIBLE_DEVICES=0,1 \
+  -v /parent_dir_of_models:/workspace \
+  -p 29001:65503 \
+  --ipc=host \
+  --name vllm_qwen \
+  vllm/vllm-openai:latest \
+  --served-model-name qwen3-32b \
+  --model Qwen/Qwen3-32B \
+  --trust-remote-code \
+  --host 0.0.0.0 \
+  --port 65503 \
+  --max-model-len 32768 \
+  --gpu-memory-utilization 0.9 \
+  --tensor-parallel-size 2 \
+  --enforce-eager
+```
+
+### Retrieval Model Deployment
+
+Taking Qwen3-Embedding-0.6B as an example, which usually occupies less video memory.
+
+**Screen (Run directly on host)**
+
+1. Create session:
+
+```shell
+screen -S retriever
+```
+
+2. Start command:
+
+```shell script/vllm_serve_emb.sh
+CUDA_VISIBLE_DEVICES=2 python -m vllm.entrypoints.openai.api_server \
+    --served-model-name qwen-embedding \
+    --model Qwen/Qwen3-Embedding-0.6B \
+    --trust-remote-code \
+    --host 0.0.0.0 \
+    --port 65504 \
+    --task embed \
+    --gpu-memory-utilization 0.2
+```
+**Docker (Containerized Deployment)**
+
+```shell
+docker run -d --gpus all \
+  -e CUDA_VISIBLE_DEVICES=2 \
+  -v /parent_dir_of_models:/workspace \
+  -p 29002:65504 \
+  --ipc=host \
+  --name vllm_qwen_emb \
+  vllm/vllm-openai:latest \
+  --served-model-name qwen-embedding \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --trust-remote-code \
+  --host 0.0.0.0 \
+  --port 65504 \
+  --task embed \
+  --gpu-memory-utilization 0.2
+```
+
+## Vector Database Deployment (Milvus)
+
+Milvus is used for efficient storage and retrieval of vector data.
+
+**Official Deployment**
+
+```shell
+# Milvus Standalone (docker): https://milvus.io/docs/install_standalone-docker.md
+curl -sfL https://raw.githubusercontent.com/milvus-io/milvus/master/scripts/standalone_embed.sh -o standalone_embed.sh
+bash standalone_embed.sh start
+```
+
+**Custom Deployment**
+
+If you need to customize ports (e.g., to prevent port conflicts) or data paths, you can use the following script:
+```shell start_milvus.sh highlight="7,8,10"
+#!/usr/bin/env bash
+set -e
+
+CONTAINER_NAME=milvus-ultrarag
+MILVUS_IMAGE=milvusdb/milvus:latest
+
+GRPC_PORT=29901
+HTTP_PORT=29902
+
+DATA_DIR=/root/ultrarag-demo/milvus/
+
+echo "==> Starting Milvus (standalone)"
+echo "==> gRPC: ${GRPC_PORT}, HTTP: ${HTTP_PORT}"
+echo "==> Data dir: ${DATA_DIR}"
+
+mkdir -p ${DATA_DIR}
+chown -R 1000:1000 ${DATA_DIR} 2>/dev/null || true
+
+docker run -d \
+  --name ${CONTAINER_NAME} \
+  --restart unless-stopped \
+  --security-opt seccomp:unconfined \
+  -e DEPLOY_MODE=STANDALONE \
+  -e ETCD_USE_EMBED=true \
+  -e COMMON_STORAGETYPE=local \
+  -v ${DATA_DIR}:/var/lib/milvus \
+  -p ${GRPC_PORT}:19530 \
+  -p ${HTTP_PORT}:9091 \
+  --health-cmd="curl -f http://localhost:9091/healthz" \
+  --health-interval=30s \
+  --health-start-period=60s \
+  --health-timeout=10s \
+  --health-retries=3 \
+  ${MILVUS_IMAGE} \
+  milvus run standalone
+
+echo "==> Waiting for Milvus to become healthy..."
+sleep 5
+docker ps | grep ${CONTAINER_NAME} || true
+```
+
+Modify GRPC_PORT, HTTP_PORT, and DATA_DIR, and run the following command to deploy:
+
+```shell
+bash start_milvus.sh
+```
+
+After successful deployment, you can check the status of Milvus with the following command:
+
+```shell
+docker ps | grep milvus-ultrarag
+```
+
+If everything is normal, you should be able to see the Milvus container running.
+
+<Tip>UI Configuration Tip: After successful startup, fill in the `GRPC_PORT` address (e.g., `tcp://127.0.0.1:29901`) in `Knowledge Base` -> `Configure DB` of UltraRAG UI. Click Connect, and seeing Connected means success.</Tip>

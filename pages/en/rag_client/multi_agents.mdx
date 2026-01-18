@@ -3,17 +3,17 @@ title: "Module Reuse"
 icon: "book-copy"
 ---
 
-In many real-world scenarios, you may want to use multiple Retriever or Generation modules within the same Pipeline to perform different logical tasks, such as hybrid retrieval or multi-agent systems.  
-In fact, this can be achieved simply by configuring different parameters for the same module.
+In many practical scenarios, you may want to use multiple different Retriever or Generation modules in the same Pipeline to perform different logical tasks, such as hybrid retrieval or multi-agent systems.
+In fact, this only requires setting different parameters for the same module.
 
-To support this, UR-v2 provides a simple and flexible mechanism —  
-you can reuse and independently invoke the same Server module by assigning different aliases to it.
+For this reason, UltraRAG provides a simple and flexible mechanism —
+By configuring different aliases for the same Server module, module reuse and independent calling can be achieved.
 
 ## Usage Example
 
-### Step 1: Configure Aliased Servers
+### Step 1: Configure Alias Server
 
-In the `pipeline.yaml` file, you can define multiple aliases for the same module path under the `servers` field:
+In `pipeline.yaml`, you can define multiple aliases for the same path under the `servers` field:
 
 ```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="4,5"
 # MCP Server
@@ -40,12 +40,11 @@ pipeline:
       temp_psg: sparse_psg
 ```
 
-In this example, both `dense` and `bm25` point to the same module path `servers/retriever`,  
-but they are built and invoked as two independent Server instances.
+In this example, both dense and bm25 point to the same module path servers/retriever, but will be built and called as two independent Server instances.
 
-### Step 2: Call Them Separately in the Pipeline
+### Step 2: Call Separately in Pipeline
 
-In the Pipeline definition, you can use these aliases just like separate modules:
+In the Pipeline definition section, you can use their aliases just like calling different modules:
 
 ```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="11-18"
 # MCP Server
@@ -72,6 +71,5 @@ pipeline:
       temp_psg: sparse_psg
 ```
 
-At runtime, UltraRAG will automatically distinguish between these two instances:  
-each alias corresponds to an independent parameter file, runtime context, and cache space —  
-enabling multiple modules to run in parallel without interfering with one another.
+In this way, UltraRAG automatically distinguishes these two instances at runtime:
+Each alias corresponds to independent parameter files, runtime context, and cache space, thereby achieving multi-module parallel and non-interfering calls.

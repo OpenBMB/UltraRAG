@@ -1,0 +1,241 @@
+---
+title: "DeepResearch"
+icon: "flask"
+---
+
+DeepResearch is UltraRAG's most powerful research reasoning process to date, designed specifically for generating academic-level in-depth reviews of over 10,000 words. It autonomously completes search, plan formulation, content writing, and outline expansion through complex state machine scheduling.
+
+<Tip>To obtain the best generation results, we strongly recommend downloading and using the supporting proprietary model SurveyCPM.</Tip>
+
+## 1. Pipeline Structure Overview
+
+The DeepResearch Pipeline adopts highly flexible state routing logic (Router), containing cycles of multiple core stages.
+
+```yaml examples/DeepResearch.yaml icon="/images/yaml.svg"
+# DeepResearch Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data:
+    output:
+      q_ls: instruction_ls
+- retriever.retriever_init
+- generation.generation_init
+- custom.surveycpm_init_citation_registry
+- custom.surveycpm_state_init
+- loop:
+    times: 140
+    steps:
+    - branch:
+        router:
+        - router.surveycpm_state_router
+        branches:
+          search:
+          - prompt.surveycpm_search:
+              output:
+                prompt_ls: search_prompt_ls          
+          - generation.generate:
+              input:
+                prompt_ls: search_prompt_ls
+              output:
+                ans_ls: search_response_ls
+          - custom.surveycpm_parse_search_response:
+              input:
+                response_ls: search_response_ls       
+          - retriever.retriever_batch_search:
+              input:
+                batch_query_list: keywords_ls
+          - custom.surveycpm_process_passages_with_citation
+          - custom.surveycpm_update_state
+          analyst-init_plan:
+          - prompt.surveycpm_init_plan:
+              output:
+                prompt_ls: init_plan_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: init_plan_prompt_ls
+              output:
+                ans_ls: init_plan_response_ls
+          - custom.surveycpm_after_init_plan:
+              input:
+                response_ls: init_plan_response_ls
+          - custom.surveycpm_update_state
+          write:
+          - prompt.surveycpm_write:
+              output:
+                prompt_ls: write_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: write_prompt_ls
+              output:
+                ans_ls: write_response_ls
+          - custom.surveycpm_after_write:
+              input:
+                response_ls: write_response_ls
+          - custom.surveycpm_update_state
+          analyst-extend_plan:
+          - prompt.surveycpm_extend_plan:
+              output:
+                prompt_ls: extend_prompt_ls         
+          - generation.generate:
+              input:
+                prompt_ls: extend_prompt_ls
+              output:
+                ans_ls: extend_response_ls
+          - custom.surveycpm_after_extend:
+              input:
+                response_ls: extend_response_ls
+          - custom.surveycpm_update_state
+          done: []
+- custom.surveycpm_format_output:
+    output:
+      ans_ls: final_survey_ls
+
+```
+
+## 2. Compile Pipeline File
+
+Execute the following command to compile this workflow:
+
+```shell
+ultrarag build examples/DeepResearch.yaml
+```
+
+## 3. Configure Running Parameters
+
+Modify `examples/parameter/DeepResearch_parameter.yaml`.
+
+<Note>Want to adjust research depth? Please adjust as needed in `custom` configuration: increase `surveycpm_max_step` to extend research time, increase `surveycpm_max_extend_step` to obtain more detailed extended content. If you have extremely high requirements for quality, be sure to enable `surveycpm_hard_mode`.</Note>
+
+```yaml examples/parameter/DeepResearch_parameter.yaml icon="/images/yaml.svg" 
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom:
+  surveycpm_hard_mode: false
+  surveycpm_max_extend_step: 12
+  surveycpm_max_step: 140
+generation:
+  backend: vllm  # [!code --]
+  backend: openai # [!code ++]
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1.0
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: http://localhost:65506/v1 # [!code ++]
+      concurrency: 8
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: surveycpm # [!code ++]
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: '' # [!code --]
+  system_prompt: 'You are a professional UltraRAG Q&A assistant. Please remember to answer questions in Chinese.' # [!code ++]
+prompt:
+  surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja
+  surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+  surveycpm_search_template: prompt/surveycpm_search.jinja
+  surveycpm_write_template: prompt/surveycpm_write.jinja
+retriever: 
+  backend: sentence_transformers # [!code --]
+  backend: openai   # [!code ++]
+  backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
+    infinity:
+      bettertransformer: false
+      model_warmup: false
+      pooling_method: auto
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_url: https://api.openai.com/v1 # [!code --]
+      base_url: http://localhost:65504/v1 # [!code ++]
+      model_name: text-embedding-3-small # [!code --]
+      model_name: qwen-embedding # [!code ++]
+    sentence_transformers:
+      sentence_transformers_encode:
+        encode_chunk_size: 256
+        normalize_embeddings: false
+        psg_prompt_name: document
+        psg_task: null
+        q_prompt_name: query
+        q_task: null
+      trust_remote_code: true
+  batch_size: 16
+  collection_name: wiki
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
+  is_multimodal: false
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  query_instruction: '' # [!code --]
+  query_instruction: 'Query: ' # [!code ++]
+  top_k: 5 # [!code --]
+  top_k: 20 # [!code ++]
+```
+
+## 4. Effect Demonstration
+
+After configuration is complete, start the DeepResearch Pipeline in UltraRAG UI.
+
+<Note>Since the generation of a 10,000-word review involves a large amount of concurrent retrieval and multi-turn reasoning, it usually takes more than 10 minutes. You can use the UI's background running function and come back to check the final report after the task is completed.</Note>
+
+
+![](/images/demo/deepresearch.png)

@@ -1,0 +1,188 @@
+---
+title: "Custom"
+icon: "puzzle-piece"
+---
+
+## Search-R1 Tools
+
+### `search_r1_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def search_r1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts query content from model response.
+- **Logic**: Uses regex `r"<search>([^<]*)"` to extract the content inside the last `<search>` tag. If not found, returns "There is no query."; if the query does not end with `?`, it is automatically completed.
+
+### `r1_searcher_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts query from R1-Searcher response.
+- **Logic**: Uses regex `r"<|begin_of_query|>([^<]*)"` to extract the last tag content.
+
+---
+
+## IRCoT & IterRetGen Tools
+
+### `iterretgen_nextquery`
+```python
+@app.tool(output="q_ls,ret_psg->nextq_ls")
+def iterretgen_nextquery(q_ls: List[str], ans_ls: List[str | Any]) -> Dict[str, List[str]]
+```
+- **Function**: Iterative retrieval generation.
+- **Logic**: `next_query = f"{q} {ans}"`. Concatenates original question and generated answer as the Query for the next retrieval.
+
+### `ircot_get_first_sent`
+```python
+@app.tool(output="ans_ls->q_ls")
+def ircot_get_first_sent(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts the first sentence of the answer (up to period or question/exclamation mark).
+
+### `ircot_extract_ans`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def ircot_extract_ans(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts the final answer.
+- **Logic**: Matches content after `so the answer is [...]`.
+
+---
+
+## Search-o1 Tools
+
+### `search_o1_init_list`
+```python
+@app.tool(output="q_ls->total_subq_list,total_reason_list,total_final_info_list")
+def search_o1_init_list(q_ls: List[str]) -> Dict[str, List[Any]]
+```
+- **Function**: Initializes accumulation lists required by Search-o1 (sub-questions, reasoning, final info), initially filled with `<PAD>`.
+
+### `search_o1_combine_list`
+```python
+@app.tool(output="total_subq_list, extract_query_list, total_reason_list, extract_reason_list->total_subq_list, total_reason_list")
+def search_o1_combine_list(...)
+```
+- **Function**: Appends the extracted Query and Reasoning of the current step to the total lists.
+
+### `search_o1_query_extract`
+```python
+@app.tool(output="ans_ls->extract_query_list")
+def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts content between `<|begin_search_query|>...<|end_search_query|>`.
+
+### `search_o1_reasoning_extract`
+```python
+@app.tool(output="ans_ls->extract_reason_list")
+def search_o1_reasoning_extract(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts all text before `<|begin_search_query|>` as the reasoning process.
+
+### `search_o1_extract_final_information`
+```python
+@app.tool(output="ans_ls->extract_final_infor_list")
+def search_o1_extract_final_information(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts content after `**Final Information**` marker.
+
+---
+
+## Utility Tools
+
+### `output_extract_from_boxed`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts answer from LaTeX `\boxed{...}`. Supports nested bracket handling and format cleaning.
+
+### `merge_passages`
+```python
+@app.tool(output="temp_psg,ret_psg->ret_psg")
+def merge_passages(temp_psg: List[str | Any], ret_psg: List[str | Any]) -> Dict[str, List[str | Any]]
+```
+- **Function**: Appends `temp_psg` list to `ret_psg` list.
+
+### `evisrag_output_extract_from_special`
+```python
+@app.tool(output="ans_ls->pred_ls")
+def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Extracts answer from `<answer>...</answer>` tags.
+
+### `assign_citation_ids` / `assign_citation_ids_stateful`
+- `assign_citation_ids`: Assigns citation IDs in the form of `[1]`, `[2]` to retrieved passages.
+- `assign_citation_ids_stateful`: Uses `CitationRegistry` class to maintain global citation IDs (cross-step deduplication).
+- `init_citation_registry`: Resets global citation registry.
+
+---
+
+## SurveyCPM Tools
+
+### `surveycpm_state_init`
+```python
+@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls,retrieved_info_ls,parsed_ls")
+def surveycpm_state_init(instruction_ls: List[str]) -> Dict[str, List]
+```
+- **Function**: Initializes SurveyCPM state machine.
+- **Initial State**: `state="search"`, `cursor="outline"`, `step=0`.
+
+### `surveycpm_parse_search_response`
+```python
+@app.tool(output="response_ls,surveycpm_hard_mode->keywords_ls,parsed_ls")
+def surveycpm_parse_search_response(response_ls: List[str], surveycpm_hard_mode: bool = True) -> Dict[str, List]
+```
+- **Function**: Parses search instructions (JSON or XML format) generated by the model, extracts keyword list.
+
+### `surveycpm_process_passages`
+```python
+@app.tool(output="ret_psg_ls->retrieved_info_ls")
+def surveycpm_process_passages(ret_psg_ls: List[List[List[str]]]) -> Dict[str, List[str]]
+```
+- **Function**: Processes retrieved passages, deduplicates, limits quantity (Top-K), and concatenates into string.
+
+### `surveycpm_after_init_plan` / `after_write` / `after_extend`
+- **Function**: Parses Agent response for different stages (initialize outline, write content, extend plan).
+- **Logic**:
+  - Calls `surveycpm_parse_response` to validate format and content.
+  - Updates `survey_ls` (outline structure) and `cursor_ls` (current cursor position) if successful.
+  - Keeps original state for retry if failed.
+
+### `surveycpm_update_state`
+```python
+@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls,surveycpm_max_step,surveycpm_max_extend_step->state_ls,extend_time_ls,step_ls")
+def surveycpm_update_state(...)
+```
+- **Function**: Core state machine logic.
+- **State Transition**:
+  - `search` -> `analyst-init_plan` (cursor="outline")
+  - `search` -> `write` (cursor=section-X)
+  - `write` -> `search` (continue writing) or `analyst-extend_plan` (finished current section)
+  - `analyst-extend_plan` -> `search` (extend success) or `done` (no extension)
+  - Exceeds max steps -> `done`
+
+### `surveycpm_format_output`
+```python
+@app.tool(output="survey_ls,instruction_ls->ans_ls")
+def surveycpm_format_output(survey_ls: List[str], instruction_ls: List[str]) -> Dict[str, List[str]]
+```
+- **Function**: Converts final Survey JSON to Markdown format.
+- **Processing**: Automatically handles heading levels (# ## ###), citation formatting (`\cite{...}` to `[1]`), and text cleaning.
+
+---
+
+## Configuration
+
+```yaml servers/custom/parameter.yaml icon="/images/yaml.svg"
+surveycpm_hard_mode: false
+surveycpm_max_step: 140
+surveycpm_max_extend_step: 12
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `surveycpm_hard_mode` | bool | Whether to enable SurveyCPM's strict parsing mode (validate JSON field integrity) |
+| `surveycpm_max_step` | int | Maximum total execution steps, forced end if exceeded |
+| `surveycpm_max_extend_step` | int | Maximum plan extension times |

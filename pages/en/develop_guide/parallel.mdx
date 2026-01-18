@@ -1,14 +1,13 @@
 ---
-title: "Parallel Experiments"
+title: "Parallel Experiment"
 icon: "chart-waterfall"
 ---
 
-During experiments, it is often necessary to run multiple trials of the same Pipeline with different hyperparameter configurations, either in parallel or in batches.  
-UltraRAG provides a flexible parameter file mechanism that allows quick switching between configurations **without modifying the main Pipeline**.
+During experiments, we often need to perform parallel or batch experiments on the same Pipeline using different hyperparameter configurations. UltraRAG provides a flexible parameter file mechanism that supports quick configuration switching without modifying the main Pipeline.
 
-## Step 1: Build the Pipeline
+## Step 1: Compile Pipeline
 
-As in the standard workflow, first compile the Pipeline:
+Consistent with the regular running process, first compile the Pipeline:
 
 ```shell
 ultrarag build examples/rag_full.yaml
@@ -16,22 +15,20 @@ ultrarag build examples/rag_full.yaml
 
 ## Step 2: Run
 
-After modifying the relevant fields in the generated parameter file, execute the following command to run the experiment:
+After modifying the corresponding fields in the generated parameter file, execute the following command directly to run:
 
 ```shell
 ultrarag run examples/rag_full.yaml
 ```
 
-## Step 3: Create a New Parameter File
+## Step 3: Create New Parameter File
 
-If you want to test different parameter combinations on the same Pipeline, simply create a new parameter file,  
-for example: `examples/parameter/rag_full_parameter_new.yaml` (you may choose any name).
+If you want to test different parameter combinations on the same Pipeline, you can create a new parameter file, for example `examples/parameter/rag_full_parameter_new.yaml` (the file name can be customized).
 
-Then, when running the command, specify the parameter file using the `--param` option:
+Then, when running the command, specify the configuration file using the `--param` argument:
 
 ```shell
 ultrarag run examples/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
 ```
 
-This way, the system will execute the same Pipeline using the new parameter configuration,  
-making it easy to conduct multiple experiments in parallel or perform batch comparisons efficiently.
+In this way, the system will execute the same Pipeline using the new parameter file, making it easy to perform parallel and batch comparisons of multiple experiments.

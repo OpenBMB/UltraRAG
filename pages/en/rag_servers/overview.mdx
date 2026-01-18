@@ -1,27 +1,27 @@
 ---
-title: "Module Overview"
+title: "Overview"
 icon: "books"
 ---
 
 ## Server Introduction
 
-In a typical RAG system, the overall workflow usually consists of multiple functional modules, such as the Retriever and the Generator. Each module is responsible for a specific task, and they work together through pipeline orchestration to complete complex question-answering and reasoning processes.
+In a typical RAG system, the overall process usually consists of multiple functional modules, such as Retriever, Generator, etc. These modules undertake different tasks and work synergistically through process orchestration to complete complex question-answering and reasoning processes.
 
-In UR-v2, we adopt the MCP (Model Context Protocol) architecture to standardize and encapsulate these functional modules into a unified implementation—**Server**.
+In UltraRAG, based on the MCP (Model Context Protocol) architecture, we have uniformly encapsulated these functional modules and proposed a more standardized implementation method — Server.
 
-<Note>A Server is essentially an independent RAG module component with a specific function.</Note>
+<Note>A Server is essentially a RAG module component with independent functions.</Note>
 
-Each Server encapsulates a core task logic (such as retrieval, generation, or evaluation) and exposes standardized interfaces to the outside world via function-level **Tools**. With this mechanism, Servers can be flexibly combined, invoked, and reused within a complete Pipeline, enabling modular and extensible system construction.
+Each Server encapsulates a core task logic (such as retrieval, generation, evaluation, etc.) and provides standardized interfaces through function-level Tools. With this mechanism, Servers can be flexibly combined, called, and reused in a complete Pipeline, thereby realizing a modular and scalable system construction method.
 
 ## Server Development
 
-To help you better understand how to use Servers, this section demonstrates a complete workflow for developing a custom Server from scratch.
+To help you better understand how to use Server, this section will demonstrate the complete development process of building a custom Server from scratch through a simple example.
 
-### Step 1: Create the Server File
+### Step 1: Create Server File
 
-First, create a new folder named `sayhello` under the `servers` directory, and then create a source folder `sayhello/src` inside it. Next, create a file named `sayhello.py` in the `src` directory—this will serve as the main entry point for the Server.
+First, create a folder named `sayhello` under the `servers` folder, and create a source code directory `sayhello/src` in it. Then, create a file `sayhello.py` in the `src` directory as the main program entry of the Server.
 
-In UR-v2, all Servers are instantiated via the `UltraRAG_MCP_Server` base class. Example:
+In UltraRAG, all Servers are instantiated through the base class `UltraRAG_MCP_Server`. The example is as follows:
 
 ```python servers/sayhello/src/sayhello.py icon="python"
 from ultrarag.server import UltraRAG_MCP_Server
@@ -35,9 +35,9 @@ if __name__ == "__main__":
 
 ### Step 2: Implement Tool Functions
 
-Use the `@app.tool` decorator to register tool functions (**Tools**). These functions are invoked during Pipeline execution to perform specific logic.
+Use the `@app.tool` decorator to register tool functions (Tool). These functions will be called during the Pipeline execution process to implement specific functional logic.
 
-For example, the following code defines a simple greeting function `greet`, which takes a name as input and returns a greeting message:
+For example, the following example defines the simplest greeting function `greet`, which inputs a name and returns the corresponding greeting:
 
 ```python servers/sayhello/src/sayhello.py icon="python"
 from typing import Dict
@@ -54,38 +54,34 @@ def greet(name: str) -> Dict[str, str]:
 if __name__ == "__main__":
     # Start the sayhello server using stdio transport
     app.run(transport="stdio")
+
 ```
 
 ### Step 3: Configure Parameter File
 
-Next, create a parameter configuration file named `parameter.yaml` under the `sayhello` folder.  
-This file declares the input parameters required by each Tool and their default values, allowing automatic loading and passing during Pipeline execution.
+Next, create a parameter configuration file `parameter.yaml` under the `sayhello` folder. This file is used to declare the input parameters required by the Tool and their default values, facilitating automatic loading and passing during Pipeline runtime.
 
-Example:
+The example is as follows:
 ```yaml servers/sayhello/parameter.yaml icon="/images/yaml.svg"
-name: UltraRAG 2.0
+name: UltraRAG v3
 ```
-
-Here, we define the parameter `name` with the default value `"UltraRAG v2"`.
+Here, the parameter `name` is defined with a default value of "UltraRAG v3".
 
 ### Parameter Registration Mechanism
 
-<Note>If different Prompt Tools have conflicting parameter names, refer to the “Multiple Prompt Tool Invocation” section in the [Prompt Server](/pages/en/rag_servers/prompt) documentation for resolution.</Note>
+<Note>If there are parameter naming conflicts between different Prompt Tools, please refer to the "Multi-Prompt Tool Calling Scenario" section in [Prompt Server](/pages/en/rag_servers/prompt) for solutions.</Note>
 
-During the **build** phase, UR-v2 automatically reads each Server’s `parameter.yaml` file to detect and register the parameters required by its Tool functions.  
-When using this mechanism, keep the following points in mind:
+UltraRAG automatically reads the `parameter.yaml` file in each Server directory during the build phase, and perceives and registers the parameters required by tool functions accordingly. When using, please note the following points:
 
-- **Parameter Sharing:** When multiple Tools need to share a parameter (e.g., `template`, `model_name_or_path`), you only need to declare it once in `parameter.yaml`, and it can be reused across Tools.  
-- **Field Overriding Risks:** If multiple Tools use the same parameter name but with different meanings or default values, you should explicitly distinguish them by using different field names to prevent unintentional overwriting in the automatically generated configuration file.  
-- **Automatic Context Inference:** If a Tool’s input parameter is not defined in `parameter.yaml`, UR-v2 will attempt to infer its value from the runtime context (i.e., from the output of upstream Tools). Therefore, only explicitly define parameters in `parameter.yaml` when they cannot be automatically inferred.
+- **Parameter Sharing Mechanism**: When multiple Tools need to share the same parameter (such as template, model_name_or_path, etc.), it can be declared only once in `parameter.yaml` and reused without repeated definition.
+- **Field Overwrite Risk**: If the parameters required by multiple Tools have the same name but different meanings or default values, the field names should be explicitly distinguished using different names to avoid being overwritten in the automatically generated configuration file.
+- **Context Automatic Inference Mechanism**: If some input parameters in the tool function do not appear in `parameter.yaml`, UltraRAG will default to attempting to infer from the runtime context (i.e., obtaining from the output of upstream Tools). Therefore, it is only necessary to explicitly define in `parameter.yaml` when parameters cannot be automatically passed through context.
 
-### Encapsulating Shared Variables with Classes
+### Encapsulating Shared Variables via Class
 
-In some scenarios, you may want to maintain shared states or variables within the same Server—for example, model instances, cache objects, or configuration settings.  
-In such cases, you can encapsulate the Server as a class and define shared variables and Tool registrations during initialization.
+In some scenarios, we may want to maintain shared state or variables within the same Server, such as model instances, cache objects, configurations, etc. In this case, the Server can be encapsulated as a class, and the definition of shared variables and Tool registration can be completed during the initialization phase of the class.
 
-The following example shows how to encapsulate the `sayhello` Server as a class to share internal variables:
-
+The following example demonstrates how to encapsulate the sayhello Server as a class to achieve internal variable sharing:
 ```python servers/sayhello/src/sayhello.py icon="python" highlight="9"
 from typing import Dict
 from ultrarag.server import UltraRAG_MCP_Server
@@ -106,6 +102,4 @@ if __name__ == "__main__":
     Sayhello(app)
     app.run(transport="stdio")
 ```
-
-In this example, `self.sen` simulates a shared variable that can be accessed by different Tools within the same Server.  
-This approach is especially useful when loading models or maintaining configurations that are reused across multiple functions.
+In this example, `self.sen` is used to simulate variables that need to be shared between different `Tools`. This method is particularly suitable for scenarios that require loading models and repeated configuration parameters.

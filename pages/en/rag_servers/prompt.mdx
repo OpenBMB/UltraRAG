@@ -3,18 +3,18 @@ title: "Prompt"
 icon: "terminal"
 ---
 
-## Overview
+## Function
 
-The **Prompt Tool** is the core component used to construct inputs (prompts) for language models.  
-Each Prompt Tool is defined using the `@app.prompt` decorator.  
-Its main responsibility is to load the corresponding template file based on the input content (e.g., question, retrieved passages) and generate standardized `PromptMessage` objects that can be directly passed to the Large Language Model (LLM) for generation or inference.
-
+The Prompt Tool is the core component for constructing language model inputs (Prompts).
+Each Prompt Tool is defined by the `@app.prompt` decorator, and its main responsibilities are:
+Based on the input content (such as questions, retrieved passages, etc.), load the corresponding template file and generate a standardized PromptMessage,
+so that it can be directly passed to the Large Language Model (LLM) for generation or reasoning.
 
 ## Implementation Example
 
-### Step 1: Prepare the Prompt Template
+### Step 1: Prepare Prompt Template
 
-Save your prompt template as a file ending with `.jinja`, for example:
+Please save your prompt template as a file ending with `.jinja`, for example:
 
 ```jinja prompt/qa_rag_boxed.jinja icon="/images/jinja.svg"
 Please answer the following question based on the given documents.
@@ -27,9 +27,9 @@ Documents:
 Question: {{question}}
 ```
 
-### Step 2: Implement the Tool in the Prompt Server
+### Step 2: Implement Tool in Prompt Server
 
-Call the `load_prompt_template` method to load the template and implement a tool function in the Prompt Server to assemble the prompt:
+Call the `load_prompt_template` method to load the template, and implement a tool function in the Prompt Server to assemble the prompt:
 
 ```python servers/prompt/src/prompt.py icon="python"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -47,7 +47,7 @@ def qa_rag_boxed(
 
 ## Usage Example
 
-Before calling the generation tool, you must first construct the input prompt using the corresponding Prompt Tool.
+Before calling the model generation tool, you need to construct the input prompt through the corresponding Prompt Tool.
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
 servers:
@@ -71,10 +71,10 @@ pipeline:
 - evaluation.evaluate
 ```
 
-## Multiple Prompt Tool Usage Scenarios
+## Multi-Prompt Tool Calling Scenario
 
-In complex Pipelines, the model may need to perform different tasks at different stages—for example, generating sub-questions first, and then producing the final answer based on new retrieval results.  
-In such cases, multiple Prompt Tools can be configured within the same Pipeline, each responsible for constructing prompts for a specific task.
+In some complex Pipelines, the model often needs to perform different tasks at different stages — for example, first generating sub-questions, and then generating the final answer based on new retrieval results.
+In this case, multiple Prompt Tools need to be configured in the same Pipeline, each responsible for different prompt construction logic.
 
 ```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
 # MCP Server
@@ -111,7 +111,7 @@ pipeline:
 - evaluation.evaluate
 ```
 
-If you want to load different templates for different tasks, specify distinct template field names when registering each Prompt Tool:
+If you want to load different templates for different tasks, you need to specify independent template field names for each Prompt Tool during registration:
 
 ```python servers/prompt/src/prompt.py icon="python" highlight="1,13"
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
@@ -141,9 +141,9 @@ def gen_subq(
     return all_prompts
 ```
 
-Then, add the corresponding template fields in `servers/prompt/parameter.yaml`:
+Subsequently, add the corresponding template field in `servers/prompt/parameter.yaml`:
 
-<Note>Ensure you complete this modification before running the `build` command.</Note>
+<Note>Please ensure this modification is completed before executing the build command.</Note>
 
 ```yaml servers/prompt/parameter.yaml icon="/images/yaml.svg" 
 # servers/prompt/parameter.yaml
@@ -173,7 +173,7 @@ webnote_gen_answer_template: prompt/webnote_gen_answer.jinja
 gen_subq_template: prompt/gen_subq.jinja  # [!code ++]
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build rag_loop.yaml
@@ -191,4 +191,4 @@ retriever:
 ...
 ```
 
-You can then execute the Pipeline normally.
+Then the Pipeline can be executed normally.

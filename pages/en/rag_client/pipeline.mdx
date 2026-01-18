@@ -3,24 +3,23 @@ title: "Pipeline Control"
 icon: "diagram-project"
 ---
 
-## Pipeline Overview
+## Pipeline Introduction
 
-In UR-v2, a **Pipeline** defines *how an inference task is executed*. It functions like a **task plan**, specifying the exact sequence of operations that the system should perform at each step.
+In UltraRAG, a Pipeline is a process script used to define "how the inference task is executed". It is like a "task schedule" clarifying the operations the system needs to perform at each step.
 
-With a Pipeline, you can flexibly combine different functions (Tools) from multiple modules (Servers) to build a complete, reproducible, and controllable RAG inference workflow. For example:
+You can flexibly combine functions (Tools) in different modules (Servers) through the Pipeline to build a complete, reproducible, and controllable RAG inference process. For example:
 
-- Load data → Retrieve documents → Construct prompt → Invoke LLM → Evaluate results  
-- Or, in multi-round generation, decide dynamically whether to re-retrieve or stop early based on the model’s intermediate outputs
+- Load data → Retrieve documents → Construct prompt → Call large model → Evaluate results;
+- Or in multi-turn generation, decide whether to re-retrieve or stop generation early based on the model's intermediate performance.
 
-<Note>A complete RAG inference workflow can be defined and executed using just one YAML file.</Note>
+<Note>With a single YAML file, you can define and run a complete RAG inference process.</Note>
 
-## Writing Specification
+## Writing Specifications
 
-In UR-v2, a Pipeline is written in YAML format and defines the full task execution process.  
-A typical Pipeline file contains two top-level sections:
+In UltraRAG, Pipelines are written in the form of YAML files to define the complete task execution process. A Pipeline file usually consists of two top-level structures:
 
-- **`servers`** — Declares all MCP Server modules used in the current workflow. Each Server corresponds to a functional module (such as retrieval, generation, or evaluation). The key is the module name, and the value is its path within the project.  
-- **`pipeline`** — Defines the task’s execution logic. Each item represents a specific execution step or control node. The Pipeline supports sequential execution, loops, and conditional branching.
+- `servers`: Declares all MCP Server modules used in the current process. Each Server corresponds to a functional module (such as retrieval, generation, evaluation, etc.), where the key is the module name and the value is its path in the project.
+- `pipeline`: Defines the execution logic of the task. Each item represents an execution step or process control node, supporting control structures such as serial, loop, and branch judgment.
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg"
 servers:

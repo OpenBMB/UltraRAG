@@ -5,7 +5,7 @@ icon: "ranking-star"
 
 ## `reranker_init`
 
-**Signature**  
+**Signature**
 ```python
 async def reranker_init(
     model_name_or_path: str,
@@ -16,14 +16,14 @@ async def reranker_init(
 ) -> None
 ```
 
-**Function**  
-- Initializes the reranking backend and model.
+**Function**
+- Initializes reranker backend and model.
 
 ---
 
 ## `reranker_rerank`
 
-**Signature**  
+**Signature**
 ```python
 async def reranker_rerank(
     query_list: List[str],
@@ -33,10 +33,10 @@ async def reranker_rerank(
 ) -> Dict[str, List[Any]]
 ```
 
-**Function**  
-- Performs **reranking** on candidate passages.
+**Function**
+- **Reranks** candidate passages:
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
 {
   "rerank_psg": [
@@ -48,7 +48,7 @@ async def reranker_rerank(
 
 ---
 
-## Parameter Configuration
+## Configuration
 
 ```yaml servers/reranker/parameter.yaml icon="/images/yaml.svg"
 model_name_or_path: openbmb/MiniCPM-Reranker-Light
@@ -77,26 +77,26 @@ query_instruction: ""
 Parameter Description:
 
 | Parameter | Type | Description |
-|------------|------|-------------|
-| `model_name_or_path` | str | Model path or name (local or from HuggingFace Hub) |
-| `backend` | str | Backend type: `infinity`, `sentence_transformers`, or `openai` |
-| `backend_configs` | dict | Specific configuration settings for each backend |
-| `gpu_ids` | str/int | GPU device ID(s) (supports multiple, e.g., `"0,1"`) |
-| `top_k` | int | Number of reranked results to return |
-| `batch_size` | int | Number of samples per processing batch |
-| `query_instruction` | str | Optional query prefix for prompt tuning or query modification |
+|---|---|---|
+| `model_name_or_path` | str | Model path or name (local or HuggingFace repo) |
+| `backend` | str | Select backend type: `infinity`, `sentence_transformers` or `openai` |
+| `backend_configs` | dict | Exclusive parameter settings for each backend |
+| `gpu_ids` | str/int | Specify GPU ID (can be multi-card, e.g., `"0,1"`) |
+| `top_k` | int | Number of reranked results returned |
+| `batch_size` | int | Sample quantity per batch |
+| `query_instruction` | str | Query prefix hint, used for prompt engineering or query modification |
 
-Detailed description of `backend_configs`:
+`backend_configs` Detailed Description:
 
 | Backend | Parameter | Description |
-|----------|------------|-------------|
-| **infinity** | `device` | Device type (`cuda` / `cpu`) |
-|  | `bettertransformer` | Enables optimized inference acceleration |
+|---|---|---|
+| **infinity** | `device` | Device type (cuda / cpu) |
+|  | `bettertransformer` | Whether to enable accelerated inference |
 |  | `pooling_method` | Vector pooling strategy |
-|  | `model_warmup` | Whether to preload the model into memory |
-|  | `trust_remote_code` | Whether to trust remote code (required for HuggingFace models) |
-| **sentence_transformers** | `device` | Device type (`cuda` / `cpu`) |
+|  | `model_warmup` | Whether to warmup model |
+|  | `trust_remote_code` | Whether to trust remote code (Required for HuggingFace models) |
+| **sentence_transformers** | `device` | Device type (cuda / cpu) |
 |  | `trust_remote_code` | Whether to trust remote code |
-| **openai** | `model_name` | API model name |
-|  | `base_url` | API access URL |
-|  | `api_key` | OpenAI API key |
+| **openai** | `model_name` | API Model name |
+|  | `base_url` | API access address |
+|  | `api_key` | OpenAI API Key |

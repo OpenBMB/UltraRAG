@@ -3,10 +3,10 @@ title: "Case Study"
 icon: "chart-line"
 ---
 
-UR-v2 provides a convenient **Case Study visualization mechanism** that helps researchers quickly inspect and analyze whether a constructed Pipeline is functioning as expected.
+UltraRAG provides a convenient Case Study visualization mechanism to help researchers quickly check and analyze whether the built Pipeline works as expected.
 
-After executing the Pipeline, the system automatically generates a **memory log file** in the `output` folder.  
-Simply run the following command to launch the Case Study visualization web page:
+After running the Pipeline, the system will automatically generate a memory log file in the output folder.
+Just execute the following command to start the Case Study visualization webpage:
 
 ```shell
 python ./script/case_study.py \
@@ -16,11 +16,10 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-<Note>Please adjust the file path, port number, and other parameters as needed.</Note>
+<Note>Please adjust parameters such as file path and port number according to the actual situation.</Note>
 
-Once started, you can open the corresponding address in your browser to access the **Case Study Viewer** interface.  
-This interface presents the inputs and outputs of each stage of the Pipeline through intuitive visualizations, making it easier to review reasoning chains and intermediate states step by step.
+After successful startup, you can access the corresponding address through a browser to enter the Case Study Viewer interface. The interface displays the inputs and outputs of each stage of the Pipeline in an intuitive visual way, facilitating the step-by-step review of the reasoning chain and intermediate states.
 
 ![](/images/develop_guide/case_study.png)
 
-On this page, you can navigate between different cases to visually compare the relationships among the **input question**, **retrieval results**, and **model outputs**, allowing you to efficiently identify potential issues, optimize Pipeline design, and verify whether the overall reasoning process behaves as intended.
+In the page, you can switch between different Cases one by one to intuitively compare the correspondence between `input question, retrieval results, and model output`, thereby more efficiently locating potential problems, optimizing Pipeline design, and verifying whether the entire reasoning process meets expectations.

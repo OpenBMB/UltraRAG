@@ -5,24 +5,25 @@ icon: "searchengin"
 
 ## Introduction
 
-Search-o1 proposes a framework that combines large-scale reasoning models with **Agentic Retrieval-Augmented Generation (Agentic RAG)** and **Reason-in-Documents**. When the model encounters a knowledge gap during reasoning, it actively retrieves external information, refines it, and injects the result back into the reasoning chain, improving accuracy and robustness in complex tasks such as science, mathematics, and programming.
+Search-o1 proposes a framework that combines large-scale reasoning models with **Agentic Retrieval-Augmented Generation (Agentic RAG)** and **Reason-in-Documents**. When the model encounters a knowledge gap during the reasoning process, it actively retrieves external information, refines it, and injects the result into the reasoning chain, thereby improving the reasoning accuracy and robustness in complex tasks such as science, mathematics, and programming.
 
 <Note>Paper link: [Arxiv](https://arxiv.org/abs/2501.05366).</Note>
 
-### Workflow
+### Process
 
 ![](/images/pipeline/searcho1/suanfa.png)
 
-A picture is worth a thousand words. The Search-o1 workflow works as follows: the model begins by reasoning over the original question. When it detects missing or uncertain information, it generates sub-questions to trigger retrieval. Retrieved documents are then refined to reduce length, and the distilled knowledge is injected back into the reasoning chain. The model continues this process until it determines that it has sufficient information to answer the question.
+In short, Search-o1 starts reasoning with the original question; once an information gap is identified, it generates a sub-question and triggers retrieval; then it refines the retrieved response, extracting key information to inject back into the reasoning process until a credible final answer is formed.
 
 ## Reproduction
 
+### Write Pipeline
 
-### Writing the Pipeline
-
-Based on the logic above, the Pipeline can be defined as follows:
+Based on the above logic, the following Pipeline can be written:
 
 ```yaml examples/search_o1.yaml icon="/images/yaml.svg"
+# Search-o1 Demo
+
 # MCP Servers
 servers:
   benchmark: servers/benchmark
@@ -38,6 +39,7 @@ pipeline:
 - benchmark.get_data
 - retriever.retriever_init
 - generation.generation_init
+- custom.search_o1_init_list
 - prompt.search_o1_init
 - generation.generate
 - loop:
@@ -52,8 +54,12 @@ pipeline:
           - retriever.retriever_search:
               input:
                 query_list: extract_query_list
-          - prompt.searcho1_reasoning_indocument
+          - custom.search_o1_reasoning_extract
+          - custom.search_o1_combine_list
+          - prompt.search_o1_reasoning_indocument
           - generation.generate
+          - custom.search_o1_extract_final_information
+          - custom.search_o1_combine_final_information
           - prompt.search_o1_insert
           - generation.generate
           stop: []   
@@ -61,13 +67,13 @@ pipeline:
 - evaluation.evaluate
 ```
 
-### Build the Pipeline file
+### Compile Pipeline File
 
 ```shell
 ultrarag build examples/search_o1.yaml
 ```
 
-### Modify the parameter file
+### Modify Parameter File
 
 ```yaml examples/parameters/search_o1_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
@@ -101,7 +107,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -109,22 +115,25 @@ generation:
       retries: 3
     vllm:
       dtype: auto
-      gpu_ids: 4,5,6,7
+      gpu_ids: 2,3
       gpu_memory_utilization: 0.9
       model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
       model_name_or_path: Qwen/QwQ-32B # [!code ++]
       trust_remote_code: true
-  sampling_params:
-  chat_template_kwargs: # [!code --]
+  extra_params:
+    chat_template_kwargs: # [!code --]
       enable_thinking: false # [!code --]
-    max_tokens: 2048 # [!code --]
-    max_tokens: 32768 # [!code ++]
-    temperature: 0.7
-    top_p: 0.8 # [!code ++]
     top_k: 20 # [!code ++]
     repetition_penalty: 1.05 # [!code ++]
     include_stop_str_in_output: true # [!code ++]
-    stop: [ "<|im_end|>", "<|end_search_query|>" ] # [!code ++]
+    stop: # [!code ++]
+    - <|im_end|> # [!code ++]
+    - <|end_search_query|> # [!code ++]
+  sampling_params:
+    max_tokens: 2048 # [!code --]
+    max_tokens: 32768 # [!code ++]
+    temperature: 0.7
+    top_p: 0.8
   system_prompt: ''
 prompt:
   searcho1_reasoning_template: prompt/search_o1_reasoning.jinja
@@ -137,18 +146,16 @@ retriever:
       save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -156,18 +163,19 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  gpu_ids: 0,1
+  gpu_ids: '1'
   index_backend: faiss
   index_backend_configs:
     faiss:
-      index_chunk_size: 50000
+      index_chunk_size: 10000
       index_path: index/index.index
       index_use_gpu: true
     milvus:
-      collection_name: ultrarag_embeddings
       id_field_name: id
-      index_chunk_size: 50000
+      id_max_length: 64
+      index_chunk_size: 1000
       index_params:
         index_type: AUTOINDEX
         metric_type: IP
@@ -175,9 +183,12 @@ retriever:
       search_params:
         metric_type: IP
         params: {}
+      text_field_name: contents
+      text_max_length: 60000
       token: null
       uri: index/milvus_demo.db
       vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -185,7 +196,7 @@ retriever:
   top_k: 5
 ```
 
-### Run the Pipeline
+### Run Pipeline File
 
 ```shell
 ultrarag run examples/search_o1.yaml

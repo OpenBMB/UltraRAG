@@ -1,27 +1,30 @@
 ---
-title: "Quickstart"
+title: "Quick Start"
 icon: "rocket-launch"
 ---
 
-This section will help you quickly understand how to run a complete RAG Pipeline using UR-v2. The workflow in UR-v2 mainly includes the following three stages:
+This section will help you quickly understand how to run a complete RAG Pipeline based on UltraRAG. The usage process of UltraRAG mainly includes the following three stages:
 
-- Writing the Pipeline configuration file  
-- Building the Pipeline and adjusting parameters  
-- Running the Pipeline  
+- Write Pipeline configuration file
+- Compile Pipeline and adjust parameters
+- Run Pipeline
 
-Additionally, you can analyze and evaluate the execution results using built-in visualization tools.
+In addition, you can also analyze and evaluate the running results through visualization tools.
 
-<Tip>If UR-v2 is not yet installed, please refer to [Installation](/pages/en/getting_started/installation).</Tip>
+<Tip>If you haven't installed UltraRAG yet, please refer to [Installation](/pages/en/getting_started/installation).</Tip>
 
-<Tip>For a more comprehensive RAG development guide, please refer to the full documentation.</Tip>
+<Tip>For a more complete RAG development practice, please check the full documentation.</Tip>
 
-## Step 1: Write the Pipeline Configuration File
+## Step 1: Write Pipeline Configuration File
 
-<Info>Please ensure that your current working directory is set to the UltraRAG root directory.</Info>
+<Info>Please ensure that the current working directory is located at the UltraRAG root directory</Info>
 
 Create and write your Pipeline configuration file in the `examples` folder, for example:
 
 ```yaml examples/rag_full.yaml icon="/images/yaml.svg"
+# Vanilla RAG with Corpus Indexing Demo
+
+# MCP Server
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever
@@ -30,6 +33,7 @@ servers:
   evaluation: servers/evaluation
   custom: servers/custom
 
+# MCP Client Pipeline
 pipeline:
 - benchmark.get_data
 - retriever.retriever_init
@@ -43,43 +47,38 @@ pipeline:
 - evaluation.evaluate
 ```
 
-A UR-v2 Pipeline configuration file contains two essential sections:
+UltraRAG's Pipeline configuration file needs to include the following two parts:
 
-- `servers`: Declares the modules (Servers) required for the workflow. For example, the retrieval stage requires the `retriever` Server.
-- `pipeline`: Defines the execution order of functional methods (Tools) within each Server.  
-  The above example demonstrates a complete process covering data loading, retrieval embedding and indexing, generation, and evaluation.
+- `servers`: Declare the various modules (Servers) depended on by the current process. For example, the `retriever` Server is required for the retrieval stage.
+- `pipeline`: Define the calling sequence of functional functions (Tools) in each Server. This example shows a complete process from data loading, retrieval encoding and index construction, to generation and evaluation.
 
-## Step 2: Build the Pipeline and Adjust Parameters
+## Step 2: Compile Pipeline and Adjust Parameters
 
-Before running the code, you need to configure the required parameters. UR-v2 provides a convenient **build** command that automatically generates a complete parameter file for the current Pipeline.  
-The system reads the `parameter.yaml` file from each Server, parses all involved parameter items, and consolidates them into a single unified configuration file.  
-Execute the following command:
+Before running the code, you first need to configure the parameters required for operation. UltraRAG provides a shortcut `build` command, which can automatically generate the complete parameter file depended on by the current Pipeline.
+The system will read the `parameter.yaml` file of each Server, parse all parameter items involved in this process, and consolidate them into an independent configuration file. Execute the following command:
 
 ```shell
 ultrarag build examples/rag_full.yaml
 ```
 
-After execution, the terminal will display the following output:
+After execution, the terminal will output content as follows:
 
 ![](/images/getting_started/rag_build.png)
 
-The system will generate a parameter configuration file in the `examples/parameters/` folder.  
-Open the file and modify parameters as needed, for example:
+The system will generate the corresponding parameter configuration file in the `examples/parameters/` folder. Open the file and modify relevant parameters according to the actual situation, for example:
 
 ```yaml examples/parameters/rag_full_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
-      gt_ls: golden_answers   # Ground-truth answers field name
-      q_ls: question          # Question field name
-    limit: -1                 # Limit the number of samples loaded (-1 = all)
-    name: nq                  # Dataset name (e.g., Natural Questions)
-    path: data/sample_nq_10.jsonl  # Path to the data file
-    seed: 42                  # Random seed for reproducibility
-    shuffle: false            # Whether to shuffle samples; false = preserve order
-
-custom: {}                    # Custom Server (empty in this example)
-
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/sample_nq_10.jsonl
+    seed: 42
+    shuffle: false
+custom: {}
 evaluation:
   metrics:
   - acc
@@ -91,7 +90,6 @@ evaluation:
   - rouge-2
   - rouge-l
   save_path: output/evaluate_results.json
-
 generation:
   backend: vllm
   backend_configs:
@@ -101,7 +99,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: 'abc'
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -109,38 +107,40 @@ generation:
       retries: 3
     vllm:
       dtype: auto
-      gpu_ids: 2,3
-      gpu_memory_utilization: 0.9
-      model_name_or_path: Qwen/Qwen3-8B
+      gpu_ids: 5
+      gpu_memory_utilization: 0.5
+      model_name_or_path: openbmb/MiniCPM4-8B  # [!code --]
+      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
   system_prompt: ''
-
 prompt:
-  template: prompt/qa_rag_boxed.jinja
-
+  template: prompt/qa_boxed.jinja # [!code --]
+  template: prompt/qa_rag_boxed.jinja  # [!code ++]
 retriever:
   backend: sentence_transformers
   backend_configs:
+    bm25:
+      lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: 'abc'
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -148,44 +148,64 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_chunk_size: 50000
-  index_path: index/index.index
+  gpu_ids: '5'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
-  model_name_or_path: Qwen/Qwen3-Embedding-0.6B
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light  # [!code --]
+  model_name_or_path: Qwen/Qwen3-Embedding-0.6B  # [!code ++]
   overwrite: false
   query_instruction: ''
   top_k: 5
 ```
 
-You can modify parameters as needed, for example:
+You can modify the parameters according to the actual situation, for example:
 
-- Set the template to `prompt/qa_rag_boxed.jinja` for RAG-style prompting.  
-- Replace `model_name_or_path` for both retriever and generator with local model paths.  
-- Adjust `gpu_ids` to match your available devices in a multi-GPU environment.
+- Adjust `template` to the RAG template `prompt/qa_rag_boxed.jinja`;
+- Replace `model_name_or_path` of the retriever and generator with the local downloaded model path;
+- If running in a multi-GPU environment, modify `gpu_ids` to match available devices.
 
-## Step 3: Run the Pipeline
+## Step 3: Run Pipeline
 
-Once parameters are configured, you can execute the entire workflow with a single command:
+When the parameter configuration is complete, you can run the entire process with one click. Execute the following command:
 
 ```shell
 ultrarag run examples/rag_full.yaml
 ```
 
-The system will sequentially execute all Servers and Tools defined in the configuration file, displaying real-time logs and progress in the terminal:
+The system will sequentially execute the various Servers and Tools defined in the configuration file, and output running logs and progress information in the terminal in real time:
 
 ![](/images/getting_started/rag_run.png)
 
-Upon completion, results (such as generated outputs and evaluation reports) will be automatically saved in the specified output path.  
-For example, the file `output/memory_nq_rag_full_20251010_145420.json` can be used directly for further analysis and visualization.
+After running, the results (such as generated content, evaluation reports, etc.) will be automatically saved in the corresponding output path, such as `output/memory_nq_rag_full_20251010_145420.json` in this example, which can be directly used for subsequent analysis and visual display.
 
-## Step 4: Visualize and Analyze Case Studies
+## Step 4: Visual Analysis Case Study
 
-After completing the workflow, you can use the built-in visualization tool to quickly analyze generation results.  
-Run the following command to start the Case Study Viewer:
+After completing the process run, you can quickly analyze the generation results through the built-in visualization tool. Execute the following command to start the Case Study Viewer:
 
 ```shell
 python ./script/case_study.py \
@@ -195,20 +215,19 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-Once launched, the terminal will display an access address.  
-Open it in your browser to explore the Case Study Viewer, where you can interactively browse and analyze results.  
-Example interface:
+After successful operation, the terminal will display the access address. Open the browser and enter the address to enter the Case Study Viewer interface to interactively browse and analyze the results.
+The interface example is shown below:
 
 ![](/images/getting_started/case1.png)
 ![](/images/getting_started/case2.png)
 
 ## Summary
 
-You have now completed the full RAG workflow—from Pipeline configuration and parameter compilation to execution and visualization analysis.  
-UR-v2, with its modular MCP architecture and unified evaluation system, makes RAG system construction, execution, and analysis more efficient, intuitive, and reproducible.
+At this point, you have completed the full RAG practice process from **Pipeline Configuration**, **Parameter Compilation** to **Process Running** and **Visual Analysis**.
+UltraRAG makes the construction, operation, and analysis of RAG systems more efficient, intuitive, and reproducible through a modular MCP architecture and a unified evaluation system.
 
-You can further:
+Based on this, you can:
 
-- Swap out models or retrievers to explore different combinations.  
-- Create custom Servers and Tools to extend system functionality.  
-- Use the evaluation module to compare results and conduct systematic research.
+- Replace different models or retrievers to explore various combination effects;
+- Customize new Servers and Tools to extend system functions;
+- Use the evaluation module to quickly compare experimental results and conduct systematic research.

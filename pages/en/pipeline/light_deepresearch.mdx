@@ -1,72 +1,67 @@
 ---
-title: "Light DeepResearch"
-icon: "lightbulb"
+title: "WebNote"
+icon: "cloud"
 ---
 
-<Note>We have recorded a tutorial video for this demo: [📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click).</Note>
+<Note>We recorded an explanatory video for this Demo: [📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM/?spm_id_from=333.337.search-card.all.click).</Note>
 
-## What is DeepResearch
+## What is DeepResearch?
 
-**Deep Research (also known as Agentic Deep Research)** refers to the process in which large language models (LLMs) collaborate with tools such as search engines, browsers, code executors, and memory storage systems to perform complex tasks through a closed-loop of **multi-round reasoning → retrieval → verification → synthesis**.
+Deep Research (also known as Agentic Deep Research) refers to an intelligent research agent where a Large Language Model (LLM) collaborates with tools (such as search, browser, code execution, memory storage, etc.) to complete complex research tasks in a closed loop of "multi-turn reasoning → retrieval → verification → fusion".
 
-Unlike single-round retrieval in traditional RAG (Retrieval-Augmented Generation), Deep Research operates more like an expert’s workflow — first formulating a plan, then continuously exploring, adjusting direction, verifying information, and finally producing a complete, well-cited report.
+Different from single-retrieval RAG (Retrieval-Augmented Generation), Deep Research is more like a human expert's approach — first making a plan, then constantly exploring, adjusting direction, verifying information, and finally outputting a well-structured and sourced report.
 
-## Preparation
+## Prerequisites
 
-In this tutorial, we will implement a lightweight Deep Research pipeline based on the UltraRAG framework.  
-Considering that most users may not have access to high-end servers, we demonstrate the entire process on a **MacBook Air (M2)**, ensuring a lightweight and reproducible setup.
+In this development, we will complete the example based on the UltraRAG framework. Considering that most users may not have computing servers, we will implement the entire process on a MacBook Air (M2) to ensure the environment is lightweight and easy to reproduce.
 
-### API Setup
+### API Preparation
 
-- **Retrieval API:** We use [Tavily Web Search](https://www.tavily.com/), which provides 1,000 free API calls upon registration.  
-- **LLM API:** You can use any large model API of your choice. In this tutorial, we use **gpt-5-nano** as an example.
+- Retrieval API: We use [Tavily Web Search](https://www.tavily.com/). You can get 1000 free calls upon initial registration.
+- LLM API: You can choose any large model service according to your habits. In this tutorial, we use gpt-5-nano as an example.
 
-### API Configuration
+### API Settings
 
-You can provide API keys in two ways: environment variables or explicit parameters.  
-We recommend using **environment variables** for better security and to avoid leaking keys in logs.
+We provide two ways to pass the API Key: environment variables and explicit parameters. Environment variables are recommended as they are safer and avoid API Key leakage in logs.
 
-In the root directory of UR-v2, rename the template file `.env.dev` to `.env`,  
-and fill in your API keys, for example:
+In the UltraRAG root directory, rename the template file `.env.dev` to `.env`, and fill in your key information, for example:
 
 ```
 LLM_API_KEY="your llm key"
 TAVILY_API_KEY="your retriever key"
 ```
+UltraRAG will automatically read this file and load relevant configurations at startup.
 
-UR-v2 will automatically load these configurations at startup.
+## Pipeline Introduction
 
-## Pipeline Overview
+In this example, we will implement a lightweight Deep Research Pipeline. It has the following basic functions:
 
-In this example, we will implement a lightweight Deep Research pipeline with the following core components:
+- Plan Formulation: The model first formulates a solution plan based on the user's question;
+- Sub-question Generation and Retrieval: Decompose big questions into retrievable sub-questions and call Web search tools to obtain relevant information;
+- Report Organization and Filling: Gradually improve the content of the research report;
+- Reasoning and Final Generation: After the report is completed, the model gives the final answer.
 
-- **Planning:** The model first creates a step-by-step plan based on the user’s question.  
-- **Sub-question generation and retrieval:** The main question is broken into smaller sub-questions, which are used for web retrieval via external tools.  
-- **Report organization and filling:** The model iteratively refines and completes a structured research report.  
-- **Reasoning and final generation:** Once the report is completed, the model generates the final answer.
-
-Workflow diagram:
+The flow chart is shown below:
 
 ![](/images/pipeline/light_deep/pipe.png)
 
-The pipeline consists of two main stages:
+The pipeline is mainly divided into two stages:
 
-1. **Initialization stage:**  
-   The model generates a research plan based on the user question and initializes the report page.
+1. **Initialization Phase:** The model generates a plan based on the user's question and constructs an initial report page accordingly.
 
-2. **Iterative filling stage:**  
-   - The system checks whether the report page is complete.  
-   - The completion criterion: whether the string `"to be filled"` still exists in the page.  
-   - If the report is incomplete, the model generates a sub-question based on the user query, plan, and current page, then triggers web retrieval.  
-   - Retrieved documents are used to update the page, after which the process repeats.  
-   - The iteration continues until the report is fully filled.
+2. **Iterative Filling Phase:**
+   
+- The system checks if the current report page is fully filled.
+- The criterion is: whether the string "to be filled" still exists in the page.
+- If the report is not yet complete, the model generates a new sub-question combining the user's question, plan, and current page, and triggers Web retrieval.
+- The retrieved documents are used to update the page, then entering the next round of checking.
+- This process iterates until the page is filled.
+  
+Finally, the model generates a complete answer based on the user's question and the final report page.
 
-Finally, the model uses the user query and the completed report page to produce the final answer.
+The code implementation of this example is very concise, mainly relying on custom extensions of router and prompt tool. Interested users can view the source code directly. The following is the complete pipeline definition:
 
-The implementation is concise, mainly relying on customized **router** and **prompt** tools.  
-Here is the full pipeline definition:
-
-```yaml examples/light_deepresearch.yaml icon="/images/yaml.svg"
+```yaml examples/webnote_websearch.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -113,53 +108,70 @@ pipeline:
 - generation.generate
 ```
 
-## Running the Pipeline
+## Run
 
-### Create Sample Question Data
+### Construct Question Data
 
-Create a new file `sample_light_ds.jsonl` in the `data` folder and add your question, for example:
+First, create a new file named `sample_light_ds.jsonl` under the data folder and write the questions you want to research. For example:
 
 ```json data/sample_light_ds.jsonl icon="/images/json.svg"
-{"id": 0, "question": "Introduce the continent of Teyvat", "golden_answers": [], "meta_data": {}}
+{"id": 0, "question": "Introduce Teyvat Continent", "golden_answers": [], "meta_data": {}}
 ```
 
-### Generate Parameter Configuration File
+### Construct Parameter Configuration File
 
-Run the following command to generate a parameter file corresponding to the pipeline:
+Execute the following command to generate the parameter file corresponding to the pipeline:
 
 ```shell
-ultrarag build examples/light_deepresearch.yaml
+ultrarag build examples/webnote_websearch.yaml
 ```
 
-Modify the parameters as needed, for example:
+Modify parameters according to actual conditions, for example:
 
-```yaml
+```yaml examples/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
       gt_ls: golden_answers
       q_ls: question
     limit: -1
-    name: ds
-    path: data/sample_light_ds.jsonl
+    name: nq # [!code --]
+    path: data/sample_nq_10.jsonl # [!code --]
+    name: ds # [!code ++]
+    path: data/sample_light_ds.jsonl # [!code ++]
     seed: 42
     shuffle: false
 generation:
-  backend: openai
+  backend: vllm # [!code --]
+  backend: openai # [!code ++]
   backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
-      base_url: https://api.openai.com/v1
+      base_url: http://localhost:8000/v1 # [!code --]
+      base_url: https://api.openai.com/v1 # [!code ++]
       concurrency: 8
-      model_name: gpt-5-nano
+      model_name: MiniCPM4-8B # [!code --]
+      model_name: gpt-5-nano # [!code ++]
       retries: 3
-  sampling_params:
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
-    top_p: 0.8
+    top_p: 0.8 # [!code --]
   system_prompt: ''
 prompt:
   webnote_fill_page_template: prompt/webnote_fill_page.jinja
@@ -172,15 +184,15 @@ retriever:
   top_k: 5
 ```
 
-### Run the Pipeline
 
-Before running, make sure your API keys are properly set:
+### Start
 
+Before running, don't forget to set your API Key:
 ```shell
-ultrarag run examples/light_deepresearch.yaml
+ultrarag examples/webnote_websearch.yaml
 ```
 
-After the run is complete, you can visualize the generated content using the **Case Study Viewer**:
+After running, you can visually view the generated content through the Case Study Viewer:
 
 ```shell
 python ./script/case_study.py \
@@ -190,6 +202,6 @@ python ./script/case_study.py \
   --title "Case Study Viewer"
 ```
 
-You can now open the results in your browser to visually analyze the pipeline execution process and generated content.
+This will open the result page in the browser, allowing you to intuitively analyze the execution process and generated content of the pipeline.
 
 ![](/images/pipeline/light_deep/result.png)

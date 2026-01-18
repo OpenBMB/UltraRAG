@@ -3,21 +3,20 @@ title: "Generation"
 icon: "pen-nib"
 ---
 
-## Overview
+## Function
 
-The **Generation Server** is the core module in UR-v2 responsible for **invoking and deploying Large Language Models (LLMs)**.
-It receives input prompts constructed by the **Prompt Server** and generates the corresponding outputs.
-This module supports both **text generation** and **image-text multimodal generation**, making it adaptable to diverse task scenarios such as question answering, reasoning, summarization, and visual question answering.
+The Generation Server is the core module in UltraRAG responsible for calling and deploying Large Language Models (LLMs).
+It receives input prompts (Prompts) constructed by the Prompt Server and generates corresponding output results.
+This module supports two modes: **Text Generation** and **Image-Text Multi-modal Generation**, flexibly adapting to different task scenarios (such as Q&A, reasoning, summarization, visual Q&A, etc.).
 
-The Generation Server natively supports the following popular backends:  
-[vLLM](https://github.com/vllm-project/vllm), [HuggingFace](https://github.com/huggingface/transformers), and [OpenAI](https://platform.openai.com/docs/quickstart).
+The Generation Server is natively compatible with the following mainstream backends: [vLLM](https://github.com/vllm-project/vllm), [HuggingFace](https://github.com/huggingface/transformers),
+and [OpenAI](https://platform.openai.com/docs/quickstart).
 
-## Usage Example
+## Usage Examples
 
 ### Text Generation
 
-The following example demonstrates how to use the Generation Server to perform a basic text generation task.
-The workflow first constructs the prompt using the Prompt Server, then calls the LLM to generate responses, followed by result extraction and evaluation.
+The following example shows how to use the Generation Server to execute a basic text generation task. The process calls the LLM to generate an answer after constructing the input prompt through the Prompt Server, and finally completes result extraction and evaluation.
 
 ```yaml examples/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
@@ -38,7 +37,7 @@ pipeline:
 - evaluation.evaluate
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/vanilla_llm.yaml
@@ -77,7 +76,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -87,12 +86,12 @@ generation:
       dtype: auto
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
-      model_name_or_path: Qwen/Qwen3-8B # [!code ++]
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -101,24 +100,23 @@ prompt:
   template: prompt/qa_boxed.jinja
 ```
 
-Run the Pipeline:
+Run Pipeline:
 ```shell
 ultrarag run examples/vanilla_llm.yaml
 ```
 
-### Multimodal Reasoning
+### Multi-modal Inference
 
-In multimodal scenarios, the Generation Server can process not only textual input but also visual information such as images, enabling more complex reasoning tasks.
-The following example illustrates how to achieve this.
+In multi-modal scenarios, the Generation Server can not only process text inputs but also combine visual information such as images to complete more complex reasoning tasks. The following example shows how to implement this.
 
-First, prepare a sample dataset (including image paths):
+First, prepare an example dataset (including image paths):
 
 ```json data/test.jsonl icon="/images/json.svg"
 {"id": 0, "question": "when was the last time anyone was on the moon", "golden_answers": ["14 December 1972 UTC", "December 1972"], "image":["image/page_0.jpg"],"meta_data": {}}
 ```
 
-Before multimodal generation, you need to add a `multimodal_path` field in the `get_data` function of the Benchmark Server to specify the image input path.
-<Note>For instructions on adding new fields, refer to [Adding Additional Dataset Fields](/pages/en/rag_servers/benchmark).</Note>
+Before performing multi-modal generation, you need to add a new field `multimodal_path` in the `get_data` function of the Benchmark Server to specify the image input path.
+<Note>Please refer to [Add Dataset Loading Fields](/pages/en/rag_servers/benchmark) for how to add new fields.</Note>
 
 ```yaml examples/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
@@ -139,7 +137,7 @@ pipeline:
 - evaluation.evaluate
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/vanilla_vlm.yaml
@@ -178,10 +176,10 @@ generation:
     hf:
       batch_size: 8
       gpu_ids: 2,3
-      model_name_or_path: openbmb/MiniCPM4-8B 
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1
       concurrency: 8
@@ -194,9 +192,11 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B # [!code --]
       model_name_or_path: openbmb/MiniCPM-V-4 # [!code ++]
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  image_tag: null
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -210,38 +210,41 @@ Run:
 ultrarag run examples/vanilla_vlm.yaml
 ```
 
+<Tip>Note: You can set `image_tag` such as `<IMG>` to specify the position where you wish the image input to be. If empty, it defaults to the leftmost input.</Tip>
 
-### Model Deployment
+### Deploy Model
 
-UR-v2 is fully compatible with the **OpenAI API** specification, allowing any model conforming to this standard to be integrated directly—no extra adaptation or code modification required.
-The following example shows how to deploy a local model using [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig).
+UltraRAG is fully compatible with the OpenAI API interface specification, so any model that conforms to this interface standard can be directly accessed without additional adaptation or code modification.
+The following example shows how to use [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig) to deploy a local model.
 
-**Step 1: Run the Model in the Background**
+**Step 1: Background Model Deployment**
 
-We recommend using **screen** to run it in the background for real-time log and status monitoring.
+Taking Qwen3-32B as an example, it is recommended to use multi-card parallelism to ensure inference speed.
 
-Start a new screen session:
+**Screen (Run directly on host)**
+
+1. Create session:
 
 ```shell
 screen -S llm
 ```
 
-Run the following command to deploy the model (using Qwen3-8B as an example):
+2. Start command:
 
-```shell script/vllm_serve_emb.sh
+```shell script/vllm_serve.sh
 CUDA_VISIBLE_DEVICES=0,1 python -m vllm.entrypoints.openai.api_server \
-    --served-model-name qwen3-8b \
-    --model Qwen/Qwen3-8B \
+    --served-model-name qwen3-32b \
+    --model Qwen/Qwen3-32B \
     --trust-remote-code \
-    --host 127.0.0.1 \
-    --port 65501 \
+    --host 0.0.0.0 \
+    --port 65503 \
     --max-model-len 32768 \
     --gpu-memory-utilization 0.9 \
     --tensor-parallel-size 2 \
     --enforce-eager
 ```
 
-If you see output similar to the following, the model server has started successfully:
+Seeing output similar to the following indicates that the model service has started successfully:
 
 ```
 (APIServer pid=2811812) INFO:     Started server process [2811812]
@@ -249,8 +252,8 @@ If you see output similar to the following, the model server has started success
 (APIServer pid=2811812) INFO:     Application startup complete.
 ```
 
-Press **Ctrl + A + D** to detach and keep the process running in the background.
-To reattach the session, run:
+3. Exit session: Press `Ctrl + A + D` to exit and keep the service running in the background.
+If you need to re-enter the session, execute:
 
 ```shell
 screen -r llm
@@ -258,7 +261,7 @@ screen -r llm
 
 **Step 2: Modify Pipeline Parameters**
 
-Modify parameters as follows:
+Modify parameters:
 ```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -292,7 +295,7 @@ generation:
       model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
     openai:
-      api_key: ''
+      api_key: abc
       base_delay: 1.0
       base_url: http://localhost:8000/v1 # [!code --]
       base_url: http://127.0.0.1:65501/v1 # [!code ++]
@@ -304,11 +307,12 @@ generation:
       dtype: auto
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B 
+      model_name_or_path: openbmb/MiniCPM4-8B
       trust_remote_code: true
-  sampling_params:
+  extra_params:
     chat_template_kwargs:
       enable_thinking: false
+  sampling_params:
     max_tokens: 2048
     temperature: 0.7
     top_p: 0.8
@@ -317,4 +321,4 @@ prompt:
   template: prompt/qa_boxed.jinja
 ```
 
-Once the configuration is complete, you can run the Pipeline normally.
+After completing the configuration, you can run normally.

@@ -3,15 +3,17 @@ title: "Retriever"
 icon: "magnifying-glass"
 ---
 
-## Overview
+## Function
 
-The **Retriever Server** is the core retrieval module in UR-v2. It integrates **model loading**, **text/image encoding**, **index construction**, and **search** into a single component. It natively supports multiple backends—[Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings)—so it can flexibly adapt to corpora of various sizes and types, meeting the needs of **large-scale embedding** and **efficient document recall**.
+The Retriever Server is the core retrieval module in UltraRAG, integrating model loading, text encoding, index construction, and retrieval query functions.
+It natively supports multiple backend interfaces such as [Sentence-Transformers](https://github.com/UKPLab/sentence-transformers), [Infinity](https://github.com/michaelfeil/infinity), and [OpenAI](https://platform.openai.com/docs/guides/embeddings), enabling flexible adaptation to corpora of different scales and types to meet the needs of large-scale vectorization and efficient document recall.
 
-## Usage Example
+## Usage Examples
 
-### Corpus Encoding & Indexing
+### Corpus Encoding and Indexing
 
-The following example shows how to use the Retriever Server to encode a corpus and build an index.
+The following example shows how to use the Retriever Server to perform encoding and index construction on a corpus.
+
 ```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
@@ -24,26 +26,26 @@ pipeline:
 - retriever.retriever_index
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/corpus_index.yaml
 ```
 
-Modify the parameter file as needed. Below are two common scenarios: **text corpus encoding** and **image corpus encoding**.
+Modify the parameter file according to the actual situation. Two typical scenarios are shown below: Text Corpus Encoding and Image Corpus Encoding.
 
-1. Text corpus encoding
+1. **Text Corpus Encoding**
 
-Example: use `Qwen3-Embedding-0.6B` to vectorize a text corpus.
+Example: Using `Qwen3-Embedding-0.6B` to vectorize text corpus.
 ```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
 retriever:
-  backend: sentence_transformers # Using ST as the example backend
+  backend: sentence_transformers # We take st as an example here
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -52,9 +54,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -62,29 +63,51 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_chunk_size: 50000
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
   overwrite: false
 ```
-2. Image corpus encoding
 
-Example: use `jinaai/jina-embeddings-v4` to vectorize an image corpus.
+2. **Image Corpus Encoding**
+
+Example: Using `jinaai/jina-embeddings-v4` to vectorize image corpus.
 ```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -93,9 +116,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document # [!code --]
         psg_task: null # [!code --]
@@ -107,14 +129,35 @@ retriever:
         q_task: retrieval # [!code ++]
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl # [!code --]
   corpus_path: corpora/image.jsonl # [!code ++]
   embedding_path: embedding/embedding.npy
-  faiss_use_gpu: true
   gpu_ids: 0,1 # [!code --]
   gpu_ids: 1 # [!code ++]
-  index_chunk_size: 50000
-  index_path: index/index.index
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false # [!code --]
   is_multimodal: true # [!code ++]
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
@@ -122,21 +165,22 @@ retriever:
   overwrite: false
 ```
 
-Run the Pipeline:
+Run the following command to execute this Pipeline:
 
 ```shell
 ultrarag run examples/corpus_index.yaml
 ```
 
-Encoding and indexing often involve large corpora and can be time-consuming. It’s recommended to run the task in the background using `screen` or `nohup`, for example:
+The encoding and indexing phase usually involves large-scale corpus processing and takes a long time. It is recommended to use `screen` or `nohup` to mount the task to run in the background, for example:
 
 ```shell
 nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
 ```
 
-### Vector Search
+### Vector Retrieval
 
-The following example shows how to use the Retriever Server to perform vector search on an existing index.
+The following example shows how to use the Retriever Server to perform vector retrieval tasks on the constructed index.
+
 ```yaml examples/corpus_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
@@ -151,7 +195,7 @@ pipeline:
 
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/corpus_search.yaml
@@ -174,9 +218,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -185,9 +229,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -195,10 +238,32 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -206,7 +271,7 @@ retriever:
   top_k: 5
 ```
 
-Run the Pipeline:
+Run Pipeline:
 
 ```shell
 ultrarag run examples/corpus_search.yaml
@@ -214,11 +279,11 @@ ultrarag run examples/corpus_search.yaml
 
 ### BM25 Retrieval
 
-In addition to dense retrieval, UR-v2 includes the classic **BM25** sparse text retrieval algorithm. BM25 is an improvement over TF–IDF and is commonly used for fast, lightweight keyword-based matching. In practice, BM25 and dense retrieval are complementary: combining them often improves both coverage and recall diversity.
+In addition to vector retrieval, UltraRAG also has a built-in classic BM25 text retrieval algorithm. BM25 is a sparse retrieval method improved based on Term Frequency-Inverse Document Frequency (TF-IDF), often used for fast, lightweight text semantic matching tasks. In practical applications, BM25 can complement dense retrieval to improve retrieval coverage and recall diversity.
 
-**Step 1: Build the BM25 index**
+**Step 1: Build BM25 Index**
 
-Before searching with BM25, you need to tokenize documents and build a sparse index.
+Before using BM25 for retrieval, you need to tokenize the document and build a sparse index.
 
 ```yaml examples/bm25_index.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -231,7 +296,7 @@ pipeline:
 - retriever.bm25_index
 ```
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/bm25_index.yaml
@@ -245,9 +310,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -256,9 +321,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -266,10 +330,32 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   overwrite: false
@@ -279,9 +365,9 @@ Run:
 ultrarag run examples/bm25_index.yaml
 ```
 
-**Step 2: Execute BM25 search**
+**Step 2: Execute BM25 Retrieval**
 
-Once the index is built, you can perform BM25-based document retrieval.
+After the index construction is completed, document retrieval based on BM25 can be performed.
 
 ```yaml examples/bm25_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -296,7 +382,7 @@ pipeline:
 - retriever.bm25_search
 ```
 
-Build the Pipeline:
+Compile Pipeline:
 
 ```shell
 ultrarag build examples/bm25_search.yaml
@@ -320,9 +406,9 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -331,9 +417,8 @@ retriever:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -341,27 +426,51 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   top_k: 5
 ```
 
-Run the search flow:
+Run retrieval process:
 ```shell
 ultrarag run examples/bm25_search.yaml
 ```
 
 ### Hybrid Retrieval
 
-In real applications, a single retrieval method often struggles to balance **recall** and **precision**. For instance, BM25 excels at keyword matching, while dense retrieval is stronger in semantic understanding. UR-v2 supports **Hybrid Retrieval** that combines sparse (BM25) and dense methods to leverage both, improving diversity and robustness.
+In practical applications, a single retrieval method is often difficult to balance recall and precision.
+For example, BM25 excels at keyword matching, while vector retrieval has advantages in semantic understanding.
+Therefore, UltraRAG supports fusing sparse retrieval (BM25) with dense retrieval (Dense Retrieval), comprehensively utilizing the advantages of both through hybrid strategies (Hybrid Retrieval) to further improve retrieval diversity and robustness.
 
-The example below shows how to run BM25 and dense retrieval in the same Pipeline and merge results via a custom module.
+The following example demonstrates how to run BM25 and vector retrieval simultaneously in the same Pipeline, and merge results through a custom module.
 
-<Note>You can extend this example to arbitrarily combine retrieval methods—for instance, mixing local knowledge bases with online web search, or fusing text and image multimodal retrieval—to build a more powerful hybrid retrieval Pipeline.</Note>
+<Note>You can refer to this example to flexibly extend retrieval methods into any combination, such as combining local knowledge bases with online Web retrieval, or fusing multi-modal retrieval results such as text and images, to build a more powerful hybrid retrieval Pipeline.</Note>
 
 ```yaml examples/hybrid_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -388,9 +497,9 @@ pipeline:
       temp_psg: sparse_psg
 ```
 
-<Note>This Pipeline involves **[parameter renaming](/pages/en/rag_client/data_and_params)** and **[module reuse](/pages/en/rag_client/multi_agents)**. See the linked docs for details.</Note>
+<Note>This Pipeline involves [Parameter Renaming](/pages/en/rag_client/data_and_params) and [Module Reuse](/pages/en/rag_client/multi_agents) mechanisms. You can click the links to view detailed instructions.</Note>
 
-Build the Pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/hybrid_search.yaml
@@ -414,9 +523,9 @@ bm25:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -425,9 +534,8 @@ bm25:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -435,10 +543,32 @@ bm25:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   top_k: 5
@@ -448,9 +578,9 @@ dense:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
@@ -459,9 +589,8 @@ dense:
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -469,11 +598,32 @@ dense:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index # [!code --]
-  index_path: index1/index.index # [!code ++]
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light # [!code --]
   model_name_or_path: Qwen/Qwen3-Embedding-0.6B # [!code ++]
@@ -481,39 +631,40 @@ dense:
   top_k: 5
 ```
 
-Run the hybrid retrieval Pipeline:
+Run Hybrid Search Pipeline:
 ```shell
 ultrarag run examples/hybrid_search.yaml
 ```
 
-### Deploy Retrieval Models
+### Deploy Retrieval Model
 
-UR-v2 is fully compatible with the **OpenAI API** interface specification, so any embedding model that conforms to this API can be integrated without extra adapters or code changes. The example below shows how to deploy a local embedding model with **vLLM**.
+UltraRAG is fully compatible with the OpenAI API interface specification, so any Embedding model that conforms to this interface standard can be directly accessed without additional adaptation or code modification.
+The following example shows how to deploy a local retrieval model using [vLLM](https://docs.vllm.ai/en/latest/cli/serve.html#parallelconfig).
 
-**Step 1: Serve the model in the background**
+**Step 1: Background Model Deployment**
 
-We recommend using **screen** to run in the background, so you can easily view logs and status.
+It is recommended to use the Screen method to run in the background to view logs and status in real time.
 
-Start a new screen session:
+Enter a new Screen session:
 
 ```shell
 screen -S retriever
 ```
 
-Launch the model (using Qwen3-Embedding-0.6B as an example):
+Execute the following command to deploy the model (taking Qwen3-Embedding-0.6B as an example):
 
 ```shell script/vllm_serve_emb.sh
-CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
+CUDA_VISIBLE_DEVICES=2 python -m vllm.entrypoints.openai.api_server \
     --served-model-name qwen-embedding \
     --model Qwen/Qwen3-Embedding-0.6B \
     --trust-remote-code \
-    --host 127.0.0.1 \
-    --port 65502 \
+    --host 0.0.0.0 \
+    --port 65504 \
     --task embed \
-    --gpu-memory-utilization 0.9
+    --gpu-memory-utilization 0.2
 ```
 
-If you see output similar to the following, the service started successfully:
+Seeing output similar to the following indicates that the model service has started successfully:
 
 ```
 (APIServer pid=2270761) INFO:     Started server process [2270761]
@@ -522,7 +673,7 @@ If you see output similar to the following, the service started successfully:
 ```
 
 Press Ctrl + A + D to exit and keep the service running in the background.
-To re-enter the session, run:
+If you need to re-enter the session, execute:
 
 ```shell
 screen -r retriever
@@ -530,7 +681,7 @@ screen -r retriever
 
 **Step 2: Modify Pipeline Parameters**
 
-Taking the corpus_search Pipeline as an example, simply switch the retriever backend to openai and set base_url to your local vLLM service:
+Taking corpus_search Pipeline as an example, just switch the retrieval backend to openai and point base_url to the local vLLM service:
 ```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -548,22 +699,22 @@ retriever:
   backend_configs:
     bm25:
       lang: en
+      save_path: index/bm25
     infinity:
       bettertransformer: false
-      device: cuda
       model_warmup: false
       pooling_method: auto
       trust_remote_code: true
     openai:
-      api_key: ''
-  base_url: https://api.openai.com/v1 # [!code --]
-  base_url: http://127.0.0.1:65502/v1 # [!code ++]
-  model_name: text-embedding-3-small # [!code --]
-  model_name: qwen-embedding # [!code ++]
+      api_key: '' # [!code --]
+      api_key: 'abc' # [!code ++]
+      base_url: https://api.openai.com/v1 # [!code --]
+      base_url: http://127.0.0.1:65504/v1 # [!code ++]
+      model_name: text-embedding-3-small # [!code --]
+      model_name: qwen-embedding # [!code ++]
     sentence_transformers:
-      device: cuda
       sentence_transformers_encode:
-        encode_chunk_size: 10000
+        encode_chunk_size: 256
         normalize_embeddings: false
         psg_prompt_name: document
         psg_task: null
@@ -571,31 +722,56 @@ retriever:
         q_task: null
       trust_remote_code: true
   batch_size: 16
+  collection_name: wiki
   corpus_path: data/corpus_example.jsonl
-  faiss_use_gpu: true
-  gpu_ids: 0,1
-  index_path: index/index.index
+  gpu_ids: '1'
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_chunk_size: 10000
+      index_path: index/index.index
+      index_use_gpu: true
+    milvus:
+      id_field_name: id
+      id_max_length: 64
+      index_chunk_size: 1000
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      text_field_name: contents
+      text_max_length: 60000
+      token: null
+      uri: index/milvus_demo.db
+      vector_field_name: vector
+  is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   query_instruction: ''
   top_k: 5
+
 ```
 
-Once configured, you can run it just like regular vector retrieval.
+After completing the configuration, you can run it just like using ordinary vector retrieval.
 
 ### Web Search API
 
-UR-v2 natively integrates three mainstream Web search APIs: [Tavily](https://www.tavily.com/), [Exa](https://exa.ai/), and [GLM](https://docs.z.ai/guides/tools/web-search). These APIs can be directly used as Retriever Server backends to enable online information retrieval and real-time knowledge augmentation.
+UltraRAG natively integrates three mainstream Web retrieval APIs: [Tavily](https://www.tavily.com/), [Exa](https://exa.ai/), and [GLM](https://docs.z.ai/guides/tools/web-search).
+These APIs can be directly used as the retrieval backend of the Retriever Server to achieve online information retrieval and real-time knowledge enhancement.
 
-**Step 1: Configure API Keys**
+**Step 1: Configure API Key**
 
-Before use, set the corresponding service's API key. You can manually export environment variables before running the Pipeline:
+You need to set the API Key of the corresponding service before use. You can manually export environment variables before running the Pipeline:
 
 ```shell
 export TAVILY_API_KEY="your retriever key"
 ```
 
-It is recommended to manage keys centrally using a `.env` configuration file. In the UR-v2 root directory, rename the template file `.env.dev` to `.env` and fill in your key information, for example:
+It is recommended to use the .env configuration file for unified management:
+In the UltraRAG root directory, rename the template file `.env.dev` to `.env`, and fill in your key information, for example:
 
 ```
 LLM_API_KEY=
@@ -604,11 +780,11 @@ TAVILY_API_KEY=tvly-dev-yourapikeyhere
 EXA_API_KEY=
 ZHIPUAI_API_KEY=
 ```
-UR-v2 will automatically read this file and load the configuration at startup.
+UltraRAG will automatically read this file and load relevant configurations at startup.
 
 **Step 2: Web Search**
 
-The following example demonstrates how to use the Tavily API for Web search:
+The following example demonstrates how to use Tavily API for Web retrieval:
 
 ```yaml examples/web_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -622,13 +798,13 @@ pipeline:
 - retriever.retriever_tavily_search
 ```
 
-Build the Pipeline:
+Compile Pipeline:
 
 ```shell
 ultrarag build examples/web_search.yaml
 ```
 
-In the generated parameter file, fill in the data path and retrieval parameters:
+Fill in the data path and retrieval parameters in the automatically generated parameter file:
 ```yaml examples/parameters/web_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -645,39 +821,38 @@ retriever:
   top_k: 5
 ```
 
-Run the following command to start the Web search flow:
+Execute the following command to start the Web retrieval process:
 ```shell
 ultrarag run examples/web_search.yaml
 ```
 
-<Note>You can replace `retriever_tavily_search` with `retriever_exa_search` or `retriever_zhipuai_search` as the Web search source.</Note>
+<Note>You can replace retriever_tavily_search with retriever_exa_search or retriever_zhipuai_search as the Web retrieval source.</Note>
 
-### Deploying the Retriever Server
+### Deploy Retriever Server
 
-When evaluating multiple benchmarks or model variants on the same corpus, re-initializing the retriever server each time leads to repeated loading of large corpora and index files — a slow and inefficient process.
+When testing multiple benchmarks or model performances under the same corpus, if the retriever server is re-initialized every time, the large corpus and index will be repeatedly loaded, which is time-consuming and inefficient.
 
-To address this, UR-v2 provides a persistent Retriever Server deployment script, allowing the retriever to stay alive on CPU or GPU, eliminating repeated loading and significantly accelerating experimentation.
+Therefore, UltraRAG provides a Resident Retriever Server Deployment Script, which allows the retriever to run on the CPU or GPU for a long time, avoiding repeated loading and accelerating the experimental process.
 
-**Step 1: Configure Parameters**
+**Step 1: Parameter Settings**
 
-Prepare a configuration file similar to the standard retriever server setup:
+Similar to ordinary retriever server, you need to prepare the configuration file first:
 
 ```json script/deploy_retriever_config.json icon="/images/json.svg"
 {
   "model_name_or_path": "openbmb/MiniCPM-Embedding-Light",
   "corpus_path": "data/corpus_example.jsonl",
+  "collection_name": "ultrarag_embeddings",
 
   "backend": "sentence_transformers",
   "backend_configs": {
     "infinity": {
       "bettertransformer": false,
       "pooling_method": "auto",
-      "device": "cuda",
       "model_warmup": false,
       "trust_remote_code": true
     },
     "sentence_transformers": {
-      "device": "cuda",
       "trust_remote_code": true,
       "sentence_transformers_encode": {
         "normalize_embeddings": false,
@@ -709,9 +884,11 @@ Prepare a configuration file similar to the standard retriever server setup:
     "milvus": {
       "uri": "index/milvus_demo.db",
       "token": null,
-      "collection_name": "ultrarag_embeddings",
       "id_field_name": "id",
       "vector_field_name": "vector",
+      "text_field_name": "contents",
+      "id_max_length": 64,
+      "text_max_length": 60000,
       "metric_type": "IP",
       "index_params": {
         "index_type": "AUTOINDEX",
@@ -727,35 +904,35 @@ Prepare a configuration file similar to the standard retriever server setup:
 
   "batch_size": 16,
   "gpu_ids": "0,1",
-  "is_multimodal": false
+  "is_multimodal": false,
+  "is_demo": false
 }
 ```
 
-**Step 2: Deploy in Background**
+**Step 2: Background Deployment**
 
-It is recommended to use Screen so the retriever server can run persistently and logs can be monitored at any time.
+It is recommended to use Screen so that the retriever can run in the background for a long time and logs can be viewed at any time.
 
-Create a new Screen session:
+Create Screen session:
 
 ```shell
 screen -S retriever
 ```
 
-Start the retriever server:
+Start retriever server:
 
-```shell script/deploy_retriever_server.py
+```python script/deploy_retriever_server.py
 python ./script/deploy_retriever_server.py \
     --config_path script/deploy_retriever_config.json \
     --host 0.0.0.0 \
     --port 64501
 ```
 
-Once launched, the server will remain in memory and no longer needs to reload the corpus or index.
+After the Server starts, it will reside in memory without repeated loading of corpus and index.
 
 **Step 3: Online Retrieval**
 
-When performing retrieval, you no longer need to initialize a retriever inside the pipeline.
-Simply specify the deployed server’s URL:
+During online retrieval, there is no need to re-initialize the retriever, just specify the deployed address in the pipeline:
 
 ```yaml examples/deploy_corpus_search.yaml icon="/images/yaml.svg" 
 #  Deploy Corpus Search Demo
@@ -771,13 +948,13 @@ pipeline:
 - retriever.retriever_deploy_search
 ```
 
-Build the pipeline:
+Run the following command to compile the Pipeline:
 
 ```shell
 ultrarag build examples/deploy_corpus_search.yaml
 ```
 
-Configure parameters:
+Modify parameters:
 ```yaml examples/parameters/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
@@ -795,24 +972,7 @@ retriever:
   top_k: 5
 ```
 
-Run the pipeline:
+Run Pipeline:
 ```shell
 ultrarag run examples/deploy_corpus_search.yaml
 ```
-
-### Saving Retrieved Documents
-
-By default, UR-v2 stores runtime results in files like `output/memory_xxx.json`.
-In many cases, however, you may want to write the retrieved documents back into the original dataset — for example, to facilitate downstream processing or to continue running additional pipelines.
-
-To support this workflow, UR-v2 provides a utility script that merges retrieval results into the original dataset and outputs an updated file:
-
-```python script/save_retrieve_results.py
-python ./script/save_retrieve_results.py \
-    --origin_data_path [your dataset path] \
-    --question_key [key name in the original dataset] \
-    --result_path [UR-v2 memory result path] \
-    --save_data_path [output dataset path]
-```
-
-After execution, the script automatically loads the dataset, aligns retrieval results, and generates a new dataset containing the retrieved document fields.

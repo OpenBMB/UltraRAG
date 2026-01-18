@@ -3,21 +3,20 @@ title: "Router"
 icon: "code-branch"
 ---
 
-<Note>It is recommended to study this section together with the tutorial [Branch Structures](/pages/en/rag_client/branch).</Note>
+<Note>It is recommended to study this section together with the tutorial [Branch Structure](/pages/en/rag_client/branch).</Note>
 
-## Purpose
+## Function
 
-In complex RAG reasoning tasks, it is often necessary to dynamically determine the next execution path based on intermediate results (for example, the model’s current output or retrieval results).  
-The **Router Server** is designed for exactly this purpose — it evaluates the current state based on input information and returns a custom branch label (state identifier) used to drive branching and dynamic control within the Pipeline.
+In complex RAG reasoning tasks, it is often necessary to dynamically decide the subsequent execution path based on intermediate results (such as the model's current generated content or retrieval results).
+The Router Server is a key component designed for this purpose — it judges the current state based on input information and returns a custom branch label (state identifier) to drive branch jumps and dynamic control in the Pipeline.
 
 ## Implementation Example
 
-The following example demonstrates how to implement a simple Router Tool.
+The following example shows how to implement a Router Tool.
 
-Suppose that in the current RAG workflow, the model needs to decide whether the retrieved documents already contain sufficient information to answer the question:  
-If the information is sufficient, the process stops; otherwise, it continues retrieval.
+Suppose in the current RAG process, the model needs to judge whether the currently retrieved documents contain enough information to answer the question: if the information is sufficient, end the process, otherwise continue retrieval.
 
-Here’s how to implement a Router Tool:
+You can implement a Router Tool like this:
 
 ```python servers/router/src/router.py icon="python"
 @app.tool(output="ans_ls->ans_ls")
@@ -37,14 +36,14 @@ def check_model_state(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     return {"ans_ls": ans_ls}
 ```
 
-This Tool adds a state label to each answer to guide the subsequent workflow execution:
+This Tool will tag each answer with a state label to guide the subsequent process execution:
 
-- `continue`: Information is insufficient — continue retrieval.  
-- `stop`: Information is sufficient — terminate the process.
+- `continue`: Insufficient information, need to continue retrieval;
+- `stop`: Information is sufficient, terminate the process.
 
 ## Usage Example
 
-The defined `Router Tool` must be used in combination with the `branch:` and `router:` structures to enable state-based dynamic branching.
+The defined `Router Tool` needs to be used in conjunction with branch structures `branch:` and `router:` to jointly realize dynamic jumps based on state labels.
 
 ```yaml examples/rag_branch.yaml icon="/images/yaml.svg" highlight="9,24,26,37"
 # MCP Server
@@ -90,6 +89,6 @@ pipeline:
 - evaluation.evaluate
 ```
 
-This example illustrates a typical iterative reasoning process:  
-When `router.check_model_state` detects that the model’s output contains the `<search>` tag, it enters the `continue` branch to perform another retrieval;  
-otherwise, it follows the `stop` branch to exit the loop.
+This example demonstrates a typical cyclic reasoning process:
+When `router.check_model_state` judges that the model output contains the `<search>` identifier, it enters the `continue` branch to continue retrieval;
+otherwise, it enters the `stop` branch to directly end the loop.

@@ -5,29 +5,34 @@ icon: "magnifying-glass"
 
 ## `retriever_init`
 
-**Signature**  
+**Signature**
 ```python
-def retriever_init(
+async def retriever_init(
     model_name_or_path: str,
     backend_configs: Dict[str, Any],
     batch_size: int,
     corpus_path: str,
-    index_path: Optional[str] = None,
-    faiss_use_gpu: bool = False,
     gpu_ids: Optional[object] = None,
     is_multimodal: bool = False,
-    backend: str = "infinity",
+    backend: str = "sentence_transformers",
+    index_backend: str = "faiss",
+    index_backend_configs: Optional[Dict[str, Any]] = None,
+    is_demo: bool = False,
+    collection_name: str = "",
 ) -> None
 ```
 
-**Function**  
-- Initializes the retrieval backend and corpus index.
+**Function**
+- Initializes retrieval service.
+- Embedding Backend (backend): Responsible for converting text/images into vectors (Infinity, SentenceTransformers, OpenAI, BM25).
+- Index Backend (index_backend): Responsible for vector storage and retrieval (FAISS, Milvus).
+- Demo Mode: If is_demo=True, forces OpenAI + Milvus configuration, ignoring some parameters.
 
 ---
 
 ## `retriever_embed`
 
-**Signature**  
+**Signature**
 ```python
 async def retriever_embed(
     embedding_path: Optional[str] = None,
@@ -36,90 +41,94 @@ async def retriever_embed(
 ) -> None
 ```
 
-**Function**  
-- Encodes corpus embeddings and saves them to `*.npy`.
+**Function**
+- (Non-Demo Mode) Batches calculation of vector representations of corpus and saves as .npy file.
+- Only applies to Dense Retriever backend (BM25 not supported).
+
 
 ---
 
 ## `retriever_index`
 
-**Signature**  
+**Signature**
 ```python
-def retriever_index(
+async def retriever_index(
     embedding_path: str,
-    index_path: Optional[str] = None,
     overwrite: bool = False,
-    index_chunk_size: int = 50000,
+    collection_name: str = "",
+    corpus_path: str = ""
 ) -> None
 ```
 
-**Function**  
-- Builds an inverted index for embeddings using FAISS.
-
----
-
-## `bm25_index`
-
-**Signature**  
-```python
-def bm25_index(
-    index_path: Optional[str] = None,
-    overwrite: bool = False,
-) -> None
-```
-
-**Function**  
-- Builds a BM25 index and saves stopwords and the vocabulary.
+**Function**
+- Builds retrieval index.
+- FAISS: Reads embedding_path (.npy) to build local index file.
+- Milvus / Demo: Reads corpus_path (.jsonl), generates vectors and inserts into specified collection_name.
 
 ---
 
 ## `retriever_search`
 
-**Signature**  
+**Signature**
 ```python
 async def retriever_search(
     query_list: List[str],
     top_k: int = 5,
     query_instruction: str = "",
+    collection_name: str = "",
 ) -> Dict[str, List[List[str]]]
 ```
 
-**Function**  
-- Standard **FAISS vector index**-based semantic retrieval supporting: `infinity` / `sentence_transformers` / `openai`.
+**Function**
+- Retrieves single or multiple queries.
+- Automatically handles query vectorization (adds query_instruction) and finds Top-K in specified collection_name (for Milvus) or default index.
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["passage 1", "passage 2"], ["..."]]} 
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
 ```
 
 ---
 
-## `retriever_search_colbert_maxsim`
+## `retriever_batch_search`
 
-**Signature**  
+**Signature**
 ```python
-async def retriever_search_colbert_maxsim(
-    query_list: List[str],
-    embedding_path: str,
+async def retriever_batch_search(
+    batch_query_list: List[List[str]],
     top_k: int = 5,
     query_instruction: str = "",
-) -> Dict[str, List[List[str]]]
+    collection_name: str = "",
+) -> Dict[str, List[List[List[str]]]]
 ```
 
-**Function**  
-- Supports **ColBERT/ColPali** multi-vector retrieval (only for the `infinity` backend).  
-- Reads `embedding_path` (shape `(N, Kd, D)` or `dtype=object` for variable-length vectors), aggregates scores via **MaxSim**, and returns top-k results.
+**Function**
+- Batch version of retriever_search, accepts nested list input.
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["passage 1", "passage 2"], ["..."]]} 
+{"ret_psg_ls": [[["psg 1-1"], ["psg 1-2"]], [["psg 2-1"]]]}
 ```
+
+---
+
+## `bm25_index`
+
+**Signature**
+```python
+async def bm25_index(
+    overwrite: bool = False,
+) -> None
+```
+
+**Function**
+- When `backend="bm25"`, builds BM25 sparse index and saves it.
 
 ---
 
 ## `bm25_search`
 
-**Signature**  
+**Signature**
 ```python
 async def bm25_search(
     query_list: List[str],
@@ -127,19 +136,41 @@ async def bm25_search(
 ) -> Dict[str, List[List[str]]]
 ```
 
-**Function**  
-- Performs BM25 inverted index retrieval and returns the top-k text results for each query.
+**Function**
+- Keyword retrieval based on BM25 algorithm.
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["passage 1", "passage 2"], ["..."]]} 
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
+```
+
+---
+
+## `retriever_deploy_search`
+
+**Signature**
+```python
+async def retriever_deploy_search(
+    retriever_url: str,
+    query_list: List[str],
+    top_k: int = 5,
+    query_instruction: str = "",
+) -> Dict[str, List[List[str]]]
+```
+
+**Function**
+- As a client, calls remote retrieval service deployed at retriever_url for query.
+
+**Output Format (JSON)**
+```json
+{"ret_psg": [["passage 1", "passage 2"], ["..." ]]} 
 ```
 
 ---
 
 ## `retriever_exa_search`
 
-**Signature**  
+**Signature**
 ```python
 async def retriever_exa_search(
     query_list: List[str],
@@ -148,19 +179,19 @@ async def retriever_exa_search(
 ) -> Dict[str, List[List[str]]]
 ```
 
-**Function**  
-- Performs **Exa Web Search** (requires `EXA_API_KEY`).
+**Function**
+- Calls **Exa** Web retrieval (requires `EXA_API_KEY`).
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["snippet 1", "snippet 2"], ["..."]]} 
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
 ```
 
 ---
 
 ## `retriever_tavily_search`
 
-**Signature**  
+**Signature**
 ```python
 async def retriever_tavily_search(
     query_list: List[str],
@@ -169,19 +200,19 @@ async def retriever_tavily_search(
 ) -> Dict[str, List[List[str]]]
 ```
 
-**Function**  
-- Performs **Tavily Web Search** (requires `TAVILY_API_KEY`).
+**Function**
+- Calls **Tavily** Web retrieval (requires `TAVILY_API_KEY`).
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["snippet 1", "snippet 2"], ["..."]]} 
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
 ```
 
 ---
 
 ## `retriever_zhipuai_search`
 
-**Signature**  
+**Signature**
 ```python
 async def retriever_zhipuai_search(
     query_list: List[str],
@@ -190,38 +221,38 @@ async def retriever_zhipuai_search(
 ) -> Dict[str, List[List[str]]]
 ```
 
-**Function**  
-- Performs **ZhipuAI Web Search** (requires `ZHIPUAI_API_KEY`).
+**Function**
+- Calls **ZhipuAI** `web_search` (requires `ZHIPUAI_API_KEY`).
 
-**Output Format (JSON)**  
+**Output Format (JSON)**
 ```json
-{"ret_psg": [["snippet 1", "snippet 2"], ["..."]]} 
+{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
 ```
+
 
 ---
 
-## Parameter Configuration
+## Configuration
 
 ```yaml servers/retriever/parameter.yaml icon="/images/yaml.svg"
 model_name_or_path: openbmb/MiniCPM-Embedding-Light
 corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
-index_path: index/index.index
+collection_name: wiki
 
+# Embedding Backend Configuration
 backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
 backend_configs:
   infinity:
     bettertransformer: false
     pooling_method: auto
-    device: cuda
     model_warmup: false
     trust_remote_code: true
   sentence_transformers:
-    device: cuda
     trust_remote_code: true
     sentence_transformers_encode:
       normalize_embeddings: false
-      encode_chunk_size: 10000
+      encode_chunk_size: 256
       q_prompt_name: query
       psg_prompt_name: document
       psg_task: null
@@ -229,64 +260,104 @@ backend_configs:
   openai:
     model_name: text-embedding-3-small
     base_url: "https://api.openai.com/v1"
-    api_key: ""
+    api_key: "abc"
   bm25:
     lang: en
+    save_path: index/bm25
+
+# Index Backend Configuration
+index_backend: faiss # options: faiss, milvus
+index_backend_configs:
+  faiss:
+    index_use_gpu: True
+    index_chunk_size: 10000
+    index_path: index/index.index
+  milvus:
+    uri: index/milvus_demo.db # Local file for Lite, or http://host:port
+    token: null
+    id_field_name: id
+    vector_field_name: vector
+    text_field_name: contents
+    index_params:
+      index_type: AUTOINDEX
+      metric_type: IP
 
 batch_size: 16
 top_k: 5
-gpu_ids: "0,1"
+gpu_ids: "1"
 query_instruction: ""
 is_multimodal: false
-faiss_use_gpu: True
 overwrite: false
-index_chunk_size: 50000
 retrieve_thread_num: 1
+retriever_url: "http://127.0.0.1:64501"
+is_demo: false
 ```
 
 Parameter Description:
 
 | Parameter | Type | Description |
-|------------|------|-------------|
-| `model_name_or_path` | str | Path or name of the retrieval model (e.g., HuggingFace model ID) |
-| `corpus_path` | str | Path to the input corpus JSONL file |
-| `embedding_path` | str | Path to save the vector embeddings (`.npy`) |
-| `index_path` | str | Path to save the FAISS/BM25 index (`.index`) |
-| `backend` | str | Selects the retrieval backend: `infinity`, `sentence_transformers`, `openai`, `bm25` |
-| `backend_configs` | dict | Backend-specific configuration (see below) |
-| `batch_size` | int | Batch size for embedding generation or retrieval |
-| `top_k` | int | Number of passages to return |
-| `gpu_ids` | str | Visible GPU devices, e.g., `"0,1"` |
-| `query_instruction` | str | Query prefix (used in instruction-tuned models) |
-| `is_multimodal` | bool | Enables multimodal embedding (e.g., images) |
-| `faiss_use_gpu` | bool | Whether to use GPU acceleration for FAISS |
-| `overwrite` | bool | Whether to overwrite existing embeddings or index files |
-| `index_chunk_size` | int | Number of vectors per batch during index building |
-| `retrieve_thread_num` | int | Number of concurrent threads for external web retrieval (Exa/Tavily/Zhipu) |
+|---|---|---|
+| `model_name_or_path` | str | Retrieval model path or name (e.g., HuggingFace model ID) |
+| `corpus_path` | str | Input corpus JSONL file path |
+| `embedding_path` | str | Vector file save path (`.npy`) |
+| `collection_name` | str | Milvus collection name |
+| `backend` | str | Select retrieval backend: `infinity`, `sentence_transformers`, `openai`, `bm25` |
+| `index_backend` | str | Index backend: `faiss`, `milvus` |
+| `backend_configs` | dict | Parameter configuration for each backend (see table below) |
+| `index_backend_configs` | dict | Parameter configuration for each index backend (see table below) |
+| `batch_size` | int | Batch size for vector generation or retrieval |
+| `top_k` | int | Number of returned candidate passages |
+| `gpu_ids` | str | Specify visible GPU devices, e.g., `"0,1"` |
+| `query_instruction` | str | Query prefix (used by instruction-tuning models) |
+| `is_multimodal` | bool | Whether to enable multimodal embedding (e.g., image) |
+| `overwrite` | bool | Whether to overwrite if embedding or index file already exists |
+| `retrieve_thread_num` | int | Concurrent thread number for external Web retrieval (Exa/Tavily/Zhipu) |
+| `retriever_url` | str | URL of deployed retriever server |
+| `is_demo` | bool | Demo mode switch (forces OpenAI+Milvus, simplified configuration) |
 
-### `backend_configs` Subfields:
+`backend_configs` Sub-items:
 
-| Backend | Parameter | Description |
-|----------|------------|-------------|
-| **infinity** | `bettertransformer` | Enables optimized inference acceleration |
-|  | `pooling_method` | Pooling method (e.g., `auto`, `mean`) |
-|  | `device` | Execution device (`cuda` or `cpu`) |
-|  | `model_warmup` | Whether to preload the model into GPU memory |
-|  | `trust_remote_code` | Whether to trust remote custom code (for custom models) |
-| **sentence_transformers** | `device` | Execution device (`cuda` or `cpu`) |
-|  | `trust_remote_code` | Allows loading models with custom code |
-|  | `sentence_transformers_encode` | Advanced encoding parameters (see below) |
-| **openai** | `model_name` | OpenAI model name (e.g., `text-embedding-3-small`) |
-|  | `base_url` | API base URL |
-|  | `api_key` | OpenAI API key |
-| **bm25** | `lang` | Language setting (determines stopwords and tokenizer) |
+| Backend | Parameter | Type | Description |
+|-------|---|---|---|
+| **infinity** | `bettertransformer` | bool| Whether to enable efficient inference optimization |
+|  | `pooling_method` | str| Pooling method (e.g., `auto`, `mean`) |
+|  | `model_warmup` |bool | Whether to preload model into VRAM |
+|  | `trust_remote_code` |bool | Whether to trust remote code (Applicable to custom models) |
+| **sentence_transformers** | `trust_remote_code` | bool| Whether to trust remote model code |
+|  | `sentence_transformers_encode` |dict | Encoding detailed parameters, see table below |
+| **openai** | `model_name` | str| OpenAI model name (e.g., `text-embedding-3-small`) |
+|  | `base_url` | str| API base address |
+|  | `api_key` | str| OpenAI API Key |
+| **bm25** | `lang` | str| Language (determines stop words and tokenizer) |
+|  | `save_path` | str| Save directory for BM25 sparse index |
 
-### `sentence_transformers_encode` Parameters
+`sentence_transformers_encode` Parameters:
 
 | Parameter | Type | Description |
-|------------|------|-------------|
+|---|---|---|
 | `normalize_embeddings` | bool | Whether to normalize vectors |
-| `encode_chunk_size` | int | Chunk size during encoding (to prevent OOM) |
+| `encode_chunk_size` | int | Encoding chunk size (avoid VRAM overflow) |
 | `q_prompt_name` | str | Query template name |
 | `psg_prompt_name` | str | Passage template name |
-| `q_task` / `psg_task` | str/null | Task tags (if prompt adaptation is needed) |
+| `q_task`| str | Task description (for cases where specific models need to specify Task) |
+| `psg_task`| str | Task description (for cases where specific models need to specify Task) |
+
+
+`index_backend_configs` Parameters:
+
+| Backend | Parameter | Type | Description |
+|-------|---|---|---|
+|faiss	|index_use_gpu|	bool |Whether to use GPU for building and retrieving index|
+| |index_chunk_size	|int| Batch size when building index|
+| |index_path	|str| Save path for FAISS index file (.index)|
+|milvus|	uri|	str| Milvus connection address (Local file path enables Milvus Lite)|
+||token	|str |Auth Token (if needed)|
+||id_field_name	|str |Primary key field name (default id)|
+||vector_field_name|	str|Vector field name (default vector)|
+||text_field_name|	str |Text content field name (default contents)|
+||id_max_length	|int| Maximum length of string primary key|
+||text_max_length|	int |Maximum length of text field (truncated if exceeded)|
+||metric_type|	str |Distance metric type (e.g., IP inner product, L2 Euclidean distance)|
+||index_params|	Dict| Index construction parameters (e.g., index_type: AUTOINDEX)|
+||search_params	|Dict |Retrieval parameters (e.g., nprobe etc.)|
+||index_chunk_size|	int| Batch size when inserting data|

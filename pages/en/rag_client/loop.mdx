@@ -3,8 +3,7 @@ title: "Loop Structure"
 icon: "rotate-right"
 ---
 
-In tasks such as multi-turn reasoning, multi-hop question answering, or iterative retrieval, a single execution often fails to produce an ideal final answer.  
-In such cases, a **loop structure** can be used to repeatedly execute specific modules, enabling gradual information refinement and continuous optimization of results.
+In tasks such as multi-turn reasoning, multi-hop Q&A, or multi-turn retrieval, a single execution process often fails to obtain an ideal final answer. In this case, a Loop Structure can be used to repeatedly execute specific modules, thereby achieving iterative information refinement and continuous result optimization.
 
 ## Usage Example
 
@@ -43,10 +42,10 @@ pipeline:
 - evaluation.evaluate
 ```
 
-In a loop structure, the Pipeline uses the following keywords to define the tools that should be executed repeatedly:
+In the loop structure, the Pipeline uses the following keywords to define tool modules that need to be executed repeatedly:
 
-- `loop`: Declares a loop block, indicating that the enclosed steps will be executed multiple times.  
-- `times`: Specifies the maximum number of iterations.  
-- `steps`: Defines the sequence of tool invocations within each iteration.
+- `loop`: Declares a loop block, indicating that the steps inside it will be executed repeatedly;
+- `times`: Specifies the maximum number of iterations for the loop;
+- `steps`: Defines the sequence of tool calls to be executed in each round of the loop.
 
-<Note>If you wish to dynamically control loop termination conditions, you can combine the **Branch Structure (branch)** with the **Router Server**. See [Branch Structure](/pages/en/rag_client/branch) for details.</Note>
+<Note>If you wish to dynamically control loop termination conditions, you can use it in conjunction with the Branch Structure (branch) and Router Server. See [Branch Structure](/pages/en/rag_client/branch) for details.</Note>

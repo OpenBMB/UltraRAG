@@ -3,43 +3,47 @@ title: "Introduction"
 icon: "hand-wave"
 ---
 
-## UltraRAG v2
+## UltraRAG
 
-**UltraRAG v2 (UR-v2)** is the first lightweight framework for building Retrieval-Augmented Generation (RAG) systems based on the [**Model Context Protocol (MCP)**](https://modelcontextprotocol.io/docs/getting-started/intro) architecture. It is designed to provide efficient modeling support for scientific research and exploration. UR-v2 standardizes core RAG components—such as [**Retriever**](/pages/en/rag_servers/retriever) and [**Generation**](/pages/en/rag_servers/generation)—into independent MCP Servers, and enables flexible integration and extension through function-level **Tool** interfaces. With the MCP Client serving as a process scheduler, developers can build complex reasoning pipelines featuring **sequential**, **loop**, and **conditional branching** structures simply by writing concise **YAML** files. This approach significantly lowers the technical barriers and learning curve for developing and debugging sophisticated RAG systems.
+UltraRAG is the first lightweight RAG development framework designed based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture, specifically built for research exploration and industrial prototyping. It standardizes core RAG components (such as [Retriever](/pages/en/rag_servers/retriever), [Generation](/pages/en/rag_servers/generation), etc.) into independent MCP Servers, enabling flexible extension based on function-level Tool interfaces. Leveraging the process scheduling capabilities of the MCP Client, developers can achieve precise orchestration of complex control structures (such as conditions, loops, etc.) through YAML configuration. Furthermore, the system supports seamless migration of algorithmic logic to conversational demo interfaces, greatly optimizing the full-link efficiency of complex RAG system development.
 
 <p align="center">
   <img src="/images/getting_started/intro.png" width="95%" />
 </p>
+<Columns cols={2}>
 
-<Columns cols={3}>
-
-  <Card title="📑 Pipeline">
-    A YAML-based process definition file used to describe the execution order and logic of component and tool calls.
+  <Card title="📑 Pipeline · Process Definition">
+    **Core Blueprint**: Task logic written by users via YAML, defining the execution order and business logic of each component, realizing configurable inference processes.
   </Card>
-  <Card title="🕹️ Client">
-    The central controller of the workflow that parses the Pipeline and coordinates the execution order of Tools across different Servers.
+  <Card title="🕹️ Client · Scheduling Hub">
+    **Command Center**: Responsible for parsing Pipeline configurations, unifying the coordination of tool calls and data transfer between Servers, ensuring precise process execution.
   </Card>
-  <Card title="🔧 Server">
-    A collection of independently callable functional modules. Developers can easily add new features or modules via standardized interfaces for flexible extension and efficient composition.
+  <Card title="⚙️ Server · Functional Execution">
+    **Capability Carrier**: Standardizes core functions into independent services, supporting rapid extension and flexible combination of new modules through simple interfaces.
+  </Card>
+  <Card title="🖥️ UI · Interactive Demo">
+    **Visual Portal**: Instantly converts logic defined in YAML into an intuitive conversational Web UI with a single command, significantly improving system debugging efficiency and demonstration effects.
   </Card>
 </Columns>
 
-In addition, UR-v2 provides step-by-step tutorials, integrates multiple mainstream benchmark tasks and high-quality baselines, and offers a unified evaluation system and knowledge base to greatly improve development efficiency and ensure experimental reproducibility.
+## Why UltraRAG?
 
-## Why UltraRAG v2?
+RAG systems are undergoing a paradigm shift from static chain concatenation to autonomous reasoning systems, increasingly relying on the model's active reasoning, dynamic retrieval, and conditional decision-making. However, traditional frameworks often face bottlenecks such as lack of flexibility, deep module coupling, and loose structures when dealing with multi-turn interactions and dynamic updates, making it difficult for researchers to efficiently reproduce and horizontally compare results.
 
-RAG systems are evolving from simple, modular pipelines into complex architectures that rely on **model-driven reasoning**, **dynamic retrieval**, and **conditional decision-making**. Traditional frameworks often lack the flexibility and scalability required for multi-turn interactions and adaptive information updates. Furthermore, existing open-source implementations typically lack a unified paradigm, leading to tightly coupled and inconsistent baseline modules that hinder understanding, reproducibility, and comparative research.
+UltraRAG aims to break this deadlock by providing developers with a standardized, decoupled, and minimalist new development paradigm:
 
-To address these challenges, **UltraRAG v2** is designed to offer:
-
-<Card title="🚀 Low-code construction of complex pipelines">
-  Natively supports sequential, looping, and conditional reasoning structures. Developers can implement iterative RAG workflows by writing simple YAML files with just a few dozen lines of code.
+<Card title="🚀 Low-Code Orchestration of Complex Processes">
+  **Inference Orchestration**: Natively supports control structures such as serial, loop, and conditional branching. Developers only need to write a YAML configuration file to implement complex iterative RAG logic within dozens of lines of code.
 </Card>
 
-<Card title="⚡ Rapid reproduction and extensibility">
-  Built on the MCP architecture, all modules are encapsulated as independent and reusable Servers. Each function is registered as a Tool, allowing new functionalities to be seamlessly integrated into the overall pipeline with minimal effort.
+<Card title="⚡ Modular Extension and Reproduction">
+  **Atomic Servers**: Decouples functions into independent Servers based on the MCP architecture. New functions only need to be registered as function-level Tools to seamlessly integrate into the process, achieving extremely high reusability.
 </Card>
 
-<Card title="📊 Unified evaluation and benchmarking">
-  Provides standardized evaluation workflows and metric management, supports multiple mainstream [**Benchmark**](/pages/en/develop_guide/dataset) datasets out of the box, and continuously integrates new baselines to enhance research reproducibility and optimization efficiency.
+<Card title="📊 Unified Evaluation and Benchmark Comparison">
+  **Research Efficiency**: Built-in standardized evaluation processes, ready-to-use mainstream scientific research [Benchmarks](/pages/en/develop_guide/dataset). Through unified metric management and baseline integration, the reproducibility of experiments and comparison efficiency are significantly improved.
+</Card>
+
+<Card title="✨ Rapid Prototyping of Interactions">
+  **One-Click Delivery**: Say goodbye to tedious UI development. With just one command, Pipeline logic can be instantly converted into an interactable conversational Web UI, shortening the distance from algorithm to demonstration.
 </Card>

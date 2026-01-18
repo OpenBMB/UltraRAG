@@ -3,19 +3,22 @@ title: "Corpus"
 icon: "file"
 ---
 
+
 ## `build_text_corpus`
 
-**Signature**  
+**Signature**
 ```python
 @app.tool(output="parse_file_path,text_corpus_save_path->None")
 async def build_text_corpus(parse_file_path: str, text_corpus_save_path: str) -> None
 ```
 
-**Function**  
-- Supports **.txt / .md**, as well as **.pdf / .xps / .oxps / .epub / .mobi / .fb2** (pure text extraction via `pymupdf`).  
-- Recursively processes directories in folder mode.
+**Function**
+- Supports .txt / .md;
+- Supports .docx (reads paragraphs and tables);
+- Supports .pdf / .xps / .oxps / .epub / .mobi / .fb2 (pure text extraction via pymupdf).
+- Recursively processes in directory mode.
 
-**Output Format (JSONL)**  
+**Output Format (JSONL)**
 ```json
 {"id": "<stem>", "title": "<stem>", "contents": "<full text>"}
 ```
@@ -23,17 +26,17 @@ async def build_text_corpus(parse_file_path: str, text_corpus_save_path: str) ->
 
 ## `build_image_corpus`
 
-**Signature**  
+**Signature**
 ```python
 @app.tool(output="parse_file_path,image_corpus_save_path->None")
 async def build_image_corpus(parse_file_path: str, image_corpus_save_path: str) -> None
 ```
 
-**Function**  
-- **PDF only**: renders each page into a JPG (RGB) image at 144 DPI and validates file integrity.  
-- Recursively processes directories in folder mode.
+**Function**
+- **Only supports PDF**: Renders each page as JPG (RGB) at 144DPI and validates file validity.
+- Recursively processes in directory mode.
 
-**Output Index (JSONL)**  
+**Output Index (JSONL)**
 ```json
 {"id": 0, "image_id": "paper/page_0.jpg", "image_path": "image/paper/page_0.jpg"}
 ```
@@ -41,29 +44,39 @@ async def build_image_corpus(parse_file_path: str, image_corpus_save_path: str) 
 
 ## `mineru_parse`
 
-**Signature**  
+**Signature**
 ```python
 @app.tool(output="parse_file_path,mineru_dir,mineru_extra_params->None")
-async def mineru_parse(parse_file_path: str, mineru_dir: str, mineru_extra_params: Optional[Dict[str, Any]] = None) -> None
+async def mineru_parse(
+    parse_file_path: str, 
+    mineru_dir: str, 
+    mineru_extra_params: Optional[Dict[str, Any]] = None
+) -> None
 ```
 
-**Function**  
-- Invokes the CLI tool `mineru` for structured parsing of PDFs or directories, and outputs results to `mineru_dir`.  
+**Function**
+- Calls CLI `mineru` to structurally parse PDF/directory and outputs to `mineru_dir`.
 
 ---
 
 ## `build_mineru_corpus`
 
-**Signature**  
+**Signature**
 ```python
-@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
-async def build_mineru_corpus(mineru_dir: str, parse_file_path: str, text_corpus_save_path: str, image_corpus_save_path: str) -> None
+@app.tool(output="mineru_dir,parse_file_path,text_corpus_save_path,image_corpus_save_path->None")
+async def build_mineru_corpus(
+    mineru_dir: str, 
+    parse_file_path: str, 
+    text_corpus_save_path: str, 
+    image_corpus_save_path: str
+) -> None
 ```
 
-**Function**  
-- Aggregates MinerU parsing results into **text corpus JSONL** and **image index JSONL**.  
+**Function**
+- Aggregates MinerU parsing artifacts into **Text Corpus JSONL** and **Image Index JSONL**.
 
-**Output Format (JSONL)**  
+
+**Output Format (JSONL)**
 - Text:
 ```json
 {"id": "<stem>", "title": "<stem>", "contents": "<markdown full text>"}
@@ -76,32 +89,38 @@ async def build_mineru_corpus(mineru_dir: str, parse_file_path: str, text_corpus
 
 ## `chunk_documents`
 
-**Signature**  
+**Signature**
 ```python
-@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,chunk_path,use_title->None")
+@app.tool(output="raw_chunk_path,chunk_backend_configs,chunk_backend,tokenizer_or_token_counter,chunk_size,chunk_path,use_title->None")
 async def chunk_documents(
-  raw_chunk_path: str,
-  chunk_backend_configs: Dict[str, Any],
-  chunk_backend: str = "token",
-  chunk_path: Optional[str] = None,
-  use_title: bool = True,
+    raw_chunk_path: str,
+    chunk_backend_configs: Dict[str, Any],
+    chunk_backend: str = "token",
+    tokenizer_or_token_counter: str = "character",
+    chunk_size: int = 256,
+    chunk_path: Optional[str] = None,
+    use_title: bool = True,
 ) -> None
 ```
 
-**Function**  
-- Splits the input text corpus (JSONL containing `id/title/contents`) into paragraph chunks using the selected backend: supports `token` / `sentence` / `recursive`.  
-- Optionally attaches the document title at the beginning of each chunk (`use_title`).  
+**Function**
+- Chunks input text corpus (JSONL, containing `id/title/contents`) into paragraphs using selected backend:
+- Chunk Backend: Supports `token` / `sentence` / `recursive`.
+- Tokenizer: `tokenizer_or_token_counter` can be `word`, `character`, or `tiktoken` encoding name (e.g., `gpt2`).
+- Chunk Size: Controls block size via `chunk_size` (overlap defaults to size/4).
+- Optionally appends document title to the beginning of each block (`use_title`).
 
-**Output Format (JSONL)**  
+**Output Format (JSONL)**
 ```json
-{"id": 0, "doc_id": "paper", "title": "paper", "contents": "chunked text"}
+{"id": 0, "doc_id": "paper", "title": "paper", "contents": "Chunked text"}
 ```
 
 ---
 
-## Parameter Configuration
+## Configuration
 
 ```yaml servers/corpus/parameter.yaml icon="/images/yaml.svg"
+# servers/corpus/parameter.yaml
 parse_file_path: data/UltraRAG.pdf
 text_corpus_save_path: corpora/text.jsonl
 image_corpus_save_path: corpora/image.jsonl
@@ -115,51 +134,43 @@ mineru_extra_params:
 raw_chunk_path: corpora/text.jsonl
 chunk_path: corpora/chunks.jsonl
 use_title: false
-chunk_backend: token # choices=["token", "sentence", "recursive"]
+chunk_backend: sentence # choices=["token", "sentence", "recursive"]
+tokenizer_or_token_counter: character
+chunk_size: 512
 chunk_backend_configs:
   token:
-    tokenizer_or_token_counter: gpt2
-    chunk_size: 256
     chunk_overlap: 50
   sentence:
-    tokenizer_or_token_counter: character
-    chunk_size: 256
     chunk_overlap: 50
     min_sentences_per_chunk: 1
-    delim: "['.', '!', '?', '\\n']"
+    delim: "['.', '!', '?', '；', '。', '！', '？', '\\n']"
   recursive:
-    tokenizer_or_token_counter: character
-    chunk_size: 256
     min_characters_per_chunk: 12
 ```
 
-### Parameter Description
+Parameter Description:
 
 | Parameter | Type | Description |
-|------------|------|-------------|
-| `parse_file_path` | str | Path to the input file or directory (supports text or PDF) |
-| `text_corpus_save_path` | str | Output path for text corpus (JSONL) |
-| `image_corpus_save_path` | str | Output path for image corpus index (JSONL) |
-| `mineru_dir` | str | Output directory for MinerU results |
-| `mineru_extra_params` | dict | Additional MinerU parameters, such as `source`, `layout`, etc. |
-| `raw_chunk_path` | str | Input file path for chunking |
-| `chunk_path` | str | Output file path for chunking |
-| `use_title` | bool | Whether to prepend the document title to each chunk |
-| `chunk_backend` | str | Chunking method: `token`, `sentence`, or `recursive` |
-| `chunk_backend_configs` | dict | Configuration for each chunking method (see below) |
+|---|---|---|
+| `parse_file_path` | str | Input file or directory path |
+| `text_corpus_save_path` | str | Text corpus output path (JSONL) |
+| `image_corpus_save_path` | str | Image corpus index output path (JSONL) |
+| `mineru_dir` | str | MinerU output root directory |
+| `mineru_extra_params` | dict | MinerU extra parameters, such as `source`, `layout`, etc. |
+| `raw_chunk_path` | str | Chunking input file path (JSONL format) |
+| `chunk_path` | str | Chunking output path |
+| `use_title` | bool | Whether to append document title to the beginning of each chunk |
+| `chunk_backend` | str | Select chunking method: `token`, `sentence`, `recursive` |
+| `tokenizer_or_token_counter` | str | Tokenizer or counting method. Options: `word`, `character` or `tiktoken` model name (e.g., `gpt2`) |
+| `chunk_size` | int | Target size for each chunk |
+| `chunk_backend_configs` | dict | Configuration items for each chunking method (see below) |
 
-### Detailed Parameters for `chunk_backend_configs`
+`chunk_backend_configs` Detailed Parameters:
 
 | Backend Type | Parameter | Description |
-|---------------|------------|--------------|
-| **token** | `tokenizer_or_token_counter` | Name of tiktoken tokenizer or use “word” / “character” |
-|  | `chunk_size` | Maximum number of tokens per chunk |
-|  | `chunk_overlap` | Number of overlapping tokens between chunks |
-| **sentence** | `tokenizer_or_token_counter` | Same as above |
-|  | `chunk_size` | Maximum number of tokens per chunk |
-|  | `chunk_overlap` | Number of overlapping tokens between chunks |
+|---|---|---|
+| **token** | `chunk_overlap` | Overlapping tokens between chunks |
+| **sentence** | `chunk_overlap` | Overlapping count between chunks |
 |  | `min_sentences_per_chunk` | Minimum number of sentences per chunk |
-|  | `delim` | Sentence delimiters (supports both Chinese and English punctuation) |
-| **recursive** | `tokenizer_or_token_counter` | Same as above |
-|  | `chunk_size` | Maximum number of tokens per chunk |
-|  | `min_characters_per_chunk` | Minimum number of characters per chunk |
+|  | `delim` | Sentence delimiter list (Python list in string format) |
+| **recursive** | `min_characters_per_chunk` | Minimum character unit for recursive splitting |
