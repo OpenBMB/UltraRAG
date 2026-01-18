@@ -5,7 +5,7 @@ corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
 collection_name: wiki
 
-backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
+backend: infinity # options: infinity, sentence_transformers, openai, bm25
 backend_configs:
   infinity:
     bettertransformer: false
@@ -17,7 +17,7 @@ backend_configs:
     sentence_transformers_encode:
       normalize_embeddings: false
       encode_chunk_size: 256
-      q_prompt_name: query
+      q_prompt_name: null
       psg_prompt_name: document
       psg_task: null
       q_task: null
@@ -54,10 +54,10 @@ index_backend_configs:
     index_chunk_size: 1000
 
 batch_size: 16
-top_k: 5
+top_k: 20
 # GPU-first default. Override to null (or set RETRIEVER_FORCE_CPU=1) for CPU-only.
 gpu_ids: "0"
-query_instruction: ""
+query_instruction: "Query: "
 is_multimodal: false
 overwrite: false
 retrieve_thread_num: 1

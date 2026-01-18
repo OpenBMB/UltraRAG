@@ -796,8 +796,8 @@ class Retriever:
     async def retriever_search(
         self,
         query_list: List[str],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
         collection_name: str = "",
     ) -> Dict[str, List[List[str]]]:
 
@@ -910,8 +910,8 @@ class Retriever:
     async def retriever_batch_search(
         self,
         batch_query_list: List[List[str]],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
         collection_name: str = "",
     ) -> Dict[str, List[List[List[str]]]]:
 
@@ -937,8 +937,8 @@ class Retriever:
         self,
         retriever_url: str,
         query_list: List[str],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
     ) -> Dict[str, List[List[str]]]:
         from urllib.parse import urlparse, urlunparse
         import aiohttp
@@ -1020,7 +1020,7 @@ class Retriever:
     async def bm25_search(
         self,
         query_list: List[str],
-        top_k: int = 5,
+        top_k: int = 20,
     ) -> Dict[str, List[List[str]]]:
         results = []
         q_toks = self.tokenizer.tokenize(
@@ -1058,7 +1058,7 @@ class Retriever:
     async def retriever_exa_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 
@@ -1109,7 +1109,7 @@ class Retriever:
     async def retriever_tavily_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 
@@ -1168,7 +1168,7 @@ class Retriever:
     async def retriever_zhipuai_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 

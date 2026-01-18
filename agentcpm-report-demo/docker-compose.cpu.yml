@@ -79,9 +79,9 @@ services:
         # CPU torch wheels
         TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/cpu}
         INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
-        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-}
+        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all}
         # CPU deps: torch(cpu) + faiss-cpu + sentence-transformers + infinity-emb (cpu ok)
-        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-cpu pymilvus chonkie tiktoken infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
+        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-cpu pymilvus chonkie>=1.5.2 tiktoken>=0.7.0 hf-transfer infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
     image: ultrarag:v3-dev-cpu
     working_dir: /ultrarag
     depends_on:
@@ -105,7 +105,7 @@ services:
       - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
       # Generation: OpenAI backend -> llama.cpp server
       - LLM_BACKEND=${LLM_BACKEND:-openai}
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
       - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
       - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
     volumes:
@@ -118,50 +118,50 @@ services:
       - ultrarag_ui_pipelines_parameter_cpu:/ultrarag/ui/pipelines/parameter
       - ultrarag_ui_pipelines_server_cpu:/ultrarag/ui/pipelines/server
       # Force CPU parameter files for servers
-      - ./UltraRAG/servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
-      - ./UltraRAG/servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
+      - ../servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
+      - ../servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
     ports:
       - "${ULTRARAG_UI_PORT_CPU:-5050}:5050"
     command: ["sh", "-lc", "sh script/ui_entrypoint.sh ui"]
 
-  # CPU-only UltraRAG UI (admin mode)
-  ultrarag-ui-admin:
-    build: *ultrarag_build_cpu
-    image: ultrarag:v3-dev-cpu
-    working_dir: /ultrarag
-    depends_on:
-      - milvus
-      - llama-cpp
-    environment:
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
-      - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
-      - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
-      - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
-      - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
-      - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
-      - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
-      - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
-      - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cpu}
-      - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
-      - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-1}
-      - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
-      - LLM_BACKEND=${LLM_BACKEND:-openai}
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
-      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
-      - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
-    volumes:
-      - ultrarag_output_cpu:/ultrarag/output
-      - ultrarag_kb_cpu:/ultrarag/data/knowledge_base
-      - hf_cache_cpu:/root/.cache/huggingface
-      - ultrarag_examples_parameter_cpu:/ultrarag/examples/parameter
-      - ultrarag_examples_server_cpu:/ultrarag/examples/server
-      - ultrarag_ui_pipelines_parameter_cpu:/ultrarag/ui/pipelines/parameter
-      - ultrarag_ui_pipelines_server_cpu:/ultrarag/ui/pipelines/server
-      - ./UltraRAG/servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
-      - ./UltraRAG/servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
-    ports:
-      - "${ULTRARAG_ADMIN_UI_PORT_CPU:-5051}:5050"
-    command: ["sh", "-lc", "sh script/ui_entrypoint.sh admin"]
+  # # CPU-only UltraRAG UI (admin mode)
+  # ultrarag-ui-admin:
+  #   build: *ultrarag_build_cpu
+  #   image: ultrarag:v3-dev-cpu
+  #   working_dir: /ultrarag
+  #   depends_on:
+  #     - milvus
+  #     - llama-cpp
+  #   environment:
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+  #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+  #     - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
+  #     - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
+  #     - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
+  #     - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
+  #     - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
+  #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cpu}
+  #     - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+  #     - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-1}
+  #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
+  #     - LLM_BACKEND=${LLM_BACKEND:-openai}
+  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+  #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
+  #   volumes:
+  #     - ultrarag_output_cpu:/ultrarag/output
+  #     - ultrarag_kb_cpu:/ultrarag/data/knowledge_base
+  #     - hf_cache_cpu:/root/.cache/huggingface
+  #     - ultrarag_examples_parameter_cpu:/ultrarag/examples/parameter
+  #     - ultrarag_examples_server_cpu:/ultrarag/examples/server
+  #     - ultrarag_ui_pipelines_parameter_cpu:/ultrarag/ui/pipelines/parameter
+  #     - ultrarag_ui_pipelines_server_cpu:/ultrarag/ui/pipelines/server
+  #     - ../servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
+  #     - ../servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
+  #   ports:
+  #     - "${ULTRARAG_ADMIN_UI_PORT_CPU:-5051}:5050"
+  #   command: ["sh", "-lc", "sh script/ui_entrypoint.sh admin"]
 
 volumes:
   ultrarag_output_cpu:

@@ -32,7 +32,7 @@ ensure_kb_deps() {
     return 0
   fi
   echo "[ui prebuild] installing missing deps: chonkie tiktoken"
-  if ! pip install --no-cache-dir chonkie tiktoken; then
+  if ! pip install --no-cache-dir "chonkie>=1.5.2" "tiktoken>=0.7.0"; then
     echo "[ui prebuild] WARN: failed to install chonkie/tiktoken (will continue)" >&2
   fi
 }

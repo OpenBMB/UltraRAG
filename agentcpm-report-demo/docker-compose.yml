@@ -4,34 +4,34 @@ services:
   # - RETRIEVER_BACKEND=openai
   # - RETRIEVER_OPENAI_BASE_URL=http://infinity-embed:7997/v1
   # - RETRIEVER_OPENAI_MODEL=openbmb/MiniCPM-Embedding-Light
-  infinity-embed:
-    image: ${INFINITY_IMAGE:-michaelfeil/infinity:latest}
-    # If you have NVIDIA Container Toolkit, you can keep this for GPU acceleration.
-    # If not, remove/comment it and set INFINITY_DEVICE=cpu.
-    runtime: nvidia
-    environment:
-      - INFINITY_MODEL_ID=${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}
-      - INFINITY_PORT=${INFINITY_PORT:-7997}
-      - INFINITY_DEVICE=${INFINITY_DEVICE:-cuda}
-      - INFINITY_TRUST_REMOTE_CODE=${INFINITY_TRUST_REMOTE_CODE:-true}
-    # NOTE: Infinity CLI/flags can differ by image version. If your image uses a different entrypoint,
-    # adjust this `command` accordingly.
-    command:
-      [
-        "v2",
-        "--model-id",
-        "${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}",
-        "--port",
-        "${INFINITY_PORT:-7997}",
-        "--host",
-        "0.0.0.0",
-        "--trust-remote-code",
-        "${INFINITY_TRUST_REMOTE_CODE:-true}"
-      ]
-    ports:
-      - "${INFINITY_HOST_PORT:-7997}:${INFINITY_PORT:-7997}"
-    volumes:
-      - hf_cache:/root/.cache/huggingface
+  # infinity-embed:
+  #   image: ${INFINITY_IMAGE:-michaelfeil/infinity:latest}
+  #   # If you have NVIDIA Container Toolkit, you can keep this for GPU acceleration.
+  #   # If not, remove/comment it and set INFINITY_DEVICE=cpu.
+  #   runtime: nvidia
+  #   environment:
+  #     - INFINITY_MODEL_ID=${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}
+  #     - INFINITY_PORT=${INFINITY_PORT:-7997}
+  #     - INFINITY_DEVICE=${INFINITY_DEVICE:-cuda}
+  #     - INFINITY_TRUST_REMOTE_CODE=${INFINITY_TRUST_REMOTE_CODE:-true}
+  #   # NOTE: Infinity CLI/flags can differ by image version. If your image uses a different entrypoint,
+  #   # adjust this `command` accordingly.
+  #   command:
+  #     [
+  #       "v2",
+  #       "--model-id",
+  #       "${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}",
+  #       "--port",
+  #       "${INFINITY_PORT:-7997}",
+  #       "--host",
+  #       "0.0.0.0",
+  #       "--trust-remote-code",
+  #       "${INFINITY_TRUST_REMOTE_CODE:-true}"
+  #     ]
+  #   ports:
+  #     - "${INFINITY_HOST_PORT:-7997}:${INFINITY_PORT:-7997}"
+  #   volumes:
+  #     - hf_cache:/root/.cache/huggingface
 
   # Default: run a minimal pipeline smoke test (same as UltraRAG/Dockerfile CMD)
   ultrarag:
@@ -46,7 +46,7 @@ services:
         # Set to 1 only if you need `npx mcp-remote` (remote MCP servers)
         INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
         # Optional extras: retriever | generation | corpus | all
-        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-}
+        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all}
         # Extra pip packages (space-separated), e.g. "faiss-cpu pymilvus chonkie tiktoken"
         # Default includes KB dependencies used by the UI (avoid "chonkie or tiktoken not installed").
         # NOTE:
@@ -56,9 +56,12 @@ services:
         # - Some recent transformers versions treat `tokenizer.model` as a tiktoken BPE file, but
         #   openbmb/MiniCPM-Embedding-Light provides a SentencePiece tokenizer.model. Pin for compatibility.
         # GPU-first FAISS: use faiss-gpu-cu12. Override to faiss-cpu if you don't have CUDA.
-        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-gpu-cu12 pymilvus chonkie tiktoken infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
+        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-gpu-cu12 pymilvus chonkie>=1.5.2 tiktoken>=0.7.0 hf-transfer infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
     image: ultrarag:v3-dev
     working_dir: /ultrarag
+    depends_on:
+      - milvus
+      - vllm
     # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
     runtime: nvidia
     environment:
@@ -73,8 +76,12 @@ services:
       # Put your keys in a local .env file (see README-Docker.md)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
-      # UltraRAG generation/retriever servers read these env vars
+      # Generation: OpenAI backend -> vLLM server
+      - LLM_BACKEND=${LLM_BACKEND:-openai}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
       - LLM_API_KEY=${LLM_API_KEY:-${OPENAI_API_KEY:-}}
+      # UltraRAG generation/retriever servers read these env vars
       - RETRIEVER_API_KEY=${RETRIEVER_API_KEY:-${OPENAI_API_KEY:-}}
       # Default Milvus URI for UI / KB manager (override in .env if needed)
       - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
@@ -100,6 +107,9 @@ services:
     build: *ultrarag_build
     image: ultrarag:v3-dev
     working_dir: /ultrarag
+    depends_on:
+      - milvus
+      - vllm
     # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
     runtime: nvidia
     environment:
@@ -112,6 +122,11 @@ services:
       - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
       - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
       - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+      # Generation: OpenAI backend -> vLLM server
+      - LLM_BACKEND=${LLM_BACKEND:-openai}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
+      - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
       # Auto-install optional KB deps at runtime if missing (safety net; image build should already include them)
       - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
       # Prebuild pipelines for the frontend (UI) before starting.
@@ -153,6 +168,9 @@ services:
   #   build: *ultrarag_build
   #   image: ultrarag:v3-dev
   #   working_dir: /ultrarag
+  #   depends_on:
+  #     - milvus
+  #     - vllm
   #   # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
   #   runtime: nvidia
   #   environment:
@@ -165,6 +183,11 @@ services:
   #     - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
   #     - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
   #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+  #     # Generation: OpenAI backend -> vLLM server
+  #     - LLM_BACKEND=${LLM_BACKEND:-openai}
+  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
+  #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
   #     # Auto-install optional KB deps at runtime if missing (safety net; image build should already include them)
   #     - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
   #     # Prebuild pipelines for the frontend (UI) before starting.
@@ -238,7 +261,7 @@ services:
     image: vllm/vllm-openai:latest
     volumes:
       # Mount a local model directory (host) into the container.
-      # Example: VLLM_MODEL_HOST_PATH=/home/yyk/yyk03/Workspace/models/surveycpm_1218/huggingface
+      # Example: VLLM_MODEL_HOST_PATH=
       # IMPORTANT: do not default to empty, or compose will error with:
       #   invalid spec: :/models/surveycpm:ro
       - ${VLLM_MODEL_HOST_PATH:-./models/surveycpm}:/models/surveycpm:ro

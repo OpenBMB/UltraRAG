@@ -29,9 +29,9 @@ index_backend_configs:
     index_path: index/index.index
 
 batch_size: 16
-top_k: 5
+top_k: 20
 gpu_ids: null
-query_instruction: ""
+query_instruction: "Query: "
 is_multimodal: false
 overwrite: false
 retrieve_thread_num: 1

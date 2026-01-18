@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import sys
+import inspect
 from contextlib import contextmanager
 from typing import Any, Dict, Iterable, List, Optional
 from pathlib import Path
@@ -597,9 +598,16 @@ async def chunk_documents(
     
     app.logger.info(f"Chunking Config: backend={chunk_backend}, size={chunk_size}, overlap={chunk_overlap}, tokenizer={tokenizer_name}")
 
+    def _create_chunker(chunker_cls, **kwargs):
+        sig = inspect.signature(chunker_cls.__init__)
+        if "tokenizer" not in sig.parameters and "tokenizer_or_token_counter" in sig.parameters:
+            if "tokenizer" in kwargs:
+                kwargs["tokenizer_or_token_counter"] = kwargs.pop("tokenizer")
+        return chunker_cls(**kwargs)
 
     if chunk_backend == "token":
-        chunker = TokenChunker(
+        chunker = _create_chunker(
+            TokenChunker,
             tokenizer=tokenizer,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -618,7 +626,8 @@ async def chunk_documents(
         elif delim is None:
             delim = DELIM_DEFAULT
 
-        chunker = SentenceChunker(
+        chunker = _create_chunker(
+            SentenceChunker,
             tokenizer=tokenizer,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -629,7 +638,8 @@ async def chunk_documents(
     elif chunk_backend == "recursive":
         min_characters_per_chunk = cfg.get("min_characters_per_chunk", 50)
 
-        chunker = RecursiveChunker(
+        chunker = _create_chunker(
+            RecursiveChunker,
             tokenizer=tokenizer,
             chunk_size=chunk_size,
             rules=RecursiveRules(),
