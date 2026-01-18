@@ -2837,11 +2837,6 @@ function renderSources(bubble, sources, usedIds = null) {
             displayText = content.split('\n')[0].trim() || src.title || "";
         }
         
-        // 截断过长的文本
-        if (displayText.length > 80) {
-            displayText = displayText.substring(0, 80) + "...";
-        }
-        
         item.innerHTML = `
             <span class="ref-id">[${showId}]</span>
             <span class="ref-title">${escapeHtml(displayText)}</span>
