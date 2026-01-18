@@ -7287,9 +7287,39 @@ function setAIRunning(isRunning) {
     }
 }
 
+function dedupeAIActionList(actions = []) {
+    if (!Array.isArray(actions)) return [];
+    const seen = new Set();
+    const unique = [];
+
+    actions.forEach(action => {
+        let key;
+        try {
+            key = JSON.stringify({
+                type: action?.type,
+                filename: action?.filename,
+                path: action?.path,
+                preview: action?.preview,
+                content: action?.content,
+                value: action?.value
+            });
+        } catch (e) {
+            key = `${action?.type || 'unknown'}::${action?.filename || action?.path || ''}::${action?.preview || action?.content || ''}`;
+        }
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(action);
+    });
+
+    return unique;
+}
+
 function buildAIActionHtml(actions) {
+    const uniqueActions = dedupeAIActionList(actions);
+    if (!uniqueActions.length) return '';
+
     let actionsHtml = '';
-    actions.forEach((action, index) => {
+    uniqueActions.forEach((action, index) => {
         const typeLabel = {
             'modify_pipeline': 'Pipeline Modification',
             'modify_prompt': 'Prompt Modification',
@@ -7320,11 +7350,12 @@ function buildAIActionHtml(actions) {
 
 function bindAIActionButtons(container, actions) {
     if (!container) return;
+    const actionList = dedupeAIActionList(actions);
     container.querySelectorAll('.ai-action-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const actionType = e.target.dataset.action;
             const actionIndex = parseInt(e.target.dataset.index);
-            const action = actions[actionIndex];
+            const action = actionList[actionIndex];
             
             if (actionType === 'apply') {
                 applyAIAction(action, e.target.closest('.ai-action-block'));
@@ -7350,7 +7381,8 @@ function renderAIMessage(role, content, actions = []) {
         : '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
     
     const renderedContent = renderMarkdown(content || '');
-    const actionsHtml = actions && actions.length ? buildAIActionHtml(actions) : '';
+    const normalizedActions = dedupeAIActionList(actions);
+    const actionsHtml = normalizedActions.length ? buildAIActionHtml(normalizedActions) : '';
     
     messageEl.innerHTML = `
         <div class="ai-message-avatar">${avatarSvg}</div>
@@ -7360,8 +7392,8 @@ function renderAIMessage(role, content, actions = []) {
     messagesEl.appendChild(messageEl);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     
-    if (actions && actions.length) {
-        bindAIActionButtons(messageEl, actions);
+    if (normalizedActions.length) {
+        bindAIActionButtons(messageEl, normalizedActions);
     }
     
     return messageEl;
@@ -7369,10 +7401,11 @@ function renderAIMessage(role, content, actions = []) {
 
 function addAIMessage(role, content, options = {}) {
     const { actions = [], addToHistory = false, skipState = false, persist = true } = options;
-    const el = renderAIMessage(role, content, actions);
+    const normalizedActions = dedupeAIActionList(actions);
+    const el = renderAIMessage(role, content, normalizedActions);
     if (skipState) return el;
     
-    aiState.messages.push({ role, content, actions });
+    aiState.messages.push({ role, content, actions: normalizedActions });
     if (addToHistory) {
         aiState.conversationHistory.push({ role, content });
     }
@@ -7523,16 +7556,17 @@ function renderAIStreamingResult(content, actions = [], placeholderEl) {
     const targetEl = placeholderEl || renderAIMessage('assistant', '', []);
     const contentEl = targetEl?.querySelector('.ai-message-content');
     const finalText = content || 'No response';
+    const normalizedActions = dedupeAIActionList(actions);
     
     if (contentEl) {
-        const actionsHtml = actions && actions.length ? buildAIActionHtml(actions) : '';
+        const actionsHtml = normalizedActions.length ? buildAIActionHtml(normalizedActions) : '';
         contentEl.innerHTML = `${renderMarkdown(finalText)}${actionsHtml}`;
-        if (actions && actions.length) {
-            bindAIActionButtons(targetEl, actions);
+        if (normalizedActions.length) {
+            bindAIActionButtons(targetEl, normalizedActions);
         }
     }
     
-    aiState.messages.push({ role: 'assistant', content: finalText, actions });
+    aiState.messages.push({ role: 'assistant', content: finalText, actions: normalizedActions });
     aiState.conversationHistory.push({ role: 'assistant', content: finalText });
     persistAIConversation();
     renderAISessionList();

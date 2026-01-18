@@ -21,6 +21,27 @@ BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
 KB_TASKS = {}
+LLMS_DOC_PATH = BASE_DIR.parent.parent / "docs" / "llms.txt"
+LLMS_DOC_CACHE = None
+
+
+def load_llms_doc() -> str:
+    """Load docs/llms.txt once and cache it for system prompt usage."""
+    global LLMS_DOC_CACHE
+    if LLMS_DOC_CACHE is not None:
+        return LLMS_DOC_CACHE
+
+    try:
+        LLMS_DOC_CACHE = LLMS_DOC_PATH.read_text(encoding="utf-8")
+        LOGGER.info("Loaded llms.txt reference (%d chars)", len(LLMS_DOC_CACHE))
+    except FileNotFoundError:
+        LOGGER.warning("llms.txt not found at %s", LLMS_DOC_PATH)
+        LLMS_DOC_CACHE = ""
+    except Exception as e:
+        LOGGER.error("Failed to load llms.txt: %s", e)
+        LLMS_DOC_CACHE = ""
+
+    return LLMS_DOC_CACHE
 
 def _run_kb_background(task_id, pipeline_name, target_file, output_dir, collection_name, index_mode, chunk_params=None, embedding_params=None):
     LOGGER.info(f"Task {task_id} started: {pipeline_name}")
@@ -993,8 +1014,42 @@ Be concise and helpful. Provide complete code when suggesting changes.
     
     if context_info:
         base_prompt += "\n\n## Current Context\n" + "\n".join(context_info)
-    
+
+    llms_doc = load_llms_doc()
+    if llms_doc:
+        base_prompt += "\n\n## Repository Reference (llms.txt)\n" + llms_doc
+
     return base_prompt
+
+
+def deduplicate_ai_actions(actions: list[dict]) -> list[dict]:
+    """Remove duplicated apply actions while preserving order."""
+    seen = set()
+    unique = []
+    
+    for action in actions:
+        try:
+            key = json.dumps(
+                {
+                    "type": action.get("type"),
+                    "filename": action.get("filename"),
+                    "path": action.get("path"),
+                    "preview": action.get("preview"),
+                    "content": action.get("content"),
+                    "value": action.get("value"),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            )
+        except Exception:
+            key = f"{action.get('type')}::{action.get('filename') or action.get('path')}::{action.get('preview') or action.get('content')}"
+        
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(action)
+    
+    return unique
 
 
 def parse_ai_actions(content: str, context: Dict) -> list:
@@ -1042,7 +1097,7 @@ def parse_ai_actions(content: str, context: Dict) -> list:
             "preview": f"{path} = {value}"
         })
     
-    return actions
+    return deduplicate_ai_actions(actions)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
