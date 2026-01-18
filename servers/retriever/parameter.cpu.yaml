@@ -1,0 +1,44 @@
+# CPU-only defaults for servers/retriever/parameter.yaml
+model_name_or_path: openbmb/MiniCPM-Embedding-Light
+corpus_path: data/corpus_example.jsonl
+embedding_path: embedding/embedding.npy
+collection_name: wiki
+
+backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
+backend_configs:
+  infinity:
+    bettertransformer: false
+    pooling_method: auto
+    model_warmup: false
+    trust_remote_code: true
+  sentence_transformers:
+    trust_remote_code: true
+    sentence_transformers_encode:
+      normalize_embeddings: false
+      encode_chunk_size: 256
+      q_prompt_name: query
+      psg_prompt_name: document
+      psg_task: null
+      q_task: null
+
+index_backend: faiss # options: faiss, milvus
+index_backend_configs:
+  faiss:
+    index_use_gpu: false
+    index_chunk_size: 10000
+    index_path: index/index.index
+
+batch_size: 16
+top_k: 20
+gpu_ids: null
+query_instruction: "Query: "
+is_multimodal: false
+overwrite: false
+retrieve_thread_num: 1
+retriever_url: "http://127.0.0.1:64501"
+is_demo: false
+
+
+
+
+

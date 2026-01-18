@@ -68,6 +68,65 @@ class Retriever:
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
+    def _normalize_gpu_ids(self, gpu_ids: Optional[object]) -> Optional[str]:
+        if gpu_ids is None:
+            return None
+        s = str(gpu_ids).strip()
+        if not s:
+            return None
+        if s.lower() in {"none", "null", "~"}:
+            return None
+        return s
+
+    async def _embed_texts(self, texts: List[str]) -> List[List[float]]:
+        """
+        Embed a batch of texts using the currently initialized backend.
+        Returns a list of vectors (list[float]) aligned with input order.
+        """
+        if not texts:
+            return []
+
+        if self.backend == "infinity":
+            async with self.model:
+                vecs, _ = await self.model.embed(sentences=texts)
+            return [list(v) for v in vecs]
+
+        if self.backend == "sentence_transformers":
+            if self.device == "cpu":
+                device_param = "cpu"
+            else:
+                device_param = "cuda:0"
+
+            normalize = bool(self.st_encode_params.get("normalize_embeddings", False))
+            csz = int(self.st_encode_params.get("encode_chunk_size", 256))
+            psg_prompt_name = self.st_encode_params.get("psg_prompt_name", None)
+            psg_task = self.st_encode_params.get("psg_task", None)
+
+            def _encode():
+                return self.model.encode(
+                    texts,
+                    device=device_param,
+                    batch_size=self.batch_size,
+                    show_progress_bar=False,
+                    normalize_embeddings=normalize,
+                    precision="float32",
+                    chunk_size=csz,
+                    prompt_name=psg_prompt_name,
+                    task=psg_task,
+                )
+
+            vecs = await asyncio.to_thread(_encode)
+            return [list(v) for v in np.asarray(vecs)]
+
+        if self.backend == "openai":
+            resp = await self.model.embeddings.create(
+                model=self.model_name,
+                input=texts,
+            )
+            return [list(d.embedding) for d in resp.data]
+
+        raise ValueError(f"Unsupported backend for embedding: {self.backend}")
+
     async def retriever_init(
         self,
         model_name_or_path: str,
@@ -88,49 +147,102 @@ class Retriever:
         self.backend_configs = backend_configs
         self.index_backend_configs = index_backend_configs or {}
 
+        # Force CPU mode (useful when pipeline parameter files contain gpu_ids but the deployment is CPU-only).
+        if str(os.environ.get("RETRIEVER_FORCE_CPU", "0")).strip().lower() in ("1", "true", "yes", "y", "on"):
+            gpu_ids = None
+
         
+        # Allow deployment-time overrides without rebuilding pipeline parameter files.
+        # Typical use-case: point retriever embeddings to an external OpenAI-compatible embedding server
+        # (e.g. Infinity) via env vars.
+        env_backend = os.environ.get("RETRIEVER_BACKEND")
+        env_index_backend = os.environ.get("RETRIEVER_INDEX_BACKEND")
+
         if self.is_demo:
             app.logger.info("[retriever] Initializing in DEMO mode.")
-            self.backend = "openai"
+            # Demo mode historically forced Backend=OpenAI, Index=Milvus.
+            # However, in restricted environments OpenAI endpoints (or external OpenAI-compatible servers)
+            # may be unreachable. We still enforce Milvus for indexing, but allow overriding the embedding
+            # backend via RETRIEVER_BACKEND (e.g. "infinity" for in-process embeddings).
+            # Prefer the configured backend from parameter files; fall back to env override if provided.
+            self.backend = (env_backend or backend).lower()
             self.index_backend_name = "milvus"
-            
-            if "openai" not in self.backend_configs:
-                raise ValidationError("is_demo=True requires 'openai' in backend_configs.")
+
+            if self.backend == "openai" and "openai" not in self.backend_configs:
+                raise ValidationError(
+                    "is_demo=True with backend=openai requires 'openai' in backend_configs."
+                )
             if "milvus" not in self.index_backend_configs:
                 raise ValidationError("is_demo=True requires 'milvus' in index_backend_configs.")
-                
-            app.logger.info("[retriever] Demo mode enforced: Backend=OpenAI, Index=Milvus.")
+
+            app.logger.info(
+                "[retriever] Demo mode: Backend=%s, Index=Milvus.",
+                self.backend,
+            )
         else:
-            self.backend = backend.lower()
-            self.index_backend_name = index_backend.lower()
+            self.backend = (env_backend or backend).lower()
+            self.index_backend_name = (env_index_backend or index_backend).lower()
 
             if self.index_backend_name == "milvus":
                 app.logger.warning("[retriever] Using Milvus in non-demo mode is not recommended in this simplified architecture.")
 
         self.cfg = self.backend_configs.get(self.backend, {})
 
-        if gpu_ids is None:
+        # Deployment-time safety: allow forcing CPU even if parameter files contain gpu_ids.
+        # This avoids crashes in environments without NVIDIA runtime/drivers (common on CPU-only servers).
+        force_cpu = str(os.environ.get("RETRIEVER_FORCE_CPU") or os.environ.get("ULTRARAG_FORCE_CPU") or "").strip().lower()
+        if force_cpu in {"1", "true", "yes", "y", "on"}:
+            gpu_ids = None
+
+        gpu_ids_norm = self._normalize_gpu_ids(gpu_ids)
+        if gpu_ids_norm is None:
             self.gpu_ids = None
             self.device = "cpu"
             self.device_num = 1
             app.logger.info("[retriever] gpu_ids is None, treat as CPU-only mode.")
         else:
-            gpu_ids = str(gpu_ids)
-            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
-            self.gpu_ids = gpu_ids
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids_norm
+            self.gpu_ids = gpu_ids_norm
             self.device = "cuda"
-            self.device_num = len(gpu_ids.split(","))
+            self.device_num = len(gpu_ids_norm.split(","))
             app.logger.info(
                 "[retriever] Set CUDA_VISIBLE_DEVICES=%s, device_num=%d",
-                gpu_ids,
+                gpu_ids_norm,
                 self.device_num,
             )
+
+        # If CUDA is requested but unavailable, fall back to CPU to keep UI/KB flows working.
+        if self.device == "cuda":
+            try:
+                import torch  # type: ignore
+                if not torch.cuda.is_available():
+                    app.logger.warning(
+                        "[retriever] CUDA requested (gpu_ids=%s) but torch.cuda.is_available()=False; falling back to CPU.",
+                        self.gpu_ids,
+                    )
+                    self.gpu_ids = None
+                    self.device = "cpu"
+                    self.device_num = 1
+            except Exception as e:
+                app.logger.warning(
+                    "[retriever] CUDA requested (gpu_ids=%s) but CUDA availability check failed (%s); falling back to CPU.",
+                    self.gpu_ids,
+                    e,
+                )
+                self.gpu_ids = None
+                self.device = "cpu"
+                self.device_num = 1
 
         if self.backend == "infinity":
             try:
                 from infinity_emb import AsyncEngineArray, EngineArgs
-            except ImportError:
-                err_msg = "infinity_emb is not installed. Please install it with `pip install infinity-emb`."
+            except ImportError as e:
+                err_msg = (
+                    "Failed to import `infinity_emb`. "
+                    "Please install it with `pip install infinity-emb` and ensure compatible dependencies "
+                    "(notably `huggingface_hub` exposing `HfFolder`). "
+                    f"Original ImportError: {e}"
+                )
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
 
@@ -172,9 +284,17 @@ class Retriever:
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
 
-            model_name = self.cfg.get("model_name")
-            base_url = self.cfg.get("base_url")
-            api_key = self.cfg.get("api_key") or os.environ.get("RETRIEVER_API_KEY")
+            # Env overrides (useful for pointing to local OpenAI-compatible embedding servers)
+            model_name = os.environ.get("RETRIEVER_OPENAI_MODEL") or self.cfg.get("model_name")
+            base_url = os.environ.get("RETRIEVER_OPENAI_BASE_URL") or self.cfg.get("base_url")
+            api_key = (
+                os.environ.get("RETRIEVER_OPENAI_API_KEY")
+                or self.cfg.get("api_key")
+                or os.environ.get("RETRIEVER_API_KEY")
+            )
+            # Some OpenAI-compatible servers ignore api_key but the SDK may still expect a non-empty string.
+            if not api_key:
+                api_key = "sk-no-key"
 
             if not model_name:
                 err_msg = "[openai] model_name is required"
@@ -590,26 +710,32 @@ class Retriever:
 
             cached_dim = None
 
-            for text in tqdm(texts, desc="[Demo] Processing"):
-                try:
-                    resp = await self.model.embeddings.create(
-                        model=self.model_name,
-                        input=[text] 
-                    )
-                    
-                    vec = resp.data[0].embedding
-                    all_embeddings.append(vec)
-                    
-                    if cached_dim is None:
-                        cached_dim = len(vec)
-                        
-                except Exception as e:
-                    if cached_dim is not None:
-                        app.logger.warning(f"[Demo] Item failed. Filling with ZERO vector. Error: {str(e)[:100]}...")
-                        all_embeddings.append([0.0] * cached_dim)
-                    else:
-                        app.logger.error(f"[Demo] CRITICAL: First item failed! Cannot determine embedding dimension. Error: {e}")
-                        raise e
+            # Batch embed for performance; if a batch fails after we know embedding dim,
+            # fill that batch with zero vectors to keep indexing moving.
+            eff_bs = self.batch_size * (self.device_num if getattr(self, "device_num", 1) else 1)
+            with tqdm(total=len(texts), desc="[Demo] Embedding", unit="item") as pbar:
+                for start in range(0, len(texts), eff_bs):
+                    chunk = texts[start : start + eff_bs]
+                    try:
+                        vecs = await self._embed_texts(chunk)
+                        if not vecs:
+                            raise RuntimeError("Empty embeddings returned")
+                        if cached_dim is None:
+                            cached_dim = len(vecs[0])
+                        all_embeddings.extend(vecs)
+                        pbar.update(len(chunk))
+                    except Exception as e:
+                        if cached_dim is not None:
+                            app.logger.warning(
+                                f"[Demo] Batch failed. Filling with ZERO vectors. Error: {str(e)[:120]}..."
+                            )
+                            all_embeddings.extend([[0.0] * cached_dim for _ in range(len(chunk))])
+                            pbar.update(len(chunk))
+                        else:
+                            app.logger.error(
+                                f"[Demo] CRITICAL: First batch failed! Cannot determine embedding dimension. Error: {e}"
+                            )
+                            raise e
 
             embeddings_np = np.array(all_embeddings, dtype=np.float32)
 
@@ -670,8 +796,8 @@ class Retriever:
     async def retriever_search(
         self,
         query_list: List[str],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
         collection_name: str = "",
     ) -> Dict[str, List[List[str]]]:
 
@@ -784,8 +910,8 @@ class Retriever:
     async def retriever_batch_search(
         self,
         batch_query_list: List[List[str]],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
         collection_name: str = "",
     ) -> Dict[str, List[List[List[str]]]]:
 
@@ -811,8 +937,8 @@ class Retriever:
         self,
         retriever_url: str,
         query_list: List[str],
-        top_k: int = 5,
-        query_instruction: str = "",
+        top_k: int = 20,
+        query_instruction: str = "Query: ",
     ) -> Dict[str, List[List[str]]]:
         from urllib.parse import urlparse, urlunparse
         import aiohttp
@@ -894,7 +1020,7 @@ class Retriever:
     async def bm25_search(
         self,
         query_list: List[str],
-        top_k: int = 5,
+        top_k: int = 20,
     ) -> Dict[str, List[List[str]]]:
         results = []
         q_toks = self.tokenizer.tokenize(
@@ -932,7 +1058,7 @@ class Retriever:
     async def retriever_exa_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 
@@ -983,7 +1109,7 @@ class Retriever:
     async def retriever_tavily_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 
@@ -1042,7 +1168,7 @@ class Retriever:
     async def retriever_zhipuai_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
+        top_k: Optional[int] | None = 20,
         retrieve_thread_num: Optional[int] | None = 1,
     ) -> Dict[str, List[List[str]]]:
 

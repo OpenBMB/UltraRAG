@@ -117,7 +117,8 @@ class Generation:
         backend: str = "vllm",
     ) -> None:
 
-        self.backend = backend.lower()
+        env_backend = os.environ.get("LLM_BACKEND") or os.environ.get("GENERATION_BACKEND")
+        self.backend = (env_backend or backend).lower()
         self.backend_configs = backend_configs or {}
         cfg: Dict[str, Any] = (self.backend_configs.get(self.backend) or {}).copy()
 
@@ -127,12 +128,32 @@ class Generation:
             try:
                 from vllm import LLM, SamplingParams
             except ImportError:
-                err_msg = (
-                    "vllm is not installed. Please install it with `pip install vllm`."
-                )
-                app.logger.error(err_msg)
-                raise ImportError(err_msg)
+                # In many deployments we run vLLM as an external OpenAI-compatible server container,
+                # so UltraRAG does not need to install the Python vllm package.
+                env_base_url = os.environ.get("LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+                env_model_name = os.environ.get("LLM_MODEL_NAME") or os.environ.get("VLLM_SERVED_MODEL_NAME")
 
+                if ("openai" in self.backend_configs) or env_base_url:
+                    app.logger.warning(
+                        "[generation] vllm python package is not installed; falling back to openai backend. "
+                        "To avoid this, set backend=openai in generation parameter.yaml or set LLM_BACKEND=openai."
+                    )
+                    self.backend = "openai"
+                    cfg = (self.backend_configs.get("openai") or {}).copy()
+                    # If pipeline params didn't carry openai config, allow env-only fallback.
+                    if env_base_url and not cfg.get("base_url"):
+                        cfg["base_url"] = env_base_url
+                    if env_model_name and not cfg.get("model_name"):
+                        cfg["model_name"] = env_model_name
+                else:
+                    err_msg = (
+                        "vllm is not installed. Please install it with `pip install vllm` "
+                        "or configure backend=openai and point base_url to an OpenAI-compatible server."
+                    )
+                    app.logger.error(err_msg)
+                    raise ImportError(err_msg)
+
+        if self.backend == "vllm":
             gpu_ids = str(cfg.get("gpu_ids"))
             os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
             os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
@@ -156,13 +177,19 @@ class Generation:
             self.sampling_params = SamplingParams(**sampling_params)
 
         elif self.backend == "openai":
+            # Allow env overrides when pointing to external OpenAI-compatible servers (e.g. vLLM container)
+            env_model_name = os.environ.get("LLM_MODEL_NAME")
+            env_base_url = os.environ.get("LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+
             self.model_name = cfg.get("model_name")
+            if env_model_name:
+                self.model_name = env_model_name
             if not self.model_name:
                 error_msg = "model_name is required for openai backend"
                 app.logger.error(error_msg)
                 raise ValueError(error_msg)
 
-            base_url = cfg.get("base_url")
+            base_url = env_base_url or cfg.get("base_url")
             if not base_url:
                 base_url = "https://api.openai.com/v1"
                 warn_msg = f"base_url is not set, default to {base_url}"

@@ -24,6 +24,16 @@ class Reranker:
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
+    def _normalize_gpu_ids(self, gpu_ids: Optional[object]) -> Optional[str]:
+        if gpu_ids is None:
+            return None
+        s = str(gpu_ids).strip()
+        if not s:
+            return None
+        if s.lower() in {"none", "null", "~"}:
+            return None
+        return s
+
     async def reranker_init(
         self,
         model_name_or_path: str,
@@ -38,10 +48,12 @@ class Reranker:
 
         cfg = self.backend_configs.get(self.backend, {})
 
-        gpu_ids = str(gpu_ids)
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
-
-        self.device_num = len(gpu_ids.split(","))
+        gpu_ids_norm = self._normalize_gpu_ids(gpu_ids)
+        if gpu_ids_norm is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids_norm
+            self.device_num = len(gpu_ids_norm.split(","))
+        else:
+            self.device_num = 1
 
         if self.backend == "infinity":
             try:
@@ -57,13 +69,31 @@ class Reranker:
                 app.logger.warning(warn_msg)
                 device = "cpu"
 
+            # If CUDA is requested but unavailable, fall back to CPU.
+            if device != "cpu":
+                try:
+                    import torch  # type: ignore
+                    if not torch.cuda.is_available():
+                        app.logger.warning(
+                            "[reranker] CUDA requested (gpu_ids=%s) but torch.cuda.is_available()=False; falling back to CPU.",
+                            gpu_ids_norm,
+                        )
+                        device = "cpu"
+                except Exception as e:
+                    app.logger.warning(
+                        "[reranker] CUDA requested (gpu_ids=%s) but CUDA availability check failed (%s); falling back to CPU.",
+                        gpu_ids_norm,
+                        e,
+                    )
+                    device = "cpu"
+
             if device == "cpu":
                 info_msg = "[infinity] device=cpu, gpu_ids is ignored"
                 app.logger.info(info_msg)
                 self.device_num = 1
 
             app.logger.info(
-                f"[infinity] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
+                f"[infinity] device={device}, gpu_ids={gpu_ids_norm}, device_num={self.device_num}"
             )
 
             infinity_engine_args = EngineArgs(
@@ -94,13 +124,30 @@ class Reranker:
                 app.logger.warning(warn_msg)
                 device = "cpu"
 
+            if device != "cpu":
+                try:
+                    import torch  # type: ignore
+                    if not torch.cuda.is_available():
+                        app.logger.warning(
+                            "[reranker] CUDA requested (gpu_ids=%s) but torch.cuda.is_available()=False; falling back to CPU.",
+                            gpu_ids_norm,
+                        )
+                        device = "cpu"
+                except Exception as e:
+                    app.logger.warning(
+                        "[reranker] CUDA requested (gpu_ids=%s) but CUDA availability check failed (%s); falling back to CPU.",
+                        gpu_ids_norm,
+                        e,
+                    )
+                    device = "cpu"
+
             if device == "cpu":
                 info_msg = "[sentence_transformers] device=cpu, gpu_ids is ignored"
                 app.logger.info(info_msg)
                 self.device_num = 1
 
             app.logger.info(
-                f"[sentence_transformers] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
+                f"[sentence_transformers] device={device}, gpu_ids={gpu_ids_norm}, device_num={self.device_num}"
             )
 
             self.model = CrossEncoder(

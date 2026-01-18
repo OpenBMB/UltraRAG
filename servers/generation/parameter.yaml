@@ -1,6 +1,9 @@
 # servers/generation/parameter.yaml
 
-backend: vllm # options: vllm, openai
+# Default to OpenAI-compatible server mode.
+# This avoids requiring `pip install vllm` inside the UltraRAG container:
+# run vLLM as a separate service (see root docker-compose.yml `vllm`) and point here.
+backend: openai # options: vllm, openai, hf
 backend_configs:
   vllm:
     model_name_or_path: openbmb/MiniCPM4-8B
@@ -9,9 +12,12 @@ backend_configs:
     dtype: auto
     trust_remote_code: true
   openai:
-    model_name: MiniCPM4-8B
-    base_url: http://localhost:8000/v1
-    api_key: "abc"
+    # Should match vLLM's served model name in docker-compose (VLLM_SERVED_MODEL_NAME)
+    model_name: agentcpm-report
+    # In docker-compose, use the service DNS name `vllm`
+    base_url: http://vllm:8000/v1
+    # vLLM usually ignores api_key but the SDK may require a non-empty string
+    api_key: "sk-no-key"
     concurrency: 8
     retries: 3
     base_delay: 1.0

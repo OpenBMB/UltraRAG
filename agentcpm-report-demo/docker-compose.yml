@@ -1,0 +1,347 @@
+services:
+  # OpenAI-compatible embedding server (Infinity) for UltraRAG retriever backend.
+  # The retriever can be pointed to this service by setting:
+  # - RETRIEVER_BACKEND=openai
+  # - RETRIEVER_OPENAI_BASE_URL=http://infinity-embed:7997/v1
+  # - RETRIEVER_OPENAI_MODEL=openbmb/MiniCPM-Embedding-Light
+  # infinity-embed:
+  #   image: ${INFINITY_IMAGE:-michaelfeil/infinity:latest}
+  #   # If you have NVIDIA Container Toolkit, you can keep this for GPU acceleration.
+  #   # If not, remove/comment it and set INFINITY_DEVICE=cpu.
+  #   runtime: nvidia
+  #   environment:
+  #     - INFINITY_MODEL_ID=${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}
+  #     - INFINITY_PORT=${INFINITY_PORT:-7997}
+  #     - INFINITY_DEVICE=${INFINITY_DEVICE:-cuda}
+  #     - INFINITY_TRUST_REMOTE_CODE=${INFINITY_TRUST_REMOTE_CODE:-true}
+  #   # NOTE: Infinity CLI/flags can differ by image version. If your image uses a different entrypoint,
+  #   # adjust this `command` accordingly.
+  #   command:
+  #     [
+  #       "v2",
+  #       "--model-id",
+  #       "${INFINITY_MODEL_ID:-openbmb/MiniCPM-Embedding-Light}",
+  #       "--port",
+  #       "${INFINITY_PORT:-7997}",
+  #       "--host",
+  #       "0.0.0.0",
+  #       "--trust-remote-code",
+  #       "${INFINITY_TRUST_REMOTE_CODE:-true}"
+  #     ]
+  #   ports:
+  #     - "${INFINITY_HOST_PORT:-7997}:${INFINITY_PORT:-7997}"
+  #   volumes:
+  #     - hf_cache:/root/.cache/huggingface
+
+  # Default: run a minimal pipeline smoke test (same as UltraRAG/Dockerfile CMD)
+  ultrarag:
+    build: &ultrarag_build
+      context: ..
+      dockerfile: Dockerfile.v3-dev
+      args:
+        # Debian APT mirror (optional): aliyun | tuna | empty(default)
+        APT_MIRROR: ${APT_MIRROR:-tuna}
+        # Build-time torch index (GPU-first default; override to /whl/cpu on CPU-only hosts)
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
+        # Set to 1 only if you need `npx mcp-remote` (remote MCP servers)
+        INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
+        # Optional extras: retriever | generation | corpus | all
+        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all}
+        # Extra pip packages (space-separated), e.g. "faiss-cpu pymilvus chonkie tiktoken"
+        # Default includes KB dependencies used by the UI (avoid "chonkie or tiktoken not installed").
+        # NOTE:
+        # - infinity-emb backend needs PyTorch; install via extras: infinity-emb[torch]
+        # - infinity-emb currently requires a huggingface_hub version that still exposes HfFolder.
+        #   Pin a compatible version explicitly to avoid runtime ImportError.
+        # - Some recent transformers versions treat `tokenizer.model` as a tiktoken BPE file, but
+        #   openbmb/MiniCPM-Embedding-Light provides a SentencePiece tokenizer.model. Pin for compatibility.
+        # GPU-first FAISS: use faiss-gpu-cu12. Override to faiss-cpu if you don't have CUDA.
+        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-gpu-cu12 pymilvus chonkie>=1.5.2 tiktoken>=0.7.0 hf-transfer infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
+    image: ultrarag:v3-dev
+    working_dir: /ultrarag
+    depends_on:
+      - milvus
+      - vllm
+    # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
+    runtime: nvidia
+    environment:
+      # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+      # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
+      - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
+      - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+      # Put your keys in a local .env file (see README-Docker.md)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      # Generation: OpenAI backend -> vLLM server
+      - LLM_BACKEND=${LLM_BACKEND:-openai}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
+      - LLM_API_KEY=${LLM_API_KEY:-${OPENAI_API_KEY:-}}
+      # UltraRAG generation/retriever servers read these env vars
+      - RETRIEVER_API_KEY=${RETRIEVER_API_KEY:-${OPENAI_API_KEY:-}}
+      # Default Milvus URI for UI / KB manager (override in .env if needed)
+      - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+      # Optional: point retriever embeddings to an OpenAI-compatible embeddings server (e.g. Infinity)
+      - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-}
+      - RETRIEVER_OPENAI_BASE_URL=${RETRIEVER_OPENAI_BASE_URL:-}
+      - RETRIEVER_OPENAI_MODEL=${RETRIEVER_OPENAI_MODEL:-}
+      - RETRIEVER_OPENAI_API_KEY=${RETRIEVER_OPENAI_API_KEY:-}
+      # Force CPU mode for in-process embeddings/reranker even if parameter files contain gpu_ids.
+      # Set to 1 on CPU-only hosts (or when CUDA runtime is unavailable inside containers).
+      - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-0}
+    volumes:
+      # Persist outputs produced by pipelines (UltraRAG writes to ./output by default)
+      - ultrarag_output:/ultrarag/output
+      # Persist knowledge base + Milvus Lite DB (used by UI KB manager)
+      - ultrarag_kb:/ultrarag/data/knowledge_base
+      # Hugging Face cache (models/tokenizers/etc.)
+      - hf_cache:/root/.cache/huggingface
+    command: ["ultrarag", "run", "examples/sayhello.yaml"]
+
+  # Web UI (chat-only mode)
+  ultrarag-ui:
+    build: *ultrarag_build
+    image: ultrarag:v3-dev
+    working_dir: /ultrarag
+    depends_on:
+      - milvus
+      - vllm
+    # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
+    runtime: nvidia
+    environment:
+      # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+      # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
+      - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
+      - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+      - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+      # Generation: OpenAI backend -> vLLM server
+      - LLM_BACKEND=${LLM_BACKEND:-openai}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
+      - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
+      # Auto-install optional KB deps at runtime if missing (safety net; image build should already include them)
+      - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
+      # Prebuild pipelines for the frontend (UI) before starting.
+      # - Default behavior: auto-detect UI pipelines and build missing artifacts.
+      # - To build a specific list: set ULTRARAG_PREBUILD_PIPELINES="examples/a.yaml ui/pipelines/b.yaml"
+      # - To force rebuild even if artifacts exist: ULTRARAG_PREBUILD_FORCE=1
+      # - To disable all prebuild: ULTRARAG_PREBUILD_DISABLE=1
+      - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
+      - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
+      - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
+      - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
+      # Embeddings backend for retriever.
+      # Default is "infinity" which runs embeddings in-process (no external Docker Hub image pull needed).
+      # You can still switch to an OpenAI-compatible server by setting RETRIEVER_BACKEND=openai and
+      # providing RETRIEVER_OPENAI_BASE_URL/RETRIEVER_OPENAI_MODEL in your `.env`.
+      - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
+      - RETRIEVER_OPENAI_BASE_URL=${RETRIEVER_OPENAI_BASE_URL:-}
+      - RETRIEVER_OPENAI_MODEL=${RETRIEVER_OPENAI_MODEL:-}
+      - RETRIEVER_OPENAI_API_KEY=${RETRIEVER_OPENAI_API_KEY:-}
+      # Force CPU mode for in-process embeddings/reranker even if parameter files contain gpu_ids.
+      # Set to 1 on CPU-only hosts (or when CUDA runtime is unavailable inside containers).
+      - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-0}
+    volumes:
+      - ultrarag_output:/ultrarag/output
+      - ultrarag_kb:/ultrarag/data/knowledge_base
+      # Hugging Face cache (models/tokenizers/etc.)
+      - hf_cache:/root/.cache/huggingface
+      # Persist `ultrarag build` artifacts so UI doesn't need to prebuild on every `up` (especially after `down`/recreate).
+      - ultrarag_examples_parameter:/ultrarag/examples/parameter
+      - ultrarag_examples_server:/ultrarag/examples/server
+      - ultrarag_ui_pipelines_parameter:/ultrarag/ui/pipelines/parameter
+      - ultrarag_ui_pipelines_server:/ultrarag/ui/pipelines/server
+    ports:
+      - "${ULTRARAG_UI_PORT:-5050}:5050"
+    command: ["sh", "-lc", "sh script/ui_entrypoint.sh ui"]
+
+  # # Web UI (admin mode: includes pipeline builder)
+  # ultrarag-ui-admin:
+  #   build: *ultrarag_build
+  #   image: ultrarag:v3-dev
+  #   working_dir: /ultrarag
+  #   depends_on:
+  #     - milvus
+  #     - vllm
+  #   # GPU support (requires NVIDIA Container Toolkit). Remove if running on CPU-only host.
+  #   runtime: nvidia
+  #   environment:
+  #     # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+  #     # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
+  #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
+  #     - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
+  #     - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+  #     - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+  #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+  #     # Generation: OpenAI backend -> vLLM server
+  #     - LLM_BACKEND=${LLM_BACKEND:-openai}
+  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-${VLLM_SERVED_MODEL_NAME:-agentcpm-report}}
+  #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
+  #     # Auto-install optional KB deps at runtime if missing (safety net; image build should already include them)
+  #     - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
+  #     # Prebuild pipelines for the frontend (UI) before starting.
+  #     # - Default behavior: auto-detect UI pipelines and build missing artifacts.
+  #     # - To build a specific list: set ULTRARAG_PREBUILD_PIPELINES="examples/a.yaml ui/pipelines/b.yaml"
+  #     # - To force rebuild even if artifacts exist: ULTRARAG_PREBUILD_FORCE=1
+  #     # - To disable all prebuild: ULTRARAG_PREBUILD_DISABLE=1
+  #     - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
+  #     - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
+  #     - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
+  #     - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
+  #     # Embeddings backend for retriever.
+  #     # Default is "infinity" which runs embeddings in-process (no external Docker Hub image pull needed).
+  #     # You can still switch to an OpenAI-compatible server by setting RETRIEVER_BACKEND=openai and
+  #     # providing RETRIEVER_OPENAI_BASE_URL/RETRIEVER_OPENAI_MODEL in your `.env`.
+  #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
+  #     - RETRIEVER_OPENAI_BASE_URL=${RETRIEVER_OPENAI_BASE_URL:-}
+  #     - RETRIEVER_OPENAI_MODEL=${RETRIEVER_OPENAI_MODEL:-}
+  #     - RETRIEVER_OPENAI_API_KEY=${RETRIEVER_OPENAI_API_KEY:-}
+  #     # Force CPU mode for in-process embeddings/reranker even if parameter files contain gpu_ids.
+  #     # Set to 1 on CPU-only hosts (or when CUDA runtime is unavailable inside containers).
+  #     - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-0}
+  #   volumes:
+  #     - ultrarag_output:/ultrarag/output
+  #     - ultrarag_kb:/ultrarag/data/knowledge_base
+  #     # Hugging Face cache (models/tokenizers/etc.)
+  #     - hf_cache:/root/.cache/huggingface
+  #     # Persist `ultrarag build` artifacts so UI doesn't need to prebuild on every `up` (especially after `down`/recreate).
+  #     - ultrarag_examples_parameter:/ultrarag/examples/parameter
+  #     - ultrarag_examples_server:/ultrarag/examples/server
+  #     - ultrarag_ui_pipelines_parameter:/ultrarag/ui/pipelines/parameter
+  #     - ultrarag_ui_pipelines_server:/ultrarag/ui/pipelines/server
+  #   ports:
+  #     - "${ULTRARAG_ADMIN_UI_PORT:-5051}:5050"
+  #   command: ["sh", "-lc", "sh script/ui_entrypoint.sh admin"]
+
+  # # # DeepResearch pipeline (build server config first, then run with docker-friendly params)
+  # ultrarag-deepresearch:
+  #   build: *ultrarag_build
+  #   image: ultrarag:v3-dev
+  #   working_dir: /ultrarag
+  #   depends_on:
+  #     - vllm
+  #   environment:
+  #     # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+  #     # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
+  #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
+  #     - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
+  #     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+  #     - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+  #     - LLM_API_KEY=${LLM_API_KEY:-${OPENAI_API_KEY:-}}
+  #     - RETRIEVER_API_KEY=${RETRIEVER_API_KEY:-${OPENAI_API_KEY:-}}
+  #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+  #   volumes:
+  #     - ultrarag_output:/ultrarag/output
+  #     - ultrarag_kb:/ultrarag/data/knowledge_base
+  #     # Hugging Face cache (models/tokenizers/etc.)
+  #     - hf_cache:/root/.cache/huggingface
+  #   command:
+  #     [
+  #       "sh",
+  #       "-lc",
+  #       "until curl -sf http://vllm:8000/v1/models >/dev/null; do echo \"waiting for vllm...\"; sleep 2; done; ultrarag build examples/DeepResearch.yaml && ultrarag run examples/DeepResearch.yaml --param examples/parameter/DeepResearch_docker_parameter.yaml"
+  #     ]
+
+  # # OpenAI-compatible LLM server (GPU) for UltraRAG generation backend.
+  # # This keeps the UltraRAG container lightweight while still using vLLM.
+  vllm:
+    image: vllm/vllm-openai:latest
+    volumes:
+      # Mount a local model directory (host) into the container.
+      # Example: VLLM_MODEL_HOST_PATH=
+      # IMPORTANT: do not default to empty, or compose will error with:
+      #   invalid spec: :/models/surveycpm:ro
+      - ${VLLM_MODEL_HOST_PATH:-./models/surveycpm}:/models/surveycpm:ro
+      # Optional HF cache reuse
+      - hf_cache:/root/.cache/huggingface
+    command:
+      [
+        "--model",
+        "${VLLM_MODEL:-/models/surveycpm}",
+        "--served-model-name",
+        "${VLLM_SERVED_MODEL_NAME:-agentcpm-report}",
+        "--trust-remote-code",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--max-model-len",
+        "${VLLM_MAX_MODEL_LEN:-32768}",
+        "--gpu-memory-utilization",
+        "${VLLM_GPU_MEMORY_UTILIZATION:-0.9}"
+      ]
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    # Requires NVIDIA Container Toolkit. For docker-compose v2.x compatibility we use `runtime: nvidia`.
+    # If your environment supports `docker compose` GPU syntax, you can switch to `gpus: all`.
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=${NVIDIA_VISIBLE_DEVICES:-all}
+      - NVIDIA_DRIVER_CAPABILITIES=${NVIDIA_DRIVER_CAPABILITIES:-compute,utility}
+
+  # Milvus (standalone) dependencies
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    command:
+      - etcd
+      - --advertise-client-urls=http://0.0.0.0:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    volumes:
+      - milvus_etcd:/etcd
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2024-01-13T07-53-03Z
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+    command: ["minio", "server", "/minio_data", "--console-address", ":9001"]
+    volumes:
+      - milvus_minio:/minio_data
+
+  milvus:
+    image: milvusdb/milvus:v2.4.4
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    environment:
+      - ETCD_ENDPOINTS=http://milvus-etcd:2379
+      - MINIO_ADDRESS=milvus-minio:9000
+    command: ["milvus", "run", "standalone"]
+    ports:
+      # Change the host port via MILVUS_PORT, container port stays 19530
+      - "${MILVUS_PORT:-19530}:19530"
+    volumes:
+      - milvus_data:/var/lib/milvus
+
+volumes:
+  ultrarag_output:
+  ultrarag_kb:
+  hf_cache:
+  ultrarag_examples_parameter:
+  ultrarag_examples_server:
+  ultrarag_ui_pipelines_parameter:
+  ultrarag_ui_pipelines_server:
+  milvus_etcd:
+  milvus_minio:
+  milvus_data:
+
+

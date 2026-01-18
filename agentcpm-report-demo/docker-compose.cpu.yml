@@ -1,0 +1,178 @@
+services:
+  # CPU-only llama.cpp OpenAI-compatible server
+  # NOTE: The old `ghcr.io/ggerganov/llama.cpp:server` tag is no longer available.
+  # Use the official ggml-org image instead.
+  llama-cpp:
+    image: ${LLAMA_CPP_IMAGE:-ghcr.io/ggml-org/llama.cpp:server}
+    environment:
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      # Reuse the same model id UltraRAG will send to /v1/chat/completions
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+    volumes:
+      - ${GGUF_MODEL_HOST_PATH:-./models/model.gguf}:${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}:ro
+    command:
+      [
+        "--model",
+        "${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}",
+        "--alias",
+        "${LLM_MODEL_NAME:-llamacpp}",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "${LLAMA_CPP_PORT:-8000}",
+        "--n-gpu-layers",
+        "0",
+        "--threads",
+        "${LLAMA_CPP_THREADS:-16}",
+        "--ctx-size",
+        "${LLAMA_CPP_CTX_SIZE:-8192}"
+      ]
+    ports:
+      - "${LLAMA_CPP_HOST_PORT:-8001}:${LLAMA_CPP_PORT:-8000}"
+
+  # Milvus stack (same as main compose)
+  milvus-etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    command:
+      - etcd
+      - --advertise-client-urls=http://0.0.0.0:2379
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --data-dir=/etcd
+    volumes:
+      - milvus_etcd_cpu:/etcd
+
+  milvus-minio:
+    image: minio/minio:RELEASE.2024-01-13T07-53-03Z
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+    command: ["minio", "server", "/minio_data", "--console-address", ":9001"]
+    volumes:
+      - milvus_minio_cpu:/minio_data
+
+  milvus:
+    image: milvusdb/milvus:v2.4.4
+    depends_on:
+      - milvus-etcd
+      - milvus-minio
+    environment:
+      - ETCD_ENDPOINTS=http://milvus-etcd:2379
+      - MINIO_ADDRESS=milvus-minio:9000
+    command: ["milvus", "run", "standalone"]
+    ports:
+      - "${MILVUS_PORT_CPU:-19530}:19530"
+    volumes:
+      - milvus_data_cpu:/var/lib/milvus
+
+  # CPU-only UltraRAG UI (chat-only)
+  ultrarag-ui:
+    build: &ultrarag_build_cpu
+      context: ..
+      dockerfile: Dockerfile.v3-dev
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        # CPU torch wheels
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/cpu}
+        INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
+        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all}
+        # CPU deps: torch(cpu) + faiss-cpu + sentence-transformers + infinity-emb (cpu ok)
+        PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-cpu pymilvus chonkie>=1.5.2 tiktoken>=0.7.0 hf-transfer infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
+    image: ultrarag:v3-dev-cpu
+    working_dir: /ultrarag
+    depends_on:
+      - milvus
+      - llama-cpp
+    environment:
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+      - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+      - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
+      - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
+      - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
+      - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
+      - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
+      # CPU torch index at runtime too (for ui_entrypoint auto-install)
+      - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cpu}
+      - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+      # Force CPU even if some parameter artifacts contain gpu_ids
+      - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-1}
+      # Embeddings: avoid hitting api.openai.com in restricted networks (KB pipelines run in demo-mode).
+      - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
+      # Generation: OpenAI backend -> llama.cpp server
+      - LLM_BACKEND=${LLM_BACKEND:-openai}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+      - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
+    volumes:
+      - ultrarag_output_cpu:/ultrarag/output
+      - ultrarag_kb_cpu:/ultrarag/data/knowledge_base
+      - hf_cache_cpu:/root/.cache/huggingface
+      # Persist pipeline artifacts separately from GPU setup
+      - ultrarag_examples_parameter_cpu:/ultrarag/examples/parameter
+      - ultrarag_examples_server_cpu:/ultrarag/examples/server
+      - ultrarag_ui_pipelines_parameter_cpu:/ultrarag/ui/pipelines/parameter
+      - ultrarag_ui_pipelines_server_cpu:/ultrarag/ui/pipelines/server
+      # Force CPU parameter files for servers
+      - ../servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
+      - ../servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
+    ports:
+      - "${ULTRARAG_UI_PORT_CPU:-5050}:5050"
+    command: ["sh", "-lc", "sh script/ui_entrypoint.sh ui"]
+
+  # # CPU-only UltraRAG UI (admin mode)
+  # ultrarag-ui-admin:
+  #   build: *ultrarag_build_cpu
+  #   image: ultrarag:v3-dev-cpu
+  #   working_dir: /ultrarag
+  #   depends_on:
+  #     - milvus
+  #     - llama-cpp
+  #   environment:
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+  #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
+  #     - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
+  #     - ULTRARAG_PREBUILD_DISABLE=${ULTRARAG_PREBUILD_DISABLE:-0}
+  #     - ULTRARAG_PREBUILD_FORCE=${ULTRARAG_PREBUILD_FORCE:-0}
+  #     - ULTRARAG_PREBUILD_PIPELINES=${ULTRARAG_PREBUILD_PIPELINES:-}
+  #     - ULTRARAG_PREBUILD_SKIP_HIDDEN=${ULTRARAG_PREBUILD_SKIP_HIDDEN:-0}
+  #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cpu}
+  #     - TORCH_INDEX_URL=${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+  #     - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-1}
+  #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
+  #     - LLM_BACKEND=${LLM_BACKEND:-openai}
+  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+  #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
+  #   volumes:
+  #     - ultrarag_output_cpu:/ultrarag/output
+  #     - ultrarag_kb_cpu:/ultrarag/data/knowledge_base
+  #     - hf_cache_cpu:/root/.cache/huggingface
+  #     - ultrarag_examples_parameter_cpu:/ultrarag/examples/parameter
+  #     - ultrarag_examples_server_cpu:/ultrarag/examples/server
+  #     - ultrarag_ui_pipelines_parameter_cpu:/ultrarag/ui/pipelines/parameter
+  #     - ultrarag_ui_pipelines_server_cpu:/ultrarag/ui/pipelines/server
+  #     - ../servers/retriever/parameter.cpu.yaml:/ultrarag/servers/retriever/parameter.yaml:ro
+  #     - ../servers/generation/parameter.cpu.yaml:/ultrarag/servers/generation/parameter.yaml:ro
+  #   ports:
+  #     - "${ULTRARAG_ADMIN_UI_PORT_CPU:-5051}:5050"
+  #   command: ["sh", "-lc", "sh script/ui_entrypoint.sh admin"]
+
+volumes:
+  ultrarag_output_cpu:
+  ultrarag_kb_cpu:
+  hf_cache_cpu:
+  ultrarag_examples_parameter_cpu:
+  ultrarag_examples_server_cpu:
+  ultrarag_ui_pipelines_parameter_cpu:
+  ultrarag_ui_pipelines_server_cpu:
+  milvus_etcd_cpu:
+  milvus_minio_cpu:
+  milvus_data_cpu:
+
+
