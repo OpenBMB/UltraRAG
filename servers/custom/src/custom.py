@@ -665,7 +665,7 @@ def _surveycpm_check_language_consistency(item: Any, user_instruction: str) -> b
     if is_chinese:
         return chinese_count / total_chars > 0.6
     else:
-        return chinese_count / total_chars < 0.05
+        return chinese_count / total_chars < 0.01
 
 
 def surveycpm_parse_response(
