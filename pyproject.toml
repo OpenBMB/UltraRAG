@@ -53,8 +53,30 @@ retriever = [
     "pydantic",
 ]
 
+retriever-cpu = [
+    "infinity-emb",
+    "sentence-transformers",
+    "openai",
+    "bm25s",
+    "faiss-cpu",
+    "exa_py",
+    "tavily-python",
+    "pymilvus",
+    "numba",
+    "torch",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+]
+
 generation = [
     "vllm>=0.13.0",
+    "openai",
+    "transformers",
+    "torch",
+]
+
+generation_cpu = [
     "openai",
     "transformers",
     "torch",
@@ -72,6 +94,13 @@ corpus = [
 all = [
     "ultrarag[retriever]",
     "ultrarag[generation]",
+    "ultrarag[corpus]",
+    "ultrarag[evaluation]",
+]
+
+all_cpu = [
+    "ultrarag[retriever-cpu]",
+    "ultrarag[generation-cpu]",
     "ultrarag[corpus]",
     "ultrarag[evaluation]",
 ]

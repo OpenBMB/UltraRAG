@@ -7,7 +7,7 @@ services:
     environment:
       - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
       # Reuse the same model id UltraRAG will send to /v1/chat/completions
-      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
     volumes:
       - ${GGUF_MODEL_HOST_PATH:-./models/model.gguf}:${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}:ro
     command:
@@ -15,7 +15,7 @@ services:
         "--model",
         "${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}",
         "--alias",
-        "${LLM_MODEL_NAME:-llamacpp}",
+        "${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}",
         "--host",
         "0.0.0.0",
         "--port",
@@ -106,7 +106,7 @@ services:
       # Generation: OpenAI backend -> llama.cpp server
       - LLM_BACKEND=${LLM_BACKEND:-openai}
       - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
-      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
       - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
     volumes:
       - ultrarag_output_cpu:/ultrarag/output
@@ -147,7 +147,7 @@ services:
   #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
   #     - LLM_BACKEND=${LLM_BACKEND:-openai}
   #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
-  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-llamacpp}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
   #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
   #   volumes:
   #     - ultrarag_output_cpu:/ultrarag/output

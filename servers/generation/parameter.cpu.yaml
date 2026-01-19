@@ -6,7 +6,7 @@ backend: openai # options: vllm, openai, hf
 backend_configs:
   openai:
     # MUST match the served model name exposed by llama.cpp /v1/models
-    model_name: llamacpp
+    model_name: openBMB/AgentCPM-Report-gguf
     base_url: http://llama-cpp:8000/v1
     api_key: "sk-no-key"
     concurrency: 4

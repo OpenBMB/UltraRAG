@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # - empty / default: keep upstream deb.debian.org
 # - aliyun: mirrors.aliyun.com
 # - tuna: mirrors.tuna.tsinghua.edu.cn
-ARG APT_MIRROR=tuna
+ARG APT_MIRROR=
 
 # Build-time PyTorch wheel index (set to cu121/cu124/cpu as needed).
 # We use it as an *extra* index so normal PyPI deps still resolve.
