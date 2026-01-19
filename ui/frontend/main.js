@@ -2334,7 +2334,7 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">No Retrieval, No Generation.</span>
+                        <span class="greeting-gradient">What shall we explore today?</span>
                     </div>
                 </div>
             </div>
