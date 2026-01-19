@@ -4284,14 +4284,22 @@ function summarizeToolConfig(config) {
 }
 
 function renderToolNode(identifier, stepPath, meta = {}) {
+  const raw = String(identifier || "").trim();
+  const parts = raw ? raw.split(".") : [];
+  const serverName = parts.length > 1 ? parts[0] : "custom";
+  const toolName = parts.length > 1 ? parts.slice(1).join(".") : raw;
+
   const card = document.createElement("div"); card.className = "flow-node";
-  const header = document.createElement("div"); header.className = "flow-node-header d-flex justify-content-between align-items-center";
-  const title = document.createElement("h6"); title.className = "flow-node-title"; title.textContent = identifier; header.appendChild(title);
-  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = meta.description || identifier;
+  const header = document.createElement("div"); header.className = "flow-node-header";
+  const serverLabel = document.createElement("div"); serverLabel.className = "flow-node-server"; serverLabel.textContent = serverName;
+  serverLabel.title = serverName;
+  serverLabel.dataset.module = serverName.toLowerCase();
+  header.appendChild(serverLabel);
+
+  const body = document.createElement("div"); body.className = "flow-node-body"; body.textContent = toolName || raw;
   const actions = document.createElement("div"); actions.className = "step-actions";
-  const editBtn = document.createElement("button"); editBtn.className = "btn btn-outline-primary btn-sm me-1"; editBtn.textContent = "Edit"; editBtn.onclick = (e) => { e.stopPropagation(); openStepEditor(stepPath); };
   const removeBtn = document.createElement("button"); removeBtn.className = "btn btn-outline-danger btn-sm"; removeBtn.textContent = "Delete"; removeBtn.onclick = (e) => { e.stopPropagation(); removeStep(stepPath); };
-  actions.append(editBtn, removeBtn); card.append(header, body, actions); return card;
+  actions.append(removeBtn); card.append(header, body, actions); return card;
 }
 function renderLoopNode(step, parentLocation, index) {
   const loopSteps = Array.isArray(step.loop.steps) ? step.loop.steps : [];
@@ -4299,7 +4307,7 @@ function renderLoopNode(step, parentLocation, index) {
   const loopLocation = createLocation([...(parentLocation.segments || []), { type: "loop", index }]);
   const container = document.createElement("div"); container.className = "loop-container";
   const header = document.createElement("div"); header.className = "loop-header";
-  const title = document.createElement("h6"); title.textContent = `LOOP (${step.loop.times}x)`;
+  const title = document.createElement("h6"); title.textContent = `Loop (${step.loop.times}x)`;
   const enterBtn = document.createElement("button"); enterBtn.className = "btn btn-sm btn-link text-decoration-none p-0"; enterBtn.textContent = "Open Context →"; enterBtn.onclick = () => setActiveLocation(loopLocation);
   header.append(title, enterBtn);
   const actions = document.createElement("div"); actions.className = "mt-2 d-flex justify-content-end gap-2";
@@ -4317,7 +4325,7 @@ function renderBranchNode(step, parentLocation, index) {
 
     const branchBase = createLocation([...(parentLocation.segments || []), { type: "branch", index, section: "router" }]);
     const container = document.createElement("div"); container.className = "branch-container";
-    const header = document.createElement("div"); header.className = "branch-header"; header.innerHTML = `<h6>BRANCH</h6>`;
+    const header = document.createElement("div"); header.className = "branch-header"; header.innerHTML = `<h6>Branch</h6>`;
     const enterBtn = document.createElement("button"); enterBtn.className = "btn btn-sm btn-link text-decoration-none p-0"; enterBtn.textContent = "Open Router →";
     enterBtn.onclick = () => setActiveLocation(branchBase); 
     header.appendChild(enterBtn);
@@ -4328,7 +4336,7 @@ function renderBranchNode(step, parentLocation, index) {
         const loc = createLocation([...(parentLocation.segments||[]), { type: "branch", index, section: "branch", branchKey: k }]);
         const cCard = document.createElement("div"); cCard.className = "branch-case " + (locationsEqual(loc, getActiveLocation()) ? "active" : "");
         const cHeader = document.createElement("div"); cHeader.className = "d-flex justify-content-between mb-2";
-        const cTitle = document.createElement("span"); cTitle.className = "fw-bold text-xs text-uppercase"; cTitle.textContent = `Case: ${k}`;
+        const cTitle = document.createElement("span"); cTitle.className = "fw-bold text-xs"; cTitle.textContent = `Case: ${k}`;
         const cBtn = document.createElement("button"); cBtn.className = "btn btn-link btn-sm p-0 text-decoration-none"; cBtn.textContent = "Open"; cBtn.onclick = () => setActiveLocation(loc);
         cHeader.append(cTitle, cBtn); cCard.append(cHeader, renderStepList(step.branch.branches[k], loc, { placeholderText: "Empty Case", compact: true })); casesDiv.appendChild(cCard);
     });
@@ -4342,9 +4350,7 @@ function renderStepNode(step, parentLocation, index) {
   if (typeof step === "string") return renderToolNode(step, stepPath);
   if (isToolConfigStep(step)) {
       const toolName = Object.keys(step)[0];
-      const config = step[toolName];
-      const desc = summarizeToolConfig(config);
-      return renderToolNode(toolName, stepPath, { description: desc || toolName });
+      return renderToolNode(toolName, stepPath);
   }
   if (step && typeof step === "object" && step.loop) return renderLoopNode(step, parentLocation, index);
   if (step && typeof step === "object" && step.branch) return renderBranchNode(step, parentLocation, index);
@@ -4871,14 +4877,16 @@ function bindEvents() {
         });
     }
     
-    els.clearSteps.addEventListener("click", async () => { 
-        const confirmed = await showConfirm("Clear all steps?", {
-            title: "Clear Steps",
-            type: "warning",
-            confirmText: "Clear"
+    if (els.clearSteps) {
+        els.clearSteps.addEventListener("click", async () => {
+            const confirmed = await showConfirm("Clear all steps?", {
+                title: "Clear Steps",
+                type: "warning",
+                confirmText: "Clear"
+            });
+            if (confirmed) setSteps([], { markUnsaved: true });
         });
-        if (confirmed) setSteps([], { markUnsaved: true }); 
-    });
+    }
     els.buildPipeline.addEventListener("click", buildSelectedPipeline);
     els.deletePipeline.addEventListener("click", deleteSelectedPipeline);
     
@@ -5010,17 +5018,19 @@ function bindEvents() {
         try { setStepByPath(state.editingPath, parseStepInput(els.stepEditorValue.value)); closeStepEditor(); renderSteps(); updatePipelinePreview(); } catch(e){ log(e.message); }
     };
     document.getElementById("step-editor-cancel").onclick = closeStepEditor;
-    els.refreshPipelines.onclick = async () => {
-        const canProceed = state.unsavedChanges ? await confirmUnsavedChanges("refresh pipeline list") : true;
-        if (!canProceed) return;
+    if (els.refreshPipelines) {
+        els.refreshPipelines.onclick = async () => {
+            const canProceed = state.unsavedChanges ? await confirmUnsavedChanges("refresh pipeline list") : true;
+            if (!canProceed) return;
 
-        await refreshPipelines();
+            await refreshPipelines();
 
-        // 如果当前 pipeline 没有未保存修改，刷新后重新加载以防止画布偶发空白
-        if (state.selectedPipeline && !state.unsavedChanges) {
-            loadPipeline(state.selectedPipeline, { ignoreUnsaved: true });
-        }
-    };
+            // 如果当前 pipeline 没有未保存修改，刷新后重新加载以防止画布偶发空白
+            if (state.selectedPipeline && !state.unsavedChanges) {
+                loadPipeline(state.selectedPipeline, { ignoreUnsaved: true });
+            }
+        };
+    }
     els.name.oninput = updatePipelinePreview;
     
     els.nodePickerTabs.forEach(t => t.onclick = () => setNodePickerMode(t.dataset.nodeMode));
