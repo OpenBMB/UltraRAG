@@ -40,7 +40,7 @@ services:
       dockerfile: Dockerfile.v3-dev
       args:
         # Debian APT mirror (optional): aliyun | tuna | empty(default)
-        APT_MIRROR: ${APT_MIRROR:-tuna}
+        APT_MIRROR: ${APT_MIRROR:-aliyun}
         # Build-time torch index (GPU-first default; override to /whl/cpu on CPU-only hosts)
         TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/${TORCH_CUDA_TAG:-cu121}}
         # Set to 1 only if you need `npx mcp-remote` (remote MCP servers)
@@ -262,15 +262,17 @@ services:
     volumes:
       # Mount a local model directory (host) into the container.
       # Example: VLLM_MODEL_HOST_PATH=
+      #          VLLM_MODEL_CONTAINER_PATH=/models/surveycpm
+      #          VLLM_MODEL=/models/surveycpm
       # IMPORTANT: do not default to empty, or compose will error with:
       #   invalid spec: :/models/agentcpm-report:ro
-      - ${VLLM_MODEL_HOST_PATH:-./models/agentcpm-report}:/models/agentcpm-report:ro
+      - ${VLLM_MODEL_HOST_PATH:-./models/agentcpm-report}:${VLLM_MODEL_CONTAINER_PATH:-/models/agentcpm-report}:ro
       # Optional HF cache reuse
       - hf_cache:/root/.cache/huggingface
     command:
       [
         "--model",
-        "${VLLM_MODEL:-/models/agentcpm-report}",
+        "${VLLM_MODEL:-${VLLM_MODEL_CONTAINER_PATH:-/models/agentcpm-report}}",
         "--served-model-name",
         "${VLLM_SERVED_MODEL_NAME:-agentcpm-report}",
         "--trust-remote-code",

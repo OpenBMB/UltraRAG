@@ -75,7 +75,8 @@ services:
       context: ..
       dockerfile: Dockerfile.v3-dev
       args:
-        APT_MIRROR: ${APT_MIRROR:-}
+      # Debian APT mirror (optional): aliyun | tuna | empty(default)
+        APT_MIRROR: ${APT_MIRROR:-aliyun}
         # CPU torch wheels
         TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/cpu}
         INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
@@ -105,7 +106,9 @@ services:
       - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
       # Generation: OpenAI backend -> llama.cpp server
       - LLM_BACKEND=${LLM_BACKEND:-openai}
-      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
+      # NOTE: docker-compose variable interpolation does NOT support nested ${...} expansions.
+      # If you change LLAMA_CPP_PORT, also set LLM_BASE_URL explicitly (or keep the default 8000).
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
       - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
       - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
     volumes:
@@ -146,7 +149,7 @@ services:
   #     - RETRIEVER_FORCE_CPU=${RETRIEVER_FORCE_CPU:-1}
   #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
   #     - LLM_BACKEND=${LLM_BACKEND:-openai}
-  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:${LLAMA_CPP_PORT:-8000}/v1}
+  #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
   #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
   #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
   #   volumes:
