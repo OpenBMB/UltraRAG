@@ -79,7 +79,7 @@ services:
         # CPU torch wheels
         TORCH_INDEX_URL: ${TORCH_INDEX_URL_BUILD:-https://download.pytorch.org/whl/cpu}
         INSTALL_NODE: ${ULTRARAG_INSTALL_NODE:-0}
-        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all}
+        ULTRARAG_EXTRAS: ${ULTRARAG_EXTRAS:-all_cpu}
         # CPU deps: torch(cpu) + faiss-cpu + sentence-transformers + infinity-emb (cpu ok)
         PIP_EXTRA_PACKAGES: ${PIP_EXTRA_PACKAGES:-faiss-cpu pymilvus chonkie>=1.5.2 tiktoken>=0.7.0 hf-transfer infinity-emb[torch] huggingface_hub==0.24.7 transformers==4.37.2 sentencepiece}
     image: ultrarag:v3-dev-cpu
