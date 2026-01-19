@@ -5984,6 +5984,11 @@ body.ai-panel-open .canvas-main {
   border-radius: var(--radius-sm, 6px) !important;
 }
 
+/* Fix: Restore circular shape for send buttons */
+.btn-send {
+  border-radius: 50% !important;
+}
+
 .workspace-nav-btn {
   border-radius: 8px !important;
 }

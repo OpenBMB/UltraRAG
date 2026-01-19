@@ -2334,7 +2334,7 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">Hello, UltraRAG</span>
+                        <span class="greeting-gradient">Hello</span>
                     </div>
                 </div>
             </div>
