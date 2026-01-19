@@ -60,6 +60,11 @@ const state = {
   },
 };
 
+const WORKSPACE_PANE_WIDTH_KEY = 'ultrarag_workspace_pane_width';
+const DEFAULT_WORKSPACE_PANE_WIDTH = 320;
+const MIN_WORKSPACE_PANE_WIDTH = 240;
+const MIN_WORKSPACE_CONTENT_WIDTH = 320;
+
 // 默认的 Vanilla LLM pipeline 模板
 const VANILLA_PIPELINE_TEMPLATE = {
   servers: {
@@ -108,6 +113,7 @@ const els = {
   heroStatus: document.getElementById("hero-status"),
   builderLogo: document.getElementById("builder-logo-link"),
   workspaceChatBtn: document.getElementById("workspace-chat-btn"),
+  workspaceAiBtn: document.getElementById("navbar-ai-btn"),
   
   // Parameter Controls
   parameterForm: document.getElementById("parameter-form"),
@@ -3980,11 +3986,9 @@ function initBuilderResizer() {
   const resizer = els.builderResizer;
   if (!resizer) return;
   
-  const canvasPanel = document.querySelector('.canvas-left-panel');
-  const yamlPanel = document.querySelector('.canvas-right-panel');
   const splitView = document.querySelector('.canvas-split-layout');
   
-  if (!canvasPanel || !yamlPanel || !splitView) return;
+  if (!splitView) return;
   
   let isResizing = false;
   let startX = 0;
@@ -3993,7 +3997,7 @@ function initBuilderResizer() {
   resizer.addEventListener('mousedown', (e) => {
     isResizing = true;
     startX = e.clientX;
-    startCanvasWidth = canvasPanel.offsetWidth;
+    startCanvasWidth = getWorkspacePaneWidth();
     
     resizer.classList.add('dragging');
     document.body.style.cursor = 'col-resize';
@@ -4006,11 +4010,12 @@ function initBuilderResizer() {
     if (!isResizing) return;
     
     const dx = e.clientX - startX;
-    const newCanvasWidth = Math.max(350, Math.min(startCanvasWidth + dx, splitView.offsetWidth - 400));
-    
-    canvasPanel.style.flex = 'none';
-    canvasPanel.style.width = newCanvasWidth + 'px';
-    yamlPanel.style.flex = '1';
+    const maxWidth = Math.max(
+      MIN_WORKSPACE_PANE_WIDTH,
+      splitView.offsetWidth - MIN_WORKSPACE_CONTENT_WIDTH
+    );
+    const newCanvasWidth = Math.min(Math.max(startCanvasWidth + dx, MIN_WORKSPACE_PANE_WIDTH), maxWidth);
+    setWorkspacePaneWidth(newCanvasWidth);
   });
   
   document.addEventListener('mouseup', () => {
@@ -5225,6 +5230,7 @@ async function bootstrap() {
   
   // 初始化 YAML 编辑器、分隔条拖拽和 Console
   initYamlEditor();
+  initWorkspacePaneWidth();
   initBuilderResizer();
   initConsole();
   
@@ -5682,6 +5688,15 @@ window.showBackgroundTaskDetail = async function(taskId) {
 
         const statusText = task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed';
         
+        const actionButtons = `
+            ${task.status === 'completed' ? `
+                <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
+                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">Load to Current Chat</button>
+                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">Load to New Chat</button>
+            ` : ''}
+            <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
+        `;
+
         modal.innerHTML = `
             <div class="bg-task-detail-header">
                 <div>
@@ -5714,14 +5729,9 @@ window.showBackgroundTaskDetail = async function(taskId) {
                         <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">Processing your request...</div>
                     </div>
                 `}
-                <div class="d-flex gap-2 flex-wrap align-items-center">
-                    ${task.status === 'completed' ? `
-                        <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
-                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">Load to Current Chat</button>
-                        <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">Load to New Chat</button>
-                    ` : ''}
-                    <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
-                </div>
+            </div>
+            <div class="bg-task-detail-actions d-flex gap-2 flex-wrap align-items-center">
+                ${actionButtons}
             </div>
         `;
         
@@ -6096,11 +6106,14 @@ const workspaceState = {
         files: [],
         currentFile: null,
         modified: false,
-        originalContent: ''
+        originalContent: '',
+        openTabs: [],
+        tabState: {}
     }
 };
 
 function initWorkspace() {
+    initWorkspacePaneWidth();
     // 绑定功能切换按钮
     document.querySelectorAll('.workspace-nav-btn[data-mode]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -6135,6 +6148,70 @@ function initWorkspace() {
     
     // Prompts 面板事件
     initPromptEditor();
+    initWorkspaceSideResizers();
+}
+
+function getWorkspacePaneWidth() {
+    const stored = parseInt(localStorage.getItem(WORKSPACE_PANE_WIDTH_KEY), 10);
+    if (Number.isFinite(stored) && stored > 0) return stored;
+    return DEFAULT_WORKSPACE_PANE_WIDTH;
+}
+
+function setWorkspacePaneWidth(width, options = {}) {
+    const { persist = true } = options;
+    const next = Math.max(MIN_WORKSPACE_PANE_WIDTH, Math.round(width));
+    document.documentElement.style.setProperty('--workspace-pane-width', `${next}px`);
+    if (persist) {
+        localStorage.setItem(WORKSPACE_PANE_WIDTH_KEY, String(next));
+    }
+}
+
+function initWorkspacePaneWidth() {
+    setWorkspacePaneWidth(getWorkspacePaneWidth(), { persist: false });
+}
+
+function initWorkspaceSideResizers() {
+    const paramsResizer = document.getElementById('params-resizer');
+    const promptsResizer = document.getElementById('prompts-resizer');
+    initWorkspaceResizer(paramsResizer, document.querySelector('.params-layout'));
+    initWorkspaceResizer(promptsResizer, document.querySelector('.prompts-layout'));
+}
+
+function initWorkspaceResizer(resizer, container) {
+    if (!resizer || !container) return;
+
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = getWorkspacePaneWidth();
+        resizer.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const dx = e.clientX - startX;
+        const maxWidth = Math.max(
+            MIN_WORKSPACE_PANE_WIDTH,
+            container.offsetWidth - MIN_WORKSPACE_CONTENT_WIDTH
+        );
+        const next = Math.min(Math.max(startWidth + dx, MIN_WORKSPACE_PANE_WIDTH), maxWidth);
+        setWorkspacePaneWidth(next);
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
 }
 
 async function switchWorkspaceMode(mode) {
@@ -6341,9 +6418,9 @@ function initPromptEditor() {
     const newBtn = document.getElementById('prompt-new-btn');
     const saveBtn = document.getElementById('prompt-save-btn');
     const deleteBtn = document.getElementById('prompt-delete-btn');
-    const filenameInput = document.getElementById('prompt-filename');
     const searchInput = document.getElementById('prompt-search');
     const editor = document.getElementById('prompt-editor');
+    const contextMenu = document.getElementById('prompt-context-menu');
     
     if (newBtn) {
         newBtn.addEventListener('click', createNewPrompt);
@@ -6357,18 +6434,6 @@ function initPromptEditor() {
         deleteBtn.addEventListener('click', deleteCurrentPrompt);
     }
     
-    // 文件名输入框 - 失去焦点时触发重命名
-    if (filenameInput) {
-        filenameInput.addEventListener('blur', handlePromptFilenameBlur);
-        // 按Enter键也触发重命名
-        filenameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                filenameInput.blur();
-            }
-        });
-    }
-    
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
             filterPromptList(e.target.value);
@@ -6377,8 +6442,7 @@ function initPromptEditor() {
     
     if (editor) {
         editor.addEventListener('input', () => {
-            workspaceState.prompts.modified = true;
-            updatePromptUI();
+            syncPromptEditorState(editor.value);
             updatePromptLineNumbers();
         });
         
@@ -6404,8 +6468,278 @@ function initPromptEditor() {
                 const end = editor.selectionEnd;
                 editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
                 editor.selectionStart = editor.selectionEnd = start + 2;
+                syncPromptEditorState(editor.value);
             }
         });
+    }
+
+    if (contextMenu) {
+        contextMenu.addEventListener('click', (e) => {
+            const action = e.target?.dataset?.action;
+            const path = contextMenu.dataset.path;
+            if (!action || !path) return;
+            hidePromptContextMenu();
+            if (action === 'rename') {
+                renamePromptFile(path);
+            } else if (action === 'delete') {
+                deletePromptFile(path);
+            }
+        });
+    }
+
+    document.addEventListener('click', hidePromptContextMenu);
+    document.addEventListener('scroll', hidePromptContextMenu, true);
+}
+
+function getPromptFileName(path = '') {
+    return path.split('/').pop();
+}
+
+function ensurePromptTabState(path, initialContent = '') {
+    const state = workspaceState.prompts.tabState;
+    if (!state[path]) {
+        state[path] = {
+            content: initialContent,
+            originalContent: initialContent,
+            modified: false
+        };
+    }
+    return state[path];
+}
+
+function syncPromptEditorState(content) {
+    const current = workspaceState.prompts.currentFile;
+    if (!current) return;
+    const tabState = ensurePromptTabState(current, content);
+    tabState.content = content;
+    tabState.modified = content !== tabState.originalContent;
+    workspaceState.prompts.modified = tabState.modified;
+    workspaceState.prompts.originalContent = tabState.originalContent;
+    updatePromptUI();
+    renderPromptTabs();
+}
+
+function renderPromptTabs() {
+    const tabsEl = document.getElementById('prompt-tabs');
+    if (!tabsEl) return;
+
+    const { openTabs, tabState, currentFile } = workspaceState.prompts;
+    if (!openTabs.length) {
+        tabsEl.innerHTML = '';
+        tabsEl.classList.add('d-none');
+        return;
+    }
+
+    tabsEl.classList.remove('d-none');
+    tabsEl.innerHTML = '';
+    openTabs.forEach(path => {
+        const file = workspaceState.prompts.files.find(f => f.path === path);
+        const name = file?.name || getPromptFileName(path);
+        const tab = document.createElement('div');
+        tab.className = 'prompt-tab';
+        if (path === currentFile) tab.classList.add('active');
+        if (tabState[path]?.modified) tab.classList.add('unsaved');
+        tab.innerHTML = `
+            <span class="prompt-tab-name">${name}</span>
+            <button class="prompt-tab-close" type="button" title="Close">×</button>
+        `;
+        tab.onclick = () => setActivePromptTab(path);
+        tab.querySelector('.prompt-tab-close')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closePromptTab(path);
+        });
+        tabsEl.appendChild(tab);
+    });
+}
+
+function prunePromptTabs(files) {
+    const validPaths = new Set(files.map(f => f.path));
+    const { openTabs, tabState } = workspaceState.prompts;
+    workspaceState.prompts.openTabs = openTabs.filter(p => validPaths.has(p));
+    Object.keys(tabState).forEach(path => {
+        if (!validPaths.has(path)) {
+            delete tabState[path];
+        }
+    });
+    if (workspaceState.prompts.currentFile && !validPaths.has(workspaceState.prompts.currentFile)) {
+        workspaceState.prompts.currentFile = null;
+    }
+    renderPromptTabs();
+    updatePromptUI();
+    if (!workspaceState.prompts.currentFile) {
+        document.getElementById('prompt-editor-wrapper')?.classList.add('d-none');
+        document.getElementById('prompt-empty')?.classList.remove('d-none');
+    }
+}
+
+async function openPromptTab(file) {
+    if (!file?.path) return;
+    if (!workspaceState.prompts.openTabs.includes(file.path)) {
+        workspaceState.prompts.openTabs.push(file.path);
+    }
+    await setActivePromptTab(file.path, file);
+    renderPromptTabs();
+}
+
+async function setActivePromptTab(path, fileHint = null) {
+    const editor = document.getElementById('prompt-editor');
+    if (!editor || !path) return;
+
+    let tabState = workspaceState.prompts.tabState[path];
+    if (!tabState) {
+        try {
+            const content = await fetchJSON(`/api/prompts/${encodeURIComponent(path)}`);
+            tabState = ensurePromptTabState(path, content.content || '');
+            tabState.content = content.content || '';
+            tabState.originalContent = content.content || '';
+            tabState.modified = false;
+        } catch (e) {
+            log("Failed to load prompt: " + e.message);
+            return;
+        }
+    }
+
+    workspaceState.prompts.currentFile = path;
+    workspaceState.prompts.modified = tabState.modified;
+    workspaceState.prompts.originalContent = tabState.originalContent;
+
+    editor.value = tabState.content || '';
+    updatePromptLineNumbers();
+    updatePromptUI();
+    renderPromptTabs();
+    renderPromptList(workspaceState.prompts.files);
+    updateAIContextBanner('prompt-select');
+
+    document.getElementById('prompt-empty')?.classList.add('d-none');
+    document.getElementById('prompt-editor-wrapper')?.classList.remove('d-none');
+}
+
+async function closePromptTab(path, options = {}) {
+    if (!path) return;
+    const tabState = workspaceState.prompts.tabState[path];
+    if (tabState?.modified && !options.skipConfirm) {
+        const confirmed = await showConfirm(`Discard unsaved changes in "${getPromptFileName(path)}"?`, {
+            title: "Unsaved Changes",
+            type: "warning",
+            confirmText: "Discard"
+        });
+        if (!confirmed) return;
+    }
+
+    workspaceState.prompts.openTabs = workspaceState.prompts.openTabs.filter(p => p !== path);
+    delete workspaceState.prompts.tabState[path];
+
+    if (workspaceState.prompts.currentFile === path) {
+        const next = workspaceState.prompts.openTabs[0];
+        if (next) {
+            await setActivePromptTab(next);
+        } else {
+            workspaceState.prompts.currentFile = null;
+            workspaceState.prompts.modified = false;
+            workspaceState.prompts.originalContent = '';
+            document.getElementById('prompt-editor-wrapper')?.classList.add('d-none');
+            document.getElementById('prompt-empty')?.classList.remove('d-none');
+        }
+    }
+
+    renderPromptTabs();
+    updatePromptUI();
+    renderPromptList(workspaceState.prompts.files);
+}
+
+function showPromptContextMenu(event, file) {
+    event.preventDefault();
+    const menu = document.getElementById('prompt-context-menu');
+    if (!menu || !file?.path) return;
+
+    const menuWidth = 180;
+    const menuHeight = 96;
+    const left = Math.min(event.clientX, window.innerWidth - menuWidth - 12);
+    const top = Math.min(event.clientY, window.innerHeight - menuHeight - 12);
+
+    menu.dataset.path = file.path;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.classList.remove('d-none');
+}
+
+function hidePromptContextMenu() {
+    const menu = document.getElementById('prompt-context-menu');
+    if (!menu) return;
+    menu.classList.add('d-none');
+    menu.dataset.path = '';
+}
+
+async function deletePromptFile(path) {
+    if (!path) return;
+    const confirmed = await showConfirm(`Delete "${getPromptFileName(path)}"?`, {
+        title: "Delete Prompt",
+        type: "warning",
+        confirmText: "Delete",
+        danger: true
+    });
+    if (!confirmed) return;
+
+    try {
+        await fetchJSON(`/api/prompts/${encodeURIComponent(path)}`, {
+            method: 'DELETE'
+        });
+        log(`Deleted: ${path}`);
+
+        await closePromptTab(path, { skipConfirm: true });
+        await loadPromptList();
+    } catch (e) {
+        log("Failed to delete prompt: " + e.message);
+    }
+}
+
+async function renamePromptFile(path) {
+    if (!path) return;
+    const currentName = getPromptFileName(path);
+    const newNameInput = await showPrompt("Enter the new file name:", {
+        title: "Rename Prompt",
+        placeholder: "e.g., my_prompt.jinja",
+        defaultValue: currentName,
+        confirmText: "Rename"
+    });
+    if (!newNameInput) return;
+
+    let newName = newNameInput.trim();
+    if (!newName || newName === currentName) return;
+    if (!newName.endsWith('.jinja2') && !newName.endsWith('.jinja')) {
+        newName += '.jinja';
+    }
+
+    try {
+        await fetchJSON(`/api/prompts/${encodeURIComponent(path)}/rename`, {
+            method: 'POST',
+            body: JSON.stringify({ new_name: newName })
+        });
+        log(`Renamed to: ${newName}`);
+
+        await loadPromptList();
+        const newFile = workspaceState.prompts.files.find(f => f.name === newName);
+        if (newFile) {
+            const { openTabs, tabState } = workspaceState.prompts;
+            const idx = openTabs.indexOf(path);
+            if (idx >= 0) {
+                openTabs[idx] = newFile.path;
+            }
+            if (tabState[path]) {
+                tabState[newFile.path] = { ...tabState[path] };
+                delete tabState[path];
+            }
+            if (workspaceState.prompts.currentFile === path) {
+                workspaceState.prompts.currentFile = newFile.path;
+            }
+            renderPromptTabs();
+            renderPromptList(workspaceState.prompts.files);
+            if (workspaceState.prompts.currentFile) {
+                setActivePromptTab(workspaceState.prompts.currentFile);
+            }
+        }
+    } catch (e) {
+        log("Failed to rename prompt: " + e.message);
     }
 }
 
@@ -6417,6 +6751,7 @@ async function loadPromptList() {
         const files = await fetchJSON('/api/prompts');
         workspaceState.prompts.files = files;
         renderPromptList(files);
+        prunePromptTabs(files);
     } catch (e) {
         log("Failed to load prompts: " + e.message);
         listEl.innerHTML = '<div class="prompts-empty"><p>Failed to load prompts.</p></div>';
@@ -6437,6 +6772,8 @@ function renderPromptList(files) {
     files.forEach(file => {
         const item = document.createElement('div');
         item.className = 'prompt-item';
+        item.dataset.path = file.path;
+        item.dataset.name = file.name;
         if (workspaceState.prompts.currentFile === file.path) {
             item.classList.add('active');
         }
@@ -6447,6 +6784,7 @@ function renderPromptList(files) {
             <span class="prompt-item-name" title="${file.path}">${file.name}</span>
         `;
         item.onclick = () => selectPromptFile(file);
+        item.oncontextmenu = (e) => showPromptContextMenu(e, file);
         listEl.appendChild(item);
     });
 }
@@ -6459,40 +6797,7 @@ function filterPromptList(query) {
 }
 
 async function selectPromptFile(file) {
-    // 检查是否有未保存的更改
-    if (workspaceState.prompts.modified) {
-        const confirmed = await showConfirm("You have unsaved changes. Discard them?", {
-            title: "Unsaved Changes",
-            type: "warning",
-            confirmText: "Discard"
-        });
-        if (!confirmed) return;
-    }
-    
-    try {
-        const content = await fetchJSON(`/api/prompts/${encodeURIComponent(file.path)}`);
-        workspaceState.prompts.currentFile = file.path;
-        workspaceState.prompts.originalContent = content.content;
-        workspaceState.prompts.modified = false;
-        
-        const editor = document.getElementById('prompt-editor');
-        if (editor) {
-            editor.value = content.content;
-        }
-        
-        updateAIContextBanner('prompt-select');
-        
-        updatePromptUI();
-        updatePromptLineNumbers();
-        renderPromptList(workspaceState.prompts.files);
-        
-        // 显示编辑器
-        document.getElementById('prompt-empty')?.classList.add('d-none');
-        document.getElementById('prompt-editor-wrapper')?.classList.remove('d-none');
-        
-    } catch (e) {
-        log("Failed to load prompt: " + e.message);
-    }
+    await openPromptTab(file);
 }
 
 async function createNewPrompt() {
@@ -6521,7 +6826,7 @@ async function createNewPrompt() {
         // 选中新创建的文件
         const newFile = workspaceState.prompts.files.find(f => f.name === filename);
         if (newFile) {
-            selectPromptFile(newFile);
+            openPromptTab(newFile);
         }
     } catch (e) {
         log("Failed to create prompt: " + e.message);
@@ -6540,9 +6845,14 @@ async function saveCurrentPrompt() {
             body: JSON.stringify({ content: editor.value })
         });
         
+        const tabState = ensurePromptTabState(workspaceState.prompts.currentFile, editor.value);
+        tabState.content = editor.value;
+        tabState.originalContent = editor.value;
+        tabState.modified = false;
         workspaceState.prompts.originalContent = editor.value;
         workspaceState.prompts.modified = false;
         updatePromptUI();
+        renderPromptTabs();
         log(`Saved: ${workspaceState.prompts.currentFile}`);
     } catch (e) {
         log("Failed to save prompt: " + e.message);
@@ -6551,34 +6861,7 @@ async function saveCurrentPrompt() {
 
 async function deleteCurrentPrompt() {
     if (!workspaceState.prompts.currentFile) return;
-    
-    const confirmed = await showConfirm(`Delete "${workspaceState.prompts.currentFile}"?`, {
-        title: "Delete Prompt",
-        type: "warning",
-        confirmText: "Delete",
-        danger: true
-    });
-    
-    if (!confirmed) return;
-    
-    try {
-        await fetchJSON(`/api/prompts/${encodeURIComponent(workspaceState.prompts.currentFile)}`, {
-            method: 'DELETE'
-        });
-        
-        log(`Deleted: ${workspaceState.prompts.currentFile}`);
-        workspaceState.prompts.currentFile = null;
-        workspaceState.prompts.modified = false;
-        
-        // 隐藏编辑器
-        document.getElementById('prompt-empty')?.classList.remove('d-none');
-        document.getElementById('prompt-editor-wrapper')?.classList.add('d-none');
-        
-        updatePromptUI();
-        await loadPromptList();
-    } catch (e) {
-        log("Failed to delete prompt: " + e.message);
-    }
+    await deletePromptFile(workspaceState.prompts.currentFile);
 }
 
 // Prompt 文件名输入框失去焦点时触发重命名
@@ -6625,21 +6908,9 @@ async function handlePromptFilenameBlur() {
 }
 
 function updatePromptUI() {
-    const filenameEl = document.getElementById('prompt-filename');
     const modifiedEl = document.getElementById('prompt-modified');
     const saveBtn = document.getElementById('prompt-save-btn');
     const deleteBtn = document.getElementById('prompt-delete-btn');
-    
-    if (filenameEl) {
-        if (workspaceState.prompts.currentFile) {
-            filenameEl.value = workspaceState.prompts.currentFile.split('/').pop();
-            filenameEl.readOnly = false;
-        } else {
-            filenameEl.value = '';
-            filenameEl.placeholder = 'No file selected';
-            filenameEl.readOnly = true;
-        }
-    }
     
     if (modifiedEl) {
         modifiedEl.classList.toggle('d-none', !workspaceState.prompts.modified);
@@ -6714,6 +6985,7 @@ const AI_WELCOME_HTML = `
 function initAIAssistant() {
     const trigger = document.getElementById('ai-assistant-trigger');
     const panel = document.getElementById('ai-assistant-panel');
+    const sidebarBtn = document.getElementById('navbar-ai-btn');
     const closeBtn = document.getElementById('ai-close-btn');
     const settingsBtn = document.getElementById('ai-settings-btn');
     const settingsPanel = document.getElementById('ai-settings-panel');
@@ -6723,7 +6995,7 @@ function initAIAssistant() {
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send-btn');
     
-    if (!trigger || !panel) return;
+    if (!panel || (!trigger && !sidebarBtn)) return;
     
     loadAISettings();
     updateAIConnectionStatus();
@@ -6733,7 +7005,9 @@ function initAIAssistant() {
     setAIView('home');
     updateAIContextBanner('init');
     
-    trigger.addEventListener('click', () => openAIPanel());
+    const openHandler = () => toggleAIPanel();
+    trigger?.addEventListener('click', openHandler);
+    sidebarBtn?.addEventListener('click', openHandler);
     closeBtn?.addEventListener('click', () => closeAIPanel());
     document.getElementById('ai-back-btn')?.addEventListener('click', () => enterAIHome());
     
@@ -6779,12 +7053,22 @@ function updateAIPanelOffset(panel) {
     document.body.classList.add('ai-panel-open');
 }
 
+function toggleAIPanel() {
+    if (aiState.isOpen) {
+        closeAIPanel();
+    } else {
+        openAIPanel();
+    }
+}
+
 function openAIPanel() {
     const trigger = document.getElementById('ai-assistant-trigger');
     const panel = document.getElementById('ai-assistant-panel');
+    const sidebarBtn = document.getElementById('navbar-ai-btn');
     
     trigger?.classList.add('hidden');
     panel?.classList.add('open');
+    sidebarBtn?.classList.add('active');
     aiState.isOpen = true;
     setAIView('home');
     updateAIPanelOffset(panel);
@@ -6799,10 +7083,12 @@ function openAIPanel() {
 function closeAIPanel() {
     const trigger = document.getElementById('ai-assistant-trigger');
     const panel = document.getElementById('ai-assistant-panel');
+    const sidebarBtn = document.getElementById('navbar-ai-btn');
     
     trigger?.classList.remove('hidden');
     panel?.classList.remove('open');
     document.body.classList.remove('ai-panel-open');
+    sidebarBtn?.classList.remove('active');
     aiState.isOpen = false;
 }
 
@@ -6825,7 +7111,7 @@ function initAIPanelResizer(resizer, panel) {
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
         
-        const diff = startX - e.clientX;
+        const diff = startX - e.clientX; // 反向：往左拖是正数，应该增加宽度
         const newWidth = Math.min(Math.max(startWidth + diff, 300), 600);
         panel.style.width = newWidth + 'px';
         updateAIPanelOffset(panel);
@@ -6847,7 +7133,6 @@ function initAISettingsPanel() {
     const apiKeyInput = document.getElementById('ai-api-key');
     const modelInput = document.getElementById('ai-model');
     const toggleKeyBtn = document.getElementById('ai-toggle-key');
-    const testBtn = document.getElementById('ai-test-connection');
     const saveBtn = document.getElementById('ai-save-settings');
     
     // 填充当前设置
@@ -6877,14 +7162,11 @@ function initAISettingsPanel() {
         }
     });
     
-    // 测试连接
-    testBtn?.addEventListener('click', async () => {
-        await testAIConnection();
-    });
-    
-    // 保存设置
-    saveBtn?.addEventListener('click', () => {
-        saveAISettings();
+    // 保存并测试连接
+    saveBtn?.addEventListener('click', async () => {
+        const saved = saveAISettings({ silent: true });
+        if (!saved) return;
+        await testAIConnection(saveBtn);
     });
 }
 
@@ -6901,7 +7183,8 @@ function loadAISettings() {
     }
 }
 
-function saveAISettings() {
+function saveAISettings(options = {}) {
+    const { silent = false } = options;
     const providerSelect = document.getElementById('ai-provider');
     const baseUrlInput = document.getElementById('ai-base-url');
     const apiKeyInput = document.getElementById('ai-api-key');
@@ -6918,7 +7201,7 @@ function saveAISettings() {
     try {
         localStorage.setItem('ultrarag_ai_settings', JSON.stringify(aiState.settings));
         
-        if (statusEl) {
+        if (statusEl && !silent) {
             statusEl.textContent = 'Settings saved successfully!';
             statusEl.className = 'ai-settings-status success';
             setTimeout(() => {
@@ -6927,17 +7210,19 @@ function saveAISettings() {
         }
         
         updateAIConnectionStatus();
+        return true;
     } catch (e) {
         if (statusEl) {
             statusEl.textContent = 'Failed to save settings: ' + e.message;
             statusEl.className = 'ai-settings-status error';
         }
+        return false;
     }
 }
 
-async function testAIConnection() {
+async function testAIConnection(triggerBtn = null) {
     const statusEl = document.getElementById('ai-settings-status');
-    const testBtn = document.getElementById('ai-test-connection');
+    const actionBtn = triggerBtn || document.getElementById('ai-test-connection');
     
     if (!aiState.settings.apiKey) {
         if (statusEl) {
@@ -6947,7 +7232,7 @@ async function testAIConnection() {
         return;
     }
     
-    if (testBtn) testBtn.disabled = true;
+    if (actionBtn) actionBtn.disabled = true;
     if (statusEl) {
         statusEl.textContent = 'Testing connection...';
         statusEl.className = 'ai-settings-status';
@@ -6985,7 +7270,7 @@ async function testAIConnection() {
             statusEl.className = 'ai-settings-status error';
         }
     } finally {
-        if (testBtn) testBtn.disabled = false;
+        if (actionBtn) actionBtn.disabled = false;
     }
 }
 
@@ -7004,7 +7289,7 @@ function updateAIConnectionStatus() {
         } else {
             dot?.classList.remove('connected', 'connecting');
             dot?.classList.add('disconnected');
-            if (text) text.textContent = 'Configured - Click to test';
+            if (text) text.textContent = 'Configured - Save&Test to verify';
         }
     } else {
         dot?.classList.remove('connected', 'connecting');
