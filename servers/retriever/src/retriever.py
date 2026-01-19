@@ -20,6 +20,8 @@ app = UltraRAG_MCP_Server("retriever")
 
 class Retriever:
     def __init__(self, mcp_inst: UltraRAG_MCP_Server):
+        self._initialized = False
+        self._init_params = {}
         mcp_inst.tool(
             self.retriever_init,
             output="model_name_or_path,backend_configs,batch_size,corpus_path,gpu_ids,is_multimodal,backend,index_backend,index_backend_configs,is_demo,collection_name->None",
@@ -141,6 +143,23 @@ class Retriever:
         is_demo: bool = False,
         collection_name: str = "",
     ):
+        new_params = {
+            "model_name_or_path": model_name_or_path,
+            "backend_configs": backend_configs,
+            "batch_size": batch_size,
+            "corpus_path": corpus_path,
+            "gpu_ids": gpu_ids,
+            "is_multimodal": is_multimodal,
+            "backend": backend,
+            "index_backend": index_backend,
+            "index_backend_configs": index_backend_configs,
+            "is_demo": is_demo,
+            "collection_name": collection_name,
+        }
+        if self._initialized and self._init_params == new_params:
+            app.logger.info("[retriever] Already initialized with same parameters. Skipping redundant initialization.")
+            return
+
         self.is_demo = is_demo
         self.batch_size = batch_size
         self.corpus_path = corpus_path

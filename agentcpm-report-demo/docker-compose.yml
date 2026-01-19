@@ -279,7 +279,7 @@ services:
         "--port",
         "8000",
         "--max-model-len",
-        "${VLLM_MAX_MODEL_LEN:-32768}",
+        "${VLLM_MAX_MODEL_LEN:-65536}",
         "--gpu-memory-utilization",
         "${VLLM_GPU_MEMORY_UTILIZATION:-0.9}"
       ]

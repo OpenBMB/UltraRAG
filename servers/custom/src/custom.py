@@ -846,6 +846,7 @@ def surveycpm_validate_action(
                         if ref_key not in retrieved_bibkeys:
                             return False
                 assert action["content"].count("\\cite") <= 12
+                assert "\\cite" in action["content"]
                 
     except:
         return False
@@ -1161,7 +1162,7 @@ def surveycpm_update_state(
     extend_result_ls: List[str],
     step_ls: List[int],
     parsed_ls: List[bool],
-    surveycpm_max_step: int = 100,
+    surveycpm_max_step: int = 140,
     surveycpm_max_extend_step: int = 5,
 ) -> Dict[str, List]:
     """Update state based on cursor and extend results.
