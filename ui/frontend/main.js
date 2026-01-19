@@ -2334,7 +2334,7 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">Hello</span>
+                        <span class="greeting-gradient">No Retrieval, No Generation.</span>
                     </div>
                 </div>
             </div>
@@ -6989,6 +6989,28 @@ const AI_WELCOME_HTML = `
         <h4>UltraRAG AI Assistant</h4>
         <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
         <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
+        
+        <!-- 推荐问题卡片 -->
+        <div class="ai-starter-chips">
+            <button class="ai-starter-chip" data-prompt="Help me optimize this Pipeline">
+                <span class="ai-starter-chip-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </span>
+                <span class="ai-starter-chip-text">Help me optimize this Pipeline</span>
+            </button>
+            <button class="ai-starter-chip" data-prompt="Explain the current parameters">
+                <span class="ai-starter-chip-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                </span>
+                <span class="ai-starter-chip-text">Explain the current parameters</span>
+            </button>
+            <button class="ai-starter-chip" data-prompt="Suggest improvements for my prompts">
+                <span class="ai-starter-chip-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </span>
+                <span class="ai-starter-chip-text">Suggest improvements for my prompts</span>
+            </button>
+        </div>
     </div>
 `;
 
@@ -7050,10 +7072,51 @@ function initAIAssistant() {
         input.addEventListener('input', () => {
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            // 动态更新发送按钮状态
+            updateAISendButtonState();
         });
     }
     
+    // 推荐问题卡片点击事件
+    initAIStarterChips();
+    
     initAISettingsPanel();
+}
+
+// 更新发送按钮的激活状态
+function updateAISendButtonState() {
+    const input = document.getElementById('ai-input');
+    const sendBtn = document.getElementById('ai-send-btn');
+    if (!sendBtn) return;
+    
+    const hasContent = input?.value?.trim().length > 0;
+    if (hasContent) {
+        sendBtn.classList.add('active');
+    } else {
+        sendBtn.classList.remove('active');
+    }
+}
+
+// 初始化推荐问题卡片
+function initAIStarterChips() {
+    const chips = document.querySelectorAll('.ai-starter-chip');
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            const prompt = chip.dataset.prompt;
+            if (!prompt) return;
+            
+            const input = document.getElementById('ai-input');
+            if (input) {
+                input.value = prompt;
+                input.style.height = 'auto';
+                input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+                updateAISendButtonState();
+                input.focus();
+            }
+            
+            // 只填充输入框，不自动发送
+        });
+    });
 }
 
 function updateAIPanelOffset(panel) {
@@ -7520,6 +7583,8 @@ function renderAIConversationFromState() {
     messagesEl.innerHTML = '';
     if (!aiState.messages.length) {
         messagesEl.innerHTML = AI_WELCOME_HTML;
+        // 重新绑定推荐问题卡片事件
+        initAIStarterChips();
         return;
     }
     
@@ -7542,6 +7607,8 @@ function clearAIChat() {
     const messagesEl = document.getElementById('ai-messages');
     if (messagesEl) {
         messagesEl.innerHTML = AI_WELCOME_HTML;
+        // 重新绑定推荐问题卡片事件
+        initAIStarterChips();
     }
     persistAIConversation();
     setAIRunning(false);
@@ -7565,6 +7632,7 @@ function setAIRunning(isRunning) {
         if (input) input.disabled = true;
         if (sendBtn) sendBtn.disabled = false;
         sendBtn?.classList.add('stop');
+        sendBtn?.classList.add('active'); // 运行中显示激活状态
         if (iconWrapper) {
             iconWrapper.innerHTML = '<span class="icon-stop"></span>';
         }
@@ -7579,6 +7647,8 @@ function setAIRunning(isRunning) {
               </svg>
             `;
         }
+        // 恢复后根据输入内容更新按钮状态
+        updateAISendButtonState();
     }
 }
 
