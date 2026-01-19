@@ -1,21 +1,55 @@
 services:
+  # One-shot GGUF downloader. Downloads a GGUF from Hugging Face into ./models (host),
+  # and creates an alias file /models/model.gguf for llama.cpp.
+  #
+  # - Set GGUF_FILENAME to pin a specific GGUF file name (recommended).
+  # - If GGUF_FILENAME is empty, the downloader auto-selects a GGUF (prefers Q4_K_M).
+  gguf-downloader:
+    image: python:3.11-slim
+    environment:
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - GGUF_REPO_ID=${GGUF_REPO_ID:-openbmb/AgentCPM-Report-GGUF}
+      - GGUF_REVISION=${GGUF_REVISION:-main}
+      - GGUF_FILENAME=${GGUF_FILENAME:-}
+      - GGUF_MODELS_DIR=/models
+      - GGUF_LINK_NAME=${GGUF_LINK_NAME:-model.gguf}
+    volumes:
+      - ${GGUF_MODELS_HOST_DIR:-./models}:/models
+      - hf_cache_cpu:/root/.cache/huggingface
+      - ./scripts:/scripts:ro
+    command:
+      [
+        "sh",
+        "-lc",
+        "pip install --no-cache-dir -U 'huggingface_hub[hf_transfer]==0.24.7' && python /scripts/download_gguf.py"
+      ]
+    restart: "no"
+
   # CPU-only llama.cpp OpenAI-compatible server
   # NOTE: The old `ghcr.io/ggerganov/llama.cpp:server` tag is no longer available.
   # Use the official ggml-org image instead.
   llama-cpp:
     image: ${LLAMA_CPP_IMAGE:-ghcr.io/ggml-org/llama.cpp:server}
+    restart: unless-stopped
+    depends_on:
+      # Compose v2 supports waiting for one-shot completion:
+      # https://docs.docker.com/compose/compose-file/compose-file-v2/#depends_on
+      gguf-downloader:
+        condition: service_completed_successfully
     environment:
       - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
       # Reuse the same model id UltraRAG will send to /v1/chat/completions
-      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-GGUF}
     volumes:
-      - ${GGUF_MODEL_HOST_PATH:-./models/model.gguf}:${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}:ro
+      - ${GGUF_MODELS_HOST_DIR:-./models}:/models:ro
     command:
       [
         "--model",
         "${GGUF_MODEL_CONTAINER_PATH:-/models/model.gguf}",
         "--alias",
-        "${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}",
+        "${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-GGUF}",
         "--host",
         "0.0.0.0",
         "--port",
@@ -109,7 +143,7 @@ services:
       # NOTE: docker-compose variable interpolation does NOT support nested ${...} expansions.
       # If you change LLAMA_CPP_PORT, also set LLM_BASE_URL explicitly (or keep the default 8000).
       - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
-      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-GGUF}
       - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
     volumes:
       - ultrarag_output_cpu:/ultrarag/output
@@ -150,7 +184,7 @@ services:
   #     - RETRIEVER_BACKEND=${RETRIEVER_BACKEND:-infinity}
   #     - LLM_BACKEND=${LLM_BACKEND:-openai}
   #     - LLM_BASE_URL=${LLM_BASE_URL:-http://llama-cpp:8000/v1}
-  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-gguf}
+  #     - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-GGUF}
   #     - LLM_API_KEY=${LLM_API_KEY:-sk-no-key}
   #   volumes:
   #     - ultrarag_output_cpu:/ultrarag/output
