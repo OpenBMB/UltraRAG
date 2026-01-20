@@ -770,7 +770,7 @@ textarea.parameter-input {
   scroll-behavior: smooth;
 }
 .chat-bubble { max-width: 85%; padding: 0; line-height: 1.6; font-size: 1rem; }
-.chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: var(--text-primary); padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
+.chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: #0d0d0d; padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
 .chat-bubble.assistant {
   align-self: stretch;
   width: 100%;
@@ -784,7 +784,7 @@ textarea.parameter-input {
 .chat-bubble .msg-content {
   font-size: 0.95rem;
   line-height: 1.7;
-  color: var(--text-primary);
+  color: #0d0d0d;
   text-align: justify;
   text-align-last: left;
 }
@@ -1006,24 +1006,114 @@ textarea.parameter-input {
   background: rgba(220, 53, 69, 0.1);
 }
 
+/* Chat Session Bar - 类似 AI 助手的 Recent 标题栏 */
+.chat-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* 与 btn-nav 的左侧 padding 对齐：btn-nav 有 icon(20px) + gap(10px) 的偏移 */
+  padding: 12px 12px 12px 20px;
+  margin-top: 8px;
+}
+
+.chat-session-bar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #8f8f8f;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chat-session-bar-title svg {
+  color: #8f8f8f;
+}
+
+.chat-session-bar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.chat-session-bar-btn {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #8f8f8f;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-session-bar-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
 .session-list { display: flex; flex-direction: column; gap: 0.25rem; }
 
 /* Session Item */
 .chat-session-item {
-  padding: 10px 16px 10px 24px; /* 左侧缩进 36px (20px + 16px)，体现层级 */
+  padding: 10px 12px 10px 24px;
   font-size: 0.9rem;
   color: var(--text-primary);
   border-radius: 0;
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: background 0.1s;
   border: none;
   background: transparent;
   text-align: left;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
+
+.chat-session-content {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.chat-session-title {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #0d0d0d;
+}
+
+.chat-session-delete-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #8f8f8f;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-session-item:hover .chat-session-delete-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.chat-session-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
 .chat-session-item:hover { background: rgba(0, 0, 0, 0.05); }
 .chat-session-item.active { background-color: #e0e7ff; color: var(--accent-blue); font-weight: 500; }
 
@@ -2493,9 +2583,9 @@ textarea.parameter-input {
 .chat-input {
   background: transparent;
   border: none;
-  padding: 4px 0 12px 0;  /* 底部留点空隙给操作栏 */
+  padding: 4px 0 12px 12px;  /* 左侧与下方 kb 图标对齐 */
   font-size: 1.05rem;
-  color: var(--text-primary);
+  color: #0d0d0d;
   width: 100%;
   outline: none;
   box-shadow: none !important;
@@ -2506,7 +2596,7 @@ textarea.parameter-input {
   line-height: 1.5; /* 行高 */
 }
 .chat-input:focus { background: transparent; }
-.chat-input::placeholder { color: #8e918f; }
+.chat-input::placeholder { color: #8f8f8f; }
 
 /* [新增] 修复引擎未启动时的输入框样式 */
 .chat-input:disabled {
@@ -2549,11 +2639,11 @@ textarea.parameter-input {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px 8px 16px;
+  padding: 8px 12px 8px 12px;
   border-radius: 99px;
   cursor: pointer;
   transition: all 0.2s;
-  color: #444746;
+  color: #0d0d0d;
   font-size: 0.85rem;
   font-weight: 500;
   background: transparent;
@@ -2562,7 +2652,7 @@ textarea.parameter-input {
 
 .kb-dropdown-trigger:hover {
   background: rgba(0, 0, 0, 0.06);
-  color: #1f1f1f;
+  color: #0d0d0d;
 }
 
 .kb-dropdown-trigger.active {
@@ -2738,7 +2828,7 @@ textarea.parameter-input {
   border-radius: 99px;
   cursor: pointer;
   transition: background 0.2s;
-  color: #444746;
+  color: #0d0d0d;
   font-size: 0.85rem;
   font-weight: 500;
   background: transparent;
@@ -2748,7 +2838,7 @@ textarea.parameter-input {
 
 .bg-mode-toggle:hover {
   background: rgba(0, 0, 0, 0.06);
-  color: #1f1f1f;
+  color: #0d0d0d;
 }
 
 /* Active state when background mode is enabled */
@@ -3228,13 +3318,13 @@ textarea.parameter-input {
 
   /* [新增] 收缩按钮统一风格 (黑色描边) */
   #sidebar-toggle-btn {
-    color: #4b5563; /* [修改] 比纯黑 (#1a1a1a) 稍浅一点的深灰色，视觉更柔和 */
+    color: #0d0d0d;
   }
   
   /* 悬停时稍微加深背景 */
   #sidebar-toggle-btn:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #000;
+    color: #0d0d0d;
   }
   
   /* 2. 中间列表（带置底弹性逻辑） */
@@ -3272,20 +3362,29 @@ textarea.parameter-input {
     gap: 10px;
     background: transparent;
     border: none;
-    padding-top: 9px;
-    padding-bottom: 9px;
+    padding: 9px 12px 9px 20px;
     font-family: inherit;
-    font-size: 0.82rem;
-    font-weight: 450;
-    color: #64748b;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #0d0d0d;
     transition: background 0.2s, color 0.2s;
     cursor: pointer;
     border-radius: 0;
   }
   
+  .btn-nav .icon {
+    color: #0d0d0d;
+    display: flex;
+    align-items: center;
+  }
+  
   .btn-nav:hover {
     background: rgba(0, 0, 0, 0.05);
-    color: #1a1a1a; /* [新增] 悬停时文字变深，增加对比度 */
+    color: #0d0d0d;
+  }
+  
+  .btn-nav:hover .icon {
+    color: #0d0d0d;
   }
   
   .btn-sidebar-toggle {
@@ -3293,7 +3392,7 @@ textarea.parameter-input {
     border: none;
     padding: 6px;
     cursor: pointer;
-    color: var(--text-tertiary);
+    color: #0d0d0d;
     margin-right: -6px; /* 补偿内边距，让图标贴齐右边 */
     display: flex;
     align-items: center;
@@ -6652,6 +6751,12 @@ body.ai-panel-open .canvas-main {
   padding: 10px 16px;
   background: transparent;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ai-connection-status:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .ai-status-left {
@@ -6779,12 +6884,45 @@ body.ai-panel-open .canvas-main {
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: #475569;
   margin-bottom: 0;
+}
+
+.ai-session-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-session-delete-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ai-session-item:hover .ai-session-delete-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.ai-session-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .ai-session-item:hover {
@@ -6806,6 +6944,9 @@ body.ai-panel-open .canvas-main {
   font-size: 0.88rem;
   color: inherit;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-session-meta {

@@ -2207,32 +2207,28 @@ function renderChatSidebar() {
     state.chat.sessions.forEach(session => {
         // 容器
         const itemDiv = document.createElement("div");
-        itemDiv.className = `chat-session-item d-flex justify-content-between align-items-center ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
+        itemDiv.className = `chat-session-item ${session.id === state.chat.currentSessionId ? 'active' : ''}`;
         
-        // 标题按钮 (点击加载)
-        const titleBtn = document.createElement("span");
-        titleBtn.className = "text-truncate flex-grow-1";
-        titleBtn.style.cursor = "pointer";
-        titleBtn.textContent = session.title || "Untitled Chat";
-        titleBtn.onclick = (e) => {
-            e.stopPropagation(); // 防止冒泡
+        // 内容区域 (点击加载)
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "chat-session-content";
+        contentDiv.innerHTML = `<span class="chat-session-title">${escapeHtml(session.title || "Untitled Chat")}</span>`;
+        contentDiv.onclick = (e) => {
+            e.stopPropagation();
             loadChatSession(session.id);
         };
         
-        // 删除按钮 (小垃圾桶)
+        // 删除按钮 (悬浮时显示)
         const delBtn = document.createElement("button");
-        delBtn.className = "btn btn-sm btn-icon text-muted ms-2";
-        delBtn.innerHTML = "×"; // 或者用图标
+        delBtn.className = "chat-session-delete-btn";
+        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
         delBtn.title = "Delete Chat";
-        delBtn.style.width = "20px";
-        delBtn.style.height = "20px";
-        delBtn.style.lineHeight = "1";
         delBtn.onclick = (e) => {
             e.stopPropagation();
             deleteChatSession(session.id);
         };
 
-        itemDiv.appendChild(titleBtn);
+        itemDiv.appendChild(contentDiv);
         itemDiv.appendChild(delBtn);
         els.chatSessionList.appendChild(itemDiv);
     });
@@ -7026,6 +7022,7 @@ function initAIAssistant() {
     const resizer = document.getElementById('ai-panel-resizer');
     const input = document.getElementById('ai-input');
     const sendBtn = document.getElementById('ai-send-btn');
+    const connectionStatus = document.getElementById('ai-connection-status');
     
     if (!panel || (!trigger && !sidebarBtn)) return;
     
@@ -7036,6 +7033,17 @@ function initAIAssistant() {
     renderAIConversationFromState();
     setAIView('home');
     updateAIContextBanner('init');
+    
+    // 如果已配置，自动测试连接
+    if (aiState.settings.apiKey) {
+        autoTestAIConnection();
+    }
+    
+    // 点击状态栏打开设置界面
+    connectionStatus?.addEventListener('click', () => {
+        settingsPanel?.classList.add('open');
+    });
+    connectionStatus?.style.setProperty('cursor', 'pointer');
     
     const openHandler = () => toggleAIPanel();
     trigger?.addEventListener('click', openHandler);
@@ -7051,7 +7059,7 @@ function initAIAssistant() {
         handleNewAISessionClick();
     });
     document.getElementById('ai-session-delete')?.addEventListener('click', () => {
-        deleteAISession();
+        deleteAllAISessions();
     });
     
     initAIPanelResizer(resizer, panel);
@@ -7347,6 +7355,32 @@ async function testAIConnection(triggerBtn = null) {
     }
 }
 
+// 静默测试连接 - 页面加载时自动检测已保存配置
+async function autoTestAIConnection() {
+    if (!aiState.settings.apiKey) return;
+    
+    try {
+        const response = await fetch('/api/ai/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aiState.settings)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            aiState.isConnected = true;
+        } else {
+            aiState.isConnected = false;
+        }
+        
+        updateAIConnectionStatus();
+    } catch (e) {
+        aiState.isConnected = false;
+        updateAIConnectionStatus();
+    }
+}
+
 function updateAIConnectionStatus() {
     const statusEl = document.getElementById('ai-connection-status');
     if (!statusEl) return;
@@ -7362,7 +7396,7 @@ function updateAIConnectionStatus() {
         } else {
             dot?.classList.remove('connected', 'connecting');
             dot?.classList.add('disconnected');
-            if (text) text.textContent = 'Configured - Save&Test to verify';
+            if (text) text.textContent = 'Configured - Save & Test to verify';
         }
     } else {
         dot?.classList.remove('connected', 'connecting');
@@ -7433,7 +7467,13 @@ function renderAISessionList() {
     const deleteBtn = document.getElementById('ai-session-delete');
     if (!listEl) return;
     listEl.innerHTML = '';
-    if (!aiState.sessions.length) {
+    
+    // 过滤掉空会话（没有消息的会话不显示）
+    const nonEmptySessions = aiState.sessions.filter(session => 
+        session.messages && session.messages.length > 0
+    );
+    
+    if (!nonEmptySessions.length) {
         const empty = document.createElement('div');
         empty.className = 'ai-session-empty';
         empty.textContent = 'No sessions yet';
@@ -7441,21 +7481,34 @@ function renderAISessionList() {
         if (deleteBtn) deleteBtn.disabled = true;
         return;
     }
-    aiState.sessions.forEach(session => {
-        const btn = document.createElement('button');
+    nonEmptySessions.forEach(session => {
+        const btn = document.createElement('div');
         btn.className = 'ai-session-item' + (session.id === aiState.currentSessionId ? ' active' : '');
         const title = escapeHtml(session.title || 'New Session');
         const time = session.updatedAt ? new Date(session.updatedAt).toLocaleString() : '';
         btn.innerHTML = `
-            <div class="ai-session-title-text">${title}</div>
-            <div class="ai-session-meta">${time}</div>
+            <div class="ai-session-content">
+                <div class="ai-session-title-text">${title}</div>
+                <div class="ai-session-meta">${time}</div>
+            </div>
+            <button class="ai-session-delete-btn" title="Delete session">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
         `;
-        btn.addEventListener('click', () => {
+        // 点击会话内容切换会话
+        const contentEl = btn.querySelector('.ai-session-content');
+        contentEl?.addEventListener('click', () => {
             switchAISession(session.id);
+        });
+        // 点击删除按钮删除会话
+        const deleteBtnEl = btn.querySelector('.ai-session-delete-btn');
+        deleteBtnEl?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteAISession(session.id);
         });
         listEl.appendChild(btn);
     });
-    if (deleteBtn) deleteBtn.disabled = aiState.sessions.length === 0;
+    if (deleteBtn) deleteBtn.disabled = nonEmptySessions.length === 0;
 }
 
 function applyAISessionState(session, options = {}) {
@@ -7512,13 +7565,43 @@ function switchAISession(id) {
     }
 }
 
-function deleteAISession(id) {
+async function deleteAISession(id) {
     const targetId = id || aiState.currentSessionId;
     if (!targetId) return;
+    
+    const confirmed = await showConfirm('Are you sure you want to delete this session?', {
+        title: 'Delete Session',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        danger: true
+    });
+    
+    if (!confirmed) return;
+    
     aiState.sessions = aiState.sessions.filter(s => s.id !== targetId);
     if (!aiState.sessions.length) {
         createNewAISession(true);
     }
+    const next = aiState.sessions[0];
+    applyAISessionState(next, { keepView: true });
+    setAIView('home');
+}
+
+async function deleteAllAISessions() {
+    const nonEmptySessions = aiState.sessions.filter(s => s.messages && s.messages.length > 0);
+    if (!nonEmptySessions.length) return;
+    
+    const confirmed = await showConfirm(`Are you sure you want to delete all ${nonEmptySessions.length} session(s)?`, {
+        title: 'Delete All Sessions',
+        confirmText: 'Delete All',
+        cancelText: 'Cancel',
+        danger: true
+    });
+    
+    if (!confirmed) return;
+    
+    aiState.sessions = [];
+    createNewAISession(true);
     const next = aiState.sessions[0];
     applyAISessionState(next, { keepView: true });
     setAIView('home');
@@ -7944,15 +8027,15 @@ function describeAIContext(snapshot) {
     if (!snapshot) return 'No active context';
     const { currentMode, selectedPipeline, currentPromptFile } = snapshot;
     if (currentMode === 'prompts') {
-        if (currentPromptFile) return `Editing prompt: ${currentPromptFile}`;
+        if (currentPromptFile) return `Editing Prompt: ${currentPromptFile}`;
         return 'Prompt panel';
     }
     if (currentMode === 'parameters') {
-        if (selectedPipeline) return `Editing parameters for ${selectedPipeline}`;
+        if (selectedPipeline) return `Editing Parameters for ${selectedPipeline}`;
         return 'Parameters panel (no pipeline selected)';
     }
     if (currentMode === 'pipeline') {
-        if (selectedPipeline) return `Editing pipeline: ${selectedPipeline}`;
+        if (selectedPipeline) return `Editing Pipeline YAML: ${selectedPipeline}`;
         return 'Pipeline canvas';
     }
     return 'No active context';
@@ -7991,8 +8074,8 @@ function updateAIContextBanner(reason = '') {
     const snapshot = getAIContextSnapshot();
     if (hintEl) {
         hintEl.textContent = snapshot && snapshot.focusHint 
-            ? `Current context: ${snapshot.focusHint}`
-            : 'Current context: None';
+            ? `${snapshot.focusHint}`
+            : 'None';
     }
 }
 
