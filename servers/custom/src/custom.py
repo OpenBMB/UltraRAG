@@ -10,10 +10,16 @@ app = UltraRAG_MCP_Server("custom")
 
 @app.tool(output="ans_ls->extract_query_list")
 def search_r1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract search queries from answer list using <search> tags.
+
+    Args:
+        ans_ls: List of answer strings that may contain <search>...</search> tags
+
+    Returns:
+        Dictionary with 'extract_query_list' containing extracted queries
+    """
 
     def get_query(text):
-        import re
-
         pattern = re.compile(r"<search>([^<]*)", re.DOTALL)
         matches = pattern.findall(text)
 
@@ -32,10 +38,16 @@ def search_r1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
 
 @app.tool(output="ans_ls->extract_query_list")
 def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract search queries from answer list using <|begin_of_query|> tags.
+
+    Args:
+        ans_ls: List of answer strings that may contain <|begin_of_query|>...</|begin_of_query|> tags
+
+    Returns:
+        Dictionary with 'extract_query_list' containing extracted queries
+    """
 
     def get_query(text):
-        import re
-
         pattern = re.compile(r"<|begin_of_query|>([^<]*)", re.DOTALL)
         matches = pattern.findall(text)
 
@@ -57,6 +69,15 @@ def iterretgen_nextquery(
     q_ls: List[str],
     ans_ls: List[str | Any],
 ) -> Dict[str, List[str]]:
+    """Generate next query by combining previous query with answer.
+
+    Args:
+        q_ls: List of previous queries
+        ans_ls: List of answers corresponding to queries
+
+    Returns:
+        Dictionary with 'nextq_ls' containing combined queries
+    """
     ret = []
     for q, ans in zip(q_ls, ans_ls):
         next_query = f"{q} {ans}"
@@ -66,6 +87,15 @@ def iterretgen_nextquery(
 
 @app.tool(output="ans_ls->pred_ls")
 def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract content from LaTeX \\boxed{} expressions in answers.
+
+    Args:
+        ans_ls: List of answer strings that may contain \\boxed{...} expressions
+
+    Returns:
+        Dictionary with 'pred_ls' containing extracted content
+    """
+
     def extract(ans: str) -> str:
         start = ans.rfind(r"\boxed{")
         if start == -1:
@@ -98,6 +128,14 @@ def output_extract_from_boxed(ans_ls: List[str]) -> Dict[str, List[str]]:
 def ircot_get_first_sent(
     ans_ls: List[str],
 ) -> Dict[str, List[str]]:
+    """Extract first sentence from answers for IRCoT pipeline.
+
+    Args:
+        ans_ls: List of answer strings
+
+    Returns:
+        Dictionary with 'q_ls' containing first sentences
+    """
     ret = []
     for ans in ans_ls:
         match = re.search(r"(.+?[。！？.!?])", ans)
@@ -110,6 +148,14 @@ def ircot_get_first_sent(
 
 @app.tool(output="ans_ls->pred_ls")
 def ircot_extract_ans(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract final answer from IRCoT responses using 'so the answer is' pattern.
+
+    Args:
+        ans_ls: List of answer strings
+
+    Returns:
+        Dictionary with 'pred_ls' containing extracted answers
+    """
     ret = []
     pattern = re.compile(r"so the answer is[\s:]*([^\n]*)", re.IGNORECASE)
     for ans in ans_ls:
@@ -123,6 +169,14 @@ def ircot_extract_ans(ans_ls: List[str]) -> Dict[str, List[str]]:
 
 @app.tool(output="q_ls->total_subq_list,total_reason_list,total_final_info_list")
 def search_o1_init_list(q_ls: List[str]) -> Dict[str, List[Any]]:
+    """Initialize lists for Search-o1 pipeline.
+
+    Args:
+        q_ls: List of queries
+
+    Returns:
+        Dictionary with initialized lists for subq, reason, and final_info
+    """
     n = len(q_ls)
 
     return {
@@ -131,9 +185,10 @@ def search_o1_init_list(q_ls: List[str]) -> Dict[str, List[Any]]:
         "total_final_info_list": [["<PAD>"] for _ in range(n)],
     }
 
+
 @app.tool(
     output="total_subq_list, extract_query_list, total_reason_list, extract_reason_list"
-           "->total_subq_list, total_reason_list"
+    "->total_subq_list, total_reason_list"
 )
 def search_o1_combine_list(
     total_subq_list: List[List[Any]],
@@ -141,18 +196,28 @@ def search_o1_combine_list(
     total_reason_list: List[List[Any]],
     extract_reason_list: List[str],
 ) -> Dict[str, List[Any]]:
-    
+    """Combine extracted queries and reasons into total lists for Search-o1.
+
+    Args:
+        total_subq_list: List of lists to accumulate subqueries
+        extract_query_list: New queries to add
+        total_reason_list: List of lists to accumulate reasons
+        extract_reason_list: New reasons to add
+
+    Returns:
+        Dictionary with updated total_subq_list and total_reason_list
+    """
     PAD = "<PAD>"
 
     for q, bucket in zip(extract_query_list, total_subq_list):
         if len(bucket) == 1 and bucket[0] == PAD:
-            bucket[0] = q            
+            bucket[0] = q
         else:
             bucket.append(q)
 
     for c, bucket in zip(extract_reason_list, total_reason_list):
         if len(bucket) == 1 and bucket[0] == PAD:
-            bucket[0] = c           
+            bucket[0] = c
         else:
             bucket.append(c)
 
@@ -161,10 +226,17 @@ def search_o1_combine_list(
         "total_reason_list": total_reason_list,
     }
 
+
 @app.tool(output="ans_ls->extract_query_list")
 def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
-    import re
+    """Extract search queries from answers using Search-o1 tags.
 
+    Args:
+        ans_ls: List of answer strings containing <|begin_search_query|>...</|end_search_query|> tags
+
+    Returns:
+        Dictionary with 'extract_query_list' containing extracted queries
+    """
     BEGIN = "<|begin_search_query|>"
     END = "<|end_search_query|>"
     PATTERN = re.escape(BEGIN) + r"(.*?)" + re.escape(END)
@@ -172,24 +244,31 @@ def search_o1_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     def get_query(text):
         matches = re.findall(PATTERN, text, flags=re.DOTALL)
         if not matches:
-            return ""  
+            return ""
         q = matches[-1].strip()
-        q = re.sub(r"\s+", " ", q).strip(' "\'')
+        q = re.sub(r"\s+", " ", q).strip(" \"'")
         return q
 
     query = [get_query(answer) for answer in ans_ls]
 
     return {"extract_query_list": query}
 
+
 @app.tool(output="ans_ls->extract_reason_list")
 def search_o1_reasoning_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract reasoning content before search query tags for Search-o1.
 
+    Args:
+        ans_ls: List of answer strings
+
+    Returns:
+        Dictionary with 'extract_reason_list' containing reasoning content
+    """
     BEGIN = "<|begin_search_query|>"
 
     def get_content_before(text):
         if BEGIN not in text:
             return text.strip()
-        
 
         return text.split(BEGIN, 1)[0].strip()
 
@@ -197,32 +276,51 @@ def search_o1_reasoning_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
 
     return {"extract_reason_list": content_list}
 
+
 @app.tool(output="ans_ls->extract_final_infor_list")
 def search_o1_extract_final_information(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract final information section from answers for Search-o1.
 
+    Args:
+        ans_ls: List of answer strings that may contain **Final Information** section
+
+    Returns:
+        Dictionary with 'extract_final_infor_list' containing final information
+    """
     BEGIN = "**Final Information**"
 
     def get_content_after(text):
         if BEGIN not in text:
             return ""
-    
+
         return BEGIN + "\n" + text.split(BEGIN, 1)[1].strip()
 
     content_list = [get_content_after(answer) for answer in ans_ls]
 
     return {"extract_final_infor_list": content_list}
 
-@app.tool(output="total_final_info_list, extract_final_infor_list->total_final_info_list")
+
+@app.tool(
+    output="total_final_info_list, extract_final_infor_list->total_final_info_list"
+)
 def search_o1_combine_final_information(
     total_final_info_list: List[List[str]],
     extract_final_infor_list: List[str],
 ) -> Dict[str, List[Any]]:
-    
+    """Combine extracted final information into total list for Search-o1.
+
+    Args:
+        total_final_info_list: List of lists to accumulate final information
+        extract_final_infor_list: New final information to add
+
+    Returns:
+        Dictionary with updated total_final_info_list
+    """
     PAD = "<PAD>"
 
     for c, bucket in zip(extract_final_infor_list, total_final_info_list):
         if len(bucket) == 1 and bucket[0] == PAD:
-            bucket[0] = c           
+            bucket[0] = c
         else:
             bucket.append(c)
 
@@ -233,11 +331,21 @@ def search_o1_combine_final_information(
         "total_final_info_list": total_final_info_list,
     }
 
+
 @app.tool(output="temp_psg,ret_psg->ret_psg")
 def merge_passages(
     temp_psg: List[str | Any],
     ret_psg: List[str | Any],
 ) -> Dict[str, List[str | Any]]:
+    """Merge temporary passages into retrieved passages.
+
+    Args:
+        temp_psg: List of temporary passage lists
+        ret_psg: List of retrieved passage lists to merge into
+
+    Returns:
+        Dictionary with 'ret_psg' containing merged passages
+    """
     for t_psg, psg in zip(temp_psg, ret_psg):
         psg.extend(t_psg)
 
@@ -246,10 +354,19 @@ def merge_passages(
 
 @app.tool(output="ans_ls->pred_ls")
 def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str]]:
+    """Extract content from <answer>...</answer> tags for EvisRAG.
+
+    Args:
+        ans_ls: List of answer strings that may contain <answer>...</answer> tags
+
+    Returns:
+        Dictionary with 'pred_ls' containing extracted content
+    """
+
     def extract(ans: str) -> str:
         try:
-            content = ans.split('<answer>')[1].split('</answer>')[0].strip()
-        except:
+            content = ans.split("<answer>")[1].split("</answer>")[0].strip()
+        except Exception:
             content = ans.strip()
         return content
 
@@ -260,15 +377,23 @@ def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str
 def assign_citation_ids(
     ret_psg: List[List[str]],
 ) -> Dict[str, Any]:
+    """Assign sequential citation IDs to passages.
+
+    Args:
+        ret_psg: List of lists of document strings
+
+    Returns:
+        Dictionary with 'ret_psg' containing passages with [1], [2], etc. prefixes
+    """
     result_psg = []
-    
+
     for docs_list in ret_psg:
         cited_docs = []
         for idx, doc in enumerate(docs_list, start=1):
             doc_text = str(doc).strip()
             cited_docs.append(f"[{idx}] {doc_text}")
         result_psg.append(cited_docs)
-    
+
     return {
         "ret_psg": result_psg,
     }
@@ -276,25 +401,22 @@ def assign_citation_ids(
 
 class CitationRegistry:
     _instances: Dict[int, Dict[str, Any]] = {}
-    
+
     @classmethod
     def reset(cls):
         cls._instances = {}
-    
+
     @classmethod
     def get_or_create(cls, query_index: int) -> Dict[str, Any]:
         if query_index not in cls._instances:
-            cls._instances[query_index] = {
-                "registry": {},
-                "counter": 0
-            }
+            cls._instances[query_index] = {"registry": {}, "counter": 0}
         return cls._instances[query_index]
-    
+
     @classmethod
     def assign_id(cls, query_index: int, doc_text: str) -> int:
         state = cls.get_or_create(query_index)
         doc_hash = doc_text.strip()
-        
+
         if doc_hash in state["registry"]:
             return state["registry"][doc_hash]
         else:
@@ -305,6 +427,14 @@ class CitationRegistry:
 
 @app.tool(output="q_ls->q_ls")
 def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
+    """Initialize citation registry for stateful citation assignment.
+
+    Args:
+        q_ls: List of queries
+
+    Returns:
+        Dictionary with 'q_ls' (pass-through)
+    """
     CitationRegistry.reset()
     return {"q_ls": q_ls}
 
@@ -313,8 +443,16 @@ def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
 def assign_citation_ids_stateful(
     ret_psg: List[List[str]],
 ) -> Dict[str, Any]:
+    """Assign unique citation IDs to passages using stateful registry.
+
+    Args:
+        ret_psg: List of lists of document strings
+
+    Returns:
+        Dictionary with 'ret_psg' containing passages with unique citation IDs
+    """
     result_psg = []
-    
+
     for i, docs_list in enumerate(ret_psg):
         cited_docs = []
         for doc in docs_list:
@@ -322,7 +460,7 @@ def assign_citation_ids_stateful(
             doc_id = CitationRegistry.assign_id(i, doc_text)
             cited_docs.append(f"[{doc_id}] {doc_text}")
         result_psg.append(cited_docs)
-    
+
     return {
         "ret_psg": result_psg,
     }
@@ -333,30 +471,28 @@ def assign_citation_ids_stateful(
 
 class SurveyCPMCitationRegistry:
     """Citation registry for SurveyCPM pipeline.
-    
+
     Maintains unique citation IDs across multiple search rounds for each query.
     """
+
     _instances: Dict[int, Dict[str, Any]] = {}
-    
+
     @classmethod
     def reset(cls):
         cls._instances = {}
-    
+
     @classmethod
     def get_or_create(cls, query_index: int) -> Dict[str, Any]:
         if query_index not in cls._instances:
-            cls._instances[query_index] = {
-                "registry": {},
-                "counter": 0
-            }
+            cls._instances[query_index] = {"registry": {}, "counter": 0}
         return cls._instances[query_index]
-    
+
     @classmethod
     def assign_id(cls, query_index: int, doc_text: str) -> str:
         """Assign a unique ID to a document, deduplicating across rounds."""
         state = cls.get_or_create(query_index)
         doc_hash = doc_text.strip()
-        
+
         if doc_hash in state["registry"]:
             return state["registry"][doc_hash]
         else:
@@ -367,7 +503,14 @@ class SurveyCPMCitationRegistry:
 
 @app.tool(output="instruction_ls->instruction_ls")
 def surveycpm_init_citation_registry(instruction_ls: List[str]) -> Dict[str, Any]:
-    """Initialize citation registry for SurveyCPM pipeline."""
+    """Initialize citation registry for SurveyCPM pipeline.
+
+    Args:
+        instruction_ls: List of instructions
+
+    Returns:
+        Dictionary with 'instruction_ls' (pass-through)
+    """
     SurveyCPMCitationRegistry.reset()
     return {"instruction_ls": instruction_ls}
 
@@ -378,10 +521,10 @@ def surveycpm_process_passages_with_citation(
     survey_ls: List[str],
 ) -> Dict[str, Any]:
     """Process passages and assign unique citation IDs for SurveyCPM.
-    
+
     Similar to surveycpm_process_passages, but adds [id] prefix to each passage
     for citation tracking.
-    
+
     Returns:
         - retrieved_info_ls: List of formatted strings for prompts
         - ret_psg: List of lists of cited passages for frontend rendering
@@ -389,22 +532,24 @@ def surveycpm_process_passages_with_citation(
     """
     retrieved_info_ls = []
     ret_psg_output = []  # List of lists for frontend sources (same length as input)
-    
+
     for query_idx, (ret_psg, survey_json) in enumerate(zip(ret_psg_ls, survey_ls)):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
         top_k = 10 if survey else 20
 
         if not ret_psg:
             retrieved_info_ls.append("")
             ret_psg_output.append([])
             continue
-        
+
         num_queries = len(ret_psg)
         per_query_limit = max(1, top_k // num_queries)
-        
+
         seen = set()
         all_passages = []
-        
+
         # First pass: get unique passages up to per_query_limit from each query
         for passages in ret_psg:
             for psg in passages[:per_query_limit]:
@@ -415,7 +560,7 @@ def surveycpm_process_passages_with_citation(
                     # cited_psg = f"[{citation_id}] {psg}"
                     cited_psg = f"bibkey:{citation_id}\n{psg}"
                     all_passages.append(cited_psg)
-        
+
         # Second pass: fill remaining slots
         remaining_slots = top_k - len(all_passages)
         if remaining_slots > 0:
@@ -423,18 +568,20 @@ def surveycpm_process_passages_with_citation(
                 for psg in passages[per_query_limit:]:
                     if psg not in seen and remaining_slots > 0:
                         seen.add(psg)
-                        citation_id = SurveyCPMCitationRegistry.assign_id(query_idx, psg)
+                        citation_id = SurveyCPMCitationRegistry.assign_id(
+                            query_idx, psg
+                        )
                         cited_psg = f"bibkey:{citation_id}\n{psg}"
                         all_passages.append(cited_psg)
                         remaining_slots -= 1
-        
+
         info = "\n\n".join(all_passages).strip()
         retrieved_info_ls.append(info)
         ret_psg_output.append(all_passages)  # List of cited docs for this query
-    
+
     return {
         "retrieved_info_ls": retrieved_info_ls,
-        "ret_psg": ret_psg_output  # List of lists, same length as input
+        "ret_psg": ret_psg_output,  # List of lists, same length as input
     }
 
 
@@ -445,7 +592,9 @@ def _surveycpm_abbr_one_line(string, abbr=True, tokenizer=None):
     """Abbreviate content to one line."""
     if isinstance(string, dict):
         if "content" in string and string["content"]:
-            return _surveycpm_abbr_one_line(string["content"], abbr=abbr, tokenizer=tokenizer)
+            return _surveycpm_abbr_one_line(
+                string["content"], abbr=abbr, tokenizer=tokenizer
+            )
         elif "plan" in string:
             return "[PLAN] " + string["plan"].replace("\n", " ").strip()
         else:
@@ -457,8 +606,12 @@ def _surveycpm_abbr_one_line(string, abbr=True, tokenizer=None):
             if abbr and tokenizer:
                 tokens = tokenizer(string, return_tensors="pt")
                 if tokens.input_ids.size(1) > 150:
-                    decoded_prefix = tokenizer.decode(tokens.input_ids[0][:100], skip_special_tokens=True)
-                    decoded_suffix = tokenizer.decode(tokens.input_ids[0][-50:], skip_special_tokens=True)
+                    decoded_prefix = tokenizer.decode(
+                        tokens.input_ids[0][:100], skip_special_tokens=True
+                    )
+                    decoded_suffix = tokenizer.decode(
+                        tokens.input_ids[0][-50:], skip_special_tokens=True
+                    )
                     decoded = decoded_prefix + " ... " + decoded_suffix
                     return "[OK] " + decoded.replace("\n", " ").strip()
                 else:
@@ -473,7 +626,11 @@ def _surveycpm_to_one_line(string):
         if "content" in string:
             if not string["content"]:
                 return ""
-            return "[OK] " + string["content"].replace("\n", " ").strip() + _surveycpm_to_one_line(string["content"])
+            return (
+                "[OK] "
+                + string["content"].replace("\n", " ").strip()
+                + _surveycpm_to_one_line(string["content"])
+            )
         elif "plan" in string:
             return "[PLAN] " + string["plan"].replace("\n", " ").strip()
         else:
@@ -498,7 +655,9 @@ def _surveycpm_check_progress_postion(current_survey):
                         if "content" not in subsection:
                             return f"section-{i+1}.{j+1}"
                         if "subsections" in subsection:
-                            for k, subsubsection in enumerate(subsection["subsections"]):
+                            for k, subsubsection in enumerate(
+                                subsection["subsections"]
+                            ):
                                 if "content" not in subsubsection:
                                     return f"section-{i+1}.{j+1}.{k+1}"
     return None
@@ -523,7 +682,9 @@ def _surveycpm_check_progress_postion_last_detail(current_survey):
                         else:
                             titles.append(f"section-{i+1}.{j+1}")
                         if "subsections" in subsection:
-                            for k, subsubsection in enumerate(subsection["subsections"]):
+                            for k, subsubsection in enumerate(
+                                subsection["subsections"]
+                            ):
                                 if "content" not in subsubsection:
                                     return titles[-1]
                                 else:
@@ -536,7 +697,7 @@ def _surveycpm_print_tasknote_hire(current_survey, last_detail=False):
     string = ""
     if current_survey == {}:
         return "There is no survey."
-    
+
     # title
     try:
         content = _surveycpm_abbr_one_line(current_survey["title"], abbr=False)
@@ -549,13 +710,16 @@ def _surveycpm_print_tasknote_hire(current_survey, last_detail=False):
         now_section = _surveycpm_check_progress_postion_last_detail(current_survey)
     else:
         now_section = _surveycpm_check_progress_postion(current_survey)
-    
+
     now_hire = now_section.count(".") if now_section else 0
-    
+
     if "sections" in current_survey:
         for i, section in enumerate(current_survey["sections"]):
             title_key = "name" if "name" in section else "title"
-            if now_section and (now_hire == 0 or (now_section.startswith(f"section-{i+1}") and now_hire == 1)):
+            if now_section and (
+                now_hire == 0
+                or (now_section.startswith(f"section-{i+1}") and now_hire == 1)
+            ):
                 to_line_func = _surveycpm_to_one_line
             else:
                 to_line_func = _surveycpm_abbr_one_line
@@ -564,25 +728,34 @@ def _surveycpm_print_tasknote_hire(current_survey, last_detail=False):
 
             if "subsections" in section:
                 for j, subsection in enumerate(section["subsections"]):
-                    if now_section and ((now_section.startswith(f"section-{i+1}") and now_hire == 1) or \
-                       (now_section.startswith(f"section-{i+1}.{j+1}") and now_hire == 2)):
+                    if now_section and (
+                        (now_section.startswith(f"section-{i+1}") and now_hire == 1)
+                        or (
+                            now_section.startswith(f"section-{i+1}.{j+1}")
+                            and now_hire == 2
+                        )
+                    ):
                         to_line_func = _surveycpm_to_one_line
                     else:
                         to_line_func = _surveycpm_abbr_one_line
-                    
+
                     name, content = subsection[title_key], to_line_func(subsection)
                     string += f"### Section-{i+1}.{j+1} [{name}]\n\n{content}\n\n"
 
                     if "subsections" in subsection:
                         for k, subsubsection in enumerate(subsection["subsections"]):
-                            if now_section and now_section.startswith(f"section-{i+1}.{j+1}"):
+                            if now_section and now_section.startswith(
+                                f"section-{i+1}.{j+1}"
+                            ):
                                 to_line_func = _surveycpm_to_one_line
                             else:
                                 to_line_func = _surveycpm_abbr_one_line
-                            
-                            name, content = subsubsection[title_key], to_line_func(subsubsection)
+
+                            name, content = subsubsection[title_key], to_line_func(
+                                subsubsection
+                            )
                             string += f"#### Section-{i+1}.{j+1}.{k+1} [{name}]\n\n{content}\n\n"
-    
+
     return string.strip()
 
 
@@ -599,7 +772,7 @@ def _surveycpm_match_reference(text: str) -> List[str]:
                 bib = bib.strip()
                 if bib and bib != "*":
                     bibkeys.add(bib)
-                    
+
     reg = r"\\nocite{(.+?)\}"
     reg_bibkeys = re.findall(reg, text)
     for bibkey in reg_bibkeys:
@@ -610,7 +783,7 @@ def _surveycpm_match_reference(text: str) -> List[str]:
                 if bib and bib != "*":
                     if bib in bibkeys:
                         bibkeys.remove(bib)
-        
+
     ref_key_list = list(bibkeys)
     return ref_key_list
 
@@ -647,18 +820,18 @@ def _surveycpm_check_language_consistency(item: Any, user_instruction: str) -> b
                                 text += vvv + "\n"
     else:
         return False
-    
+
     text = text.strip()
     text = text.replace(" ", "").replace("\n", "").replace("\t", "")
-    text = re.sub(r'(\\\\cite)\{(.*?)\}', '', text, flags=re.DOTALL)
-    text = re.sub(r'(\\cite)\{(.*?)\}', '', text, flags=re.DOTALL)
+    text = re.sub(r"(\\\\cite)\{(.*?)\}", "", text, flags=re.DOTALL)
+    text = re.sub(r"(\\cite)\{(.*?)\}", "", text, flags=re.DOTALL)
     comma_english = r'[!"#$%&\'()\*\+,-./:;<=>\?@\\\[\]^_`{\|}~1234567890]'
     text = re.sub(comma_english, "", text)
     if len(text) == 0:
         return True
-    
-    is_chinese = re.search(r'[\u4e00-\u9fff]', user_instruction) is not None
-    
+
+    is_chinese = re.search(r"[\u4e00-\u9fff]", user_instruction) is not None
+
     chinese_chars = re.findall(r"[\u4e00-\u9fff]", text)
     chinese_count = len(chinese_chars)
     total_chars = len(text)
@@ -673,18 +846,18 @@ def surveycpm_parse_response(
     is_json: bool = True,
     valid_actions: List[str] | None = None,
     hard_mode: bool = True,
-    **kwargs
+    **kwargs,
 ) -> Dict[str, Any]:
     extracted_result = {}
-    
+
     if valid_actions is None:
         valid_actions = ["search", "init-plan", "extend-plan", "nop", "write"]
-    
+
     think_pattern = r"<thought>(.*?)</thought>"
     action_pattern = r"<action>(.*?)</action>"
-    
+
     think_is_valid, action_is_valid = False, False
-    
+
     think_match = re.search(think_pattern, response_text, re.DOTALL)
     if think_match:
         think = think_match.group(1).strip()
@@ -692,7 +865,7 @@ def surveycpm_parse_response(
     else:
         think = ""
     extracted_result["thought"] = think
-    
+
     if is_json:
         action_match = re.search(action_pattern, response_text, re.DOTALL)
         if action_match:
@@ -701,10 +874,10 @@ def surveycpm_parse_response(
                 action = json.loads(action)
                 # action_is_valid = True
                 action_is_valid = surveycpm_validate_action(
-                    action, 
-                    valid_actions=valid_actions, 
-                    hard_mode=hard_mode, # You can use hard mode for better performance
-                    **kwargs
+                    action,
+                    valid_actions=valid_actions,
+                    hard_mode=hard_mode,  # You can use hard mode for better performance
+                    **kwargs,
                 )
             except:
                 action_is_valid = False
@@ -713,36 +886,38 @@ def surveycpm_parse_response(
             action_is_valid = False
             action = {}
     else:
-        action_match = re.search(action_pattern, response_text, re.DOTALL | re.MULTILINE)
+        action_match = re.search(
+            action_pattern, response_text, re.DOTALL | re.MULTILINE
+        )
         if action_match:
             action = action_match.group(1).strip()
             # action_is_valid = True
-            
+
         else:
             action = ""
         action = {"name": "write", "content": action}
         action_is_valid = surveycpm_validate_action(
-            action, 
-            valid_actions=valid_actions, 
-            hard_mode=hard_mode, # You can use hard mode for better performance
-            **kwargs
+            action,
+            valid_actions=valid_actions,
+            hard_mode=hard_mode,  # You can use hard mode for better performance
+            **kwargs,
         )
-    
+
     extracted_result["action"] = action
     extracted_result["parse_success"] = action_is_valid
-    
+
     score = 0.0
     if not think_is_valid:
         score -= 1.0
     if not action_is_valid:
         score -= 2.0
-    
+
     extracted_result["step_format"] = {
         "score": score,
         "thought": think_is_valid,
         "action": action_is_valid,
     }
-    
+
     return extracted_result
 
 
@@ -753,17 +928,17 @@ def surveycpm_validate_action(
     cursor: str | None = None,
     user_instruction: str | None = None,
     hard_mode: bool = False,
-    retrieved_bibkeys: List[str] | None = None
+    retrieved_bibkeys: List[str] | None = None,
 ) -> bool:
     """Validate if a survey action is properly formatted."""
     if not isinstance(action, dict):
         return False
     if "name" not in action:
         return False
-    
+
     if action["name"] not in valid_actions:
         return False
-    
+
     try:
         if action["name"] == "search":
             assert "keywords" in action
@@ -774,7 +949,7 @@ def surveycpm_validate_action(
                 assert isinstance(kw, str) and len(kw) > 0
             if hard_mode:
                 assert len(action["keywords"]) <= 5
-                
+
         elif action["name"] == "init-plan":
             assert "title" in action
             assert "sections" in action
@@ -791,24 +966,29 @@ def surveycpm_validate_action(
                 assert 3 <= len(action["sections"]) <= 12
                 if user_instruction:
                     assert _surveycpm_check_language_consistency(
-                        {"title": action["title"], "sections": action["sections"]}, 
-                        user_instruction
+                        {"title": action["title"], "sections": action["sections"]},
+                        user_instruction,
                     )
-                
+
         elif action["name"] == "extend-plan":
             assert "position" in action
             assert "subsections" in action
             assert isinstance(action["position"], str) and len(action["position"]) > 0
-            assert isinstance(action["subsections"], list) and len(action["subsections"]) > 0
+            assert (
+                isinstance(action["subsections"], list)
+                and len(action["subsections"]) > 0
+            )
             assert action.keys() == {"name", "position", "subsections"}
             if cursor is not None:
                 assert action["position"] == cursor
             assert action["position"].count(".") < 2
-            
+
             # Check if already extended
             if current_survey:
                 try:
-                    section_node = surveycpm_get_position(current_survey, action["position"], tag="outline")
+                    section_node = surveycpm_get_position(
+                        current_survey, action["position"], tag="outline"
+                    )
                     if "subsections" in section_node:
                         return False
                 except:
@@ -824,13 +1004,12 @@ def surveycpm_validate_action(
                 assert 2 <= len(action["subsections"]) <= 7
                 if user_instruction:
                     assert _surveycpm_check_language_consistency(
-                        {"subsections": action["subsections"]}, 
-                        user_instruction
+                        {"subsections": action["subsections"]}, user_instruction
                     )
-                
+
         elif action["name"] == "nop":
             assert action.keys() == {"name"}
-            
+
         elif action["name"] == "write":
             assert "content" in action
             assert action.keys() == {"name", "content"}
@@ -839,76 +1018,83 @@ def surveycpm_validate_action(
                 assert "bibkey" not in action["content"].lower()
                 assert len(action["content"].strip()) > 50
                 if user_instruction:
-                    assert _surveycpm_check_language_consistency(action["content"], user_instruction)
+                    assert _surveycpm_check_language_consistency(
+                        action["content"], user_instruction
+                    )
                 ref_key_list = _surveycpm_match_reference(action["content"])
                 if retrieved_bibkeys:
                     for ref_key in ref_key_list:
                         if ref_key not in retrieved_bibkeys:
                             return False
                 assert action["content"].count("\\cite") <= 12
-                
+
     except:
         return False
-    
+
     return True
 
 
 def surveycpm_update_position(
-    survey: Dict[str, Any],
-    position: str,
-    update_data: Dict[str, Any]
+    survey: Dict[str, Any], position: str, update_data: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Update survey content at a specific position."""
     survey = copy.deepcopy(survey)
-    
+
     current = survey
     if position == "outline":
         for key, value in update_data.items():
             current[key] = value
     else:
-        parts = position.split('-')[1].split('.')
+        parts = position.split("-")[1].split(".")
         indices = [int(part) - 1 for part in parts]
         for i, idx in enumerate(indices):
             if i == 0:
-                current = current['sections'][idx]
+                current = current["sections"][idx]
             else:
-                current = current['subsections'][idx]
-        
+                current = current["subsections"][idx]
+
         for key, value in update_data.items():
             current[key] = value
-    
+
     return survey
 
 
 def surveycpm_get_position(
-    survey: Dict[str, Any],
-    position: str,
-    tag: str = "content"
+    survey: Dict[str, Any], position: str, tag: str = "content"
 ) -> Any:
     """Get content at a specific position in the survey."""
-    parts = position.split('-')[1].split('.')
+    parts = position.split("-")[1].split(".")
     indices = [int(part) - 1 for part in parts]
     current = survey
-    
+
     for i, idx in enumerate(indices):
         if i == 0:
-            current = current['sections'][idx]
+            current = current["sections"][idx]
         else:
-            current = current['subsections'][idx]
-    
+            current = current["subsections"][idx]
+
     if tag == "outline":
         return current
     elif tag == "content":
-        return current.get('content', "")
+        return current.get("content", "")
     else:
         raise ValueError(f"Invalid tag: {tag}")
 
 
-@app.tool(output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls,retrieved_info_ls,parsed_ls")
+@app.tool(
+    output="instruction_ls->state_ls,cursor_ls,survey_ls,step_ls,extend_time_ls,extend_result_ls,retrieved_info_ls,parsed_ls"
+)
 def surveycpm_state_init(
     instruction_ls: List[str],
 ) -> Dict[str, List]:
+    """Initialize state for SurveyCPM pipeline.
 
+    Args:
+        instruction_ls: List of user instructions
+
+    Returns:
+        Dictionary with initialized state lists
+    """
     n = len(instruction_ls)
     return {
         "state_ls": ["search"] * n,
@@ -924,23 +1110,31 @@ def surveycpm_state_init(
 
 @app.tool(output="response_ls,surveycpm_hard_mode->keywords_ls,parsed_ls")
 def surveycpm_parse_search_response(
-    response_ls: List[str],
-    surveycpm_hard_mode: bool = True
+    response_ls: List[str], surveycpm_hard_mode: bool = True
 ) -> Dict[str, List]:
+    """Parse search responses from LLM for SurveyCPM pipeline.
+
+    Args:
+        response_ls: List of LLM response strings
+        surveycpm_hard_mode: Whether to use strict validation
+
+    Returns:
+        Dictionary with 'keywords_ls' and 'parsed_ls'
+    """
     keywords_ls = []
     parsed_ls = []
-    
+
     for response in response_ls:
         result = surveycpm_parse_response(
-            response_text=response, 
+            response_text=response,
             is_json=True,
             valid_actions=["search"],
-            hard_mode=surveycpm_hard_mode
+            hard_mode=surveycpm_hard_mode,
         )
         keywords = result.get("action", {}).get("keywords", [])
         keywords_ls.append(keywords)
         parsed_ls.append(result.get("parse_success", False))
-    
+
     return {"keywords_ls": keywords_ls, "parsed_ls": parsed_ls}
 
 
@@ -948,27 +1142,34 @@ def surveycpm_parse_search_response(
 def surveycpm_process_passages(
     ret_psg_ls: List[List[List[str]]],
 ) -> Dict[str, List[str]]:
+    """Process and deduplicate passages for SurveyCPM pipeline.
 
+    Args:
+        ret_psg_ls: List of lists of passage lists (one per query)
+
+    Returns:
+        Dictionary with 'retrieved_info_ls' containing processed passages
+    """
     top_k = 20
     retrieved_info_ls = []
-    
+
     for ret_psg in ret_psg_ls:
         if not ret_psg:
             retrieved_info_ls.append("")
             continue
-        
+
         num_queries = len(ret_psg)
         per_query_limit = max(1, top_k // num_queries)
-        
+
         seen = set()
         all_passages = []
-        
+
         for passages in ret_psg:
             for psg in passages[:per_query_limit]:
                 if psg not in seen:
                     seen.add(psg)
                     all_passages.append(psg)
-        
+
         remaining_slots = top_k - len(all_passages)
         if remaining_slots > 0:
             for passages in ret_psg:
@@ -977,49 +1178,65 @@ def surveycpm_process_passages(
                         seen.add(psg)
                         all_passages.append(psg)
                         remaining_slots -= 1
-        
+
         info = "\n\n".join(all_passages).strip()
         retrieved_info_ls.append(info)
-    
+
     return {"retrieved_info_ls": retrieved_info_ls}
 
 
-@app.tool(output="response_ls,survey_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls")
+@app.tool(
+    output="response_ls,survey_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls"
+)
 def surveycpm_after_init_plan(
     response_ls: List[str],
-    survey_ls: List[str], 
+    survey_ls: List[str],
     instruction_ls: List[str],
-    surveycpm_hard_mode: bool = True
+    surveycpm_hard_mode: bool = True,
 ) -> Dict[str, List]:
+    """Process responses after init-plan action in SurveyCPM pipeline.
+
+    Args:
+        response_ls: List of LLM response strings
+        survey_ls: List of survey JSON strings
+        instruction_ls: List of user instructions
+        surveycpm_hard_mode: Whether to use strict validation
+
+    Returns:
+        Dictionary with updated survey_ls, cursor_ls, and parsed_ls
+    """
 
     import json
+
     new_survey_ls = []
     new_cursor_ls = []
     parsed_ls = []
-    
-    for response, survey_json, instruction in zip(response_ls, survey_ls, instruction_ls):
+
+    for response, survey_json, instruction in zip(
+        response_ls, survey_ls, instruction_ls
+    ):
         result = surveycpm_parse_response(
-            response_text=response, 
+            response_text=response,
             is_json=True,
             user_instruction=instruction,
             valid_actions=["init-plan"],
-            hard_mode=surveycpm_hard_mode
+            hard_mode=surveycpm_hard_mode,
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         parsed_ls.append(parse_success)
-        
+
         if parse_success and action.get("name") == "init-plan":
             new_survey = {
                 "title": action.get("title", ""),
-                "sections": action.get("sections", [])
+                "sections": action.get("sections", []),
             }
             new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
             new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
         else:
             new_survey_ls.append(survey_json)
             new_cursor_ls.append("outline")
-    
+
     return {
         "survey_ls": new_survey_ls,
         "cursor_ls": new_cursor_ls,
@@ -1027,49 +1244,67 @@ def surveycpm_after_init_plan(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,retrieved_info_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls")
+@app.tool(
+    output="response_ls,survey_ls,cursor_ls,instruction_ls,retrieved_info_ls,surveycpm_hard_mode->survey_ls,cursor_ls,parsed_ls"
+)
 def surveycpm_after_write(
     response_ls: List[str],
     survey_ls: List[str],
     cursor_ls: List[str | None],
     instruction_ls: List[str],
     retrieved_info_ls: List[str],
-    surveycpm_hard_mode: bool = True
+    surveycpm_hard_mode: bool = True,
 ) -> Dict[str, List]:
+    """Process responses after write action in SurveyCPM pipeline.
+
+    Args:
+        response_ls: List of LLM response strings
+        survey_ls: List of survey JSON strings
+        cursor_ls: List of cursor positions
+        instruction_ls: List of user instructions
+        retrieved_info_ls: List of retrieved information strings
+        surveycpm_hard_mode: Whether to use strict validation
+
+    Returns:
+        Dictionary with updated survey_ls, cursor_ls, and parsed_ls
+    """
 
     import json
+
     new_survey_ls = []
     new_cursor_ls = []
     parsed_ls = []
-    
-    for response, survey_json, cursor, instruction, retrieved_info in zip(response_ls, survey_ls, cursor_ls, instruction_ls, retrieved_info_ls):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
-        
+
+    for response, survey_json, cursor, instruction, retrieved_info in zip(
+        response_ls, survey_ls, cursor_ls, instruction_ls, retrieved_info_ls
+    ):
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
+
         retrieved_bibkeys = None
         if retrieved_info and retrieved_info != "<PAD>":
-             retrieved_bibkeys = list(_surveycpm_match_reference(retrieved_info))
-             
+            retrieved_bibkeys = list(_surveycpm_match_reference(retrieved_info))
+
         result = surveycpm_parse_response(
-            response_text=response, 
+            response_text=response,
             is_json=False,
             current_survey=survey,
             cursor=cursor,
             user_instruction=instruction,
             retrieved_bibkeys=retrieved_bibkeys,
             valid_actions=["write"],
-            hard_mode=surveycpm_hard_mode
+            hard_mode=surveycpm_hard_mode,
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         parsed_ls.append(parse_success)
-        
+
         if parse_success and action.get("name") == "write":
             content = action.get("content", "")
             if content:
                 new_survey = surveycpm_update_position(
-                    survey=survey,
-                    position=cursor,
-                    update_data={"content": content}
+                    survey=survey, position=cursor, update_data={"content": content}
                 )
                 new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
                 new_cursor = _surveycpm_check_progress_postion(new_survey)
@@ -1080,7 +1315,7 @@ def surveycpm_after_write(
         else:
             new_survey_ls.append(survey_json)
             new_cursor_ls.append(cursor)
-    
+
     return {
         "survey_ls": new_survey_ls,
         "cursor_ls": new_cursor_ls,
@@ -1088,46 +1323,65 @@ def surveycpm_after_write(
     }
 
 
-@app.tool(output="response_ls,survey_ls,cursor_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,extend_result_ls,parsed_ls")
+@app.tool(
+    output="response_ls,survey_ls,cursor_ls,instruction_ls,surveycpm_hard_mode->survey_ls,cursor_ls,extend_result_ls,parsed_ls"
+)
 def surveycpm_after_extend(
     response_ls: List[str],
     survey_ls: List[str],  # JSON strings
     cursor_ls: List[str | None],
     instruction_ls: List[str],
-    surveycpm_hard_mode: bool = True
+    surveycpm_hard_mode: bool = True,
 ) -> Dict[str, List]:
+    """Process responses after extend-plan action in SurveyCPM pipeline.
+
+    Args:
+        response_ls: List of LLM response strings
+        survey_ls: List of survey JSON strings
+        cursor_ls: List of cursor positions
+        instruction_ls: List of user instructions
+        surveycpm_hard_mode: Whether to use strict validation
+
+    Returns:
+        Dictionary with updated survey_ls, cursor_ls, extend_result_ls, and parsed_ls
+    """
 
     import json
+
     new_survey_ls = []
     new_cursor_ls = []
     new_extend_result_ls = []
     parsed_ls = []
-    
-    for response, survey_json, cursor, instruction in zip(response_ls, survey_ls, cursor_ls, instruction_ls):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+
+    for response, survey_json, cursor, instruction in zip(
+        response_ls, survey_ls, cursor_ls, instruction_ls
+    ):
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
         result = surveycpm_parse_response(
-            response_text=response, 
+            response_text=response,
             is_json=True,
             current_survey=survey,
             cursor=cursor,
             user_instruction=instruction,
             valid_actions=["extend-plan", "nop"],
-            hard_mode=surveycpm_hard_mode
+            hard_mode=surveycpm_hard_mode,
         )
         parse_success = result.get("parse_success", False)
         action = result.get("action", {})
         action_name = action.get("name", "")
         parsed_ls.append(parse_success)
-        
+
         if parse_success and action_name == "extend-plan":
             position = action.get("position", "")
             subsections = action.get("subsections", [])
-            
+
             if position and subsections:
                 new_survey = surveycpm_update_position(
                     survey=survey,
                     position=position,
-                    update_data={"subsections": copy.deepcopy(subsections)}
+                    update_data={"subsections": copy.deepcopy(subsections)},
                 )
                 new_survey_ls.append(json.dumps(new_survey, ensure_ascii=False))
                 new_cursor_ls.append(_surveycpm_check_progress_postion(new_survey))
@@ -1136,7 +1390,7 @@ def surveycpm_after_extend(
                 new_survey_ls.append(survey_json)
                 new_cursor_ls.append(cursor)
                 new_extend_result_ls.append("retry")
-                
+
         elif parse_success and action_name == "nop":
             new_survey_ls.append(survey_json)
             new_cursor_ls.append(cursor)
@@ -1145,7 +1399,7 @@ def surveycpm_after_extend(
             new_survey_ls.append(survey_json)
             new_cursor_ls.append(cursor)
             new_extend_result_ls.append("retry")
-    
+
     return {
         "survey_ls": new_survey_ls,
         "cursor_ls": new_cursor_ls,
@@ -1153,7 +1407,10 @@ def surveycpm_after_extend(
         "parsed_ls": parsed_ls,
     }
 
-@app.tool(output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls,surveycpm_max_step,surveycpm_max_extend_step->state_ls,extend_time_ls,step_ls")
+
+@app.tool(
+    output="state_ls,cursor_ls,extend_time_ls,extend_result_ls,step_ls,parsed_ls,surveycpm_max_step,surveycpm_max_extend_step->state_ls,extend_time_ls,step_ls"
+)
 def surveycpm_update_state(
     state_ls: List[str],
     cursor_ls: List[str | None],
@@ -1165,10 +1422,10 @@ def surveycpm_update_state(
     surveycpm_max_extend_step: int = 12,
 ) -> Dict[str, List]:
     """Update state based on cursor and extend results.
-    
+
     This runs OUTSIDE of branch, so all items are processed together.
     Handles all state transitions in one place to avoid length mismatch issues.
-    
+
     State transition logic:
     - If step >= surveycpm_max_step: -> done
     - If parsed_ls is False: -> keep current state (retry)
@@ -1192,18 +1449,18 @@ def surveycpm_update_state(
     new_state_ls = []
     new_extend_time_ls = []
     new_step_ls = []
-    
+
     # if parsed_ls is empty, pad with True
     if not parsed_ls:
         parsed_ls = [True] * len(state_ls)
-    
+
     for i, (state, cursor, extend_time, step, parsed) in enumerate(
         zip(state_ls, cursor_ls, extend_time_ls, step_ls, parsed_ls)
     ):
         extend_result = extend_result_ls[i] if i < len(extend_result_ls) else "<PAD>"
         if extend_result == "<PAD>":
             extend_result = ""
-        
+
         if step >= surveycpm_max_step:
             new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
@@ -1212,7 +1469,7 @@ def surveycpm_update_state(
             continue
 
         if not parsed:
-            
+
             if state != "analyst-extend_plan":
                 new_extend_time_ls.append(extend_time)
                 new_state_ls.append(state)
@@ -1224,7 +1481,7 @@ def surveycpm_update_state(
                     new_state_ls.append("done")
             new_step_ls.append(step + 1)
             continue
-        
+
         if state == "search":
             if cursor == "outline":
                 new_state_ls.append("analyst-init_plan")
@@ -1233,14 +1490,14 @@ def surveycpm_update_state(
             else:
                 new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
-            
+
         elif state == "analyst-init_plan":
             if cursor != "outline" and cursor is not None:
                 new_state_ls.append("search")
             else:
                 new_state_ls.append("analyst-init_plan")
             new_extend_time_ls.append(extend_time)
-            
+
         elif state == "write":
             if cursor is not None:
                 new_state_ls.append("search")
@@ -1251,7 +1508,7 @@ def surveycpm_update_state(
             else:
                 new_state_ls.append("done")
                 new_extend_time_ls.append(extend_time)
-                
+
         elif state == "analyst-extend_plan":
             if extend_result == "extended":
                 new_state_ls.append("search")
@@ -1262,57 +1519,58 @@ def surveycpm_update_state(
             else:
                 new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
-            
+
         else:  # done or unknown
             new_state_ls.append("done")
             new_extend_time_ls.append(extend_time)
-        
+
         step = step + 1
         new_step_ls.append(step)
-    
+
     return {
         "state_ls": new_state_ls,
         "extend_time_ls": new_extend_time_ls,
         "step_ls": new_step_ls,
     }
 
+
 @app.tool(output="step_ls,state_ls,surveycpm_max_step->state_ls")
 def surveycpm_check_completion(
-    step_ls: List[int],
-    state_ls: List[str],
-    surveycpm_max_step: int = 140
+    step_ls: List[int], state_ls: List[str], surveycpm_max_step: int = 140
 ) -> Dict[str, List]:
     """Check completion status based on step count only.
-    
+
     This runs OUTSIDE of branch, so all items are processed together.
-    
+
     Note: The extend logic is now handled in surveycpm_after_write.
     This function only checks if surveycpm_max_step is reached.
-    
+
     Logic:
     - If step >= surveycpm_max_step: -> done
     - Otherwise: keep current state (which may already be analyst-extend_plan from surveycpm_after_write)
     """
     # If inputs are empty (due to framework filtering), return empty to avoid overwriting
     if not step_ls or not state_ls:
-        app.logger.warning("[surveycpm_check_completion] Empty inputs, returning empty to avoid overwriting")
+        app.logger.warning(
+            "[surveycpm_check_completion] Empty inputs, returning empty to avoid overwriting"
+        )
         return {"state_ls": state_ls}
-    
+
     new_state_ls = []
-    
+
     for step, state in zip(step_ls, state_ls):
         if step >= surveycpm_max_step:
             new_state_ls.append("done")
         else:
             # Keep current state (analyst-extend_plan, search, write, done, etc.)
             new_state_ls.append(state)
-    
+
     return {"state_ls": new_state_ls}
 
 
 def _surveycpm_clean_content(content: str) -> str:
     """Clean up content text for proper Markdown formatting.
-    
+
     This function:
     - Removes "Section-X.X.X" style references from content
     - Fixes improper markdown headers (headers with leading spaces)
@@ -1321,65 +1579,70 @@ def _surveycpm_clean_content(content: str) -> str:
     """
     if not content:
         return ""
-    
+
     # Remove "Section-X.X.X" patterns (e.g., "Section-1", "Section-2.3", "Section-4.3.1")
     # But preserve the context around them
-    content = re.sub(r'\bSection-(\d+(?:\.\d+)*)\b', '', content)
-    
+    content = re.sub(r"\bSection-(\d+(?:\.\d+)*)\b", "", content)
+
     # Fix headers that have leading spaces (not valid markdown)
     # Match lines like "    ## Title" or "        ### Title" and remove leading spaces
-    content = re.sub(r'^[ \t]+(#{1,6})\s+', r'\1 ', content, flags=re.MULTILINE)
-    
+    content = re.sub(r"^[ \t]+(#{1,6})\s+", r"\1 ", content, flags=re.MULTILINE)
+
     # Normalize multiple consecutive blank lines to at most two newlines
-    content = re.sub(r'\n{3,}', '\n\n', content)
-    
+    content = re.sub(r"\n{3,}", "\n\n", content)
+
     # Ensure headers have a blank line before them (except at start)
-    content = re.sub(r'([^\n])\n(#{1,6}\s)', r'\1\n\n\2', content)
-    
+    content = re.sub(r"([^\n])\n(#{1,6}\s)", r"\1\n\n\2", content)
+
     # Ensure headers have a blank line after them
-    content = re.sub(r'(#{1,6}\s[^\n]+)\n([^\n#])', r'\1\n\n\2', content)
-    
+    content = re.sub(r"(#{1,6}\s[^\n]+)\n([^\n#])", r"\1\n\n\2", content)
+
     return content.strip()
 
-def _surveycpm_clean_title(title:str) -> str:
-    # remove any thing like section 1., Section-1., 1., (1), 一、, （一）, 一. ，
-    # and keep the original title
-    # Some sources use full-width dots "．" or "。" in section numbers.
-    _dot = r'[.\uFF0E\u3002]'
 
-    title = re.sub(rf'(?i)^\s*section[-\s]*[\d{_dot}]*\s*', '', title)
+def _surveycpm_clean_title(title: str) -> str:
+    """Clean section title by removing numbering prefixes.
+
+    Removes patterns like "Section 1.", "Section-1.", "1.", "(1)", "一、", etc.
+    Some sources use full-width dots "．" or "。" in section numbers.
+
+    Args:
+        title: Title string to clean
+
+    Returns:
+        Cleaned title without numbering prefixes
+    """
+    _dot = r"[.\uFF0E\u3002]"
+
+    title = re.sub(rf"(?i)^\s*section[-\s]*[\d{_dot}]*\s*", "", title)
     # remove headings like "第一章 第一节 第一部 ..." / "第1章: ..." (can repeat)
     title = re.sub(
-        r'^(?:第\s*[0-9一二三四五六七八九十百千]+\s*(?:章|节|部(?:分)?|篇|卷)\s*[-—:：\.、，,]?\s*)+',
-        '',
+        r"^(?:第\s*[0-9一二三四五六七八九十百千]+\s*(?:章|节|部(?:分)?|篇|卷)\s*[-—:：\.、，,]?\s*)+",
+        "",
         title,
     )
     # remove headings like "3.4.2，" / "3.4.2." / "3.4.2 "
-    title = re.sub(rf'^\s*\d+(?:{_dot}\d+)+[\.、，,]?\s*', '', title)
-    title = re.sub(r'^\s*\d+[.、，,]\s*', '', title)
-    title = re.sub(r'[\(（]\d+[\)）]\s*', '', title)
-    title = re.sub(rf'^\s*[一二三四五六七八九十]+(?:{_dot}\d+)+[\.、，,]?\s*', '', title)
-    title = re.sub(r'^\s*[一二三四五六七八九十]+[.、，,]\s*', '', title)
-    title = re.sub(r'[\(（][一二三四五六七八九十]+[\)）]\s*', '', title)
-    title = re.sub(r'^[一二三四五六七八九十]+\s+', '', title)
+    title = re.sub(rf"^\s*\d+(?:{_dot}\d+)+[\.、，,]?\s*", "", title)
+    title = re.sub(r"^\s*\d+[.、，,]\s*", "", title)
+    title = re.sub(r"[\(（]\d+[\)）]\s*", "", title)
+    title = re.sub(
+        rf"^\s*[一二三四五六七八九十]+(?:{_dot}\d+)+[\.、，,]?\s*", "", title
+    )
+    title = re.sub(r"^\s*[一二三四五六七八九十]+[.、，,]\s*", "", title)
+    title = re.sub(r"[\(（][一二三四五六七八九十]+[\)）]\s*", "", title)
+    title = re.sub(r"^[一二三四五六七八九十]+\s+", "", title)
     return title.strip()
 
 
 def _surveycpm_to_one_line_old(string):
-    if isinstance(string, dict):
-        if "content" in string and string["content"]:
-            return _surveycpm_to_one_line_old(string["content"])
-        elif "plan" in string and string["plan"]:
-            return _surveycpm_to_one_line_old(string["plan"])
-        else:
-            return ""
-    if not string:
-        return ""
-    else:
-        return string
+    """Convert content to one line (legacy function, kept for compatibility).
 
+    Args:
+        string: String or dict to convert
 
-def _surveycpm_to_one_line_old(string):
+    Returns:
+        One-line string representation
+    """
     if isinstance(string, dict):
         if "content" in string and string["content"]:
             return _surveycpm_to_one_line_old(string["content"])
@@ -1395,7 +1658,7 @@ def _surveycpm_to_one_line_old(string):
 
 def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     """Format survey as clean Markdown for final output.
-    
+
     Unlike _surveycpm_print_tasknote_hire, this function:
     - Does NOT add [OK] or [PLAN] prefixes
     - Preserves proper paragraph breaks and formatting
@@ -1406,14 +1669,14 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
     """
     if not survey or survey == {}:
         return "No survey generated."
-    
+
     lines = []
-    
+
     # Title
     title = survey.get("title", "Untitled Survey")
     lines.append(f"# {title}")
     lines.append("")
-    
+
     # Sections
     sections = survey.get("sections", [])
     for i, section in enumerate(sections):
@@ -1421,11 +1684,11 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
         section_title = section.get(title_key, "")
         section_title = _surveycpm_clean_title(section_title)
         section_num = i + 1
-        
+
         lines.append(f"## {section_num} {section_title}")
         # lines.append(f"## **{section_title}** ")
         lines.append("")
-        
+
         # Section content
         if "content" in section and section["content"]:
             cleaned_content = _surveycpm_clean_content(section["content"])
@@ -1435,18 +1698,18 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
         elif "plan" in section and section["plan"]:
             lines.append(f"*{section['plan'].strip()}*")
             lines.append("")
-        
+
         # Subsections
         if "subsections" in section:
             for j, subsection in enumerate(section["subsections"]):
                 subsection_title = subsection.get(title_key, "")
                 subsection_title = _surveycpm_clean_title(subsection_title)
                 subsection_num = f"{section_num}.{j + 1}"
-                
+
                 lines.append(f"### {subsection_num} {subsection_title}")
                 # lines.append(f"### **{subsection_title}**")
                 lines.append("")
-                
+
                 if "content" in subsection and subsection["content"]:
                     cleaned_content = _surveycpm_clean_content(subsection["content"])
                     if cleaned_content:
@@ -1455,45 +1718,52 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
                 elif "plan" in subsection and subsection["plan"]:
                     lines.append(f"*{subsection['plan'].strip()}*")
                     lines.append("")
-                
+
                 # Sub-subsections
                 if "subsections" in subsection:
                     for k, subsubsection in enumerate(subsection["subsections"]):
                         subsubsection_title = subsubsection.get(title_key, "")
                         subsubsection_num = f"{section_num}.{j + 1}.{k + 1}"
-                        subsubsection_title = _surveycpm_clean_title(subsubsection_title)
+                        subsubsection_title = _surveycpm_clean_title(
+                            subsubsection_title
+                        )
                         lines.append(f"#### {subsubsection_num} {subsubsection_title}")
                         # lines.append(f"#### **{subsubsection_title}**")
                         lines.append("")
-                        
+
                         if "content" in subsubsection and subsubsection["content"]:
-                            cleaned_content = _surveycpm_clean_content(subsubsection["content"])
+                            cleaned_content = _surveycpm_clean_content(
+                                subsubsection["content"]
+                            )
                             if cleaned_content:
                                 lines.append(cleaned_content)
                                 lines.append("")
                         elif "plan" in subsubsection and subsubsection["plan"]:
                             lines.append(f"*{subsubsection['plan'].strip()}*")
                             lines.append("")
-    
+
     # Final cleanup: normalize multiple blank lines
     result = "\n".join(lines)
-    result = re.sub(r'\n{3,}', '\n\n', result)
-    
-    # change citation format from bibkey to []
+    result = re.sub(r"\n{3,}", "\n\n", result)
+
+    # Change citation format from bibkey to []
     def extract_num_from_textid(textid):
+        """Extract number from textid string (e.g., 'textid2' -> 2)."""
         try:
             if textid.startswith("textid"):
                 return int(textid.split("textid")[-1].strip())
-        except:
+        except Exception:
             return None
         return None
-    def replace_bibkey(match): # \\cite{textid2, textid1} -> [1,2]
+
+    def replace_bibkey(match):
+        """Replace \\cite{textid2, textid1} with [1][2] format."""
         bibkey_group = match.group(1)
         single_bibs = [bib.strip() for bib in bibkey_group.split(",")]
         new_bibs = []
         for bib in single_bibs:
             if bib.startswith("bibkey: "):
-                bib = bib[len("bibkey: "):].strip()
+                bib = bib[len("bibkey: ") :].strip()
             num = extract_num_from_textid(bib)
             if num is not None:
                 new_bibs.append(str(num))
@@ -1502,6 +1772,7 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
             return f'{"".join([f"[{i}]" for i in new_bibs])}'
         else:
             return ""
+
     reg = r"\\cite\{(.+?)\}"
     result = re.sub(reg, replace_bibkey, result)
     return result.strip()
@@ -1509,19 +1780,21 @@ def _surveycpm_format_survey_markdown(survey: Dict[str, Any]) -> str:
 
 @app.tool(output="survey_ls,instruction_ls->ans_ls")
 def surveycpm_format_output(
-    survey_ls: List[str],  # JSON strings
-    instruction_ls: List[str]
+    survey_ls: List[str], instruction_ls: List[str]  # JSON strings
 ) -> Dict[str, List[str]]:
     """Format final survey output as clean Markdown.
     survey_ls contains JSON strings that are parsed.
     """
     import json
+
     ans_ls = []
     for survey_json, instruction in zip(survey_ls, instruction_ls):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
         output = _surveycpm_format_survey_markdown(survey)
         ans_ls.append(output)
-    
+
     return {"ans_ls": ans_ls}
 
 
