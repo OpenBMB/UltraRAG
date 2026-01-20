@@ -461,10 +461,16 @@ def save_evaluation_results(
                 pretty_metric = metric.replace("avg_", "")
                 formatted_value = round(value, 4) if isinstance(value, float) else value
                 table_data.append([pretty_metric, formatted_value])
-            if isinstance(value, (int, float)):
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
+                # Only add non-avg metrics if they are numeric (for other evaluation types)
                 table_data.append([metric, round(float(value), 6)])
 
-        table_md = tabulate(table_data, headers="firstrow", tablefmt="fancy_grid")
+        table_md = tabulate(
+            table_data,
+            headers="firstrow",
+            tablefmt="fancy_grid",
+            colalign=("left", "left"),
+        )
         app.logger.info(f"Evaluation results saved to {output_path}")
         app.logger.info(f"\n{table_md}")
     return {"eval_res": results}
