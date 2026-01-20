@@ -1467,7 +1467,7 @@ function applyTableEnhancements(container) {
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
       </svg>
-      <span class="table-copy-text">复制表格</span>
+      <span class="table-copy-text">Copy Table</span>
     `;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1539,10 +1539,10 @@ function copyTableToClipboard(table, btn) {
   const done = () => {
     btn.classList.add('copied');
     const textSpan = btn.querySelector('.table-copy-text');
-    if (textSpan) textSpan.textContent = '已复制';
+    if (textSpan) textSpan.textContent = 'Copied!';
     setTimeout(() => {
       btn.classList.remove('copied');
-      if (textSpan) textSpan.textContent = '复制表格';
+      if (textSpan) textSpan.textContent = 'Copy Table';
     }, 2000);
   };
 
@@ -1583,7 +1583,7 @@ function ensureChatCopyRow(bubble, rawText) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'chat-copy-btn';
-    btn.title = '复制原文';
+    btn.title = 'Copy Text';
     btn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
