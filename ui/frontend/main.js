@@ -1217,7 +1217,6 @@ async function confirmUnsavedChanges(actionLabel = "continue") {
 }
 
 // Markdown 渲染（带简单降级）
-let markdownConfigured = false;
 const MARKDOWN_LANGS = ["markdown", "md", "mdx"];
 
 // 引用高亮函数已移至后面的 formatCitationHtml(html, messageIdx) 定义
@@ -1397,29 +1396,92 @@ function renderLatex(element) {
   }
 }
 
+// [新增] ChatGPT 风格代码块渲染
+function renderCodeBlock(code, lang) {
+  const escapedCode = escapeHtml(code);
+  const langClass = lang ? `language-${lang.toLowerCase()}` : '';
+  
+  // 生成唯一ID用于复制功能
+  const blockId = 'code-' + Math.random().toString(36).substr(2, 9);
+  
+  return `<div class="code-block-wrapper">
+    <button class="code-block-copy" data-code-id="${blockId}" onclick="copyCodeBlock(this)" title="Copy code">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+      <span class="copy-text">Copy</span>
+    </button>
+    <pre><code id="${blockId}" class="${langClass}">${escapedCode}</code></pre>
+  </div>`;
+}
+
+// [新增] 复制代码块功能
+function copyCodeBlock(btn) {
+  const codeId = btn.dataset.codeId;
+  const codeEl = document.getElementById(codeId);
+  if (!codeEl) return;
+  
+  const code = codeEl.textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.classList.add('copied');
+    const textSpan = btn.querySelector('.copy-text');
+    if (textSpan) textSpan.textContent = 'Copied!';
+    
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      if (textSpan) textSpan.textContent = 'Copy';
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy:', err);
+  });
+}
+
+// [新增] 应用代码高亮
+function applyCodeHighlight(container) {
+  if (!window.hljs) return;
+  const codeBlocks = container.querySelectorAll('pre code');
+  codeBlocks.forEach(block => {
+    // 只对有语言类的代码块或未高亮的代码块应用高亮
+    if (!block.classList.contains('hljs')) {
+      window.hljs.highlightElement(block);
+    }
+  });
+}
+
+// 将 copyCodeBlock 挂载到 window 以便 onclick 调用
+window.copyCodeBlock = copyCodeBlock;
+
 function renderMarkdown(text, { allowCodeBlock = true, unwrapLanguages = [] } = {}) {
   if (!text) return "";
   if (unwrapLanguages.length) {
     text = unwrapLanguageBlocks(text, unwrapLanguages);
   }
   if (window.marked) {
-    if (!markdownConfigured) {
-      window.marked.setOptions({ breaks: true, gfm: true });
-      markdownConfigured = true;
-    }
+    // 每次渲染都创建新的渲染器，确保代码块使用自定义渲染
+    const renderer = new window.marked.Renderer();
+    renderer.code = function(codeObj, lang) {
+      // marked v5+ 传入对象格式 { text, lang, escaped }
+      let codeText, codeLang;
+      if (typeof codeObj === 'object' && codeObj !== null) {
+        codeText = codeObj.text || '';
+        codeLang = codeObj.lang || '';
+      } else {
+        codeText = codeObj || '';
+        codeLang = lang || '';
+      }
+      
+      if (!allowCodeBlock) {
+        return `<p>${escapeHtml(codeText).replace(/\n/g, "<br>")}</p>`;
+      }
+      return renderCodeBlock(codeText, codeLang);
+    };
     
     // Protect Math from Markdown processing
     const { text: protectedText, mathBlocks } = protectMath(text);
-
-    let rendererOptions = undefined;
-    if (!allowCodeBlock && window.marked) {
-      const renderer = new window.marked.Renderer();
-      renderer.code = (code) => `<p>${escapeHtml(code).replace(/\n/g, "<br>")}</p>`;
-      rendererOptions = { renderer };
-    }
     
-    const rawHtml = window.marked.parse(protectedText, rendererOptions);
-    let sanitized = window.DOMPurify ? DOMPurify.sanitize(rawHtml) : rawHtml;
+    const rawHtml = window.marked.parse(protectedText, { breaks: true, gfm: true, renderer: renderer });
+    let sanitized = window.DOMPurify ? DOMPurify.sanitize(rawHtml, { 
+      ADD_TAGS: ['button', 'svg', 'path', 'rect', 'line', 'polyline', 'circle', 'polygon'],
+      ADD_ATTR: ['onclick', 'data-code-id', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'x', 'y', 'width', 'height', 'rx', 'ry', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2', 'points']
+    }) : rawHtml;
     
     // Restore original LaTeX (with $$ delimiters intact)
     sanitized = restoreMath(sanitized, mathBlocks);
@@ -2410,6 +2472,7 @@ function renderChatHistory() {
             let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
             content.innerHTML = formatCitationHtml(htmlContent, index);
             renderLatex(content);
+            applyCodeHighlight(content);
         } else {
             // 用户消息：保留换行效果
             // 将换行符转换为HTML，同时转义HTML特殊字符防止XSS
@@ -2743,6 +2806,7 @@ function showSourceDetail(title, content) {
         
         contentDiv.innerHTML = renderedHtml;
         renderLatex(contentDiv);
+        applyCodeHighlight(contentDiv);
 
         // 4. 滚动回顶部 (防止上次看到底部，这次打开还在底部)
         contentDiv.scrollTop = 0;
@@ -3333,6 +3397,7 @@ async function handleChatSubmit(event) {
                     html = formatCitationHtml(html, entryIndex);
                     contentDiv.innerHTML = html;
                     renderLatex(contentDiv);
+                    applyCodeHighlight(contentDiv);
                     if (shouldAutoScroll) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
@@ -3345,6 +3410,7 @@ async function handleChatSubmit(event) {
                 html = formatCitationHtml(html, entryIndex);
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
+                applyCodeHighlight(contentDiv);
 
                 // 计算哪些引用被使用了
                 const usedIds = new Set();
@@ -7908,6 +7974,9 @@ function renderAIMessage(role, content, actions = []) {
     messagesEl.appendChild(messageEl);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     
+    // 应用代码高亮
+    applyCodeHighlight(messageEl);
+    
     if (normalizedActions.length) {
         bindAIActionButtons(messageEl, normalizedActions);
     }
@@ -8033,6 +8102,7 @@ async function sendAIMessage() {
                         accumulated += data.content;
                         if (contentEl) {
                             contentEl.innerHTML = renderMarkdown(accumulated);
+                            applyCodeHighlight(contentEl);
                             messagesEl.scrollTop = messagesEl.scrollHeight;
                         }
                     }
@@ -8077,6 +8147,7 @@ function renderAIStreamingResult(content, actions = [], placeholderEl) {
     if (contentEl) {
         const actionsHtml = normalizedActions.length ? buildAIActionHtml(normalizedActions) : '';
         contentEl.innerHTML = `${renderMarkdown(finalText)}${actionsHtml}`;
+        applyCodeHighlight(contentEl);
         if (normalizedActions.length) {
             bindAIActionButtons(targetEl, normalizedActions);
         }
@@ -8387,19 +8458,3 @@ async function applyParameterModification(action) {
     return true;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function renderMarkdown(text) {
-    if (typeof marked !== 'undefined') {
-        try {
-            return marked.parse(text);
-        } catch (e) {
-            return text.replace(/\n/g, '<br>');
-        }
-    }
-    return text.replace(/\n/g, '<br>');
-}
