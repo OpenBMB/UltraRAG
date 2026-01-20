@@ -1570,6 +1570,57 @@ function fallbackCopy(text, onDone) {
   document.body.removeChild(textarea);
 }
 
+// [新增] Chat 文本复制按钮（放在正文后、引用前）
+function ensureChatCopyRow(bubble, rawText) {
+  if (!bubble) return;
+  let row = bubble.querySelector('.chat-copy-row');
+  const refContainer = bubble.querySelector('.reference-container');
+
+  if (!row) {
+    row = document.createElement('div');
+    row.className = 'chat-copy-row';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chat-copy-btn';
+    btn.title = '复制原文';
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    `;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyChatOriginalText(btn);
+    });
+
+    row.appendChild(btn);
+    if (refContainer) {
+      bubble.insertBefore(row, refContainer);
+    } else {
+      bubble.appendChild(row);
+    }
+  }
+
+  const btn = row.querySelector('.chat-copy-btn');
+  if (btn) btn.dataset.rawText = rawText || '';
+}
+
+function copyChatOriginalText(btn) {
+  const text = btn?.dataset?.rawText || '';
+  if (!text) return;
+  const done = () => {
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 2000);
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
 // 将 copyCodeBlock 挂载到 window 以便 onclick 调用
 window.copyCodeBlock = copyCodeBlock;
 
@@ -2616,6 +2667,11 @@ function renderChatHistory() {
             renderStepsFromHistory(bubble, entry.meta.steps, entry.meta.interrupted);
         }
 
+        // [新增] 复制原文按钮（位于引用之前）
+        if (entry.role === "assistant") {
+            ensureChatCopyRow(bubble, entry.text || "");
+        }
+
         // 渲染底部的引用卡片
         if (entry.meta && entry.meta.sources) {
             // 计算哪些引用被使用了
@@ -3547,6 +3603,9 @@ async function handleChatSubmit(event) {
                 while ((match = regex.exec(finalText)) !== null) {
                     usedIds.add(parseInt(match[1], 10));
                 }
+
+                // 复制原文按钮（引用之前）
+                ensureChatCopyRow(bubble, finalText);
 
                 // 渲染参考资料卡片（已使用的在上方，未使用的折叠）
                 if (pendingRenderSources && pendingRenderSources.length > 0) {
