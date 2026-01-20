@@ -13,6 +13,17 @@ app = UltraRAG_MCP_Server("prompt")
 
 
 def load_prompt_template(template_path: str | Path) -> Template:
+    """Load Jinja2 template from file.
+
+    Args:
+        template_path: Path to template file
+
+    Returns:
+        Jinja2 Template object
+
+    Raises:
+        FileNotFoundError: If template file doesn't exist
+    """
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Template file not found: {template_path}")
     with open(template_path, "r", encoding="utf-8") as f:
@@ -20,9 +31,17 @@ def load_prompt_template(template_path: str | Path) -> Template:
     return Template(template_content)
 
 
-# prompt for QA boxed
 @app.prompt(output="q_ls,template->prompt_ls")
 def qa_boxed(q_ls: List[str], template: str | Path) -> List[PromptMessage]:
+    """Generate prompts for QA boxed format.
+
+    Args:
+        q_ls: List of questions
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for q in q_ls:
@@ -31,13 +50,22 @@ def qa_boxed(q_ls: List[str], template: str | Path) -> List[PromptMessage]:
     return ret
 
 
-# prompt for Multiple Choice QA boxed
 @app.prompt(output="q_ls,choices_ls,template->prompt_ls")
 def qa_boxed_multiple_choice(
     q_ls: List[str],
     choices_ls: List[List[str]],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for multiple choice QA boxed format.
+
+    Args:
+        q_ls: List of questions
+        choices_ls: List of choice lists (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     CHOICES: List[str] = list(string.ascii_uppercase)  # A, B, ..., Z
@@ -48,11 +76,20 @@ def qa_boxed_multiple_choice(
     return ret
 
 
-# prompt for QA RAG boxed
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed(
     q_ls: List[str], ret_psg: List[str | Any], template: str | Path
-) -> list[PromptMessage]:
+) -> List[PromptMessage]:
+    """Generate prompts for QA RAG boxed format.
+
+    Args:
+        q_ls: List of questions
+        ret_psg: List of retrieved passages (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for q, psg in zip(q_ls, ret_psg):
@@ -61,7 +98,7 @@ def qa_rag_boxed(
         ret.append(p)
     return ret
 
-# prompt for QA RAG boxed with multiple choice
+
 @app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed_multiple_choice(
     q_ls: List[str],
@@ -69,6 +106,17 @@ def qa_rag_boxed_multiple_choice(
     ret_psg: List[List[str]],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for QA RAG boxed format with multiple choice.
+
+    Args:
+        q_ls: List of questions
+        choices_ls: List of choice lists (one per question)
+        ret_psg: List of retrieved passage lists (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     CHOICES: List[str] = list(string.ascii_uppercase)  # A, B, ..., Z
@@ -80,13 +128,22 @@ def qa_rag_boxed_multiple_choice(
     return ret
 
 
-# prompt for RankCoT
 @app.prompt(output="q_ls,ret_psg,kr_template->prompt_ls")
 def RankCoT_kr(
     q_ls: List[str],
     ret_psg: List[str | Any],
     template: str | Path,
-) -> list[PromptMessage]:
+) -> List[PromptMessage]:
+    """Generate prompts for RankCoT knowledge retrieval step.
+
+    Args:
+        q_ls: List of questions
+        ret_psg: List of retrieved passages (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for q, psg in zip(q_ls, ret_psg):
@@ -101,7 +158,17 @@ def RankCoT_qa(
     q_ls: List[str],
     kr_ls: List[str],
     template: str | Path,
-) -> list[PromptMessage]:
+) -> List[PromptMessage]:
+    """Generate prompts for RankCoT QA step.
+
+    Args:
+        q_ls: List of questions
+        kr_ls: List of knowledge retrieval results (CoT reasoning)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for q, cot in zip(q_ls, kr_ls):
@@ -110,16 +177,25 @@ def RankCoT_qa(
     return ret
 
 
-# prompt for IRCOT
 @app.prompt(output="memory_q_ls,memory_ret_psg,template->prompt_ls")
 def ircot_next_prompt(
     memory_q_ls: List[List[str | None]],
     memory_ret_psg: List[List[List[str]] | None],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for IRCoT (Iterative Retrieval Chain-of-Thought) pipeline.
+
+    Args:
+        memory_q_ls: List of question lists (one per round)
+        memory_ret_psg: List of retrieved passage lists (one per round)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret: List[PromptMessage] = []
-    # ---------- single turn ----------
+    # Single turn
     if len(memory_q_ls) == 1:
         for q, psg in zip(memory_q_ls[0], memory_ret_psg[0]):  # type: ignore[arg-type]
             if q is None:
@@ -129,7 +205,7 @@ def ircot_next_prompt(
                 template.render(documents=passage_text, question=q, cur_answer="")
             )
         return ret
-    # ---------- multi turn ----------
+    # Multi turn
     data_num = len(memory_q_ls[0])
     round_cnt = len(memory_q_ls)
     for i in range(data_num):
@@ -157,13 +233,22 @@ def ircot_next_prompt(
     return ret
 
 
-# prompt for WebNote
 @app.prompt(output="q_ls,plan_ls,webnote_init_page_template->prompt_ls")
 def webnote_init_page(
     q_ls: List[str],
     plan_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for WebNote initial page creation.
+
+    Args:
+        q_ls: List of questions
+        plan_ls: List of plans (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan in zip(q_ls, plan_ls):
@@ -177,6 +262,15 @@ def webnote_gen_plan(
     q_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for WebNote plan generation.
+
+    Args:
+        q_ls: List of questions
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q in q_ls:
@@ -192,6 +286,17 @@ def webnote_gen_subq(
     page_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for WebNote sub-question generation.
+
+    Args:
+        q_ls: List of questions
+        plan_ls: List of plans (one per question)
+        page_ls: List of page contents (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan, page in zip(q_ls, plan_ls, page_ls):
@@ -211,10 +316,25 @@ def webnote_fill_page(
     psg_ls: List[Any],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for WebNote page filling.
+
+    Args:
+        q_ls: List of questions
+        plan_ls: List of plans (one per question)
+        page_ls: List of page contents (one per question)
+        subq_ls: List of sub-questions (one per question)
+        psg_ls: List of passages (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
-        p = template.render(question=q, plan=plan, sub_question=subq, docs_text=psg, page=page)
+        p = template.render(
+            question=q, plan=plan, sub_question=subq, docs_text=psg, page=page
+        )
         all_prompts.append(p)
     return all_prompts
 
@@ -225,6 +345,16 @@ def webnote_gen_answer(
     page_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for WebNote answer generation.
+
+    Args:
+        q_ls: List of questions
+        page_ls: List of page contents (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, page in zip(q_ls, page_ls):
@@ -233,7 +363,6 @@ def webnote_gen_answer(
     return all_prompts
 
 
-# prompt for search-r1
 @app.prompt(output="prompt_ls,ans_ls,ret_psg,search_r1_gen_template->prompt_ls")
 def search_r1_gen(
     prompt_ls: List[PromptMessage],
@@ -241,10 +370,20 @@ def search_r1_gen(
     ret_psg: List[str | Any],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for search-r1 pipeline.
+
+    Args:
+        prompt_ls: List of previous prompts
+        ans_ls: List of previous answers
+        ret_psg: List of retrieved passages (one per prompt)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for prompt, ans, psg in zip(prompt_ls, ans_ls, ret_psg):
-        # passages = [psg[index]["segment"] for index in range(min(5, len(psg)))]
         passages = psg[:3]
         passage_text = "\n".join(passages)
         _pro = prompt.content.text
@@ -253,7 +392,6 @@ def search_r1_gen(
     return ret
 
 
-# prompt for r1_searcher
 @app.prompt(output="prompt_ls,ans_ls,ret_psg,r1_searcher_gen_template->prompt_ls")
 def r1_searcher_gen(
     prompt_ls: List[PromptMessage],
@@ -261,10 +399,20 @@ def r1_searcher_gen(
     ret_psg: List[str | Any],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for r1_searcher pipeline.
+
+    Args:
+        prompt_ls: List of previous prompts
+        ans_ls: List of previous answers
+        ret_psg: List of retrieved passages (one per prompt)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for prompt, ans, psg in zip(prompt_ls, ans_ls, ret_psg):
-        # passages = [psg[index]["segment"] for index in range(min(5, len(psg)))]
         passages = psg[:5]
         passage_text = "\n".join(passages)
         _pro = prompt.content.text
@@ -273,12 +421,20 @@ def r1_searcher_gen(
     return ret
 
 
-# prompt for search-o1
 @app.prompt(output="q_ls,searcho1_reasoning_template->prompt_ls")
 def search_o1_init(
     q_ls: List[str],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for Search O1 initialization.
+
+    Args:
+        q_ls: List of questions
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
 
     ret = []
@@ -286,79 +442,119 @@ def search_o1_init(
         p = template.render(question=q)
         ret.append(p)
     return ret
+
 
 @app.prompt(
     output="extract_query_list, ret_psg, total_reason_list, searcho1_refine_template -> prompt_ls"
 )
 def search_o1_reasoning_indocument(
-    extract_query_list: List[str], 
-    ret_psg: List[List[str]],       
-    total_reason_list: List[List[str]], 
+    extract_query_list: List[str],
+    ret_psg: List[List[str]],
+    total_reason_list: List[List[str]],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for Search O1 reasoning in document step.
+
+    Args:
+        extract_query_list: List of extracted search queries
+        ret_psg: List of retrieved passage lists (one per query)
+        total_reason_list: List of reasoning history lists (one per query)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
 
-    for squery, psg_list, history_steps in zip(extract_query_list, ret_psg, total_reason_list):
-
+    for squery, psg_list, history_steps in zip(
+        extract_query_list, ret_psg, total_reason_list
+    ):
         passage_text = "\n".join(psg_list)
 
         if len(history_steps) <= 3:
-            selected_history = history_steps[:]  
+            selected_history = history_steps[:]
         else:
             selected_history = [history_steps[0]] + history_steps[-3:]
 
         formatted_history_parts = [
-            f"Step {i}: {reason}"
-            for i, reason in enumerate(selected_history, 1)
+            f"Step {i}: {reason}" for i, reason in enumerate(selected_history, 1)
         ]
         formatted_history_str = "\n\n".join(formatted_history_parts)
 
         p = template.render(
-            prev_reasoning=formatted_history_str, 
-            search_query=squery, 
-            document=passage_text
+            prev_reasoning=formatted_history_str,
+            search_query=squery,
+            document=passage_text,
         )
         ret.append(p)
 
     return ret
 
-@app.prompt(output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls") 
+
+@app.prompt(
+    output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls"
+)
 def search_o1_insert(
     q_ls: List[str],
-    total_subq_list: List[List[str]], 
+    total_subq_list: List[List[str]],
     total_final_info_list: List[List[str]],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for Search O1 by inserting sub-queries and results.
+
+    Args:
+        q_ls: List of questions
+        total_subq_list: List of sub-query lists (one per question)
+        total_final_info_list: List of final info lists (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     prompt_ls = []
     for q in q_ls:
         p = template.render(question=q)
         prompt_ls.append(p)
-    
+
     ret = []
-    for prompt, sub_queries, sub_reasons in zip(prompt_ls, total_subq_list, total_final_info_list):
-        
-        
+    for prompt, sub_queries, sub_reasons in zip(
+        prompt_ls, total_subq_list, total_final_info_list
+    ):
         for query, reason in zip(sub_queries, sub_reasons):
             part = (
-                "<|begin_search_query|>" + str(query) + "<|end_search_query|>" + 
-                '\n' + 
-                "<|begin_search_result|>" + str(reason) + "<|end_search_result|>"
+                "<|begin_search_query|>"
+                + str(query)
+                + "<|end_search_query|>"
+                + "\n"
+                + "<|begin_search_result|>"
+                + str(reason)
+                + "<|end_search_result|>"
             )
             prompt += part
-        
+
         ret.append(prompt)
-        
+
     return ret
 
-# prompt for loop and branch demo
+
 @app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")
 def gen_subq(
     q_ls: List[str],
     ret_psg: List[str | Any],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for sub-question generation (loop and branch demo).
+
+    Args:
+        q_ls: List of questions
+        ret_psg: List of retrieved passages (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, psg in zip(q_ls, ret_psg):
@@ -366,6 +562,7 @@ def gen_subq(
         p = template.render(question=q, documents=passage_text)
         all_prompts.append(p)
     return all_prompts
+
 
 @app.prompt(output="q_ls,ret_psg,check_psg_template->prompt_ls")
 def check_passages(
@@ -373,6 +570,16 @@ def check_passages(
     ret_psg: List[str | Any],
     template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for passage checking (loop and branch demo).
+
+    Args:
+        q_ls: List of questions
+        ret_psg: List of retrieved passages (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, psg in zip(q_ls, ret_psg):
@@ -382,24 +589,43 @@ def check_passages(
     return all_prompts
 
 
-# prompt for EVisRAG
 @app.prompt(output="q_ls,ret_psg,evisrag_template->prompt_ls")
 def evisrag_vqa(
     q_ls: List[str], ret_psg: List[str | Any], template: str | Path
-) -> list[PromptMessage]:
+) -> List[PromptMessage]:
+    """Generate prompts for EVisRAG visual question answering.
+
+    Args:
+        q_ls: List of questions
+        ret_psg: List of image path lists (one per question)
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(template)
     ret = []
     for q, psg in zip(q_ls, ret_psg):
         p = template.render(question=q)
-        p = p.replace('<image>', '<image>' * len(psg))
+        p = p.replace("<image>", "<image>" * len(psg))
         ret.append(p)
     return ret
 
 
 # ==================== SurveyCPM Prompts ====================
 
+
 def _abbr_one_line(string, abbr=True, tokenizer=None):
-    """Abbreviate content to one line."""
+    """Abbreviate content to one line for SurveyCPM prompts.
+
+    Args:
+        string: String or dict to abbreviate
+        abbr: Whether to abbreviate long content
+        tokenizer: Optional tokenizer for length checking
+
+    Returns:
+        One-line string representation
+    """
     if isinstance(string, dict):
         if "content" in string and string["content"]:
             return _abbr_one_line(string["content"], abbr=abbr, tokenizer=tokenizer)
@@ -414,8 +640,12 @@ def _abbr_one_line(string, abbr=True, tokenizer=None):
             if abbr and tokenizer:
                 tokens = tokenizer(string, return_tensors="pt")
                 if tokens.input_ids.size(1) > 150:
-                    decoded_prefix = tokenizer.decode(tokens.input_ids[0][:100], skip_special_tokens=True)
-                    decoded_suffix = tokenizer.decode(tokens.input_ids[0][-50:], skip_special_tokens=True)
+                    decoded_prefix = tokenizer.decode(
+                        tokens.input_ids[0][:100], skip_special_tokens=True
+                    )
+                    decoded_suffix = tokenizer.decode(
+                        tokens.input_ids[0][-50:], skip_special_tokens=True
+                    )
                     decoded = decoded_prefix + " ... " + decoded_suffix
                     return "[OK] " + decoded.replace("\n", " ").strip()
                 else:
@@ -425,12 +655,19 @@ def _abbr_one_line(string, abbr=True, tokenizer=None):
 
 
 def _to_one_line(string):
-    """Convert content to one line."""
+    """Convert content to one line for SurveyCPM prompts.
+
+    Args:
+        string: String or dict to convert
+
+    Returns:
+        One-line string representation
+    """
     if isinstance(string, dict):
         if "content" in string:
             if not string["content"]:
                 return ""
-            return "[OK] " + string["content"].replace("\n", " ").strip() + _to_one_line(string["content"])
+            return "[OK] " + string["content"].replace("\n", " ").strip()
         elif "plan" in string:
             return "[PLAN] " + string["plan"].replace("\n", " ").strip()
         else:
@@ -442,7 +679,14 @@ def _to_one_line(string):
 
 
 def _check_progress_postion(current_survey):
-    """Check the current progress position in the survey."""
+    """Check the current progress position in the survey.
+
+    Args:
+        current_survey: Survey dictionary
+
+    Returns:
+        Position string (e.g., "outline", "section-1", "section-1.2") or None
+    """
     if current_survey == {}:
         return "outline"
     else:
@@ -455,14 +699,23 @@ def _check_progress_postion(current_survey):
                         if "content" not in subsection:
                             return f"section-{i+1}.{j+1}"
                         if "subsections" in subsection:
-                            for k, subsubsection in enumerate(subsection["subsections"]):
+                            for k, subsubsection in enumerate(
+                                subsection["subsections"]
+                            ):
                                 if "content" not in subsubsection:
                                     return f"section-{i+1}.{j+1}.{k+1}"
     return None
 
 
 def _check_progress_postion_last_detail(current_survey):
-    """Check the last completed position with detail."""
+    """Check the last completed position with detail.
+
+    Args:
+        current_survey: Survey dictionary
+
+    Returns:
+        Position string of the last completed section
+    """
     if current_survey == {}:
         return "outline"
     else:
@@ -480,7 +733,9 @@ def _check_progress_postion_last_detail(current_survey):
                         else:
                             titles.append(f"section-{i+1}.{j+1}")
                         if "subsections" in subsection:
-                            for k, subsubsection in enumerate(subsection["subsections"]):
+                            for k, subsubsection in enumerate(
+                                subsection["subsections"]
+                            ):
                                 if "content" not in subsubsection:
                                     return titles[-1]
                                 else:
@@ -489,16 +744,24 @@ def _check_progress_postion_last_detail(current_survey):
 
 
 def _print_tasknote(current_survey, abbr=True):
-    """Print survey structure as a formatted string."""
+    """Print survey structure as a formatted string.
+
+    Args:
+        current_survey: Survey dictionary
+        abbr: Whether to abbreviate content
+
+    Returns:
+        Formatted string representation of survey
+    """
     string = ""
     if current_survey == {}:
         return "There is no survey."
-    
-    # title
+
+    # Title
     try:
         content = _abbr_one_line(current_survey["title"], abbr=False)
         string += f"# Title: {content}\n"
-    except:
+    except Exception:
         string += f"# Title: None\n"
 
     to_line_func = _abbr_one_line
@@ -511,42 +774,57 @@ def _print_tasknote(current_survey, abbr=True):
 
             if "subsections" in section:
                 for j, subsection in enumerate(section["subsections"]):
-                    name, content = subsection[title_key], to_line_func(subsection, abbr)
+                    name, content = subsection[title_key], to_line_func(
+                        subsection, abbr
+                    )
                     string += f"    ## Section-{i+1}.{j+1} [{name}]: {content}\n"
 
                     if "subsections" in subsection:
                         for k, subsubsection in enumerate(subsection["subsections"]):
-                            name, content = subsubsection[title_key], to_line_func(subsubsection, abbr)
+                            name, content = subsubsection[title_key], to_line_func(
+                                subsubsection, abbr
+                            )
                             string += f"        ### Section-{i+1}.{j+1}.{k+1} [{name}]: {content}\n"
-    
+
     return string
 
 
 def _print_tasknote_hire(current_survey, last_detail=False):
-    """Print survey structure with hierarchical detail."""
+    """Print survey structure with hierarchical detail.
+
+    Args:
+        current_survey: Survey dictionary
+        last_detail: Whether to use last detail mode
+
+    Returns:
+        Formatted string representation of survey with hierarchical detail
+    """
     string = ""
     if current_survey == {}:
         return "There is no survey."
-    
-    # title
+
+    # Title
     try:
         content = _abbr_one_line(current_survey["title"], abbr=False)
         string += f"# Title: {content}\n"
-    except:
+    except Exception:
         string += f"# Title: None\n"
 
-    # sections
+    # Sections
     if last_detail:
         now_section = _check_progress_postion_last_detail(current_survey)
     else:
         now_section = _check_progress_postion(current_survey)
-    
+
     now_hire = now_section.count(".") if now_section else 0
-    
+
     if "sections" in current_survey:
         for i, section in enumerate(current_survey["sections"]):
             title_key = "name" if "name" in section else "title"
-            if now_section and (now_hire == 0 or (now_section.startswith(f"section-{i+1}") and now_hire == 1)):
+            if now_section and (
+                now_hire == 0
+                or (now_section.startswith(f"section-{i+1}") and now_hire == 1)
+            ):
                 to_line_func = _to_one_line
             else:
                 to_line_func = _abbr_one_line
@@ -555,74 +833,110 @@ def _print_tasknote_hire(current_survey, last_detail=False):
 
             if "subsections" in section:
                 for j, subsection in enumerate(section["subsections"]):
-                    if now_section and ((now_section.startswith(f"section-{i+1}") and now_hire == 1) or \
-                       (now_section.startswith(f"section-{i+1}.{j+1}") and now_hire == 2)):
+                    if now_section and (
+                        (now_section.startswith(f"section-{i+1}") and now_hire == 1)
+                        or (
+                            now_section.startswith(f"section-{i+1}.{j+1}")
+                            and now_hire == 2
+                        )
+                    ):
                         to_line_func = _to_one_line
                     else:
                         to_line_func = _abbr_one_line
-                    
+
                     name, content = subsection[title_key], to_line_func(subsection)
                     string += f"    ## Section-{i+1}.{j+1} [{name}]: {content}\n"
 
                     if "subsections" in subsection:
                         for k, subsubsection in enumerate(subsection["subsections"]):
-                            if now_section and now_section.startswith(f"section-{i+1}.{j+1}"):
+                            if now_section and now_section.startswith(
+                                f"section-{i+1}.{j+1}"
+                            ):
                                 to_line_func = _to_one_line
                             else:
                                 to_line_func = _abbr_one_line
-                            
-                            name, content = subsubsection[title_key], to_line_func(subsubsection)
+
+                            name, content = subsubsection[title_key], to_line_func(
+                                subsubsection
+                            )
                             string += f"        ### Section-{i+1}.{j+1}.{k+1} [{name}]: {content}\n"
-    
+
     return string
 
 
-@app.prompt(output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls")
+@app.prompt(
+    output="instruction_ls,survey_ls,cursor_ls,surveycpm_search_template->prompt_ls"
+)
 def surveycpm_search(
     instruction_ls: List[str],
     survey_ls: List[str],
     cursor_ls: List[str | None],
     surveycpm_search_template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for SurveyCPM search step.
+
+    Args:
+        instruction_ls: List of user instructions
+        survey_ls: List of survey JSON strings
+        cursor_ls: List of cursor positions
+        surveycpm_search_template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     import json
+
     template: Template = load_prompt_template(surveycpm_search_template)
     ret = []
     for instruction, survey_json, cursor in zip(instruction_ls, survey_ls, cursor_ls):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
-        
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
+
         if not survey:
             survey_str = "There is no survey."
         else:
             survey_str = _print_tasknote(survey, abbr=True)
-        
+
         p = template.render(
             user_query=instruction,
             current_outline=survey_str,
-            current_instruction=f"You need to update {cursor}"
+            current_instruction=f"You need to update {cursor}",
         )
         ret.append(p)
     return ret
 
 
-@app.prompt(output="instruction_ls,retrieved_info_ls,surveycpm_init_plan_template->prompt_ls")
+@app.prompt(
+    output="instruction_ls,retrieved_info_ls,surveycpm_init_plan_template->prompt_ls"
+)
 def surveycpm_init_plan(
     instruction_ls: List[str],
     retrieved_info_ls: List[str],
     surveycpm_init_plan_template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for SurveyCPM initial plan step.
+
+    Args:
+        instruction_ls: List of user instructions
+        retrieved_info_ls: List of retrieved information strings
+        surveycpm_init_plan_template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     template: Template = load_prompt_template(surveycpm_init_plan_template)
     ret = []
     for instruction, retrieved_info in zip(instruction_ls, retrieved_info_ls):
         info = retrieved_info if retrieved_info != "<PAD>" else ""
-        p = template.render(
-            user_query=instruction,
-            current_information=info
-        )
+        p = template.render(user_query=instruction, current_information=info)
         ret.append(p)
     return ret
 
 
-@app.prompt(output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls")
+@app.prompt(
+    output="instruction_ls,survey_ls,cursor_ls,retrieved_info_ls,surveycpm_write_template->prompt_ls"
+)
 def surveycpm_write(
     instruction_ls: List[str],
     survey_ls: List[str],
@@ -630,21 +944,35 @@ def surveycpm_write(
     retrieved_info_ls: List[str],
     surveycpm_write_template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for SurveyCPM write step.
 
+    Args:
+        instruction_ls: List of user instructions
+        survey_ls: List of survey JSON strings
+        cursor_ls: List of cursor positions
+        retrieved_info_ls: List of retrieved information strings
+        surveycpm_write_template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     import json
+
     template: Template = load_prompt_template(surveycpm_write_template)
     ret = []
     for instruction, survey_json, cursor, retrieved_info in zip(
         instruction_ls, survey_ls, cursor_ls, retrieved_info_ls
     ):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
+        )
         info = retrieved_info if retrieved_info != "<PAD>" else ""
         survey_str = _print_tasknote_hire(survey, last_detail=True)
         p = template.render(
             user_query=instruction,
             current_survey=survey_str,
             current_instruction=f"You need to update {cursor}",
-            current_information=info
+            current_information=info,
         )
         ret.append(p)
     return ret
@@ -656,17 +984,27 @@ def surveycpm_extend_plan(
     survey_ls: List[str],
     surveycpm_extend_plan_template: str | Path,
 ) -> List[PromptMessage]:
+    """Generate prompts for SurveyCPM extend plan step.
+
+    Args:
+        instruction_ls: List of user instructions
+        survey_ls: List of survey JSON strings
+        surveycpm_extend_plan_template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
     import json
+
     template: Template = load_prompt_template(surveycpm_extend_plan_template)
-    
+
     ret = []
     for instruction, survey_json in zip(instruction_ls, survey_ls):
-        survey = json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
-        survey_str = _print_tasknote(survey, abbr=False)
-        p = template.render(
-            user_query=instruction,
-            current_survey=survey_str
+        survey = (
+            json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
         )
+        survey_str = _print_tasknote(survey, abbr=False)
+        p = template.render(user_query=instruction, current_survey=survey_str)
         ret.append(p)
     return ret
 
