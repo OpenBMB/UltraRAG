@@ -2,24 +2,27 @@ import asyncio
 import ast
 import json
 import os
+import re
 import shutil
 import sys
 from contextlib import contextmanager
-from typing import Any, Dict, Iterable, List, Optional
 from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from fastmcp.exceptions import ToolError
 from PIL import Image
 from tqdm import tqdm
+from ultrarag.server import UltraRAG_MCP_Server
 
-import re
+app = UltraRAG_MCP_Server("corpus")
 
 
 @contextmanager
 def suppress_stdout():
+    """Context manager to suppress stdout output."""
     stdout_fd = sys.stdout.fileno()
     saved_stdout_fd = os.dup(stdout_fd)
-    
+
     try:
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, stdout_fd)
@@ -29,14 +32,16 @@ def suppress_stdout():
         os.dup2(saved_stdout_fd, stdout_fd)
         os.close(saved_stdout_fd)
 
-from ultrarag.server import UltraRAG_MCP_Server
-
-app = UltraRAG_MCP_Server("corpus")
-
 
 def _save_jsonl(rows: Iterable[Dict[str, Any]], file_path: str) -> None:
+    """Save rows to a JSONL file.
+
+    Args:
+        rows: Iterable of dictionaries to save
+        file_path: Path to the output JSONL file
+    """
     out_dir = Path(file_path).parent
-    if out_dir:
+    if out_dir and str(out_dir) != ".":
         os.makedirs(out_dir, exist_ok=True)
 
     with open(file_path, "w", encoding="utf-8", newline="\n") as f:
@@ -45,6 +50,14 @@ def _save_jsonl(rows: Iterable[Dict[str, Any]], file_path: str) -> None:
 
 
 def _load_jsonl(file_path: str) -> List[Dict[str, Any]]:
+    """Load documents from a JSONL file.
+
+    Args:
+        file_path: Path to the JSONL file
+
+    Returns:
+        List of dictionaries loaded from the file
+    """
     docs = []
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -54,21 +67,39 @@ def _load_jsonl(file_path: str) -> List[Dict[str, Any]]:
             docs.append(json.loads(line))
     return docs
 
+
 def clean_text(text: str) -> str:
+    """Clean text by normalizing whitespace and line breaks.
+
+    Args:
+        text: Input text to clean
+
+    Returns:
+        Cleaned text string
+    """
     if not text:
         return ""
     text = text.replace("\u3000", " ")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
 def reflow_paragraphs(text: str) -> str:
-    """
-    更智能地去掉段内硬换行，并允许在错误的空行处继续合并：
-    1) 先按空行切段；段内如果上一行未以句末标点结束，则与下一行合并。
-    2) 如果段落末尾没有句末标点，而下一个段落看起来是同一段的续写，则跨空行继续合并。
-    3) 处理末尾连字符断词。
+    """Intelligently remove hard line breaks within paragraphs and merge incorrectly split paragraphs.
+
+    The function:
+    1) Splits by blank lines first; within a paragraph, if the previous line doesn't end with
+       sentence-ending punctuation, merge it with the next line.
+    2) If a paragraph doesn't end with sentence-ending punctuation and the next paragraph
+       appears to be a continuation, merge across blank lines.
+    3) Handles trailing hyphen word breaks.
+
+    Args:
+        text: Input text to reflow
+
+    Returns:
+        Reflowed text string
     """
     if not text:
         return ""
@@ -100,11 +131,11 @@ def reflow_paragraphs(text: str) -> str:
         joined = " ".join(segs)
         return re.sub(r"\s{2,}", " ", joined).strip()
 
-    # 第一次：段内合并
+    # First pass: merge lines within paragraphs
     raw_paras = re.split(r"\n{2,}", text)
     paras = [merge_lines_within_paragraph(p) for p in raw_paras if p.strip()]
 
-    # 第二次：跨段合并（处理错误空行导致的断句）
+    # Second pass: merge across paragraphs (handle incorrect blank lines causing sentence breaks)
     merged: List[str] = []
     for p in paras:
         if not merged:
@@ -113,7 +144,9 @@ def reflow_paragraphs(text: str) -> str:
         prev = merged[-1]
         if prev and (not end_punct_re.search(prev)) and next_start_re.match(p):
             connector = "" if prev.endswith("-") else " "
-            merged[-1] = re.sub(r"\s{2,}", " ", (prev.rstrip("-") + connector + p).strip())
+            merged[-1] = re.sub(
+                r"\s{2,}", " ", (prev.rstrip("-") + connector + p).strip()
+            )
         else:
             merged.append(p)
 
@@ -125,6 +158,15 @@ async def build_text_corpus(
     parse_file_path: str,
     text_corpus_save_path: str,
 ) -> None:
+    """Build text corpus from various file formats.
+
+    Args:
+        parse_file_path: Path to file or directory containing files to parse
+        text_corpus_save_path: Path where the text corpus JSONL file will be saved
+
+    Raises:
+        ToolError: If input path doesn't exist or required dependencies are missing
+    """
     TEXT_EXTS = [".txt", ".md"]
     PMLIKE_EXT = [".pdf", ".xps", ".oxps", ".epub", ".mobi", ".fb2"]
     DOCX_EXT = [".docx"]
@@ -142,7 +184,7 @@ async def build_text_corpus(
         ext = fp_path.suffix.lower()
         stem = fp_path.stem
         content = ""
-        
+
         if ext in TEXT_EXTS:
             try:
                 from charset_normalizer import from_path
@@ -155,7 +197,7 @@ async def build_text_corpus(
                 content = str(results) if results else ""
             except Exception as e:
                 app.logger.warning(f"Text read failed: {fp} | {e}")
-        
+
         elif ext in DOCX_EXT:
             try:
                 from docx import Document
@@ -173,7 +215,7 @@ async def build_text_corpus(
                 content = "\n".join(full_text)
             except Exception as e:
                 app.logger.warning(f"Docx read failed: {fp} | {e}")
-        
+
         elif ext in PMLIKE_EXT:
             try:
                 import pymupdf
@@ -199,11 +241,13 @@ async def build_text_corpus(
             return
 
         if content.strip():
-            rows.append({
-                "id": stem,
-                "title": stem,
-                "contents": reflow_paragraphs(clean_text(content))
-            })
+            rows.append(
+                {
+                    "id": stem,
+                    "title": stem,
+                    "contents": reflow_paragraphs(clean_text(content)),
+                }
+            )
 
     if os.path.isfile(in_path):
         process_one_file(in_path)
@@ -231,6 +275,15 @@ async def build_image_corpus(
     parse_file_path: str,
     image_corpus_save_path: str,
 ) -> None:
+    """Build image corpus from PDF files by extracting pages as images.
+
+    Args:
+        parse_file_path: Path to PDF file or directory containing PDF files
+        image_corpus_save_path: Path where the image corpus JSONL file will be saved
+
+    Raises:
+        ToolError: If input path doesn't exist, no PDFs found, or pymupdf is not installed
+    """
     try:
         import pymupdf
     except ImportError:
@@ -298,7 +351,9 @@ async def build_image_corpus(
         for i, page in enumerate(doc):
             try:
                 with suppress_stdout():
-                    pix = page.get_pixmap(matrix=mat, alpha=False, colorspace=pymupdf.csRGB)
+                    pix = page.get_pixmap(
+                        matrix=mat, alpha=False, colorspace=pymupdf.csRGB
+                    )
             except Exception as e:
                 warn_msg = f"Skip page {i} in {pdf_path}: render error: {e}"
                 app.logger.warning(warn_msg)
@@ -354,7 +409,16 @@ async def mineru_parse(
     mineru_dir: str,
     mineru_extra_params: Optional[Dict[str, Any]] = None,
 ) -> None:
+    """Parse PDF files using MinerU tool.
 
+    Args:
+        parse_file_path: Path to PDF file or directory containing PDF files
+        mineru_dir: Output directory for MinerU parsing results
+        mineru_extra_params: Optional dictionary of extra parameters for MinerU command
+
+    Raises:
+        ToolError: If mineru executable not found, invalid input path, or execution fails
+    """
     if shutil.which("mineru") is None:
         err_msg = "`mineru` executable not found. Please install it or add it to PATH."
         app.logger.error(err_msg)
@@ -416,6 +480,14 @@ async def mineru_parse(
 
 
 def _list_images(images_dir: str) -> List[str]:
+    """List all image files in a directory recursively.
+
+    Args:
+        images_dir: Directory path to search for images
+
+    Returns:
+        List of relative paths to image files (using forward slashes)
+    """
     if not os.path.isdir(images_dir):
         return []
     exts = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"}
@@ -438,11 +510,17 @@ async def build_mineru_corpus(
     text_corpus_save_path: str,
     image_corpus_save_path: str,
 ) -> None:
-    import os, shutil
-    from typing import List, Dict, Any, Set
-    from fastmcp.exceptions import ToolError
-    from PIL import Image
+    """Build text and image corpus from MinerU parsing results.
 
+    Args:
+        mineru_dir: Directory containing MinerU parsing results
+        parse_file_path: Original path to PDF file(s) that were parsed
+        text_corpus_save_path: Path where the text corpus JSONL file will be saved
+        image_corpus_save_path: Path where the image corpus JSONL file will be saved
+
+    Raises:
+        ToolError: If mineru_dir doesn't exist, invalid input path, or no PDFs found
+    """
     root = os.path.abspath(mineru_dir)
     if not os.path.isdir(root):
         err_msg = f"MinerU root not found: {root}"
@@ -557,12 +635,32 @@ async def chunk_documents(
     chunk_path: Optional[str] = None,
     use_title: bool = True,
 ) -> None:
+    """Chunk documents using various chunking strategies.
 
+    Args:
+        raw_chunk_path: Path to JSONL file containing documents to chunk
+        chunk_backend_configs: Dictionary of configuration for each chunking backend
+        chunk_backend: Chunking method to use ("token", "sentence", or "recursive")
+        tokenizer_or_token_counter: Tokenizer name or counter type ("word", "character", or tiktoken encoding)
+        chunk_size: Target size for each chunk
+        chunk_path: Optional output path for chunked documents (defaults to project output directory)
+        use_title: Whether to include document title in chunk content
+
+    Raises:
+        ToolError: If chonkie/tiktoken not installed, invalid chunking method, or chunking fails
+    """
     try:
-        from chonkie import TokenChunker, SentenceChunker, RecursiveChunker, RecursiveRules
+        from chonkie import (
+            TokenChunker,
+            SentenceChunker,
+            RecursiveChunker,
+            RecursiveRules,
+        )
         import tiktoken
     except ImportError:
-        err_msg = "chonkie or tiktoken not installed. Please `pip install chonkie tiktoken`."
+        err_msg = (
+            "chonkie or tiktoken not installed. Please `pip install chonkie tiktoken`."
+        )
         app.logger.error(err_msg)
         raise ToolError(err_msg)
 
@@ -584,19 +682,26 @@ async def chunk_documents(
         try:
             tokenizer = tiktoken.get_encoding(tokenizer_name)
         except Exception:
-            app.logger.warning(f"Could not load tokenizer '{tokenizer_name}', falling back to 'gpt2'.")
+            app.logger.warning(
+                f"Could not load tokenizer '{tokenizer_name}', falling back to 'gpt2'."
+            )
             tokenizer = tiktoken.get_encoding("gpt2")
     else:
         tokenizer = tokenizer_name
- 
+
     chunk_overlap = cfg.get("chunk_overlap", 64)
 
     if chunk_overlap >= chunk_size:
-        app.logger.warning(f"chunk_overlap ({chunk_overlap}) >= chunk_size ({chunk_size}), adjusting overlap to size/4.")
+        app.logger.warning(
+            f"chunk_overlap ({chunk_overlap}) >= chunk_size ({chunk_size}), "
+            "adjusting overlap to size/4."
+        )
         chunk_overlap = int(chunk_size / 4)
-    
-    app.logger.info(f"Chunking Config: backend={chunk_backend}, size={chunk_size}, overlap={chunk_overlap}, tokenizer={tokenizer_name}")
 
+    app.logger.info(
+        f"Chunking Config: backend={chunk_backend}, size={chunk_size}, "
+        f"overlap={chunk_overlap}, tokenizer={tokenizer_name}"
+    )
 
     if chunk_backend == "token":
         chunker = TokenChunker(
@@ -625,7 +730,7 @@ async def chunk_documents(
             min_sentences_per_chunk=min_sentences_per_chunk,
             delim=delim,
         )
-            
+
     elif chunk_backend == "recursive":
         min_characters_per_chunk = cfg.get("min_characters_per_chunk", 50)
 
@@ -634,7 +739,7 @@ async def chunk_documents(
             chunk_size=chunk_size,
             rules=RecursiveRules(),
             min_characters_per_chunk=min_characters_per_chunk,
-        )    
+        )
 
     else:
         err_msg = (
