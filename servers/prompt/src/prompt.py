@@ -1,7 +1,7 @@
 import os
 import string
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List, Optional, Union
 
 from jinja2 import Template
 
@@ -12,7 +12,7 @@ from ultrarag.server import UltraRAG_MCP_Server
 app = UltraRAG_MCP_Server("prompt")
 
 
-def load_prompt_template(template_path: str | Path) -> Template:
+def load_prompt_template(template_path: Union[str, Path]) -> Template:
     """Load Jinja2 template from file.
 
     Args:
@@ -32,7 +32,7 @@ def load_prompt_template(template_path: str | Path) -> Template:
 
 
 @app.prompt(output="q_ls,template->prompt_ls")
-def qa_boxed(q_ls: List[str], template: str | Path) -> List[PromptMessage]:
+def qa_boxed(q_ls: List[str], template: Union[str, Path]) -> List[PromptMessage]:
     """Generate prompts for QA boxed format.
 
     Args:
@@ -54,7 +54,7 @@ def qa_boxed(q_ls: List[str], template: str | Path) -> List[PromptMessage]:
 def qa_boxed_multiple_choice(
     q_ls: List[str],
     choices_ls: List[List[str]],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for multiple choice QA boxed format.
 
@@ -78,7 +78,7 @@ def qa_boxed_multiple_choice(
 
 @app.prompt(output="q_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed(
-    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+    q_ls: List[str], ret_psg: List[Union[str, Any]], template: Union[str, Path]
 ) -> List[PromptMessage]:
     """Generate prompts for QA RAG boxed format.
 
@@ -104,7 +104,7 @@ def qa_rag_boxed_multiple_choice(
     q_ls: List[str],
     choices_ls: List[List[str]],
     ret_psg: List[List[str]],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for QA RAG boxed format with multiple choice.
 
@@ -131,8 +131,8 @@ def qa_rag_boxed_multiple_choice(
 @app.prompt(output="q_ls,ret_psg,kr_template->prompt_ls")
 def RankCoT_kr(
     q_ls: List[str],
-    ret_psg: List[str | Any],
-    template: str | Path,
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for RankCoT knowledge retrieval step.
 
@@ -157,7 +157,7 @@ def RankCoT_kr(
 def RankCoT_qa(
     q_ls: List[str],
     kr_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for RankCoT QA step.
 
@@ -179,9 +179,9 @@ def RankCoT_qa(
 
 @app.prompt(output="memory_q_ls,memory_ret_psg,template->prompt_ls")
 def ircot_next_prompt(
-    memory_q_ls: List[List[str | None]],
-    memory_ret_psg: List[List[List[str]] | None],
-    template: str | Path,
+    memory_q_ls: List[List[Optional[str]]],
+    memory_ret_psg: List[Optional[List[List[str]]]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for IRCoT (Iterative Retrieval Chain-of-Thought) pipeline.
 
@@ -237,7 +237,7 @@ def ircot_next_prompt(
 def webnote_init_page(
     q_ls: List[str],
     plan_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for WebNote initial page creation.
 
@@ -260,7 +260,7 @@ def webnote_init_page(
 @app.prompt(output="q_ls,webnote_gen_plan_template->prompt_ls")
 def webnote_gen_plan(
     q_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for WebNote plan generation.
 
@@ -284,7 +284,7 @@ def webnote_gen_subq(
     q_ls: List[str],
     plan_ls: List[str],
     page_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for WebNote sub-question generation.
 
@@ -314,7 +314,7 @@ def webnote_fill_page(
     page_ls: List[str],
     subq_ls: List[str],
     psg_ls: List[Any],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for WebNote page filling.
 
@@ -343,7 +343,7 @@ def webnote_fill_page(
 def webnote_gen_answer(
     q_ls: List[str],
     page_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for WebNote answer generation.
 
@@ -367,8 +367,8 @@ def webnote_gen_answer(
 def search_r1_gen(
     prompt_ls: List[PromptMessage],
     ans_ls: List[str],
-    ret_psg: List[str | Any],
-    template: str | Path,
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for search-r1 pipeline.
 
@@ -396,8 +396,8 @@ def search_r1_gen(
 def r1_searcher_gen(
     prompt_ls: List[PromptMessage],
     ans_ls: List[str],
-    ret_psg: List[str | Any],
-    template: str | Path,
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for r1_searcher pipeline.
 
@@ -424,7 +424,7 @@ def r1_searcher_gen(
 @app.prompt(output="q_ls,searcho1_reasoning_template->prompt_ls")
 def search_o1_init(
     q_ls: List[str],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for Search O1 initialization.
 
@@ -443,6 +443,7 @@ def search_o1_init(
         ret.append(p)
     return ret
 
+
 @app.prompt(
     output="extract_query_list, ret_psg, total_reason_list, searcho1_refine_template -> prompt_ls"
 )
@@ -450,7 +451,7 @@ def search_o1_reasoning_indocument(
     extract_query_list: List[str],
     ret_psg: List[List[str]],
     total_reason_list: List[List[str]],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for Search O1 reasoning in document step.
 
@@ -490,7 +491,6 @@ def search_o1_reasoning_indocument(
 
     return ret
 
-    return ret
 
 @app.prompt(
     output="q_ls,total_subq_list,total_final_info_list,searcho1_reasoning_template->prompt_ls"
@@ -499,7 +499,7 @@ def search_o1_insert(
     q_ls: List[str],
     total_subq_list: List[List[str]],
     total_final_info_list: List[List[str]],
-    template: str | Path,
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for Search O1 by inserting sub-queries and results.
 
@@ -542,8 +542,8 @@ def search_o1_insert(
 @app.prompt(output="q_ls,ret_psg,gen_subq_template->prompt_ls")
 def gen_subq(
     q_ls: List[str],
-    ret_psg: List[str | Any],
-    template: str | Path,
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for sub-question generation (loop and branch demo).
 
@@ -567,8 +567,8 @@ def gen_subq(
 @app.prompt(output="q_ls,ret_psg,check_psg_template->prompt_ls")
 def check_passages(
     q_ls: List[str],
-    ret_psg: List[str | Any],
-    template: str | Path,
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for passage checking (loop and branch demo).
 
@@ -591,7 +591,7 @@ def check_passages(
 
 @app.prompt(output="q_ls,ret_psg,evisrag_template->prompt_ls")
 def evisrag_vqa(
-    q_ls: List[str], ret_psg: List[str | Any], template: str | Path
+    q_ls: List[str], ret_psg: List[Union[str, Any]], template: Union[str, Path]
 ) -> List[PromptMessage]:
     """Generate prompts for EVisRAG visual question answering.
 
@@ -615,7 +615,9 @@ def evisrag_vqa(
 # ==================== SurveyCPM Prompts ====================
 
 
-def _abbr_one_line(string, abbr=True, tokenizer=None):
+def _abbr_one_line(
+    string: Union[str, Dict[str, Any]], abbr: bool = True, tokenizer: Any = None
+) -> str:
     """Abbreviate content to one line for SurveyCPM prompts.
 
     Args:
@@ -654,7 +656,7 @@ def _abbr_one_line(string, abbr=True, tokenizer=None):
                 return "[OK] " + string.replace("\n", " ").strip()
 
 
-def _to_one_line(string):
+def _to_one_line(string: Union[str, Dict[str, Any]]) -> str:
     """Convert content to one line for SurveyCPM prompts.
 
     Args:
@@ -678,7 +680,7 @@ def _to_one_line(string):
         return string.replace("\n", " ")
 
 
-def _check_progress_postion(current_survey):
+def _check_progress_postion(current_survey: Dict[str, Any]) -> Optional[str]:
     """Check the current progress position in the survey.
 
     Args:
@@ -707,7 +709,7 @@ def _check_progress_postion(current_survey):
     return None
 
 
-def _check_progress_postion_last_detail(current_survey):
+def _check_progress_postion_last_detail(current_survey: Dict[str, Any]) -> str:
     """Check the last completed position with detail.
 
     Args:
@@ -743,7 +745,7 @@ def _check_progress_postion_last_detail(current_survey):
     return titles[-1]
 
 
-def _print_tasknote(current_survey, abbr=True):
+def _print_tasknote(current_survey: dict, abbr: bool = True) -> str:
     """Print survey structure as a formatted string.
 
     Args:
@@ -789,7 +791,9 @@ def _print_tasknote(current_survey, abbr=True):
     return string
 
 
-def _print_tasknote_hire(current_survey, last_detail=False):
+def _print_tasknote_hire(
+    current_survey: Dict[str, Any], last_detail: bool = False
+) -> str:
     """Print survey structure with hierarchical detail.
 
     Args:
@@ -870,8 +874,8 @@ def _print_tasknote_hire(current_survey, last_detail=False):
 def surveycpm_search(
     instruction_ls: List[str],
     survey_ls: List[str],
-    cursor_ls: List[str | None],
-    surveycpm_search_template: str | Path,
+    cursor_ls: List[Optional[str]],
+    surveycpm_search_template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for SurveyCPM search step.
 
@@ -913,7 +917,7 @@ def surveycpm_search(
 def surveycpm_init_plan(
     instruction_ls: List[str],
     retrieved_info_ls: List[str],
-    surveycpm_init_plan_template: str | Path,
+    surveycpm_init_plan_template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for SurveyCPM initial plan step.
 
@@ -940,9 +944,9 @@ def surveycpm_init_plan(
 def surveycpm_write(
     instruction_ls: List[str],
     survey_ls: List[str],
-    cursor_ls: List[str | None],
+    cursor_ls: List[Optional[str]],
     retrieved_info_ls: List[str],
-    surveycpm_write_template: str | Path,
+    surveycpm_write_template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for SurveyCPM write step.
 
@@ -982,7 +986,7 @@ def surveycpm_write(
 def surveycpm_extend_plan(
     instruction_ls: List[str],
     survey_ls: List[str],
-    surveycpm_extend_plan_template: str | Path,
+    surveycpm_extend_plan_template: Union[str, Path],
 ) -> List[PromptMessage]:
     """Generate prompts for SurveyCPM extend plan step.
 
