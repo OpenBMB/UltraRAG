@@ -66,6 +66,15 @@ class Retriever:
         )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
+        """Remove banned keys and None values from dictionary.
+
+        Args:
+            d: Dictionary to filter
+            banned: List of keys to remove
+
+        Returns:
+            Filtered dictionary
+        """
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
     async def retriever_init(
@@ -74,38 +83,65 @@ class Retriever:
         backend_configs: Dict[str, Any],
         batch_size: int,
         corpus_path: str,
-        gpu_ids: Optional[object] = None,
+        gpu_ids: Optional[str] = None,
         is_multimodal: bool = False,
         backend: str = "sentence_transformers",
         index_backend: str = "faiss",
         index_backend_configs: Optional[Dict[str, Any]] = None,
         is_demo: bool = False,
         collection_name: str = "",
-    ):
+    ) -> None:
+        """Initialize retriever with specified backend and index backend.
+
+        Args:
+            model_name_or_path: Model name or path for embedding
+            backend_configs: Dictionary of backend-specific configurations
+            batch_size: Batch size for embedding generation
+            corpus_path: Path to corpus file (JSONL format)
+            gpu_ids: Comma-separated GPU IDs (e.g., "0,1")
+            is_multimodal: Whether to use multimodal (image) embeddings
+            backend: Backend name ("infinity", "sentence_transformers", "openai", or "bm25")
+            index_backend: Index backend name ("faiss" or "milvus")
+            index_backend_configs: Dictionary of index backend configurations
+            is_demo: Whether to run in demo mode (forces OpenAI + Milvus)
+            collection_name: Collection name for Milvus backend
+
+        Raises:
+            ImportError: If required dependencies are not installed
+            ValueError: If required config is missing
+            ValidationError: If demo mode requirements are not met
+        """
         self.is_demo = is_demo
         self.batch_size = batch_size
         self.corpus_path = corpus_path
         self.backend_configs = backend_configs
         self.index_backend_configs = index_backend_configs or {}
 
-        
         if self.is_demo:
             app.logger.info("[retriever] Initializing in DEMO mode.")
             self.backend = "openai"
             self.index_backend_name = "milvus"
-            
+
             if "openai" not in self.backend_configs:
-                raise ValidationError("is_demo=True requires 'openai' in backend_configs.")
+                raise ValidationError(
+                    "is_demo=True requires 'openai' in backend_configs."
+                )
             if "milvus" not in self.index_backend_configs:
-                raise ValidationError("is_demo=True requires 'milvus' in index_backend_configs.")
-                
-            app.logger.info("[retriever] Demo mode enforced: Backend=OpenAI, Index=Milvus.")
+                raise ValidationError(
+                    "is_demo=True requires 'milvus' in index_backend_configs."
+                )
+
+            app.logger.info(
+                "[retriever] Demo mode enforced: Backend=OpenAI, Index=Milvus."
+            )
         else:
             self.backend = backend.lower()
             self.index_backend_name = index_backend.lower()
 
             if self.index_backend_name == "milvus":
-                app.logger.warning("[retriever] Using Milvus in non-demo mode is not recommended in this simplified architecture.")
+                app.logger.warning(
+                    "[retriever] Using Milvus in non-demo mode is not recommended in this simplified architecture."
+                )
 
         self.cfg = self.backend_configs.get(self.backend, {})
 
@@ -152,8 +188,12 @@ class Retriever:
                 )
                 app.logger.error(err_msg)
                 raise ImportError(err_msg)
-            self.st_encode_params = self.cfg.get("sentence_transformers_encode", {}) or {}
-            st_params = self._drop_keys(self.cfg, banned=["sentence_transformers_encode"])
+            self.st_encode_params = (
+                self.cfg.get("sentence_transformers_encode", {}) or {}
+            )
+            st_params = self._drop_keys(
+                self.cfg, banned=["sentence_transformers_encode"]
+            )
 
             self.model = SentenceTransformer(
                 model_name_or_path=model_name_or_path,
@@ -163,7 +203,7 @@ class Retriever:
 
         elif self.backend == "openai":
             try:
-                from openai import AsyncOpenAI, OpenAIError
+                from openai import AsyncOpenAI
             except ImportError:
                 err_msg = (
                     "openai is not installed. "
@@ -188,12 +228,15 @@ class Retriever:
             try:
                 self.model = AsyncOpenAI(base_url=base_url, api_key=api_key)
                 self.model_name = model_name
-                info_msg = f"[openai] OpenAI client initialized (model='{model_name}', base='{base_url}')"
+                info_msg = (
+                    f"[openai] OpenAI client initialized "
+                    f"(model='{model_name}', base='{base_url}')"
+                )
                 app.logger.info(info_msg)
-            except OpenAIError as e:
+            except Exception as e:
                 err_msg = f"[openai] Failed to initialize OpenAI client: {e}"
                 app.logger.error(err_msg)
-                raise OpenAIError(err_msg)
+                raise RuntimeError(err_msg) from e
         elif self.backend == "bm25":
             try:
                 import bm25s
@@ -233,12 +276,13 @@ class Retriever:
 
         self.contents = []
 
-        should_load_corpus_to_memory = (
-            (self.backend == "bm25") or 
-            (self.index_backend_name == "faiss")
+        should_load_corpus_to_memory = (self.backend == "bm25") or (
+            self.index_backend_name == "faiss"
         )
         if should_load_corpus_to_memory and corpus_path and os.path.exists(corpus_path):
-            app.logger.info(f"[retriever] Loading corpus to memory for {self.index_backend_name}/BM25...")
+            app.logger.info(
+                f"[retriever] Loading corpus to memory for {self.index_backend_name}/BM25..."
+            )
             corpus_path_obj = Path(corpus_path)
             corpus_dir = corpus_path_obj.parent
             file_size = os.path.getsize(corpus_path)
@@ -261,18 +305,14 @@ class Retriever:
                             raise ToolError(f"Invalid JSON on line {i}: {e}") from e
                         if not is_multimodal or self.backend == "bm25":
                             if "contents" not in item:
-                                error_msg = (
-                                    f"Line {i}: missing key 'contents'. full item={item}"
-                                )
+                                error_msg = f"Line {i}: missing key 'contents'. full item={item}"
                                 app.logger.error(error_msg)
                                 raise ValueError(error_msg)
 
                             self.contents.append(item["contents"])
                         else:
                             if "image_path" not in item:
-                                error_msg = (
-                                    f"Line {i}: missing key 'image_path'. full item={item}"
-                                )
+                                error_msg = f"Line {i}: missing key 'image_path'. full item={item}"
                                 app.logger.error(error_msg)
                                 raise ValueError(error_msg)
 
@@ -281,10 +321,12 @@ class Retriever:
                             self.contents.append(abs_path)
                     if bytes_read < file_size:
                         pbar.update(file_size - bytes_read)
-                    pbar.refresh() 
+                    pbar.refresh()
         else:
             if self.is_demo:
-                app.logger.info("[retriever] Demo/Milvus mode: Skipping memory corpus load (Data stored in DB).")
+                app.logger.info(
+                    "[retriever] Demo/Milvus mode: Skipping memory corpus load (Data stored in DB)."
+                )
             elif not os.path.exists(corpus_path):
                 app.logger.warning(f"[retriever] Corpus path not found: {corpus_path}")
 
@@ -295,7 +337,7 @@ class Retriever:
             )
 
             if self.index_backend_name == "milvus":
-                index_backend_cfg['collection_name'] = collection_name
+                index_backend_cfg["collection_name"] = collection_name
 
             self.index_backend = create_index_backend(
                 name=self.index_backend_name,
@@ -319,7 +361,9 @@ class Retriever:
         elif self.backend == "bm25":
             bm25_save_path = self.cfg.get("save_path", None)
             if bm25_save_path and os.path.exists(bm25_save_path):
-                self.model = self.model.load(bm25_save_path, mmap=True, load_corpus=False)
+                self.model = self.model.load(
+                    bm25_save_path, mmap=True, load_corpus=False
+                )
                 self.tokenizer.load_stopwords(bm25_save_path)
                 self.tokenizer.load_vocab(bm25_save_path)
                 self.model.corpus = self.contents
@@ -338,7 +382,19 @@ class Retriever:
         embedding_path: Optional[str] = None,
         overwrite: bool = False,
         is_multimodal: bool = False,
-    ):
+    ) -> None:
+        """Generate embeddings for corpus contents.
+
+        Args:
+            embedding_path: Path to save embeddings (.npy file)
+            overwrite: Whether to overwrite existing embeddings
+            is_multimodal: Whether to generate image embeddings
+
+        Raises:
+            ValidationError: If embedding_path format is invalid
+            RuntimeError: If embedding generation fails
+            ValueError: If backend doesn't support multimodal or is unsupported
+        """
         if getattr(self, "is_demo", False):
             warn_msg = (
                 "[retriever] 'retriever_embed' is ignored in Demo mode. "
@@ -348,9 +404,11 @@ class Retriever:
             return
 
         if self.backend == "bm25":
-            app.logger.info("[retriever] BM25 backend does not support dense embedding generation. Skipping.")
+            app.logger.info(
+                "[retriever] BM25 backend does not support dense embedding generation. Skipping."
+            )
             return
-        
+
         embeddings = None
 
         if embedding_path is not None:
@@ -432,7 +490,9 @@ class Retriever:
                 data = self.contents
 
             if is_multi_gpu:
-                app.logger.info(f"[st] Starting multi-process pool on {len(device_param)} devices...")
+                app.logger.info(
+                    f"[st] Starting multi-process pool on {len(device_param)} devices..."
+                )
                 pool = self.model.start_multi_process_pool()
                 try:
 
@@ -508,14 +568,30 @@ class Retriever:
         self,
         embedding_path: str,
         overwrite: bool = False,
-        collection_name: str = "", 
-        corpus_path: str = ""
-    ):
-        
+        collection_name: str = "",
+        corpus_path: str = "",
+    ) -> None:
+        """Build index from embeddings or corpus (for demo mode).
+
+        Args:
+            embedding_path: Path to embeddings file (.npy) for non-demo mode
+            overwrite: Whether to overwrite existing index
+            collection_name: Collection name for Milvus backend
+            corpus_path: Corpus file path (required for demo mode)
+
+        Raises:
+            ValidationError: If demo mode requirements are not met
+            NotFoundError: If embedding file not found (non-demo mode)
+            RuntimeError: If index backend is not initialized or indexing fails
+            ValueError: If backend is BM25 or other unsupported backend
+        """
+
         target_collection = collection_name
 
         if getattr(self, "is_demo", False):
-            target_path = corpus_path if corpus_path else getattr(self, "corpus_path", "")
+            target_path = (
+                corpus_path if corpus_path else getattr(self, "corpus_path", "")
+            )
 
             if not target_path or not os.path.exists(target_path):
                 msg = f"[Demo] corpus_path is required. Please provide it in call or init."
@@ -524,25 +600,34 @@ class Retriever:
                 raise ValidationError(msg)
 
             if not target_path.endswith(".jsonl"):
-                raise ValidationError(f"[Demo] Corpus file must be a JSONL file (.jsonl). Got: {target_path}")
+                raise ValidationError(
+                    f"[Demo] Corpus file must be a JSONL file (.jsonl). Got: {target_path}"
+                )
 
-            app.logger.info(f"[Demo] Indexing JSONL: {target_path} -> Collection: {target_collection}")
-
+            app.logger.info(
+                f"[Demo] Indexing JSONL: {target_path} -> Collection: {target_collection}"
+            )
 
             milvus_cfg = self.index_backend_configs.get("milvus", {})
 
             configured_pk = milvus_cfg.get("id_field_name", "id")
             configured_vec = milvus_cfg.get("vector_field_name", "vector")
-            configured_text = milvus_cfg.get("text_field_name", "contents") 
-            
+            configured_text = milvus_cfg.get("text_field_name", "contents")
+
             banned_keys = {
                 # hard
-                "contents", "content", "text", "embedding", 
-                "id", "_id", "pk", "uuid",
+                "contents",
+                "content",
+                "text",
+                "embedding",
+                "id",
+                "_id",
+                "pk",
+                "uuid",
                 # active
-                configured_pk, 
-                configured_vec, 
-                configured_text 
+                configured_pk,
+                configured_vec,
+                configured_text,
             }
 
             texts = []
@@ -558,23 +643,27 @@ class Retriever:
                         try:
                             item = orjson.loads(line)
                         except orjson.JSONDecodeError:
-                            app.logger.warning(f"[Demo] Skipping invalid JSON on line {i}")
+                            app.logger.warning(
+                                f"[Demo] Skipping invalid JSON on line {i}"
+                            )
                             continue
-                        
+
                         raw_content = item.get("contents")
                         if raw_content is None:
                             continue
-                            
+
                         if not isinstance(raw_content, str):
                             content = str(raw_content)
                         else:
                             content = raw_content
-                            
+
                         if not content.strip():
                             continue
                         if content:
                             texts.append(content)
-                            meta = {k: v for k, v in item.items() if k not in banned_keys}
+                            meta = {
+                                k: v for k, v in item.items() if k not in banned_keys
+                            }
                             meta["file_name"] = file_name
                             meta["segment_id"] = i
                             metadatas.append(meta)
@@ -593,29 +682,34 @@ class Retriever:
             for text in tqdm(texts, desc="[Demo] Processing"):
                 try:
                     resp = await self.model.embeddings.create(
-                        model=self.model_name,
-                        input=[text] 
+                        model=self.model_name, input=[text]
                     )
-                    
+
                     vec = resp.data[0].embedding
                     all_embeddings.append(vec)
-                    
+
                     if cached_dim is None:
                         cached_dim = len(vec)
-                        
+
                 except Exception as e:
                     if cached_dim is not None:
-                        app.logger.warning(f"[Demo] Item failed. Filling with ZERO vector. Error: {str(e)[:100]}...")
+                        app.logger.warning(
+                            f"[Demo] Item failed. Filling with ZERO vector. Error: {str(e)[:100]}..."
+                        )
                         all_embeddings.append([0.0] * cached_dim)
                     else:
-                        app.logger.error(f"[Demo] CRITICAL: First item failed! Cannot determine embedding dimension. Error: {e}")
+                        app.logger.error(
+                            f"[Demo] CRITICAL: First item failed! Cannot determine embedding dimension. Error: {e}"
+                        )
                         raise e
 
             embeddings_np = np.array(all_embeddings, dtype=np.float32)
 
             ids = np.array([str(uuid.uuid4()) for _ in range(len(texts))])
 
-            app.logger.info(f"[Demo] Inserting into collection '{target_collection}'...")
+            app.logger.info(
+                f"[Demo] Inserting into collection '{target_collection}'..."
+            )
             try:
                 self.index_backend.build_index(
                     embeddings=embeddings_np,
@@ -623,13 +717,13 @@ class Retriever:
                     overwrite=overwrite,
                     collection_name=target_collection,
                     contents=texts,
-                    metadatas=metadatas
+                    metadatas=metadatas,
                 )
             except Exception as e:
                 app.logger.error(f"[Demo] Indexing failed: {e}")
                 raise ToolError(f"Demo indexing failed: {e}")
-            
-            return 
+
+            return
         else:
             if self.backend == "bm25":
                 err_msg = "BM25 backend does not support vector index building via retriever_index."
@@ -650,7 +744,7 @@ class Retriever:
 
             embedding = np.load(embedding_path)
             vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
-            
+
             try:
                 self.index_backend.build_index(
                     embeddings=embedding,
@@ -663,7 +757,6 @@ class Retriever:
                 del embedding
                 gc.collect()
 
-            
             info_msg = f"[{self.index_backend_name}] Indexing success."
             app.logger.info(info_msg)
 
@@ -674,17 +767,32 @@ class Retriever:
         query_instruction: str = "",
         collection_name: str = "",
     ) -> Dict[str, List[List[str]]]:
+        """Search for passages using query embeddings.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top passages to return per query
+            query_instruction: Optional instruction to prepend to queries
+            collection_name: Collection name for Milvus backend
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+
+        Raises:
+            RuntimeError: If index backend is not initialized
+            ValueError: If backend is unsupported
+        """
 
         if isinstance(query_list, str):
             query_list = [query_list]
         queries = [f"{query_instruction}{query}" for query in query_list]
 
-
         target_collection = collection_name
         if getattr(self, "is_demo", False):
-            app.logger.info(f"[Demo] Searching query in collection: '{target_collection}'")
+            app.logger.info(
+                f"[Demo] Searching query in collection: '{target_collection}'"
+            )
 
-        
         query_embedding = None
 
         if self.backend == "infinity":
@@ -764,7 +872,7 @@ class Retriever:
         if not getattr(self, "is_demo", False):
             info_msg = f"query embedding shape: {query_embedding.shape}"
             app.logger.info(info_msg)
-        
+
         if self.index_backend is None:
             err_msg = (
                 "Vector index backend is not initialized. "
@@ -772,13 +880,11 @@ class Retriever:
             )
             app.logger.error(err_msg)
             raise RuntimeError(err_msg)
-        
+
         rets = self.index_backend.search(
-            query_embedding, 
-            top_k, 
-            collection_name=target_collection
+            query_embedding, top_k, collection_name=target_collection
         )
-   
+
         return {"ret_psg": rets}
 
     async def retriever_batch_search(
@@ -788,25 +894,36 @@ class Retriever:
         query_instruction: str = "",
         collection_name: str = "",
     ) -> Dict[str, List[List[List[str]]]]:
+        """Search for passages for multiple batches of queries.
+
+        Args:
+            batch_query_list: List of query lists (one batch per list)
+            top_k: Number of top passages to return per query
+            query_instruction: Optional instruction to prepend to queries
+            collection_name: Collection name for Milvus backend
+
+        Returns:
+            Dictionary with 'ret_psg_ls' containing retrieved passages for each batch
+        """
 
         ret_psg_ls = []
         for query_list in batch_query_list:
             if not query_list:
                 ret_psg_ls.append([])
                 continue
-            
+
             result = await self.retriever_search(
                 query_list=query_list,
                 top_k=top_k,
                 query_instruction=query_instruction,
                 collection_name=collection_name,
             )
-            
+
             ret_psg = result.get("ret_psg", [])
             ret_psg_ls.append(ret_psg)
-        
+
         return {"ret_psg_ls": ret_psg_ls}
-    
+
     async def retriever_deploy_search(
         self,
         retriever_url: str,
@@ -814,8 +931,21 @@ class Retriever:
         top_k: int = 5,
         query_instruction: str = "",
     ) -> Dict[str, List[List[str]]]:
+        """Search using remote retriever deployment.
+
+        Args:
+            retriever_url: URL of remote retriever service
+            query_list: List of query strings
+            top_k: Number of top passages to return per query
+            query_instruction: Optional instruction to prepend to queries
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+
+        Raises:
+            ToolError: If remote retriever call fails or response is invalid
+        """
         from urllib.parse import urlparse, urlunparse
-        import aiohttp
 
         url = retriever_url.strip()
         if not url.startswith("http://") and not url.startswith("https://"):
@@ -825,7 +955,6 @@ class Retriever:
         api_url = urlunparse(url_obj._replace(path="/search", query="", fragment=""))
 
         app.logger.info(f"[remote_retriever] Calling remote retriever at: {api_url}")
-
 
         payload: Dict[str, Any] = {
             "query_list": query_list,
@@ -858,11 +987,16 @@ class Retriever:
                     raise ToolError(err_msg)
 
                 return {"ret_psg": response_data["ret_psg"]}
-    
+
     async def bm25_index(
         self,
         overwrite: bool = False,
-    ):
+    ) -> None:
+        """Build BM25 index from corpus.
+
+        Args:
+            overwrite: Whether to overwrite existing index
+        """
         bm25_save_path = self.cfg.get("save_path", None)
         if bm25_save_path:
             output_dir = os.path.dirname(bm25_save_path)
@@ -896,6 +1030,15 @@ class Retriever:
         query_list: List[str],
         top_k: int = 5,
     ) -> Dict[str, List[List[str]]]:
+        """Search using BM25 index.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top passages to return per query
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+        """
         results = []
         q_toks = self.tokenizer.tokenize(
             query_list,
@@ -914,6 +1057,17 @@ class Retriever:
         desc: str,
         worker_factory,
     ) -> Dict[str, List[List[str]]]:
+        """Execute parallel search using worker factory.
+
+        Args:
+            query_list: List of query strings
+            retrieve_thread_num: Maximum number of concurrent workers
+            desc: Description for progress bar
+            worker_factory: Async function factory that takes (idx, query) and returns (idx, passages)
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+        """
         sem = asyncio.Semaphore(retrieve_thread_num)
 
         async def _wrap(i: int, q: str):
@@ -932,9 +1086,23 @@ class Retriever:
     async def retriever_exa_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
-        retrieve_thread_num: Optional[int] | None = 1,
+        top_k: Optional[int] = 5,
+        retrieve_thread_num: Optional[int] = 1,
     ) -> Dict[str, List[List[str]]]:
+        """Search using Exa API.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top results to return per query
+            retrieve_thread_num: Maximum number of concurrent workers
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+
+        Raises:
+            ImportError: If exa_py is not installed
+            ToolError: If API key is invalid or search fails
+        """
 
         try:
             from exa_py import AsyncExa
@@ -983,9 +1151,24 @@ class Retriever:
     async def retriever_tavily_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
-        retrieve_thread_num: Optional[int] | None = 1,
+        top_k: Optional[int] = 5,
+        retrieve_thread_num: Optional[int] = 1,
     ) -> Dict[str, List[List[str]]]:
+        """Search using Tavily API.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top results to return per query
+            retrieve_thread_num: Maximum number of concurrent workers
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+
+        Raises:
+            ImportError: If tavily is not installed
+            MissingAPIKeyError: If TAVILY_API_KEY is not set
+            ToolError: If API key is invalid or search fails
+        """
 
         try:
             from tavily import (
@@ -1042,9 +1225,22 @@ class Retriever:
     async def retriever_zhipuai_search(
         self,
         query_list: List[str],
-        top_k: Optional[int] | None = 5,
-        retrieve_thread_num: Optional[int] | None = 1,
+        top_k: Optional[int] = 5,
+        retrieve_thread_num: Optional[int] = 1,
     ) -> Dict[str, List[List[str]]]:
+        """Search using ZhipuAI web search API.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top results to return per query
+            retrieve_thread_num: Maximum number of concurrent workers
+
+        Returns:
+            Dictionary with 'ret_psg' containing retrieved passages
+
+        Raises:
+            ToolError: If ZHIPUAI_API_KEY is not set or search fails
+        """
 
         zhipuai_api_key = os.environ.get("ZHIPUAI_API_KEY", "")
         if not zhipuai_api_key:
@@ -1061,44 +1257,48 @@ class Retriever:
             "Content-Type": "application/json",
         }
 
-        session = aiohttp.ClientSession()
+        async with aiohttp.ClientSession() as session:
 
-        async def worker_factory(idx: int, q: str):
-            retries, delay = 3, 1.0
-            for attempt in range(retries):
-                try:
-                    payload = {
-                        "search_query": q,
-                        "search_engine": "search_std",  # [search_std, search_pro, search_pro_sogou, search_pro_quark]
-                        "search_intent": False,
-                        "count": top_k,  # [10,20,30,40,50]
-                        "search_recency_filter": "noLimit",  # [oneDay, oneWeek, oneMonth, oneYear, noLimit]
-                        "content_size": "medium",  # [medium, high]
-                    }
-                    async with session.post(
-                        retrieval_url, json=payload, headers=headers
-                    ) as resp:
-                        resp.raise_for_status()
-                        data = await resp.json()
-                        results: List[Dict[str, Any]] = data.get("search_result", [])
-                        psg_ls: List[str] = [(r.get("content") or "") for r in results]
-                        # Respect top_k
-                        return idx, (psg_ls[:top_k] if top_k is not None else psg_ls)
-                except (aiohttp.ClientError, Exception) as e:
-                    warn_msg = f"[zhipuai][retry {attempt+1}] failed (idx={idx}): {e}"
-                    app.logger.warning(warn_msg)
-                    await asyncio.sleep(delay)
-            return idx, []
+            async def worker_factory(idx: int, q: str):
+                retries, delay = 3, 1.0
+                for attempt in range(retries):
+                    try:
+                        payload = {
+                            "search_query": q,
+                            "search_engine": "search_std",
+                            "search_intent": False,
+                            "count": top_k,
+                            "search_recency_filter": "noLimit",
+                            "content_size": "medium",
+                        }
+                        async with session.post(
+                            retrieval_url, json=payload, headers=headers
+                        ) as resp:
+                            resp.raise_for_status()
+                            data = await resp.json()
+                            results: List[Dict[str, Any]] = data.get(
+                                "search_result", []
+                            )
+                            psg_ls: List[str] = [
+                                (r.get("content") or "") for r in results
+                            ]
+                            return idx, (
+                                psg_ls[:top_k] if top_k is not None else psg_ls
+                            )
+                    except (aiohttp.ClientError, Exception) as e:
+                        warn_msg = (
+                            f"[zhipuai][retry {attempt+1}] failed (idx={idx}): {e}"
+                        )
+                        app.logger.warning(warn_msg)
+                        await asyncio.sleep(delay)
+                return idx, []
 
-        try:
             return await self._parallel_search(
                 query_list=query_list,
                 retrieve_thread_num=retrieve_thread_num or 1,
                 desc="ZhipuAI Searching:",
                 worker_factory=worker_factory,
             )
-        finally:
-            await session.close()
 
 
 if __name__ == "__main__":
