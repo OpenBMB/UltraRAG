@@ -1045,8 +1045,9 @@ def _summarize_step_result(step_name: str, result: Any) -> str:
             
             for i, doc in enumerate(docs): 
                 if isinstance(doc, str):
-                    pseudo_title = doc[:30]
-                    summary += f"{i+1}. [Text] {pseudo_title}...\n"
+                    # 放宽截断限制到300字符，让用户能看到更多文档内容
+                    doc_preview = doc[:300] + "..." if len(doc) > 300 else doc
+                    summary += f"{i+1}. {doc_preview}\n"
                     
             return summary.strip()
 

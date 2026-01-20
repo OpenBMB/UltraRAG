@@ -3223,7 +3223,9 @@ function renderStepsFromHistory(bubble, steps, isInterrupted = false) {
     procDiv.innerHTML = `
         <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
             <span>Show Thinking</span>
-            <span style="font-size:0.8em">▼</span>
+            <svg class="process-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
         </div>
         <div class="process-body"></div>
     `;
@@ -3324,7 +3326,9 @@ function updateProcessUI(entryIndex, eventData) {
         procDiv.innerHTML = `
             <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
                 <span>Show Thinking</span>
-                <span style="font-size:0.8em">▼</span>
+                <svg class="process-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
             </div>
             <div class="process-body"></div>
         `;
@@ -7307,25 +7311,31 @@ const AI_WELCOME_HTML = `
         <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
         <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
         
-        <!-- 推荐问题卡片 -->
+        <!-- Quick Action Cards -->
         <div class="ai-starter-chips">
-            <button class="ai-starter-chip" data-prompt="Help me optimize this Pipeline">
+            <button class="ai-starter-chip" data-prompt="Update the current RAG pipeline to include a citation module, ensuring the final output displays source references for fact-checking purposes.">
+                <span class="ai-starter-chip-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </span>
+                <span class="ai-starter-chip-text">Pipeline Adjustment</span>
+            </button>
+            <button class="ai-starter-chip" data-prompt="Optimize the system prompt for the [Insert Domain, e.g., Medical/Legal] domain. Please refine the instructions to ensure the generated responses strictly adhere to professional terminology and logical accuracy suitable for this field.">
                 <span class="ai-starter-chip-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 </span>
-                <span class="ai-starter-chip-text">Help me optimize this Pipeline</span>
+                <span class="ai-starter-chip-text">Prompt Adaptation</span>
             </button>
-            <button class="ai-starter-chip" data-prompt="Explain the current parameters">
+            <button class="ai-starter-chip" data-prompt="Reconfigure the generation backend. Switch the backend type to OpenAI, set the model name to [Insert Model Name, e.g., Llama-3-70B], and update the API endpoint to port [Insert Port, e.g., 8000].">
                 <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                 </span>
-                <span class="ai-starter-chip-text">Explain the current parameters</span>
+                <span class="ai-starter-chip-text">Parameter Settings</span>
             </button>
-            <button class="ai-starter-chip" data-prompt="Suggest improvements for my prompts">
+            <button class="ai-starter-chip" data-prompt="I want to redesign my RAG workflow based on this article/paper: [Insert Link]. Please analyze its core methodologies and assist me in constructing a similar pipeline architecture.">
                 <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                 </span>
-                <span class="ai-starter-chip-text">Suggest improvements for my prompts</span>
+                <span class="ai-starter-chip-text">Free-form Tuning</span>
             </button>
         </div>
     </div>
