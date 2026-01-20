@@ -20,9 +20,10 @@ httpx_logger.setLevel(logging.WARNING)
 
 @contextmanager
 def suppress_stdout():
+    """Context manager to suppress stdout output."""
     stdout_fd = sys.stdout.fileno()
     saved_stdout_fd = os.dup(stdout_fd)
-    
+
     try:
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, stdout_fd)
@@ -34,11 +35,12 @@ def suppress_stdout():
 
 
 def _suppress_vllm_logging():
+    """Suppress verbose logging from vLLM and related libraries."""
     os.environ.setdefault("VLLM_CONFIGURE_LOGGING", "0")
     os.environ.setdefault("RAY_DEDUP_LOGS", "0")
     os.environ.setdefault("GLOO_LOG_LEVEL", "ERROR")
     os.environ.setdefault("NCCL_DEBUG", "ERROR")
-    
+
     for name in ["vllm", "ray", "torch", "transformers"]:
         logging.getLogger(name).setLevel(logging.ERROR)
 
@@ -67,11 +69,31 @@ class Generation:
         )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
+        """Remove banned keys and None values from dictionary.
+
+        Args:
+            d: Dictionary to filter
+            banned: List of keys to remove
+
+        Returns:
+            Filtered dictionary
+        """
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
     def _extract_text_prompts(
         self, prompt_ls: List[Union[str, Dict[str, Any]]]
     ) -> List[str]:
+        """Extract text content from various prompt formats.
+
+        Args:
+            prompt_ls: List of prompts in various formats (str, dict, etc.)
+
+        Returns:
+            List of text strings
+
+        Raises:
+            ValueError: If prompt format is not supported
+        """
         prompts = []
         for m in prompt_ls:
             if hasattr(m, "content") and hasattr(m.content, "text"):
@@ -88,21 +110,38 @@ class Generation:
                 elif "text" in m:
                     prompts.append(m["text"])
                 else:
-                    raise ValueError(f"Unsupported dict prompt format: {m}")
+                    warn_msg = f"Unsupported dict prompt format: {m}"
+                    app.logger.warning(warn_msg)
+                    raise ValueError(warn_msg)
             elif isinstance(m, str):
                 prompts.append(m)
             else:
-                raise ValueError(f"Unsupported message format: {m}")
+                err_msg = f"Unsupported message format: {m}"
+                app.logger.error(err_msg)
+                raise ValueError(err_msg)
         return prompts
 
     def _to_data_url(self, path_or_url: str) -> str:
+        """Convert image path to data URL.
+
+        Args:
+            path_or_url: Image file path or URL
+
+        Returns:
+            Data URL string (data:image/...;base64,...)
+
+        Raises:
+            FileNotFoundError: If image file doesn't exist
+        """
         s = str(path_or_url).strip()
 
         if s.startswith(("http://", "https://", "data:image/")):
             return s
 
         if not os.path.isfile(s):
-            raise FileNotFoundError(f"image not found: {s}")
+            err_msg = f"image not found: {s}"
+            app.logger.error(err_msg)
+            raise FileNotFoundError(err_msg)
         mime, _ = mimetypes.guess_type(s)
         mime = mime or "image/jpeg"
         with open(s, "rb") as f:
@@ -116,14 +155,25 @@ class Generation:
         extra_params: Optional[Dict[str, Any]] = None,
         backend: str = "vllm",
     ) -> None:
+        """Initialize generation backend (vllm, openai, or hf).
 
+        Args:
+            backend_configs: Dictionary of backend-specific configurations
+            sampling_params: Sampling parameters for generation
+            extra_params: Optional extra parameters (e.g., chat_template_kwargs)
+            backend: Backend name ("vllm", "openai", or "hf")
+
+        Raises:
+            ImportError: If required dependencies are not installed
+            ValueError: If backend is unsupported or required config is missing
+        """
         self.backend = backend.lower()
         self.backend_configs = backend_configs or {}
         cfg: Dict[str, Any] = (self.backend_configs.get(self.backend) or {}).copy()
 
         if self.backend == "vllm":
             _suppress_vllm_logging()
-            
+
             try:
                 from vllm import LLM, SamplingParams
             except ImportError:
@@ -143,7 +193,7 @@ class Generation:
                 cfg,
                 banned=["gpu_ids", "model_name_or_path"],
             )
-    
+
             vllm_pass_cfg["tensor_parallel_size"] = len(gpu_ids.split(","))
 
             if extra_params:
@@ -236,6 +286,17 @@ class Generation:
         self,
         msg_ls: List[List[Dict[str, str]]],
     ) -> List[str]:
+        """Internal method to generate responses from message lists.
+
+        Args:
+            msg_ls: List of message lists (one per request)
+
+        Returns:
+            List of generated text responses
+
+        Raises:
+            ValueError: If backend is unsupported
+        """
 
         if self.backend == "vllm":
             with suppress_stdout():
@@ -375,6 +436,15 @@ class Generation:
         prompt_ls: List[Union[str, Dict[str, Any]]],
         system_prompt: str = "",
     ) -> Dict[str, List[str]]:
+        """Generate responses for a list of prompts.
+
+        Args:
+            prompt_ls: List of prompts (strings or dicts)
+            system_prompt: Optional system prompt to prepend
+
+        Returns:
+            Dictionary with 'ans_ls' containing generated responses
+        """
         system_prompt = str(system_prompt or "").strip()
         add_system = bool(system_prompt)
         prompts = [str(p).strip() for p in self._extract_text_prompts(prompt_ls)]
@@ -398,39 +468,38 @@ class Generation:
         messages: List[Dict[str, str]],
         system_prompt: str = "",
     ) -> Dict[str, List[str]]:
-        """
-        多轮对话生成。
-        
+        """Generate response for multi-turn conversation.
+
         Args:
-            messages: 对话历史列表，每条消息格式为 {"role": "user"|"assistant", "content": "..."}
-            system_prompt: 系统提示词（可选）
-        
+            messages: Conversation history list, each message format: {"role": "user"|"assistant", "content": "..."}
+            system_prompt: Optional system prompt
+
         Returns:
-            {"ans_ls": [assistant_response]}
+            Dictionary with 'ans_ls' containing assistant response
         """
         system_prompt = str(system_prompt or "").strip()
-        
+
         if not messages:
             app.logger.info("empty messages; return empty ans_ls.")
             return {"ans_ls": []}
-        
-        # 构建完整的消息列表
+
+        # Build complete message list
         full_messages = []
         if system_prompt:
             full_messages.append({"role": "system", "content": system_prompt})
-        
-        # 添加对话历史
+
+        # Add conversation history
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             if role in ("user", "assistant", "system") and content:
                 full_messages.append({"role": role, "content": str(content)})
-        
+
         if not full_messages or all(m["role"] == "system" for m in full_messages):
             app.logger.info("no valid user/assistant messages; return empty ans_ls.")
             return {"ans_ls": []}
-        
-        # 调用生成（只传入一组消息）
+
+        # Call generation (pass single message list)
         ret = await self._generate([full_messages])
         return {"ans_ls": ret}
 
@@ -441,6 +510,20 @@ class Generation:
         system_prompt: str = "",
         image_tag: Optional[str] = None,
     ) -> Dict[str, List[str]]:
+        """Generate responses with multimodal inputs (text + images).
+
+        Args:
+            multimodal_path: List of image path lists (one per prompt)
+            prompt_ls: List of text prompts
+            system_prompt: Optional system prompt
+            image_tag: Optional tag to split prompt and insert images (e.g., "<image>")
+
+        Returns:
+            Dictionary with 'ans_ls' containing generated responses
+
+        Raises:
+            ValueError: If image tag count doesn't match image path count
+        """
         system_prompt = str(system_prompt or "").strip()
         add_system = bool(system_prompt)
         prompts = [str(p).strip() for p in self._extract_text_prompts(prompt_ls)]
@@ -488,16 +571,19 @@ class Generation:
                 msgs.append({"role": "system", "content": system_prompt})
 
             content: List[Dict[str, Any]] = []
-            
+
             use_tag_mode = bool(image_tag) and bool(str(image_tag).strip())
             tag = str(image_tag).strip() if use_tag_mode else None
-            
+
             if use_tag_mode:
                 prompt_image_num = p.count(tag)
                 actual_image_num = len(pths)
                 if prompt_image_num != actual_image_num:
-                    raise ValueError(f"Number of ({tag}) image tag: ({prompt_image_num}) does not match number of image paths: ({actual_image_num})")
-                
+                    raise ValueError(
+                        f"Number of ({tag}) image tag: ({prompt_image_num}) "
+                        f"does not match number of image paths: ({actual_image_num})"
+                    )
+
                 parts = p.split(tag)
                 for j, part in enumerate(parts):
                     if part.strip():
@@ -507,12 +593,16 @@ class Generation:
                         if not mp:
                             continue
                         try:
-                            content.append({
-                                "type": "image_url",
-                                "image_url": {"url": self._to_data_url(mp)},
-                            })
+                            content.append(
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": self._to_data_url(mp)},
+                                }
+                            )
                         except Exception as e:
-                            app.logger.warning(f"[Image skip] idx={j}, path={mp}, err={e}")
+                            app.logger.warning(
+                                f"[Image skip] idx={j}, path={mp}, err={e}"
+                            )
             else:
                 for mp in pths:
                     if not mp:
@@ -535,7 +625,10 @@ class Generation:
         return {"ans_ls": ret}
 
     def vllm_shutdown(self) -> None:
+        """Shutdown vLLM model and clean up resources.
 
+        This method attempts to properly shutdown the vLLM model and free GPU memory.
+        """
         try:
             if getattr(self, "backend", None) != "vllm":
                 app.logger.info("[vllm_shutdown] backend is not 'vllm'; skip.")
