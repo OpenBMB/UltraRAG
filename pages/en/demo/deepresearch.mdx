@@ -1,17 +1,26 @@
 ---
-title: "DeepResearch"
+title: "AgentCPM-Report"
 icon: "flask"
 ---
 
-DeepResearch is UltraRAG's most powerful research reasoning process to date, designed specifically for generating academic-level in-depth reviews of over 10,000 words. It autonomously completes search, plan formulation, content writing, and outline expansion through complex state machine scheduling.
+AgentCPM-Report is an open-source large language model agent jointly developed by [THUNLP](https://nlp.csai.tsinghua.edu.cn), Renmin University of China [RUCBM](https://github.com/RUCBM), and [ModelBest](https://modelbest.cn/en).
 
-<Tip>To obtain the best generation results, we strongly recommend downloading and using the supporting proprietary model SurveyCPM.</Tip>
+The model is built on the [MiniCPM4.1](https://github.com/OpenBMB/MiniCPM4.1) base (8 billion parameters) and can accept user instructions to autonomously conduct in-depth research and generate long-form reports.
+
+Key Highlights:
+
+- **Exceptional Insight and Comprehensiveness**: As an 8B parameter edge-side model, AgentCPM-Report demonstrates remarkable potential in deep research report generation tasks, with performance that has surpassed some closed-source commercial agent systems. It redefines the performance ceiling for small-scale agents, achieving SOTA results particularly in the Insight metric.
+- **Lightweight and Localized Deployment**: The model supports agile deployment on personal computers. By combining with frameworks like UltraRAG, users can build scalable local knowledge bases to generate reports that are more professional and in-depth than general-purpose large models. This lightweight and localized nature provides a secure and reliable foundation for deep report writing on private or proprietary data.
+
+This document aims to introduce how to configure and use AgentCPM-Report in the UltraRAG framework.
+
+<Tip>To obtain the best generation results, we strongly recommend downloading and using the supporting proprietary model [AgentCPM-Report](https://huggingface.co/openbmb/AgentCPM-Report).</Tip>
 
 ## 1. Pipeline Structure Overview
 
-The DeepResearch Pipeline adopts highly flexible state routing logic (Router), containing cycles of multiple core stages.
+The AgentCPM-Report Pipeline adopts a dynamic loop architecture based on a state machine. After initialization, the system enters a core loop where an intelligent router (Router) autonomously decides the next action based on the current task progress—flexibly switching between four branches: information gathering (Search), initial planning (Analyst-Init), content writing (Write), and plan extension (Analyst-Extend). Through continuous "retrieval-planning-writing" iterations, it completes all research tasks and outputs the final formatted report.
 
-```yaml examples/DeepResearch.yaml icon="/images/yaml.svg"
+```yaml examples/AgentCPM-Report.yaml icon="/images/yaml.svg"
 # DeepResearch Demo for UltraRAG UI
 
 # MCP Server
@@ -107,16 +116,16 @@ pipeline:
 Execute the following command to compile this workflow:
 
 ```shell
-ultrarag build examples/DeepResearch.yaml
+ultrarag build examples/AgentCPM-Report.yaml
 ```
 
 ## 3. Configure Running Parameters
 
-Modify `examples/parameter/DeepResearch_parameter.yaml`.
+Modify `examples/parameter/AgentCPM-Report_parameter.yaml`.
 
-<Note>Want to adjust research depth? Please adjust as needed in `custom` configuration: increase `surveycpm_max_step` to extend research time, increase `surveycpm_max_extend_step` to obtain more detailed extended content. If you have extremely high requirements for quality, be sure to enable `surveycpm_hard_mode`.</Note>
+<Note>Want to adjust research depth? Please adjust as needed in the `custom` configuration: increase `surveycpm_max_step` to extend research time, and increase `surveycpm_max_extend_step` to obtain more detailed extended content. If you have extremely high quality requirements, be sure to enable `surveycpm_hard_mode` (hard mode).</Note>
 
-```yaml examples/parameter/DeepResearch_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/parameter/AgentCPM-Report_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:
@@ -138,7 +147,7 @@ generation:
     hf:
       batch_size: 8
       gpu_ids: 2,3
-      model_name_or_path: openbmb/MiniCPM4-8B
+      model_name_or_path: openbmb/AgentCPM-Report
       trust_remote_code: true
     openai:
       api_key: abc
@@ -147,13 +156,13 @@ generation:
       base_url: http://localhost:65506/v1 # [!code ++]
       concurrency: 8
       model_name: MiniCPM4-8B # [!code --]
-      model_name: surveycpm # [!code ++]
+      model_name: AgentCPM-Report # [!code ++]
       retries: 3
     vllm:
       dtype: auto
       gpu_ids: 2,3
       gpu_memory_utilization: 0.9
-      model_name_or_path: openbmb/MiniCPM4-8B
+      model_name_or_path: openbmb/AgentCPM-Report
       trust_remote_code: true
   extra_params:
     chat_template_kwargs:
@@ -163,7 +172,7 @@ generation:
     temperature: 0.7
     top_p: 0.8
   system_prompt: '' # [!code --]
-  system_prompt: 'You are a professional UltraRAG Q&A assistant. Please remember to answer questions in Chinese.' # [!code ++]
+  system_prompt: 'You are a professional UltraRAG Q&A assistant.' # [!code ++]
 prompt:
   surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja
   surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
@@ -233,9 +242,9 @@ retriever:
 
 ## 4. Effect Demonstration
 
-After configuration is complete, start the DeepResearch Pipeline in UltraRAG UI.
+After configuration is complete, start the AgentCPM-Report Pipeline in UltraRAG UI.
 
-<Note>Since the generation of a 10,000-word review involves a large amount of concurrent retrieval and multi-turn reasoning, it usually takes more than 10 minutes. You can use the UI's background running function and come back to check the final report after the task is completed.</Note>
+<Note>Since the generation of a 10,000-word review involves a large amount of concurrent retrieval and multi-turn reasoning, it usually takes more than 10 minutes. You can use the UI's [background running](/pages/en/ui/start) function and come back to check the final report after the task is completed.</Note>
 
 
-![](/images/demo/deepresearch.png)
+![](/images/demo/AgentCPM-Report.png)
