@@ -57,6 +57,17 @@ if IS_WINDOWS:
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
     def _windows_ensure_job_object():
+        """Ensure Windows job object exists for process group management.
+
+        Creates a job object that will kill child processes when the parent
+        process terminates, ensuring proper cleanup.
+
+        Returns:
+            Job object handle
+
+        Raises:
+            OSError: If job object creation or configuration fails
+        """
         global _windows_job_handle
         if _windows_job_handle:
             return _windows_job_handle
@@ -96,18 +107,37 @@ if IS_WINDOWS:
     kernel32.CloseHandle.restype = wintypes.BOOL
 
 
-def set_pdeathsig():
+def set_pdeathsig() -> None:
+    """Set parent death signal on POSIX systems.
+
+    Configures the process to receive SIGTERM when the parent process dies,
+    ensuring child processes are properly cleaned up.
+    """
     if IS_POSIX and libc is not None:
         libc.prctl(1, signal.SIGTERM)
 
 
-def popen_follow_parent(command: List[str], env: Optional[Dict[str, str]] = None):
+def popen_follow_parent(
+    command: List[str], env: Optional[Dict[str, str]] = None
+) -> subprocess.Popen:
+    """Create a subprocess that will be terminated when parent dies.
+
+    On POSIX systems, uses prctl to set parent death signal.
+    On Windows, uses job objects to ensure child processes are killed
+    when the parent terminates.
+
+    Args:
+        command: Command to execute as a list of strings
+        env: Optional environment variables dictionary
+
+    Returns:
+        Popen object representing the started subprocess
+    """
     if IS_POSIX:
         return subprocess.Popen(command, env=env, preexec_fn=set_pdeathsig)
     elif IS_WINDOWS:
         hJob = _windows_ensure_job_object()
         proc = subprocess.Popen(command, env=env)
-        import ctypes.wintypes as wintypes
 
         hProcess = wintypes.HANDLE(proc._handle)
         ok = kernel32.AssignProcessToJobObject(hJob, hProcess)

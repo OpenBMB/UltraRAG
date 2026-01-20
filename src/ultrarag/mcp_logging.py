@@ -1,9 +1,10 @@
 import logging
 import os
+from datetime import datetime
+from typing import Literal, Optional, Union
+
 from rich.console import Console
 from rich.logging import RichHandler
-from typing import Literal, Optional
-from datetime import datetime
 
 _LOG_LEVELS = {
     "debug": logging.DEBUG,
@@ -12,13 +13,20 @@ _LOG_LEVELS = {
     "warning": logging.WARNING,
     "error": logging.ERROR,
 }
-logging_dict = _LOG_LEVELS
 
 _LOGGING_INITIALIZED = False
 _LOGFILE_PATH: Optional[str] = None
 
 
-def _level_from_str(level: str | int) -> int:
+def _level_from_str(level: Union[str, int]) -> int:
+    """Convert log level string or int to logging level constant.
+
+    Args:
+        level: Log level as string or integer
+
+    Returns:
+        Logging level constant (defaults to INFO if invalid)
+    """
     if isinstance(level, int):
         return level
     return _LOG_LEVELS.get(str(level).lower(), logging.INFO)
@@ -26,10 +34,24 @@ def _level_from_str(level: str | int) -> int:
 
 def get_logger(
     name: str,
-    level: Literal["debug", "info", "warn", "error"] | str = "info",
+    level: Union[Literal["debug", "info", "warn", "error"], str] = "info",
     enable_rich_tracebacks: bool = True,
     log_file: Optional[str] = None,
-):
+) -> logging.Logger:
+    """Get or create a logger with Rich formatting and file output.
+
+    Initializes logging system on first call with both console (stderr) and
+    file handlers. Subsequent calls reuse the initialized configuration.
+
+    Args:
+        name: Logger name (child logger of "UltraRAG" if not "UltraRAG")
+        level: Log level as string or literal (default: "info")
+        enable_rich_tracebacks: Whether to enable Rich traceback formatting
+        log_file: Optional path to log file (default: timestamped file in logs/)
+
+    Returns:
+        Logger instance
+    """
     global _LOGGING_INITIALIZED, _LOGFILE_PATH
 
     lvl = _level_from_str(level)
@@ -70,7 +92,7 @@ def get_logger(
 
         _LOGGING_INITIALIZED = True
 
-    if lvl < base.level or lvl > base.level:
+    if lvl != base.level:
         base.setLevel(lvl)
         for h in base.handlers:
             h.setLevel(lvl)

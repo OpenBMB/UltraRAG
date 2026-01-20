@@ -1,18 +1,18 @@
 import asyncio
 import os
 from types import SimpleNamespace
-from typing import List
+from typing import List, Optional
 
 import yaml
 from fastmcp import Client
 
 from .mcp_logging import get_logger
-from . import client as _client_mod   
+from . import client as _client_mod
 
-_client: Client | None = None
-_servers: List[str] | None = None
+_client: Optional[Client] = None
+_servers: Optional[List[str]] = None
 SERVER_ROOT = ""
-logger = None  
+logger = None
 
 
 class _CallWrapper:
@@ -57,10 +57,10 @@ class _CallWrapper:
             try:
                 input_param = yaml.safe_load(f)["tools"][self._tool]["input"]
                 input_keys = list(input_param.keys())
-            except:
+            except (KeyError, TypeError) as e:
                 raise ValueError(
                     f"[UltraRAG Error] Tool {self._tool} not found in server {self._server} configuration!"
-                )
+                ) from e
 
         for k, v in list(input_param.items()):
             if isinstance(v, str) and v.startswith("$"):
@@ -91,7 +91,15 @@ class _CallWrapper:
         return result.data if result else None
 
     def __call__(self, *args, **kwargs):
-        # return asyncio.run(self._async_call(*args, **kwargs))
+        """Call the tool synchronously or asynchronously based on event loop state.
+
+        Args:
+            *args: Positional arguments for the tool
+            **kwargs: Keyword arguments for the tool
+
+        Returns:
+            Tool result (synchronous) or Task (asynchronous if loop is running)
+        """
         loop = asyncio.get_event_loop_policy().get_event_loop()
         if loop.is_running():
             return loop.create_task(self._async_call(*args, **kwargs))
@@ -100,40 +108,73 @@ class _CallWrapper:
 
 
 class _ServerProxy(SimpleNamespace):
-    """
-    Proxy for a specific server, e.g. `ToolCall.retriever`.
+    """Proxy for a specific server, e.g. `ToolCall.retriever`.
 
     Accessing an attribute on this object (e.g. `.retriever_search`) returns a
     `_CallWrapper` bound to that (server, tool) pair.
     """
+
     def __init__(self, client: Client, name: str, multi: bool):
+        """Initialize server proxy.
+
+        Args:
+            client: MCP client instance
+            name: Server name
+            multi: Whether multiple servers are configured
+        """
         super().__init__()
         self._client = client
         self._name = name
         self._multi = multi
 
     def __getattr__(self, tool_name: str):
+        """Get a callable wrapper for the specified tool.
+
+        Args:
+            tool_name: Name of the tool to access
+
+        Returns:
+            _CallWrapper instance for the tool
+        """
         return _CallWrapper(self._client, self._name, tool_name, self._multi)
 
 
 class _Router(SimpleNamespace):
-    """
-    Top-level router for ToolCall.
+    """Top-level router for ToolCall.
 
     Example:
         ToolCall.retriever.retriever_search(...)
         ToolCall.benchmark.get_data(...)
     """
+
     def __getattr__(self, server: str):
+        """Get a proxy for the specified server.
+
+        Args:
+            server: Name of the server to access
+
+        Returns:
+            _ServerProxy instance for the server
+
+        Raises:
+            AttributeError: If server has not been initialized
+        """
         global _client, _servers
-        if server not in _servers:
+        if _servers is None or server not in _servers:
             raise AttributeError(f"Server {server} has not been initialized!")
         return _ServerProxy(_client, server, len(_servers) > 1)
 
 
-def initialize(servers: list[str], server_root: str, log_level="info"):
-    """
-    Initialize MCP servers so they can be accessed via ToolCall.
+def initialize(servers: List[str], server_root: str, log_level: str = "info") -> None:
+    """Initialize MCP servers so they can be accessed via ToolCall.
+
+    Args:
+        servers: List of server names to initialize
+        server_root: Root directory containing server directories
+        log_level: Logging level (default: "info")
+
+    Raises:
+        ValueError: If server path does not exist
     """
     global _client, _servers, SERVER_ROOT, logger
     logger = get_logger("Client", log_level)
@@ -161,9 +202,15 @@ async def _pipeline_async(
     parameter_file: str,
     log_level: str = "error",
 ):
-    """
-    Internal async helper that runs a full UltraRAG pipeline with
-    an explicitly provided parameter file.
+    """Internal async helper that runs a full UltraRAG pipeline.
+
+    Args:
+        pipeline_file: Path to pipeline YAML file
+        parameter_file: Path to parameter YAML file
+        log_level: Logging level (default: "error")
+
+    Returns:
+        Pipeline execution results
     """
     _client_mod.logger = get_logger("Client", log_level)
 
@@ -175,9 +222,18 @@ def PipelineCall(
     parameter_file: str,
     log_level: str = "error",
 ):
-    """
-    Run a full UltraRAG pipeline from Python, similar to `ultrarag run`,
-    but with an explicitly provided parameter file.
+    """Run a full UltraRAG pipeline from Python.
+
+    Similar to `ultrarag run`, but with an explicitly provided parameter file.
+    Can be called synchronously or asynchronously based on event loop state.
+
+    Args:
+        pipeline_file: Path to pipeline YAML file
+        parameter_file: Path to parameter YAML file
+        log_level: Logging level (default: "error")
+
+    Returns:
+        Pipeline execution results (synchronous) or Task (asynchronous if loop is running)
     """
     loop = asyncio.get_event_loop_policy().get_event_loop()
     if loop.is_running():

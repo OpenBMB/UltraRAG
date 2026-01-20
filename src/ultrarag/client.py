@@ -1,42 +1,71 @@
-import asyncio
-import json
-import sys
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-import yaml
 import argparse
-from datetime import datetime
-from typing import Dict, List, Union, Any, Tuple
-import copy
-import logging
+import asyncio
 import contextvars
+import copy
+import json
+import logging
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
 
+import yaml
+from dotenv import load_dotenv
 from fastmcp import Client
+
 from ultrarag.cli import log_server_banner
 from ultrarag.mcp_exceptions import (
-    check_node_version,
     NodeNotInstalledError,
     NodeVersionTooLowError,
+    check_node_version,
 )
 from ultrarag.mcp_logging import get_logger
-from typing import Callable, Awaitable
 
 log_level = ""
 logger = None
 PipelineStep = Union[str, Dict[str, Any]]
 node_status = False
 
+
 class MockContent:
-    def __init__(self, text): self.text = text
+    """Mock content object for testing."""
+
+    def __init__(self, text: str) -> None:
+        """Initialize mock content.
+
+        Args:
+            text: Text content
+        """
+        self.text = text
+
 
 class MockResult:
-    def __init__(self, text_content): 
+    """Mock result object for testing."""
+
+    def __init__(self, text_content: str) -> None:
+        """Initialize mock result.
+
+        Args:
+            text_content: Text content
+        """
         self.content = [MockContent(text_content)]
         self.data = text_content
 
 
-def launch_ui(host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = False) -> None:
+def launch_ui(
+    host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = False
+) -> None:
+    """Launch UltraRAG UI server.
+
+    Args:
+        host: Server host address (default: "127.0.0.1")
+        port: Server port (default: 5050)
+        admin_mode: Whether to run in admin mode (default: False)
+
+    Raises:
+        RuntimeError: If UI backend cannot be loaded or server fails to start
+    """
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
@@ -45,7 +74,8 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = Fals
         from ui.backend.app import create_app
     except Exception as exc:
         raise RuntimeError(
-            "Failed to load the UI backend. Please ensure the `ui/backend` directory exists and is importable."
+            "Failed to load the UI backend. "
+            "Please ensure the `ui/backend` directory exists and is importable."
         ) from exc
 
     app = create_app(admin_mode=admin_mode)
@@ -62,22 +92,40 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = Fals
 
 
 class Configuration:
+    """Configuration manager for loading environment variables and YAML files."""
+
     def __init__(self) -> None:
+        """Initialize configuration and load environment variables."""
         self.load_env()
 
     @staticmethod
     def load_env() -> None:
+        """Load environment variables from .env file."""
         load_dotenv()
 
     @staticmethod
-    def load_config(file_path: str):
-        with open(file_path, "r") as f:
+    def load_config(file_path: str) -> Dict[str, Any]:
+        """Load YAML configuration file.
+
+        Args:
+            file_path: Path to YAML file
+
+        Returns:
+            Dictionary containing configuration (None if file is empty)
+        """
+        with open(file_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
 
     @staticmethod
-    def load_parameter_config(
-        file_path: Union[str, Path | str],
-    ) -> Dict[str, Any]:
+    def load_parameter_config(file_path: Union[str, Path]) -> Dict[str, Any]:
+        """Load parameter configuration from YAML file.
+
+        Args:
+            file_path: Path to parameter YAML file
+
+        Returns:
+            Dictionary containing parameters (empty dict if file doesn't exist)
+        """
         path = Path(file_path)
         if not path.is_file():
             return {}
@@ -86,24 +134,37 @@ class Configuration:
 
 ROOT = "BASE"
 SEP = "/"
-# 使用 ContextVar 实现协程安全的循环终止标志
-# 每个协程（用户请求）都有独立的 LoopTerminal 副本
-_loop_terminal_var: contextvars.ContextVar[list[bool]] = contextvars.ContextVar(
-    'loop_terminal', default=[]
+# Use ContextVar to implement coroutine-safe loop termination flag
+# Each coroutine (user request) has an independent LoopTerminal copy
+_loop_terminal_var: contextvars.ContextVar[List[bool]] = contextvars.ContextVar(
+    "loop_terminal", default=[]
 )
 
-# 哨兵值：用于区分"数据未设置"和"数据是 None"
+
+# Sentinel value: used to distinguish "data not set" from "data is None"
 class _Unset:
     """Sentinel value to indicate data has not been set by any branch."""
+
     __slots__ = ()
+
     def __repr__(self):
         return "<UNSET>"
+
 
 UNSET = _Unset()
 
 
 def parse_path(path: str) -> List[Tuple[int, str]]:
-    """'branch1_finished/branch2_retry' → [(1,'finished'), (2,'retry')]"""
+    """Parse branch path string into list of (depth, state) tuples.
+
+    Example: 'branch1_finished/branch2_retry' → [(1,'finished'), (2,'retry')]
+
+    Args:
+        path: Branch path string
+
+    Returns:
+        List of (depth, state) tuples
+    """
     if not path or path == ROOT:
         return []
     pairs = []
@@ -116,27 +177,56 @@ def parse_path(path: str) -> List[Tuple[int, str]]:
 
 
 def elem_match(elem: Dict, pairs: List[Tuple[int, str]]) -> bool:
+    """Check if element matches all branch state pairs.
+
+    Args:
+        elem: Element dictionary to check
+        pairs: List of (depth, state) tuples
+
+    Returns:
+        True if element matches all pairs, False otherwise
+    """
     return all(elem.get(f"branch{d}_state") == s for d, s in pairs)
 
 
 def is_wrapped_list(lst: Any) -> bool:
-    """检查列表是否是 wrapped 格式（包含 {data, branch*_state} 结构）"""
+    """Check if list is in wrapped format (contains {data, branch*_state} structure).
+
+    Args:
+        lst: List to check
+
+    Returns:
+        True if list is in wrapped format, False otherwise
+    """
     if not isinstance(lst, list) or not lst:
         return False
     first = lst[0]
     if not isinstance(first, dict):
         return False
-    # 检查是否有任何 branch*_state 键
+    # Check if there are any branch*_state keys
     return any(k.startswith("branch") and k.endswith("_state") for k in first.keys())
 
 
 class UltraData:
+    """Data manager for UltraRAG pipeline execution.
+
+    Manages server configurations, global variables, I/O mappings,
+    and memory snapshots for pipeline steps.
+    """
+
     def __init__(
         self,
         pipeline_yaml_path: str,
-        server_configs: Dict[str, Dict] = None,
-        parameter_file: str | Path | None = None,
-    ):
+        server_configs: Optional[Dict[str, Dict]] = None,
+        parameter_file: Optional[Union[str, Path]] = None,
+    ) -> None:
+        """Initialize UltraData with pipeline configuration.
+
+        Args:
+            pipeline_yaml_path: Path to pipeline YAML file
+            server_configs: Optional pre-loaded server configurations
+            parameter_file: Optional path to parameter file
+        """
         self.pipeline_yaml_path = pipeline_yaml_path
         cfg = Configuration()
         pipeline = cfg.load_config(pipeline_yaml_path)
@@ -167,15 +257,31 @@ class UltraData:
         self.io = {}
         self.global_vars = {}
         self._extract_io(pipeline.get("pipeline", []))
-        # store history of memory states after each step
+        # Store history of memory states after each step
         self.snapshots: List[Dict[str, Any]] = []
 
     def _canonical_mem(self, name: str) -> str:
+        """Convert memory variable name to canonical format.
+
+        Args:
+            name: Variable name (may start with "mem_" or "memory_")
+
+        Returns:
+            Canonical memory variable name (starts with "memory_")
+        """
         if name.startswith("mem_"):
             return "memory_" + name[4:]
         return name
 
-    def _get_branch_skeleton(self, depth: int):
+    def _get_branch_skeleton(self, depth: int) -> Optional[List[Dict[str, Any]]]:
+        """Get branch skeleton structure for a given depth.
+
+        Args:
+            depth: Branch depth
+
+        Returns:
+            Skeleton list if found, None otherwise
+        """
         key = f"branch{depth}_state"
         for v in self.global_vars.values():
             if isinstance(v, list) and v and isinstance(v[0], dict) and key in v[0]:
@@ -183,13 +289,28 @@ class UltraData:
         return None
 
     def _pad_to_skeleton(
-        self, skeleton: list[dict], parent_pairs: list[tuple[int, str]], sub_list: list
-    ):
+        self,
+        skeleton: List[Dict[str, Any]],
+        parent_pairs: List[Tuple[int, str]],
+        sub_list: List[Any],
+    ) -> List[Dict[str, Any]]:
+        """Pad sub-list to match skeleton structure.
+
+        Args:
+            skeleton: Skeleton list structure
+            parent_pairs: Parent branch state pairs
+            sub_list: Sub-list to pad
+
+        Returns:
+            Padded list matching skeleton structure
+
+        Raises:
+            ValueError: If sub_list length doesn't match expected matches
+        """
         new_full = []
         for elem in skeleton:
             new_elem = {k: v for k, v in elem.items() if k != "data"}
-            new_elem["data"] = UNSET  # 使用哨兵值标记"未设置"
-            new_elem["data"] = UNSET  # 使用哨兵值标记"未设置"
+            new_elem["data"] = UNSET  # Use sentinel value to mark "not set"
             new_full.append(new_elem)
 
         it = iter(sub_list)
@@ -228,7 +349,15 @@ class UltraData:
 
         logger.debug("Updated memory %s -> %s", mem_key, self.global_vars[mem_key][-1])
 
-    def _extract_io(self, pipeline) -> None:
+    def _extract_io(self, pipeline: List[Any]) -> None:
+        """Extract input/output mappings from pipeline configuration.
+
+        Args:
+            pipeline: List of pipeline steps
+
+        Raises:
+            ValueError: If required variables are not found in configuration
+        """
         for pipe in pipeline:
             if isinstance(pipe, str):
                 srv_name, tool_name = pipe.split(".")
@@ -378,8 +507,22 @@ class UltraData:
         server_name: str,
         tool_name: str,
         branch_state: str,
-        input_dict: Dict[str, str] | None = None,
-    ) -> Dict[str, Any]:
+        input_dict: Optional[Dict[str, str]] = None,
+    ) -> Tuple[str, Dict[str, Any], bool]:
+        """Get input data for a tool execution step.
+
+        Args:
+            server_name: Name of the server
+            tool_name: Name of the tool
+            branch_state: Current branch state path
+            input_dict: Optional additional input dictionary
+
+        Returns:
+            Tuple of (concatenated_name, args_input, signal)
+
+        Raises:
+            ValueError: If required variables are not found
+        """
         concated = f"{server_name}_{tool_name}" if len(self.servers) > 1 else tool_name
         path_pairs = parse_path(branch_state)
         args_input = {}
@@ -402,9 +545,13 @@ class UltraData:
                     v = self._canonical_mem(v)
                     if v in self.global_vars:
                         val = self.global_vars[v]
-                        # print(f"path_pairs: {path_pairs}")
-                        # 只有当列表是 wrapped 格式时才解包装
-                        if isinstance(val, list) and val and isinstance(val[0], dict) and is_wrapped_list(val):
+                        # Only unwrap if list is in wrapped format
+                        if (
+                            isinstance(val, list)
+                            and val
+                            and isinstance(val[0], dict)
+                            and is_wrapped_list(val)
+                        ):
                             signal = signal & True if signal is not None else True
                             # val = [e["data"] for e in val if elem_match(e, path_pairs)]
                             sub = [
@@ -426,7 +573,6 @@ class UltraData:
         logger.debug(
             f"Executing step {server_name}.{tool_name} with args: {args_input}"
         )
-        # print(f"signal: {signal}")
         return concated, args_input, signal or False
 
     def save_data(
@@ -435,26 +581,40 @@ class UltraData:
         tool_name: str,
         data: Any,
         state: str,
-        output_dict: Dict[str, str] = {},
-    ):
+        output_dict: Optional[Dict[str, str]] = None,
+    ) -> None:
+        """Save output data from a tool execution step.
+
+        Args:
+            server_name: Name of the server
+            tool_name: Name of the tool
+            data: Output data to save
+            state: Current branch state
+            output_dict: Optional output mapping dictionary
+
+        Raises:
+            ValueError: If data length doesn't match expected structure
+        """
+        if output_dict is None:
+            output_dict = {}
         concated = f"{server_name}_{tool_name}" if len(self.servers) > 1 else tool_name
         # Track which memory keys are updated for this step
         updated_mem_keys = []
         if server_name == "prompt":
             output_key = list(self.io[concated]["output"])[0]
             var_name = output_dict.get(output_key, output_key)
-            
-            # 处理分支情况：如果在分支中，需要将结果 padding 到完整长度
+
+            # Handle branch case: if in branch, need to pad result to full length
             parent_pairs = parse_path(state)
             depth = parent_pairs[-1][0] if parent_pairs else 0
-            
+
             if depth > 0:
-                # 在分支中，需要将短列表 padding 到完整长度
+                # In branch, need to pad short list to full length
                 full_list = self.global_vars.get(var_name)
                 sub_list = data.messages
-                
+
                 if is_wrapped_list(full_list):
-                    # 已经是 wrapped 格式，需要按位置填充
+                    # Already in wrapped format, need to fill by position
                     it = iter(sub_list)
                     for i, elem in enumerate(full_list):
                         if elem_match(elem, parent_pairs):
@@ -462,27 +622,29 @@ class UltraData:
                                 new_elem = next(it)
                             except StopIteration:
                                 raise ValueError(
-                                    f"[UltraRAG Error] Prompt {var_name} length < global_vars in step {server_name}.{tool_name}"
+                                    f"[UltraRAG Error] Prompt {var_name} length < "
+                                    f"global_vars in step {server_name}.{tool_name}"
                                 )
                             full_list[i]["data"] = new_elem
                     if any(True for _ in it):
                         raise ValueError(
-                            f"[UltraRAG Error] Prompt {var_name} length > global_vars in step {server_name}.{tool_name}"
+                            f"[UltraRAG Error] Prompt {var_name} length > "
+                            f"global_vars in step {server_name}.{tool_name}"
                         )
                     self.global_vars[var_name] = full_list
                 else:
-                    # 尝试从其他变量获取 skeleton 结构
+                    # Try to get skeleton structure from other variables
                     skeleton = self._get_branch_skeleton(depth)
                     if skeleton:
                         padded = self._pad_to_skeleton(skeleton, parent_pairs, sub_list)
                         self.global_vars[var_name] = padded
                     else:
-                        # 如果没有 skeleton，直接保存（这种情况不应该发生）
+                        # If no skeleton, save directly (this case should not occur)
                         self.global_vars[var_name] = sub_list
             else:
-                # 不在分支中，直接保存
+                # Not in branch, save directly
                 self.global_vars[var_name] = data.messages
-            
+
             self._update_memory(var_name, self.global_vars[var_name])
             mem_key_updated = self._canonical_mem(
                 var_name
@@ -526,12 +688,9 @@ class UltraData:
                             full_list = self.global_vars[output_dict.get(key, key)]
                             sub_list = data[key]
                             it = iter(sub_list)
-                            # 使用 is_wrapped_list 检查，而不是只检查第一个元素的 data
-                            # 修复：当第一个元素的 data 为 None（如在其他分支中）时，之前的条件会失败
-                            if (
-                                not is_router
-                                and is_wrapped_list(full_list)
-                            ):
+                            # Use is_wrapped_list check instead of only checking first element's data
+                            # Fix: Previous condition failed when first element's data is None (e.g., in other branches)
+                            if not is_router and is_wrapped_list(full_list):
                                 for i, elem in enumerate(full_list):
                                     if elem_match(elem, parent_pairs):
                                         try:
@@ -548,8 +707,8 @@ class UltraData:
                                 self.global_vars[output_dict.get(key, key)] = full_list
 
                             elif is_router:
-                                # 使用 is_wrapped_list 检查列表是否已经是 wrapped 格式
-                                # 修复：之前的条件在第一个元素 data 为 None 时判断不准确
+                                # Use is_wrapped_list to check if list is already in wrapped format
+                                # Fix: Previous condition was inaccurate when first element's data is None
                                 if (
                                     depth == 1
                                     and isinstance(full_list, list)
@@ -661,7 +820,13 @@ class UltraData:
         )
         return data
 
-    def write_memory_output(self, pipeline_name: str, timestamp: str):
+    def write_memory_output(self, pipeline_name: str, timestamp: str) -> None:
+        """Write memory snapshots to JSON file.
+
+        Args:
+            pipeline_name: Name of the pipeline
+            timestamp: Timestamp string for filename
+        """
         benchmark_cfg = self.local_vals.get("benchmark", {})
         if isinstance(benchmark_cfg, dict):
             if "benchmark" in benchmark_cfg and "name" in benchmark_cfg["benchmark"]:
@@ -679,12 +844,27 @@ class UltraData:
             json.dump(self.snapshots, fp, ensure_ascii=False, indent=2, default=str)
         logger.info(f"Memory output saved to {file_path}")
 
-    def get_branch(self):
+    def get_branch(self) -> set[str]:
+        """Get remaining branch states.
+
+        Returns:
+            Set of remaining branch state names
+        """
         logger.debug(f"remain_branch: {self.remain_branch}")
         return self.remain_branch
 
 
-async def build(config_path: str):
+async def build(config_path: str) -> None:
+    """Build server and parameter configuration files from pipeline.
+
+    Args:
+        config_path: Path to pipeline configuration file
+
+    Raises:
+        FileNotFoundError: If server file doesn't exist
+        NodeNotInstalledError: If Node.js is required but not installed
+        NodeVersionTooLowError: If Node.js version is too low
+    """
     global node_status
     logger.info(f"Building configuration {config_path}")
     cfg_path = Path(config_path)
@@ -788,7 +968,6 @@ async def build(config_path: str):
                     await client.call_tool(
                         full_tool, {"parameter_file": parameter_path[srv_name]}
                     )
-                    # already_built.append(srv_name)
                     logger.info(f"server.yaml for {srv_name} has been built already")
                 param = loader.load_parameter_config(parameter_path[srv_name])
                 serv = loader.load_parameter_config(
@@ -822,7 +1001,6 @@ async def build(config_path: str):
                         ]
 
             elif isinstance(step, dict):
-                # print(f"Processing step: {step}, keys: {list(step.keys())}")
                 if "loop" in step:
                     loop_steps = step["loop"].get("steps", [])
                     await build_steps(loop_steps)
@@ -843,7 +1021,6 @@ async def build(config_path: str):
                         await client.call_tool(
                             full_tool, {"parameter_file": parameter_path[srv_name]}
                         )
-                        # already_built.append(srv_name)
                         logger.info(
                             f"server.yaml for {srv_name} has been built already"
                         )
@@ -859,7 +1036,6 @@ async def build(config_path: str):
                     if param != {}:
                         if srv_name not in parameter_all:
                             parameter_all[srv_name] = {}
-                        # print(f"param: {param}")
                         if srv_name == "prompt":
                             input_values: List[str] = serv["prompts"][tool_name][
                                 "input"
@@ -912,10 +1088,22 @@ async def build(config_path: str):
         yaml.safe_dump(server_all, f, allow_unicode=True, sort_keys=False)
     logger.info(f"All server configurations have been saved in {server_save_path}")
 
+
 def load_pipeline_context(
-    config_path: str,
-    param_path: str | Path | None = None
+    config_path: str, param_path: Optional[Union[str, Path]] = None
 ) -> Dict[str, Any]:
+    """Load pipeline context from configuration files.
+
+    Args:
+        config_path: Path to pipeline configuration file
+        param_path: Optional path to parameter file
+
+    Returns:
+        Dictionary containing pipeline context
+
+    Raises:
+        FileNotFoundError: If parameter file doesn't exist
+    """
     global node_status
     cfg_path = Path(config_path)
     logger.info(f"Executing pipeline with configuration {config_path}")
@@ -927,7 +1115,7 @@ def load_pipeline_context(
 
     cfg_name = cfg_path.stem
     root_path = cfg_path.parent
-    
+
     server_config_path = root_path / "server" / f"{cfg_name}_server.yaml"
     all_server_configs = cfg.load_config(server_config_path)
     server_cfg = {
@@ -953,7 +1141,7 @@ def load_pipeline_context(
         param_config_path = param_config_path.resolve()
     else:
         param_config_path = root_path / "parameter" / f"{cfg_name}_parameter.yaml"
-    
+
     param_cfg = cfg.load_parameter_config(param_config_path)
     for srv_name in server_cfg.keys():
         server_cfg[srv_name]["parameter"] = param_cfg.get(srv_name, {})
@@ -998,7 +1186,6 @@ def load_pipeline_context(
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 
-
     return {
         "config_path": config_path,
         "param_config_path": param_config_path,
@@ -1006,49 +1193,66 @@ def load_pipeline_context(
         "mcp_cfg": mcp_cfg,
         "server_cfg": server_cfg,
         "pipeline_cfg": pipeline_cfg,
-        "init_cfg": init_cfg
+        "init_cfg": init_cfg,
     }
 
 
 def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Client:
+    """Create and initialize MCP client.
+
+    Args:
+        mcp_cfg: MCP server configuration dictionary
+
+    Returns:
+        Initialized MCP Client instance
+    """
     logger.info("Initializing MCP Client...")
     return Client(mcp_cfg)
 
+
 def _summarize_step_result(step_name: str, result: Any) -> str:
+    """Summarize step execution result for logging/display.
+
+    Args:
+        step_name: Name of the step
+        result: Step execution result
+
+    Returns:
+        Human-readable summary string
+    """
     try:
         content = ""
         if hasattr(result, "content") and result.content:
             content = result.content[0].text
         elif isinstance(result, str):
             content = result
-        elif hasattr(result, "data"): # MockResult
+        elif hasattr(result, "data"):  # MockResult
             content = result.data
         else:
             try:
                 content = json.dumps(result)
-            except:
+            except Exception:
                 return "Step completed."
 
         try:
             data = json.loads(content)
-        except:
+        except Exception:
             return f"Output: {str(content)[:100]}..."
 
+        docs = data.get("ret_psg")
 
-        docs = data.get("ret_psg") 
-        
         if docs and isinstance(docs, list):
             if len(docs) > 0 and isinstance(docs[0], list):
                 docs = docs[0]
-            
+
             summary = f"Retrieved {len(docs)} documents:\n"
-            
-            for i, doc in enumerate(docs): 
+
+            for i, doc in enumerate(docs):
                 if isinstance(doc, str):
-                    # 放宽截断限制到300字符，让用户能看到更多文档内容
+                    # Relax truncation limit to 300 characters to show more document content
                     doc_preview = doc[:300] + "..." if len(doc) > 300 else doc
                     summary += f"{i+1}. {doc_preview}\n"
-                    
+
             return summary.strip()
 
         if "generate" in step_name.lower():
@@ -1070,13 +1274,26 @@ async def execute_pipeline(
     context: Dict[str, Any],
     is_demo: bool = False,
     return_all: bool = False,
-    stream_callback: Callable[[str], Awaitable[None]] = None,
-    override_params: Dict[str, Any] = None
+    stream_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
+    override_params: Optional[Dict[str, Any]] = None,
 ) -> Any:
-    # 为当前协程创建独立的循环终止标志列表
-    # 使用 ContextVar 确保多用户并发时互不干扰
+    """Execute UltraRAG pipeline with given context.
+
+    Args:
+        client: MCP client instance
+        context: Pipeline context dictionary
+        is_demo: Whether running in demo mode
+        return_all: Whether to return all intermediate results
+        stream_callback: Optional callback for streaming results
+        override_params: Optional parameters to override
+
+    Returns:
+        Pipeline execution results
+    """
+    # Create independent loop termination flag list for current coroutine
+    # Use ContextVar to ensure no interference between concurrent users
     _loop_terminal_var.set([])
-    
+
     config_path = context["config_path"]
     server_cfg = context["server_cfg"]
     param_config_path = context["param_config_path"]
@@ -1099,11 +1316,13 @@ async def execute_pipeline(
     if is_demo:
         for srv_name, srv_conf in server_cfg.items():
             srv_path = str(srv_conf.get("path", "")).replace("\\", "/")
-            
+
             if "servers/generation" in srv_path:
                 sys.path.append(os.getcwd())
                 try:
-                    from servers.generation.src.local_generation import LocalGenerationService
+                    from servers.generation.src.local_generation import (
+                        LocalGenerationService,
+                    )
                 except ImportError:
                     LocalGenerationService = None
 
@@ -1114,18 +1333,20 @@ async def execute_pipeline(
                             backend_configs=gen_params.get("backend_configs", {}),
                             sampling_params=gen_params.get("sampling_params", {}),
                             extra_params=gen_params.get("extra_params", {}),
-                            backend="openai"
+                            backend="openai",
                         )
                         generation_services_map[srv_name] = service_instance
                     except Exception as e:
-                        logger.warning(f"Failed to init LocalGenerationService for '{srv_name}': {e}")
-            
+                        logger.warning(
+                            f"Failed to init LocalGenerationService for '{srv_name}': {e}"
+                        )
+
             elif "servers/retriever" in srv_path:
                 retriever_aliases.add(srv_name)
-    
+
     doc_id_counter = 0
     doc_content_to_id = {}
-    
+
     async def _execute_steps(
         steps: List[PipelineStep],
         depth: int = 0,
@@ -1143,15 +1364,13 @@ async def execute_pipeline(
                 current_step_name = list(step.keys())[0]
             else:
                 current_step_name = "Unknown"
-            
-            is_final_step = (depth == 0 and idx == len(steps) - 1)
+
+            is_final_step = depth == 0 and idx == len(steps) - 1
 
             if stream_callback:
-                await stream_callback({
-                    "type": "step_start", 
-                    "name": current_step_name,
-                    "depth": depth
-                })
+                await stream_callback(
+                    {"type": "step_start", "name": current_step_name, "depth": depth}
+                )
 
             if isinstance(step, dict) and "loop" in step:
                 loop_terminal = _loop_terminal_var.get()
@@ -1215,8 +1434,9 @@ async def execute_pipeline(
 
                 branch_depth = parse_path(state)[-1][0] + 1 if parse_path(state) else 1
                 branches = Data.get_branch()
-                # 重置 result 为 None，如果分支没有产出（例如空分支），则该步骤返回 None
-                # 以便上层调用（如 loop）保留之前的有意义结果
+                # Reset result to None; if branch produces nothing (e.g., empty branch),
+                # this step returns None so upper-level calls (e.g., loop) can retain
+                # previous meaningful results
                 result = None
                 for branch_name in branches:
                     # for branch_name, branch_steps in branch_step["branches"].items():
@@ -1240,28 +1460,39 @@ async def execute_pipeline(
                     demo_target_retriever_tools = {
                         "retriever_init",
                     }
-                    if server_name in retriever_aliases and tool_name in demo_target_retriever_tools:
+                    if (
+                        server_name in retriever_aliases
+                        and tool_name in demo_target_retriever_tools
+                    ):
                         args_input["is_demo"] = True
 
                     demo_target_gen_tools = ["generate", "multimodal_generate"]
 
-                    if server_name in generation_services_map and tool_name in demo_target_gen_tools and not signal:
-                        local_service = generation_services_map[server_name] 
-                        
+                    if (
+                        server_name in generation_services_map
+                        and tool_name in demo_target_gen_tools
+                        and not signal
+                    ):
+                        local_service = generation_services_map[server_name]
+
                         full_content = ""
                         try:
                             step_identifier = f"{server_name}.{tool_name}"
-                            async for token in local_service.generate_stream(**args_input):                            
+                            async for token in local_service.generate_stream(
+                                **args_input
+                            ):
                                 full_content += token
-                                
+
                                 if stream_callback:
-                                    await stream_callback({
-                                        "type": "token",
-                                        "content": token,
-                                        "step": step_identifier,
-                                        "is_final": is_final_step
-                                    })
-                                
+                                    await stream_callback(
+                                        {
+                                            "type": "token",
+                                            "content": token,
+                                            "step": step_identifier,
+                                            "is_final": is_final_step,
+                                        }
+                                    )
+
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
                         print("\n")
@@ -1272,21 +1503,24 @@ async def execute_pipeline(
 
                         if stream_callback:
                             summary = _summarize_step_result(tool_name, mock_result_obj)
-                            await stream_callback({
-                                "type": "step_end",
-                                "name": current_step_name,
-                                "output": summary
-                            })
+                            await stream_callback(
+                                {
+                                    "type": "step_end",
+                                    "name": current_step_name,
+                                    "output": summary,
+                                }
+                            )
 
                         Data.save_data(
-                            server_name, 
-                            tool_name, 
-                            mock_result_obj, 
-                            state, 
-                            tool_value.get("output", {})
+                            server_name,
+                            tool_name,
+                            mock_result_obj,
+                            state,
+                            tool_value.get("output", {}),
                         )
-                        if depth > 0: _loop_terminal_var.get()[depth - 1] &= signal
-                        continue 
+                        if depth > 0:
+                            _loop_terminal_var.get()[depth - 1] &= signal
+                        continue
 
                 if depth > 0:
                     _loop_terminal_var.get()[depth - 1] &= signal
@@ -1298,44 +1532,54 @@ async def execute_pipeline(
 
                     # Check for sources in retriever or citation tools
                     should_extract_sources = (
-                        server_name in retriever_aliases or 
-                        "citation" in tool_name.lower()
+                        server_name in retriever_aliases
+                        or "citation" in tool_name.lower()
                     )
                     if stream_callback and should_extract_sources:
                         try:
                             content_str = ""
                             if hasattr(result, "content") and result.content:
                                 content_str = result.content[0].text
-                            elif isinstance(result, str): content_str = result
-                            
+                            elif isinstance(result, str):
+                                content_str = result
+
                             data = json.loads(content_str)
 
                             raw_docs = data.get("ret_psg")
-                            
+
                             if raw_docs and isinstance(raw_docs, list):
                                 if len(raw_docs) > 0 and isinstance(raw_docs[0], list):
                                     raw_docs = raw_docs[0]
-                                
+
                                 sources = []
                                 for i, doc in enumerate(raw_docs):
                                     text = str(doc)
-                                    
+
                                     # Check if doc already has [id] prefix
                                     import re
-                                    id_match = re.match(r'^\[(\d+)\]\s*', text)
+
+                                    id_match = re.match(r"^\[(\d+)\]\s*", text)
                                     if id_match:
                                         # Extract existing ID and remove prefix from content
                                         current_id = int(id_match.group(1))
-                                        text_without_prefix = text[id_match.end():]
-                                        lines = text_without_prefix.strip().split('\n')
-                                        title = lines[0][:30] + "..." if lines else f"Doc {current_id}"
+                                        text_without_prefix = text[id_match.end() :]
+                                        lines = text_without_prefix.strip().split("\n")
+                                        title = (
+                                            lines[0][:30] + "..."
+                                            if lines
+                                            else f"Doc {current_id}"
+                                        )
                                         content = text_without_prefix
                                     else:
                                         # No prefix, assign new ID
-                                        lines = text.strip().split('\n')
-                                        title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                        lines = text.strip().split("\n")
+                                        title = (
+                                            lines[0][:30] + "..."
+                                            if lines
+                                            else f"Doc {i+1}"
+                                        )
                                         content = text
-                                        
+
                                         doc_hash = text.strip()
                                         if doc_hash in doc_content_to_id:
                                             current_id = doc_content_to_id[doc_hash]
@@ -1343,25 +1587,31 @@ async def execute_pipeline(
                                             doc_id_counter += 1
                                             current_id = doc_id_counter
                                             doc_content_to_id[doc_hash] = current_id
-                                    
-                                    sources.append({
-                                        "id": current_id,
-                                        "title": title,
-                                        "content": content
-                                    })
-                                
-                                await stream_callback({"type": "sources", "data": sources})
+
+                                    sources.append(
+                                        {
+                                            "id": current_id,
+                                            "title": title,
+                                            "content": content,
+                                        }
+                                    )
+
+                                await stream_callback(
+                                    {"type": "sources", "data": sources}
+                                )
                         except Exception as e:
                             logger.warning(f"Failed to extract sources: {e}")
-                    
+
                     if stream_callback:
                         summary = _summarize_step_result(current_step_name, result)
-                        await stream_callback({
-                            "type": "step_end",
-                            "name": current_step_name,
-                            "output": summary
-                        })
-                    
+                        await stream_callback(
+                            {
+                                "type": "step_end",
+                                "name": current_step_name,
+                                "output": summary,
+                            }
+                        )
+
                     output_text = Data.save_data(
                         server_name,
                         tool_name,
@@ -1382,32 +1632,43 @@ async def execute_pipeline(
                     demo_target_retriever_tools = {
                         "retriever_init",
                     }
-                    if server_name in retriever_aliases and tool_name in demo_target_retriever_tools:
+                    if (
+                        server_name in retriever_aliases
+                        and tool_name in demo_target_retriever_tools
+                    ):
                         args_input["is_demo"] = True
 
                     demo_target_gen_tools = ["generate", "multimodal_generate"]
 
-                    if server_name in generation_services_map and tool_name in demo_target_gen_tools and not signal:
-                        local_service = generation_services_map[server_name] 
-                        
+                    if (
+                        server_name in generation_services_map
+                        and tool_name in demo_target_gen_tools
+                        and not signal
+                    ):
+                        local_service = generation_services_map[server_name]
+
                         full_content = ""
                         try:
                             step_identifier = f"{server_name}.{tool_name}"
-                            async for token in local_service.generate_stream(**args_input):                               
+                            async for token in local_service.generate_stream(
+                                **args_input
+                            ):
                                 full_content += token
-                                
+
                                 if stream_callback:
-                                    await stream_callback({
-                                        "type": "token",
-                                        "content": token,
-                                        "step": step_identifier,
-                                        "is_final": is_final_step
-                                    })
-                                
+                                    await stream_callback(
+                                        {
+                                            "type": "token",
+                                            "content": token,
+                                            "step": step_identifier,
+                                            "is_final": is_final_step,
+                                        }
+                                    )
+
                         except Exception as e:
                             logger.error(f"Stream Error: {e}")
                         print("\n")
-                        
+
                         mock_json = json.dumps({"ans_ls": [full_content]})
 
                         mock_result_obj = MockResult(mock_json)
@@ -1415,18 +1676,19 @@ async def execute_pipeline(
 
                         if stream_callback:
                             summary = _summarize_step_result(tool_name, mock_result_obj)
-                            await stream_callback({
-                                "type": "step_end",
-                                "name": current_step_name,
-                                "output": summary
-                            })
-
+                            await stream_callback(
+                                {
+                                    "type": "step_end",
+                                    "name": current_step_name,
+                                    "output": summary,
+                                }
+                            )
 
                         Data.save_data(server_name, tool_name, mock_result_obj, state)
-                       
-                        if depth > 0: _loop_terminal_var.get()[depth - 1] = signal
-                        continue 
 
+                        if depth > 0:
+                            _loop_terminal_var.get()[depth - 1] = signal
+                        continue
 
                 if depth > 0:
                     _loop_terminal_var.get()[depth - 1] = signal
@@ -1438,41 +1700,51 @@ async def execute_pipeline(
 
                     # Check for sources in retriever or citation tools
                     should_extract_sources = (
-                        server_name in retriever_aliases or 
-                        "citation" in tool_name.lower()
+                        server_name in retriever_aliases
+                        or "citation" in tool_name.lower()
                     )
                     if stream_callback and should_extract_sources:
                         try:
                             content_str = ""
                             if hasattr(result, "content") and result.content:
                                 content_str = result.content[0].text
-                            elif isinstance(result, str): content_str = result
+                            elif isinstance(result, str):
+                                content_str = result
                             data = json.loads(content_str)
                             raw_docs = data.get("ret_psg")
-                            
+
                             if raw_docs and isinstance(raw_docs, list):
                                 if len(raw_docs) > 0 and isinstance(raw_docs[0], list):
                                     raw_docs = raw_docs[0]
                                 sources = []
                                 for i, doc in enumerate(raw_docs):
                                     text = str(doc)
-                                    
+
                                     # Check if doc already has [id] prefix
                                     import re
-                                    id_match = re.match(r'^\[(\d+)\]\s*', text)
+
+                                    id_match = re.match(r"^\[(\d+)\]\s*", text)
                                     if id_match:
                                         # Extract existing ID and remove prefix from content
                                         current_id = int(id_match.group(1))
-                                        text_without_prefix = text[id_match.end():]
-                                        lines = text_without_prefix.strip().split('\n')
-                                        title = lines[0][:30] + "..." if lines else f"Doc {current_id}"
+                                        text_without_prefix = text[id_match.end() :]
+                                        lines = text_without_prefix.strip().split("\n")
+                                        title = (
+                                            lines[0][:30] + "..."
+                                            if lines
+                                            else f"Doc {current_id}"
+                                        )
                                         content = text_without_prefix
                                     else:
                                         # No prefix, assign new ID
-                                        lines = text.strip().split('\n')
-                                        title = lines[0][:30] + "..." if lines else f"Doc {i+1}"
+                                        lines = text.strip().split("\n")
+                                        title = (
+                                            lines[0][:30] + "..."
+                                            if lines
+                                            else f"Doc {i+1}"
+                                        )
                                         content = text
-                                        
+
                                         doc_hash = text.strip()
                                         if doc_hash in doc_content_to_id:
                                             current_id = doc_content_to_id[doc_hash]
@@ -1481,22 +1753,28 @@ async def execute_pipeline(
                                             current_id = doc_id_counter
                                             doc_content_to_id[doc_hash] = current_id
 
-                                    sources.append({
-                                        "id": current_id,
-                                        "title": title,
-                                        "content": content
-                                    })
-                                await stream_callback({"type": "sources", "data": sources})
+                                    sources.append(
+                                        {
+                                            "id": current_id,
+                                            "title": title,
+                                            "content": content,
+                                        }
+                                    )
+                                await stream_callback(
+                                    {"type": "sources", "data": sources}
+                                )
                         except Exception as e:
                             logger.warning(f"Failed to extract sources: {e}")
 
                     if stream_callback:
                         summary = _summarize_step_result(current_step_name, result)
-                        await stream_callback({
-                            "type": "step_end",
-                            "name": current_step_name,
-                            "output": summary
-                        })
+                        await stream_callback(
+                            {
+                                "type": "step_end",
+                                "name": current_step_name,
+                                "output": summary,
+                            }
+                        )
 
                     output_text = Data.save_data(server_name, tool_name, result, state)
                     logger.debug(f"{indent}Result: {output_text}")
@@ -1508,14 +1786,13 @@ async def execute_pipeline(
 
     tools = await client.list_tools()
     tool_name_lst = [
-        tool.name for tool in tools
+        tool.name
+        for tool in tools
         if not tool.name.endswith("_build" if "_" in tool.name else "build")
     ]
     logger.info(f"Available tools: {tool_name_lst}")
 
-    cleanup_tools = [
-            tool.name for tool in tools if tool.name.endswith("vllm_shutdown")
-        ]
+    cleanup_tools = [tool.name for tool in tools if tool.name.endswith("vllm_shutdown")]
 
     result = None
     try:
@@ -1551,24 +1828,36 @@ async def execute_pipeline(
 
     if result is None:
         return None
-    
+
     if hasattr(result, "data"):
         return result.data
     elif hasattr(result, "content") and result.content:
         return result.content[0].text
     return str(result)
 
+
 async def run(
     config_path: str,
-    param_path: str | Path | None = None,
+    param_path: Optional[Union[str, Path]] = None,
     return_all: bool = False,
     is_demo: bool = False,
-):
+) -> Any:
+    """Run UltraRAG pipeline with given configuration.
+
+    Args:
+        config_path: Path to pipeline configuration file
+        param_path: Optional path to parameter file
+        return_all: Whether to return all intermediate results
+        is_demo: Whether to run in demo mode
+
+    Returns:
+        Pipeline execution results
+    """
 
     log_server_banner(Path(config_path).stem)
 
     context = load_pipeline_context(config_path, param_path)
-    
+
     client = create_mcp_client(context["mcp_cfg"])
 
     async with client:
@@ -1577,11 +1866,11 @@ async def run(
     return result
 
 
-
 logging.getLogger("mcp").setLevel(logging.WARNING)
 
 
-def main():
+def main() -> None:
+    """Main entry point for UltraRAG CLI."""
     parser = argparse.ArgumentParser(prog="ultrarag", description="UltraRAG CLI")
     subparsers = parser.add_subparsers(dest="cmd", required=True)
 
@@ -1621,7 +1910,11 @@ def main():
     p_show_ui = show_sub.add_parser("ui", help="Launch the UltraRAG web UI")
     p_show_ui.add_argument("--host", default="127.0.0.1")
     p_show_ui.add_argument("--port", type=int, default=5050)
-    p_show_ui.add_argument("--admin", action="store_true", help="Launch full admin UI with pipeline builder (default: chat-only mode)")
+    p_show_ui.add_argument(
+        "--admin",
+        action="store_true",
+        help="Launch full admin UI with pipeline builder (default: chat-only mode)",
+    )
     p_show.add_argument(
         "--log_level",
         type=str,
@@ -1653,4 +1946,3 @@ def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
