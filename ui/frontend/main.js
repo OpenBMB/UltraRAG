@@ -1446,6 +1446,130 @@ function applyCodeHighlight(container) {
   });
 }
 
+// [新增] 表格美化与复制按钮
+function applyTableEnhancements(container) {
+  if (!container) return;
+  const tables = container.querySelectorAll('table');
+  tables.forEach((table) => {
+    if (table.closest('.table-block-wrapper')) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'table-block-wrapper';
+
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'table-copy-btn';
+    btn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span class="table-copy-text">复制表格</span>
+    `;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyTableToClipboard(table, btn);
+    });
+
+    const parent = table.parentNode;
+    if (!parent) return;
+    parent.insertBefore(wrapper, table);
+    wrapper.appendChild(btn);
+    wrapper.appendChild(scroll);
+    scroll.appendChild(table);
+  });
+}
+
+function normalizeTableCellText(text) {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+function escapeMarkdownCell(text) {
+  return text.replace(/\|/g, '\\|');
+}
+
+function tableToMarkdown(table) {
+  const thead = table.querySelector('thead');
+  const tbody = table.querySelector('tbody');
+  const allRows = Array.from(table.rows);
+
+  let headerCells = [];
+  let bodyRows = [];
+
+  if (thead) {
+    const headRow = thead.querySelector('tr');
+    if (headRow) {
+      headerCells = Array.from(headRow.cells).map(cell =>
+        escapeMarkdownCell(normalizeTableCellText(cell.innerText || ''))
+      );
+    }
+    bodyRows = tbody ? Array.from(tbody.rows) : allRows.slice(1);
+  } else {
+    const firstRow = allRows[0];
+    if (firstRow) {
+      headerCells = Array.from(firstRow.cells).map(cell =>
+        escapeMarkdownCell(normalizeTableCellText(cell.innerText || ''))
+      );
+      bodyRows = allRows.slice(1);
+    }
+  }
+
+  if (!headerCells.length) return '';
+
+  const headerLine = `| ${headerCells.join(' | ')} |`;
+  const separatorLine = `| ${headerCells.map(() => '---').join(' | ')} |`;
+  const bodyLines = bodyRows.map(row => {
+    const cells = Array.from(row.cells).map(cell =>
+      escapeMarkdownCell(normalizeTableCellText(cell.innerText || ''))
+    );
+    return `| ${cells.join(' | ')} |`;
+  });
+
+  return [headerLine, separatorLine, ...bodyLines].filter(Boolean).join('\n');
+}
+
+function copyTableToClipboard(table, btn) {
+  if (!table) return;
+  const text = tableToMarkdown(table);
+  if (!text) return;
+
+  const done = () => {
+    btn.classList.add('copied');
+    const textSpan = btn.querySelector('.table-copy-text');
+    if (textSpan) textSpan.textContent = '已复制';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      if (textSpan) textSpan.textContent = '复制表格';
+    }, 2000);
+  };
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, onDone) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-1000px';
+  textarea.style.left = '-1000px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    if (typeof onDone === 'function') onDone();
+  } catch (e) {
+    console.error('Copy failed:', e);
+  }
+  document.body.removeChild(textarea);
+}
+
 // 将 copyCodeBlock 挂载到 window 以便 onclick 调用
 window.copyCodeBlock = copyCodeBlock;
 
@@ -2473,6 +2597,7 @@ function renderChatHistory() {
             content.innerHTML = formatCitationHtml(htmlContent, index);
             renderLatex(content);
             applyCodeHighlight(content);
+            applyTableEnhancements(content);
         } else {
             // 用户消息：保留换行效果
             // 将换行符转换为HTML，同时转义HTML特殊字符防止XSS
@@ -2807,6 +2932,7 @@ function showSourceDetail(title, content) {
         contentDiv.innerHTML = renderedHtml;
         renderLatex(contentDiv);
         applyCodeHighlight(contentDiv);
+        applyTableEnhancements(contentDiv);
 
         // 4. 滚动回顶部 (防止上次看到底部，这次打开还在底部)
         contentDiv.scrollTop = 0;
@@ -3398,6 +3524,7 @@ async function handleChatSubmit(event) {
                     contentDiv.innerHTML = html;
                     renderLatex(contentDiv);
                     applyCodeHighlight(contentDiv);
+                    applyTableEnhancements(contentDiv);
                     if (shouldAutoScroll) {
                         chatContainer.scrollTop = chatContainer.scrollHeight;
                     }
@@ -3411,6 +3538,7 @@ async function handleChatSubmit(event) {
                 contentDiv.innerHTML = html;
                 renderLatex(contentDiv);
                 applyCodeHighlight(contentDiv);
+                applyTableEnhancements(contentDiv);
 
                 // 计算哪些引用被使用了
                 const usedIds = new Set();
@@ -7976,6 +8104,7 @@ function renderAIMessage(role, content, actions = []) {
     
     // 应用代码高亮
     applyCodeHighlight(messageEl);
+    applyTableEnhancements(messageEl);
     
     if (normalizedActions.length) {
         bindAIActionButtons(messageEl, normalizedActions);
@@ -8103,6 +8232,7 @@ async function sendAIMessage() {
                         if (contentEl) {
                             contentEl.innerHTML = renderMarkdown(accumulated);
                             applyCodeHighlight(contentEl);
+                            applyTableEnhancements(contentEl);
                             messagesEl.scrollTop = messagesEl.scrollHeight;
                         }
                     }
@@ -8148,6 +8278,7 @@ function renderAIStreamingResult(content, actions = [], placeholderEl) {
         const actionsHtml = normalizedActions.length ? buildAIActionHtml(normalizedActions) : '';
         contentEl.innerHTML = `${renderMarkdown(finalText)}${actionsHtml}`;
         applyCodeHighlight(contentEl);
+        applyTableEnhancements(contentEl);
         if (normalizedActions.length) {
             bindAIActionButtons(targetEl, normalizedActions);
         }
