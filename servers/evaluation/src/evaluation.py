@@ -22,6 +22,15 @@ _rouge_scorer = rouge_scorer.RougeScorer(
 
 
 def normalize_text(text: str) -> str:
+    """Normalize text for evaluation by applying multiple transformations.
+
+    Args:
+        text: Input text to normalize
+
+    Returns:
+        Normalized text string
+    """
+
     def _bool_mapping(s: str) -> str:
         return {"True": "yes", "False": "no"}.get(s, s)
 
@@ -53,8 +62,16 @@ def normalize_text(text: str) -> str:
     return text.strip()
 
 
-# Accuracy Score
 def accuracy_score(gt: List[str], pred: str) -> float:
+    """Calculate accuracy score: 1.0 if any ground truth is contained in prediction, else 0.0.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        Accuracy score (0.0 or 1.0)
+    """
     pred_norm = normalize_text(pred)
     if not pred_norm:
         return 0.0
@@ -62,15 +79,31 @@ def accuracy_score(gt: List[str], pred: str) -> float:
     return 1.0 if any(g in pred_norm for g in gt_norm_ls) else 0.0
 
 
-# Exact Match Score
 def exact_match_score(gt: List[str], pred: str) -> float:
+    """Calculate exact match score: 1.0 if prediction exactly matches any ground truth, else 0.0.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        Exact match score (0.0 or 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
     return 1.0 if any(pred_norm == g for g in gt_norm_ls) else 0.0
 
 
-# Cover Exact Match Score
 def cover_exact_match_score(gt: List[str], pred: str) -> float:
+    """Calculate cover exact match score: 1.0 if all tokens of any ground truth are in prediction.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        Cover exact match score (0.0 or 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
 
@@ -83,8 +116,16 @@ def cover_exact_match_score(gt: List[str], pred: str) -> float:
     return 0.0
 
 
-# String Exact Match Score
 def string_em_score(gt: List[str], pred: str) -> float:
+    """Calculate string exact match score: fraction of ground truths that exactly match prediction.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        String exact match score (0.0 to 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
 
@@ -92,8 +133,17 @@ def string_em_score(gt: List[str], pred: str) -> float:
     return match_cnt / len(gt_norm_ls) if gt_norm_ls else 0.0
 
 
-# F1 Score
 def f1_score(gt: List[str], pred: str) -> float:
+    """Calculate F1 score: maximum F1 score between prediction and any ground truth.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        F1 score (0.0 to 1.0)
+    """
+
     def calc_f1(gt_str: str, pred_str: str) -> float:
         pred_norm = normalize_text(pred_str)
         gt_norm = normalize_text(gt_str)
@@ -119,8 +169,16 @@ def f1_score(gt: List[str], pred: str) -> float:
     return max(scores) if scores else 0.0
 
 
-# ROUGE-1 Score
 def rouge1_score(gt: List[str], pred: str) -> float:
+    """Calculate ROUGE-1 score: maximum ROUGE-1 F-measure between prediction and any ground truth.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        ROUGE-1 score (0.0 to 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
     scores = []
@@ -130,8 +188,16 @@ def rouge1_score(gt: List[str], pred: str) -> float:
     return max(scores) if scores else 0.0
 
 
-# ROUGE-2 Score
 def rouge2_score(gt: List[str], pred: str) -> float:
+    """Calculate ROUGE-2 score: maximum ROUGE-2 F-measure between prediction and any ground truth.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        ROUGE-2 score (0.0 to 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
     scores = []
@@ -141,8 +207,16 @@ def rouge2_score(gt: List[str], pred: str) -> float:
     return max(scores) if scores else 0.0
 
 
-# ROUGE-L Score
 def rougel_score(gt: List[str], pred: str) -> float:
+    """Calculate ROUGE-L score: maximum ROUGE-L F-measure between prediction and any ground truth.
+
+    Args:
+        gt: List of ground truth strings
+        pred: Prediction string
+
+    Returns:
+        ROUGE-L score (0.0 to 1.0)
+    """
     pred_norm = normalize_text(pred)
     gt_norm_ls = [normalize_text(g) for g in gt]
     scores = []
@@ -157,6 +231,16 @@ def compute_metrics(
     pred_list: List[str],
     metrics: List[str] | None = None,
 ) -> Dict[str, float]:
+    """Compute evaluation metrics for predictions against ground truths.
+
+    Args:
+        gt_list: List of ground truth lists (one per prediction)
+        pred_list: List of prediction strings
+        metrics: List of metric names to compute (default: all available metrics)
+
+    Returns:
+        Dictionary containing per-sample scores and average scores for each metric
+    """
     METRICS_REGISTRY: Dict[str, Callable[[List[str], str], float]] = {
         "acc": accuracy_score,
         "em": exact_match_score,
@@ -190,8 +274,17 @@ def compute_metrics(
     return {**results, **avg_results}
 
 
-#  load trec qrels file
 def _load_qrels(qrels_path: str) -> Dict[str, Dict[str, int]]:
+    """Load TREC qrels file.
+
+    Format: <qid> <iter> <docid> <rel>
+
+    Args:
+        qrels_path: Path to qrels file
+
+    Returns:
+        Dictionary mapping qid to docid to relevance score
+    """
     qrel: Dict[str, Dict[str, int]] = {}  # {qid: {docid: rel_int}}
     with open(qrels_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -207,8 +300,17 @@ def _load_qrels(qrels_path: str) -> Dict[str, Dict[str, int]]:
     return qrel
 
 
-# load trec run file
 def _load_run(run_path: str) -> Dict[str, Dict[str, float]]:
+    """Load TREC run file.
+
+    Format: <qid> Q0 <docid> <rank> <score> <tag>
+
+    Args:
+        run_path: Path to run file
+
+    Returns:
+        Dictionary mapping qid to docid to score
+    """
     run: Dict[str, Dict[str, float]] = {}  # {qid: {docid: score_float}}
     with open(run_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -225,10 +327,27 @@ def _load_run(run_path: str) -> Dict[str, Dict[str, float]]:
 
 
 def _mean(xs) -> float:
+    """Calculate mean of a list of numbers.
+
+    Args:
+        xs: List of numbers
+
+    Returns:
+        Mean value (0.0 if list is empty)
+    """
     return sum(xs) / len(xs) if xs else 0.0
 
 
 def _permutation_test_two_sided(diffs, n_resamples=10000) -> float:
+    """Perform two-sided permutation test to calculate p-value.
+
+    Args:
+        diffs: List of differences between paired samples
+        n_resamples: Number of resampling iterations (default: 10000)
+
+    Returns:
+        P-value (0.0 to 1.0)
+    """
     if not diffs:
         return 1.0
     obs = abs(_mean(diffs))
@@ -249,6 +368,20 @@ def eval_with_pytrec(
     metrics: List[str] | None,
     ks: Optional[List[int]] = None,
 ) -> Dict[str, Any]:
+    """Evaluate retrieval results using pytrec_eval.
+
+    Args:
+        qrels_path: Path to TREC qrels file
+        run_path: Path to TREC run file
+        metrics: List of metrics to compute (mrr, map, recall, ndcg, precision)
+        ks: List of k values for recall@k, precision@k, ndcg@k (default: None)
+
+    Returns:
+        Dictionary with 'per_query' and 'aggregate' results
+
+    Raises:
+        ImportError: If pytrec_eval is not installed
+    """
     try:
         import pytrec_eval
     except ImportError:
@@ -260,17 +393,19 @@ def eval_with_pytrec(
     run = _load_run(run_path)
 
     measures: set[str] = set()
-    if "mrr" in metrics:
-        measures.add("recip_rank")
-    if "map" in metrics:
-        measures.add("map")
-    for k in ks:
-        if "ndcg" in metrics:
-            measures.add(f"ndcg_cut.{k}")
-        if "precision" in metrics:
-            measures.add(f"P.{k}")
-        if "recall" in metrics:
-            measures.add(f"recall.{k}")
+    if metrics:
+        if "mrr" in metrics:
+            measures.add("recip_rank")
+        if "map" in metrics:
+            measures.add("map")
+        if ks:
+            for k in ks:
+                if "ndcg" in metrics:
+                    measures.add(f"ndcg_cut.{k}")
+                if "precision" in metrics:
+                    measures.add(f"P.{k}")
+                if "recall" in metrics:
+                    measures.add(f"recall.{k}")
 
     evaluator = pytrec_eval.RelevanceEvaluator(qrel, measures)
     per_query = evaluator.evaluate(run)  # {qid: {metric: value}}
@@ -290,6 +425,19 @@ def save_evaluation_results(
     markdown: bool,
     save_path: str,
 ) -> Dict[str, Any]:
+    """Save evaluation results to JSON file and optionally display as Markdown table.
+
+    Args:
+        results: Dictionary of metric names to values
+        markdown: Whether to display results as Markdown table
+        save_path: Path where results will be saved (timestamp will be added)
+
+    Returns:
+        Dictionary with 'eval_res' containing the results
+
+    Raises:
+        Exception: If file writing fails
+    """
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     base_dir, base_file = os.path.split(save_path)
     file_stem = os.path.splitext(base_file)[0]
@@ -329,6 +477,17 @@ def evaluate(
     metrics: List[str] | None,
     save_path: str,
 ) -> Dict[str, Any]:
+    """Evaluate predictions against ground truths using specified metrics.
+
+    Args:
+        pred_ls: List of prediction strings
+        gt_ls: List of ground truth lists (one per prediction)
+        metrics: List of metric names (acc, em, stringem, coverem, f1, rouge-1, rouge-2, rouge-l)
+        save_path: Path where results will be saved
+
+    Returns:
+        Dictionary with 'eval_res' containing evaluation results
+    """
     results = compute_metrics(gt_ls, pred_ls, metrics)
     return save_evaluation_results(results, markdown=True, save_path=save_path)
 
@@ -341,10 +500,22 @@ def evaluate_trec(
     ks: List[int] | None,
     save_path: str,
 ):
+    """Evaluate retrieval results in TREC format using IR metrics.
+
+    Args:
+        run_path: Path to TREC run file
+        qrels_path: Path to TREC qrels file
+        metrics: List of IR metrics (mrr, map, recall, ndcg, precision)
+        ks: List of k values for recall@k, precision@k, ndcg@k (default: [1, 5, 10, 20, 50, 100])
+        save_path: Path where results will be saved
+
+    Returns:
+        Dictionary with 'eval_res' containing evaluation results
+    """
     if ks is None:
         ks = [1, 5, 10, 20, 50, 100]
     SUPPORT_METRICS = ["mrr", "map", "recall", "ndcg", "precision"]
-    if metrics == None:
+    if metrics is None:
         metrics = SUPPORT_METRICS
     metrics = [m.lower() for m in metrics]
     for m in metrics:
@@ -388,6 +559,21 @@ def evaluate_trec_pvalue(
     n_resamples: int | None,
     save_path: str,
 ):
+    """Compare two TREC run files using permutation test to calculate p-values.
+
+    Args:
+        run_new_path: Path to new TREC run file (system A)
+        run_old_path: Path to old TREC run file (system B)
+        qrels_path: Path to TREC qrels file
+        metrics: List of IR metrics to compare
+        ks: List of k values for recall@k, precision@k, ndcg@k (default: [1, 5, 10, 20, 50, 100])
+        n_resamples: Number of resampling iterations for permutation test (default: 10000)
+        save_path: Path where results will be saved
+
+    Returns:
+        Dictionary with 'eval_res' containing comparison results with p-values
+    """
+
     def _process_metric_key(base: str, k: int | None) -> str:
         base_l = base.lower()
         if k is None:
@@ -487,7 +673,6 @@ def evaluate_trec_pvalue(
     )
     app.logger.info(f"\n{table_md}")
     return save_evaluation_results(out, markdown=False, save_path=save_path)
-
 
 
 if __name__ == "__main__":
