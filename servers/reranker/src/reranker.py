@@ -22,6 +22,15 @@ class Reranker:
         )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
+        """Remove banned keys and None values from dictionary.
+
+        Args:
+            d: Dictionary to filter
+            banned: List of keys to remove
+
+        Returns:
+            Filtered dictionary
+        """
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
     async def reranker_init(
@@ -29,19 +38,32 @@ class Reranker:
         model_name_or_path: str,
         backend_configs: Dict[str, Any],
         batch_size: int,
-        gpu_ids: Optional[object] = None,
+        gpu_ids: Optional[str] = None,
         backend: str = "infinity",
-    ):
+    ) -> None:
+        """Initialize reranker backend (infinity, sentence_transformers, or openai).
+
+        Args:
+            model_name_or_path: Model name or path
+            backend_configs: Dictionary of backend-specific configurations
+            batch_size: Batch size for reranking
+            gpu_ids: Comma-separated GPU IDs (e.g., "0,1")
+            backend: Backend name ("infinity", "sentence_transformers", or "openai")
+
+        Raises:
+            ImportError: If required dependencies are not installed
+            ValueError: If required config is missing
+        """
         self.backend = backend.lower()
         self.batch_size = batch_size
         self.backend_configs = backend_configs
 
         cfg = self.backend_configs.get(self.backend, {})
 
-        gpu_ids = str(gpu_ids)
-        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
+        gpu_ids_str = str(gpu_ids) if gpu_ids is not None else ""
+        os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids_str
 
-        self.device_num = len(gpu_ids.split(","))
+        self.device_num = len(gpu_ids_str.split(",")) if gpu_ids_str else 1
 
         if self.backend == "infinity":
             try:
@@ -63,7 +85,7 @@ class Reranker:
                 self.device_num = 1
 
             app.logger.info(
-                f"[infinity] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
+                f"[infinity] device={device}, gpu_ids={gpu_ids_str}, device_num={self.device_num}"
             )
 
             infinity_engine_args = EngineArgs(
@@ -100,7 +122,7 @@ class Reranker:
                 self.device_num = 1
 
             app.logger.info(
-                f"[sentence_transformers] device={device}, gpu_ids={gpu_ids}, device_num={self.device_num}"
+                f"[sentence_transformers] device={device}, gpu_ids={gpu_ids_str}, device_num={self.device_num}"
             )
 
             self.model = CrossEncoder(
@@ -133,9 +155,26 @@ class Reranker:
         top_k: int = 5,
         query_instruction: str = "",
     ) -> Dict[str, List[Any]]:
+        """Rerank passages for queries using the initialized reranker backend.
 
-        if not len(query_list) == len(passages_list):
-            err_msg = f"[reranker] query_list and passages_list must have same length, but got {len(query_list)} and {len(passages_list)}"
+        Args:
+            query_list: List of query strings
+            passages_list: List of passage lists (one per query)
+            top_k: Number of top passages to return per query
+            query_instruction: Optional instruction to prepend to queries
+
+        Returns:
+            Dictionary with 'rerank_psg' containing reranked passages
+
+        Raises:
+            ValueError: If query_list and passages_list have different lengths
+            RuntimeError: If reranking fails (for openai backend)
+        """
+        if len(query_list) != len(passages_list):
+            err_msg = (
+                f"[reranker] query_list and passages_list must have same length, "
+                f"but got {len(query_list)} and {len(passages_list)}"
+            )
             app.logger.error(err_msg)
             raise ValueError(err_msg)
 
@@ -161,7 +200,7 @@ class Reranker:
 
         elif self.backend == "sentence_transformers":
 
-            def _rank_all():
+            def _rank_all(query: str, docs: List[str]) -> List[str]:
                 ranks = self.model.rank(
                     query,
                     docs,
@@ -176,8 +215,9 @@ class Reranker:
             for query, docs in tqdm(
                 zip(formatted_queries, passages_list),
                 total=len(formatted_queries),
+                desc="Reranking",
             ):
-                reranked_results.append(await asyncio.to_thread(_rank_all))
+                reranked_results.append(await asyncio.to_thread(_rank_all, query, docs))
 
         elif self.backend == "openai":
             semaphore = asyncio.Semaphore(self.concurrency)
