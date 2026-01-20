@@ -4814,6 +4814,49 @@ textarea.parameter-input {
 .prompt-context-item.text-danger:hover {
   background: #fef2f2;
 }
+
+/* Chat Session Context Menu */
+.chat-session-context-menu {
+  position: fixed;
+  min-width: 140px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 4000;
+}
+
+.chat-session-context-menu.d-none {
+  display: none;
+}
+
+.chat-session-context-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  color: #334155;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.chat-session-context-item:hover {
+  background: #f1f5f9;
+}
+
+.chat-session-context-item.text-danger {
+  color: #ef4444;
+}
+
+.chat-session-context-item.text-danger:hover {
+  background: #fef2f2;
+}
 .prompts-editor-container {
   flex: 1;
   display: flex;

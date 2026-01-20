@@ -2228,10 +2228,59 @@ function renderChatSidebar() {
             deleteChatSession(session.id);
         };
 
+        // 右键菜单
+        itemDiv.oncontextmenu = (e) => showChatSessionContextMenu(e, session);
+
         itemDiv.appendChild(contentDiv);
         itemDiv.appendChild(delBtn);
         els.chatSessionList.appendChild(itemDiv);
     });
+}
+
+// [新增] 显示聊天会话右键菜单
+function showChatSessionContextMenu(event, session) {
+    event.preventDefault();
+    event.stopPropagation();
+    const menu = document.getElementById('chat-session-context-menu');
+    if (!menu || !session?.id) return;
+
+    const menuWidth = 160;
+    const menuHeight = 96;
+    const left = Math.min(event.clientX, window.innerWidth - menuWidth - 12);
+    const top = Math.min(event.clientY, window.innerHeight - menuHeight - 12);
+
+    menu.dataset.sessionId = session.id;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+    menu.classList.remove('d-none');
+}
+
+// [新增] 隐藏聊天会话右键菜单
+function hideChatSessionContextMenu() {
+    const menu = document.getElementById('chat-session-context-menu');
+    if (!menu) return;
+    menu.classList.add('d-none');
+    menu.dataset.sessionId = '';
+}
+
+// [新增] 重命名聊天会话
+async function renameChatSession(sessionId) {
+    if (!sessionId) return;
+    const session = state.chat.sessions.find(s => s.id === sessionId);
+    if (!session) return;
+    
+    const newTitle = await showPrompt("Enter a new name for this chat:", {
+        title: "Rename Chat",
+        placeholder: "e.g., My important conversation",
+        defaultValue: session.title || "Untitled Chat",
+        confirmText: "Rename"
+    });
+    
+    if (!newTitle || newTitle.trim() === '' || newTitle.trim() === session.title) return;
+    
+    session.title = newTitle.trim();
+    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    renderChatSidebar();
 }
 
 // [新增] 删除会话辅助函数
@@ -5006,6 +5055,25 @@ function bindEvents() {
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
     if (els.clearAllChats) els.clearAllChats.onclick = deleteAllChatSessions;
     if (els.demoToggleBtn) els.demoToggleBtn.onclick = toggleDemoSession;
+
+    // [新增] 聊天会话右键菜单初始化
+    const chatSessionContextMenu = document.getElementById('chat-session-context-menu');
+    if (chatSessionContextMenu) {
+        chatSessionContextMenu.addEventListener('click', (e) => {
+            const btn = e.target.closest('.chat-session-context-item');
+            const action = btn?.dataset?.action;
+            const sessionId = chatSessionContextMenu.dataset.sessionId;
+            if (!action || !sessionId) return;
+            hideChatSessionContextMenu();
+            if (action === 'rename') {
+                renameChatSession(sessionId);
+            } else if (action === 'delete') {
+                deleteChatSession(sessionId);
+            }
+        });
+    }
+    document.addEventListener('click', hideChatSessionContextMenu);
+    document.addEventListener('scroll', hideChatSessionContextMenu, true);
 
     if (els.kbBtn) els.kbBtn.onclick = openKBView;
     
