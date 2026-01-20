@@ -20,8 +20,11 @@ This document aims to introduce how to configure and use AgentCPM-Report in the 
 
 The AgentCPM-Report Pipeline adopts a dynamic loop architecture based on a state machine. After initialization, the system enters a core loop where an intelligent router (Router) autonomously decides the next action based on the current task progress—flexibly switching between four branches: information gathering (Search), initial planning (Analyst-Init), content writing (Write), and plan extension (Analyst-Extend). Through continuous "retrieval-planning-writing" iterations, it completes all research tasks and outputs the final formatted report.
 
+![](/images/demo/deep_arch.png)
+
+
 ```yaml examples/AgentCPM-Report.yaml icon="/images/yaml.svg"
-# DeepResearch Demo for UltraRAG UI
+# AgentCPM-Report Demo for UltraRAG UI
 
 # MCP Server
 servers:
@@ -247,4 +250,4 @@ After configuration is complete, start the AgentCPM-Report Pipeline in UltraRAG 
 <Note>Since the generation of a 10,000-word review involves a large amount of concurrent retrieval and multi-turn reasoning, it usually takes more than 10 minutes. You can use the UI's [background running](/pages/en/ui/start) function and come back to check the final report after the task is completed.</Note>
 
 
-![](/images/demo/AgentCPM-Report.png)
+![](/images/demo/deepresearch.png)

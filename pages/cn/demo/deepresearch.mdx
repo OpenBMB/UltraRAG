@@ -20,6 +20,8 @@ AgentCPM-Report 是一款由 [THUNLP](https://nlp.csai.tsinghua.edu.cn)、中国
 
 AgentCPM-Report Pipeline 采用基于状态机（State Machine）的动态循环架构，系统在初始化后进入核心循环，由智能路由（Router）根据当前任务进展自主决策下一步行动——在信息搜集（Search）、初始规划（Analyst-Init）、内容撰写（Write）和计划扩展（Analyst-Extend）四个分支间灵活切换，通过不断的“检索-规划-写作”迭代，直至完成所有调研任务并输出最终的格式化报告。
 
+![](/images/demo/deep_arch.png)
+
 ```yaml examples/AgentCPM-Report.yaml icon="/images/yaml.svg"
 # AgentCPM-Report Demo for UltraRAG UI
 
@@ -247,4 +249,4 @@ retriever:
 <Note>由于万字综述的生成涉及大量并发检索与多轮推理，耗时通常在 10 分钟以上。您可以利用 UI 的[后台运行](/pages/cn/ui/start)功能，任务完成后再回来查看最终报告。</Note>
 
 
-![](/images/demo/AgentCPM-Report.png)
+![](/images/demo/deepresearch.png)
