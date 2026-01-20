@@ -2,7 +2,7 @@ import asyncio
 import gc
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 import orjson
@@ -83,7 +83,7 @@ class Retriever:
         backend_configs: Dict[str, Any],
         batch_size: int,
         corpus_path: str,
-        gpu_ids: Optional[str] = None,
+        gpu_ids: Optional[Union[str, int]] = None,
         is_multimodal: bool = False,
         backend: str = "sentence_transformers",
         index_backend: str = "faiss",

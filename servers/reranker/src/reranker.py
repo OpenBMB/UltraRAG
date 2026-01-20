@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 from tqdm import tqdm
@@ -38,7 +38,7 @@ class Reranker:
         model_name_or_path: str,
         backend_configs: Dict[str, Any],
         batch_size: int,
-        gpu_ids: Optional[str] = None,
+        gpu_ids: Optional[Union[str, int]] = None,
         backend: str = "infinity",
     ) -> None:
         """Initialize reranker backend (infinity, sentence_transformers, or openai).
