@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -13,70 +14,98 @@
   <link rel="stylesheet" href="vendor/css/highlight.js/github.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  
+
   <nav class="navbar fixed-top builder-navbar">
     <div class="navbar-container">
-      <!-- 左侧：Logo -->
+      <!-- Left: Logo -->
       <div class="navbar-left">
         <a href="#" class="navbar-logo-link" id="builder-logo-link">
           <img src="ultrarag.svg" alt="UltraRAG" class="navbar-logo-img">
         </a>
       </div>
-      
-      <!-- 右侧：Pipeline 标签 -->
+
+      <!-- Right: Pipeline label -->
       <div class="navbar-right">
         <span class="pipeline-label text-muted small" id="hero-selected-pipeline">No Pipeline Selected</span>
         <div class="vr mx-2"></div>
         <button class="btn btn-sm btn-ghost text-primary" id="navbar-ai-btn" title="AI Assistant">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
-            <span class="ms-1 fw-semibold">AI Assistant</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+            <circle cx="7.5" cy="14.5" r="1.5" />
+            <circle cx="16.5" cy="14.5" r="1.5" />
+          </svg>
+          <span class="ms-1 fw-semibold">AI Assistant</span>
         </button>
       </div>
     </div>
   </nav>
 
   <main class="canvas-main" id="pipeline-form">
-    <!-- 新布局：功能栏 + 内容区 -->
+    <!-- New layout: feature bar + content area -->
     <div class="workspace-layout">
-      
-      <!-- 最左侧：功能切换栏 -->
+
+      <!-- Leftmost: feature toggle bar -->
       <aside class="workspace-sidebar">
         <nav class="workspace-nav">
           <div class="workspace-nav-top">
             <button class="workspace-nav-btn active" data-mode="pipeline" title="Pipeline YAML">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+              </svg>
               <span class="nav-label">Pipeline</span>
             </button>
             <button class="workspace-nav-btn" data-mode="parameters" title="Parameters">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+              </svg>
               <span class="nav-label">Params</span>
             </button>
             <button class="workspace-nav-btn" data-mode="prompts" title="Prompt Templates">
-              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
               <span class="nav-label">Prompts</span>
             </button>
           </div>
           <div class="workspace-nav-spacer"></div>
           <div class="workspace-nav-divider" aria-hidden="true"></div>
           <button class="workspace-nav-btn" id="workspace-chat-btn" title="Chat">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
             <span class="nav-label">Chat</span>
           </button>
         </nav>
       </aside>
 
-      <!-- 主内容区 -->
+      <!-- Main content area -->
       <div class="workspace-content">
-        <!-- ========== Pipeline 模式 ========== -->
+        <!-- ========== Pipeline Mode ========== -->
         <div class="workspace-panel" id="panel-pipeline">
           <div class="canvas-split-layout">
-            <!-- 左侧：Visual Builder 画布 -->
+            <!-- Left: Visual Builder canvas -->
             <div class="canvas-left-panel">
               <div class="canvas-panel-header">
                 <div class="panel-toolbar">
                   <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                      id="pipelineDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
                       Select Pipeline
                     </button>
                     <ul class="dropdown-menu shadow-sm border-0" id="pipeline-menu"></ul>
@@ -89,45 +118,76 @@
               </div>
             </div>
 
-            <!-- 可拖拽的分隔条 -->
+            <!-- Draggable divider -->
             <div class="canvas-resizer" id="builder-resizer"></div>
 
-            <!-- 右侧：YAML 编辑器 -->
+            <!-- Right: YAML editor -->
             <div class="canvas-right-panel">
               <div class="canvas-panel-header editor-header">
                 <div class="panel-title-group">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                  </svg>
                   <input type="text" id="pipeline-name" class="pipeline-name-input" placeholder="Pipeline Name..." />
                 </div>
                 <div class="panel-toolbar">
-                  <button type="button" id="new-pipeline-btn" class="btn btn-sm builder-action-btn" title="New Pipeline">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <button type="button" id="new-pipeline-btn" class="btn btn-sm builder-action-btn"
+                    title="New Pipeline">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
                     New
                   </button>
                   <button type="submit" id="save-pipeline" class="btn btn-sm builder-action-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
                     Save
                   </button>
                   <button type="button" id="build-pipeline" class="btn btn-sm builder-action-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
                     Build
                   </button>
-                  <button type="button" id="delete-pipeline" class="btn btn-sm builder-action-btn builder-action-btn--danger" title="Delete">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  <button type="button" id="delete-pipeline"
+                    class="btn btn-sm builder-action-btn builder-action-btn--danger" title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                     Delete
                   </button>
                   <span id="yaml-sync-status" class="sync-status synced" title="Synced">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
                   </span>
                 </div>
               </div>
               <div class="yaml-editor-container">
                 <div class="yaml-editor-wrapper">
                   <div class="yaml-gutter" id="yaml-line-numbers"></div>
-                  <textarea id="yaml-editor" class="yaml-editor" spellcheck="false" placeholder="# Write your pipeline YAML here..."></textarea>
+                  <textarea id="yaml-editor" class="yaml-editor" spellcheck="false"
+                    placeholder="# Write your pipeline YAML here..."></textarea>
                 </div>
                 <div id="yaml-error-bar" class="yaml-error-bar d-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
                   <span id="yaml-error-message"></span>
                 </div>
               </div>
@@ -135,37 +195,59 @@
           </div>
         </div>
 
-        <!-- ========== Parameters 模式 ========== -->
+        <!-- ========== Parameters Mode ========== -->
         <div class="workspace-panel d-none" id="panel-parameters">
           <div class="params-layout">
-            <!-- 左侧：Server 导航 -->
+            <!-- Left: Server navigation -->
             <aside class="params-sidebar">
               <div class="params-sidebar-header">
                 <span>Servers</span>
                 <button type="button" id="params-refresh-btn" class="btn btn-sm btn-ghost" title="Reload Parameters">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
                 </button>
               </div>
               <nav id="parameter-nav" class="params-nav"></nav>
             </aside>
             <div class="workspace-split-resizer" id="params-resizer"></div>
-            <!-- 右侧：参数表单 -->
+            <!-- Right: parameter form -->
             <main class="params-main">
-            <div class="params-main-header canvas-panel-header">
-              <div class="panel-title-group">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span class="panel-title">Parameters</span>
+              <div class="params-main-header canvas-panel-header">
+                <div class="panel-title-group">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                  </svg>
+                  <span class="panel-title">Parameters</span>
+                </div>
+                <div class="panel-toolbar">
+                  <button type="button" id="params-save-btn" class="btn btn-sm btn-dark">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Save
+                  </button>
+                </div>
               </div>
-              <div class="panel-toolbar">
-                <button type="button" id="params-save-btn" class="btn btn-sm btn-dark">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                  Save
-                </button>
-              </div>
-            </div>
               <div class="params-main-body">
                 <div id="params-empty" class="params-empty">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                  </svg>
                   <p>Please <strong>Build</strong> a pipeline first to configure parameters.</p>
                 </div>
                 <div id="parameter-form" class="params-sections"></div>
@@ -174,10 +256,10 @@
           </div>
         </div>
 
-        <!-- ========== Prompts 模式 ========== -->
+        <!-- ========== Prompts Mode ========== -->
         <div class="workspace-panel d-none" id="panel-prompts">
           <div class="prompts-layout">
-            <!-- 左侧：Prompt 文件列表 -->
+            <!-- Left: Prompt file list -->
             <aside class="prompts-sidebar">
               <div class="prompts-sidebar-header">
                 <span>Prompt Files</span>
@@ -185,26 +267,48 @@
               <nav id="prompt-list" class="prompts-list"></nav>
             </aside>
             <div class="workspace-split-resizer" id="prompts-resizer"></div>
-            <!-- 右侧：Prompt 编辑器 -->
+            <!-- Right: Prompt editor -->
             <main class="prompts-main">
               <div class="prompts-editor-header canvas-panel-header">
                 <div class="panel-title-group">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
                   <span class="panel-title">Prompts</span>
                   <span id="prompt-modified" class="prompt-modified-badge d-none">Modified</span>
                 </div>
                 <div class="panel-toolbar prompt-toolbar">
-                  <input type="text" id="prompt-search" class="form-control form-control-sm prompt-search-input" placeholder="Search prompts...">
+                  <input type="text" id="prompt-search" class="form-control form-control-sm prompt-search-input"
+                    placeholder="Search prompts...">
                   <button type="button" id="prompt-new-btn" class="btn btn-sm builder-action-btn" title="New Prompt">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
                     New
                   </button>
                   <button type="button" id="prompt-save-btn" class="btn btn-sm builder-action-btn" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                      <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
                     Save
                   </button>
-                  <button type="button" id="prompt-delete-btn" class="btn btn-sm builder-action-btn builder-action-btn--danger" disabled title="Delete">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  <button type="button" id="prompt-delete-btn"
+                    class="btn btn-sm builder-action-btn builder-action-btn--danger" disabled title="Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                     Delete
                   </button>
                 </div>
@@ -212,12 +316,20 @@
               <div class="prompt-tabs" id="prompt-tabs"></div>
               <div class="prompts-editor-container">
                 <div id="prompt-empty" class="prompts-empty">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
                   <p>Select a prompt file from the list or create a new one.</p>
                 </div>
                 <div class="prompt-editor-wrapper d-none" id="prompt-editor-wrapper">
                   <div class="prompt-gutter" id="prompt-line-numbers"></div>
-                  <textarea id="prompt-editor" class="prompt-editor" spellcheck="false" placeholder="# Jinja Template..."></textarea>
+                  <textarea id="prompt-editor" class="prompt-editor" spellcheck="false"
+                    placeholder="# Jinja Template..."></textarea>
                 </div>
               </div>
             </main>
@@ -226,21 +338,28 @@
       </div>
     </div>
 
-    <!-- 底部可折叠的 Console -->
+    <!-- Collapsible Console at bottom -->
     <div class="canvas-console" id="canvas-console">
       <div class="console-header" id="console-toggle">
         <div class="console-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
           <span>Console</span>
         </div>
         <button type="button" class="console-toggle-btn" title="Toggle Console">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+            <polyline points="18 15 12 9 6 15"></polyline>
+          </svg>
         </button>
       </div>
       <pre id="log" class="console-output"></pre>
     </div>
-    
-    <!-- 隐藏的兼容性元素 -->
+
+    <!-- Hidden compatibility element -->
     <pre id="pipeline-preview" class="d-none"></pre>
   </main>
 
@@ -255,29 +374,44 @@
     </header>
 
     <div class="parameter-container">
-      <!-- 左侧：Server 导航 -->
+      <!-- Left: Server navigation -->
       <aside class="parameter-sidebar">
         <div class="parameter-sidebar-header">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
           <span>Servers</span>
         </div>
         <nav id="parameter-nav" class="parameter-nav"></nav>
       </aside>
 
-      <!-- 右侧：参数配置区 -->
+      <!-- Right: parameter configuration area -->
       <main class="parameter-main">
         <div class="parameter-content">
-          <p class="parameter-hint">Select a server from the left to configure its parameters, or expand all sections below.</p>
+          <p class="parameter-hint">Select a server from the left to configure its parameters, or expand all sections
+            below.</p>
           <div id="parameter-form" class="parameter-sections"></div>
         </div>
 
         <div class="parameter-actions">
           <button type="button" class="btn btn-dark btn-pill px-4 py-2" id="parameter-save">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
             Save Parameters
           </button>
           <button type="button" class="btn btn-ai-gradient btn-pill px-4 py-2" id="parameter-chat">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
             Enter Chat Mode
           </button>
         </div>
@@ -286,255 +420,315 @@
   </div>
 
   <section id="chat-view" class="view-overlay d-none">
-  <div class="chat-layout">
-    
-    <aside class="chat-sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-toggle-wrapper">
-          <button type="button" id="chat-logo-btn" class="sidebar-logo sidebar-logo-btn">
-            <img src="ultrarag.svg" alt="UltraRAG" class="sidebar-logo-img">
-          </button>
-          <button type="button" id="sidebar-toggle-btn" class="btn-sidebar-toggle" title="Toggle Sidebar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
-          </button>
-        </div>
-        
-        <button type="button" id="chat-new-btn" class="btn-nav">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
-          </span>
-          <span class="btn-text">New Chat</span>
-        </button>
-    
-        <button type="button" id="kb-btn" class="btn-nav">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-          </span>
-          <span class="btn-text">Knowledge Base</span>
-        </button>
-      </div>
-      
-      <div class="sidebar-list">
-        <div class="chat-session-bar">
-          <div class="chat-session-bar-title">
-            <!-- <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> -->
-            <span>Recent</span>
-          </div>
-          <div class="chat-session-bar-actions">
-            <button class="chat-session-bar-btn" id="clear-all-chats" title="Clear all chats">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    <div class="chat-layout">
+
+      <aside class="chat-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-toggle-wrapper">
+            <button type="button" id="chat-logo-btn" class="sidebar-logo sidebar-logo-btn">
+              <img src="ultrarag.svg" alt="UltraRAG" class="sidebar-logo-img">
+            </button>
+            <button type="button" id="sidebar-toggle-btn" class="btn-sidebar-toggle" title="Toggle Sidebar">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
             </button>
           </div>
-        </div>
-        <div id="chat-session-list" class="session-list"></div>
-      </div>
-    
-      <div class="sidebar-footer">
-        <button type="button" id="chat-back" class="btn-nav">
-          <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.332.183-.582.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.217.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.583-.495.645-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          </span>
-          <span class="btn-text">Settings</span>
-        </button>
-      </div>
-    </aside>
 
-    <div class="chat-main" id="chat-main-view">
-      <header class="view-header border-bottom-0 justify-content-start gap-3">
-        <div class="d-md-none">
-           <button type="button" class="btn btn-icon" id="chat-mobile-menu">☰</button>
-        </div>
-        
-        <div class="pipeline-selector-wrapper dropdown">
-          <button class="btn btn-pipeline-select dropdown-toggle" type="button" id="chatPipelineDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-            <span class="fw-bold fs-6" id="chat-pipeline-label">Select Pipeline</span>
-            <span class="ms-1 small" style="color: #8f8f8f;">UltraRAG</span>
+          <button type="button" id="chat-new-btn" class="btn-nav">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+              </svg>
+            </span>
+            <span class="btn-text">New Chat</span>
           </button>
-          <ul class="dropdown-menu shadow-lg border-0 rounded-4 mt-2 p-2" id="chat-pipeline-menu" style="min-width: 240px;">
+
+          <button type="button" id="kb-btn" class="btn-nav">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+            </span>
+            <span class="btn-text">Knowledge Base</span>
+          </button>
+        </div>
+
+        <div class="sidebar-list">
+          <div class="chat-session-bar">
+            <div class="chat-session-bar-title">
+              <!-- <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> -->
+              <span>Recent</span>
+            </div>
+            <div class="chat-session-bar-actions">
+              <button class="chat-session-bar-btn" id="clear-all-chats" title="Clear all chats">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div id="chat-session-list" class="session-list"></div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button type="button" id="chat-back" class="btn-nav">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.332.183-.582.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.217.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.583-.495.645-.869l.214-1.281z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </span>
+            <span class="btn-text">Settings</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="chat-main" id="chat-main-view">
+        <header class="view-header border-bottom-0 justify-content-start gap-3">
+          <div class="d-md-none">
+            <button type="button" class="btn btn-icon" id="chat-mobile-menu">☰</button>
+          </div>
+
+          <div class="pipeline-selector-wrapper dropdown">
+            <button class="btn btn-pipeline-select dropdown-toggle" type="button" id="chatPipelineDropdown"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="fw-bold fs-6" id="chat-pipeline-label">Select Pipeline</span>
+              <span class="ms-1 small" style="color: #8f8f8f;">UltraRAG</span>
+            </button>
+            <ul class="dropdown-menu shadow-lg border-0 rounded-4 mt-2 p-2" id="chat-pipeline-menu"
+              style="min-width: 240px;">
             </ul>
-        </div>
+          </div>
 
-        <div class="ms-auto d-flex align-items-center gap-2">
-          <button id="demo-toggle-btn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" style="font-size: 0.75rem;">
-            Loading...
-          </button>
-          <span id="chat-status" class="badge rounded-pill bg-light text-dark border">Offline</span>
-        </div>
-      </header>
+          <div class="ms-auto d-flex align-items-center gap-2">
+            <button id="demo-toggle-btn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold"
+              style="font-size: 0.75rem;">
+              Loading...
+            </button>
+            <span id="chat-status" class="badge rounded-pill bg-light text-dark border">Offline</span>
+          </div>
+        </header>
 
-      <div class="chat-container">
-        <div class="chat-scroll-area" id="chat-history"></div>
-        <div class="chat-input-wrapper">
-          <form id="chat-form" class="chat-input-container shadow-sm">
-            
-            <textarea id="chat-input" class="form-control chat-input" placeholder="Ask UltraRAG" autocomplete="off" rows="1"></textarea>
-            
-            <div class="actions-row">
-                
+        <div class="chat-container">
+          <div class="chat-scroll-area" id="chat-history"></div>
+          <div class="chat-input-wrapper">
+            <form id="chat-form" class="chat-input-container shadow-sm">
+
+              <textarea id="chat-input" class="form-control chat-input" placeholder="Ask UltraRAG" autocomplete="off"
+                rows="1"></textarea>
+
+              <div class="actions-row">
+
                 <div class="left-actions">
-                    <div class="kb-dropdown-wrapper">
-                         <button type="button" class="kb-dropdown-trigger" id="kb-dropdown-trigger" onclick="toggleKbDropdown()">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="kb-icon-svg">
-                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                             </svg>
-                             <span id="kb-label-text">Knowledge Base</span>
-                             <span id="kb-clear-btn" class="kb-clear-btn" onclick="clearKbSelection(event)" style="display:none; margin-left: 4px; color: #999; cursor: pointer; align-items: center;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                             </span>
-                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="kb-chevron">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                             </svg>
-                         </button>
-                         <div class="kb-dropdown-menu" id="kb-dropdown-menu">
-                             <div class="kb-dropdown-item selected" data-value="" onclick="selectKbOption(this)">
-                                 <span class="kb-item-check">✓</span>
-                                 <span class="kb-item-text">No Knowledge Base</span>
-                             </div>
-                         </div>
-                         <!-- 隐藏的原生select，用于表单提交和状态管理 -->
-                         <select id="chat-collection-select" class="kb-select-hidden" style="display:none;">
-                             <option value="" selected>No Knowledge Base</option>
-                         </select>
+                  <div class="kb-dropdown-wrapper">
+                    <button type="button" class="kb-dropdown-trigger" id="kb-dropdown-trigger"
+                      onclick="toggleKbDropdown()">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="kb-icon-svg">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                      </svg>
+                      <span id="kb-label-text">Knowledge Base</span>
+                      <span id="kb-clear-btn" class="kb-clear-btn" onclick="clearKbSelection(event)"
+                        style="display:none; margin-left: 4px; color: #999; cursor: pointer; align-items: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="kb-chevron">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </button>
+                    <div class="kb-dropdown-menu" id="kb-dropdown-menu">
+                      <div class="kb-dropdown-item selected" data-value="" onclick="selectKbOption(this)">
+                        <span class="kb-item-check">✓</span>
+                        <span class="kb-item-text">No Knowledge Base</span>
+                      </div>
                     </div>
-                    
-                    <div class="bg-mode-toggle" id="bg-mode-toggle" onclick="toggleBackgroundMode()" title="Send to background">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bg-icon-svg">
-                          <line x1="22" y1="2" x2="11" y2="13"></line>
-                          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                         </svg>
-                         <span id="bg-label-text">Background</span>
-                    </div>
+                    <!-- Hidden native select for form submission and state management -->
+                    <select id="chat-collection-select" class="kb-select-hidden" style="display:none;">
+                      <option value="" selected>No Knowledge Base</option>
+                    </select>
+                  </div>
+
+                  <div class="bg-mode-toggle" id="bg-mode-toggle" onclick="toggleBackgroundMode()"
+                    title="Send to background">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="bg-icon-svg">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <span id="bg-label-text">Background</span>
+                  </div>
                 </div>
 
                 <div class="right-actions">
-                    <button class="btn btn-send" type="button" id="chat-send">
-                      <span id="chat-send-icon" class="send-icon-wrapper">
-                        <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <line x1="12" y1="19" x2="12" y2="5"></line>
-                          <polyline points="5 12 12 5 19 12"></polyline>
-                        </svg>
-                      </span>
-                    </button>
+                  <button class="btn btn-send" type="button" id="chat-send">
+                    <span id="chat-send-icon" class="send-icon-wrapper">
+                      <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <line x1="12" y1="19" x2="12" y2="5"></line>
+                        <polyline points="5 12 12 5 19 12"></polyline>
+                      </svg>
+                    </span>
+                  </button>
                 </div>
-            </div>
-          </form>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="kb-main d-none" id="kb-main-view">
-        <header class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
-            <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
-            
-            <div class="d-flex gap-2 align-items-center">
-                <div class="kb-connection-group">
-                    <button type="button" class="kb-conn-chip" id="db-connection-chip" onclick="openDbConfigModal()" title="Endpoint">
-                        <span id="db-connection-status" class="kb-conn-dot disconnected"></span>
-                        <span id="db-connection-text" class="kb-conn-text">Connecting</span>
-                    </button>
-                    <small class="kb-conn-uri" id="db-uri-display">—</small>
-                </div>
+      <div class="kb-main d-none" id="kb-main-view">
+        <header
+          class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
+          <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
 
-                <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">
-                    Configure DB
-                </button>
-                
-                <button class="btn btn-dark btn-sm px-3 d-flex align-items-center gap-2" onclick="openImportModal()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    New Collection
-                </button>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="kb-connection-group">
+              <button type="button" class="kb-conn-chip" id="db-connection-chip" onclick="openDbConfigModal()"
+                title="Endpoint">
+                <span id="db-connection-status" class="kb-conn-dot disconnected"></span>
+                <span id="db-connection-text" class="kb-conn-text">Connecting</span>
+              </button>
+              <small class="kb-conn-uri" id="db-uri-display">—</small>
             </div>
+
+            <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">
+              Configure DB
+            </button>
+
+            <button class="btn btn-dark btn-sm px-3 d-flex align-items-center gap-2" onclick="openImportModal()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              New Collection
+            </button>
+          </div>
         </header>
-        
+
         <div class="kb-wrapper p-4 bg-light">
-            <div id="bookshelf-grid" class="bookshelf-grid">
-                </div>
+          <div id="bookshelf-grid" class="bookshelf-grid">
+          </div>
         </div>
-    </div>
+      </div>
 
-    <dialog id="import-modal" style="width: 90vw; max-width: 1200px; height: 85vh; border:none; border-radius:16px; padding:0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+      <dialog id="import-modal"
+        style="width: 90vw; max-width: 1200px; height: 85vh; border:none; border-radius:16px; padding:0; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
         <div class="d-flex flex-column h-100">
-            <div class="modal-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
-                <div>
-                    <h5 class="m-0 fw-bold">Import Knowledge</h5>
-                    <small class="text-muted">Process raw documents into vector index.</small>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-light btn-sm text-danger" onclick="clearStagingArea()" title="Clear all temporary files">Delete All</button>
-                    <button class="btn-close" onclick="closeImportModal()"></button>
-                </div>
+          <div class="modal-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+            <div>
+              <h5 class="m-0 fw-bold">Import Knowledge</h5>
+              <small class="text-muted">Process raw documents into vector index.</small>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-light btn-sm text-danger" onclick="clearStagingArea()"
+                title="Clear all temporary files">Delete All</button>
+              <button class="btn-close" onclick="closeImportModal()"></button>
+            </div>
+          </div>
+
+          <div class="modal-body bg-light p-4 overflow-hidden d-flex flex-column">
+
+            <div id="task-status-bar" class="status-bar hidden mb-3 mx-auto shadow-sm">
+              <span class="spinner"></span>
+              <span id="task-msg">Processing...</span>
             </div>
 
-            <div class="modal-body bg-light p-4 overflow-hidden d-flex flex-column">
-                
-                <div id="task-status-bar" class="status-bar hidden mb-3 mx-auto shadow-sm">
-                    <span class="spinner"></span>
-                    <span id="task-msg">Processing...</span>
+            <div class="kb-pipeline-grid flex-grow-1">
+
+              <div class="pipeline-card">
+                <div class="card-head d-flex justify-content-between align-items-center">
+                  <div class="head-title d-flex align-items-center">
+                    <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">1</span>
+                    <span class="fw-bold text-dark small">Raw Files</span>
+                  </div>
+                  <input type="file" id="file-upload" multiple hidden onchange="handleFileUpload(this)">
+                  <button class="btn btn-dark btn-sm py-0 px-2" style="font-size: 0.8rem;"
+                    onclick="document.getElementById('file-upload').click()">
+                    Upload
+                  </button>
                 </div>
+                <div class="card-body-scroll" id="list-raw"></div>
+              </div>
 
-                <div class="kb-pipeline-grid flex-grow-1">
-                    
-                    <div class="pipeline-card">
-                        <div class="card-head d-flex justify-content-between align-items-center">
-                            <div class="head-title d-flex align-items-center">
-                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">1</span>
-                                <span class="fw-bold text-dark small">Raw Files</span>
-                            </div>
-                            <input type="file" id="file-upload" multiple hidden onchange="handleFileUpload(this)">
-                            <button class="btn btn-dark btn-sm py-0 px-2" style="font-size: 0.8rem;" onclick="document.getElementById('file-upload').click()">
-                                Upload
-                            </button>
-                        </div>
-                        <div class="card-body-scroll" id="list-raw"></div>
-                    </div>
-
-                    <div class="pipeline-card">
-                        <div class="card-head d-flex justify-content-between align-items-center">
-                            <div class="head-title d-flex align-items-center">
-                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">2</span>
-                                <span class="fw-bold text-dark small">Corpus</span>
-                            </div>
-                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick="openChunkConfigModal()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                Settings
-                            </button>
-                        </div>
-                        <div class="card-body-scroll" id="list-corpus"></div>
-                    </div>
-
-                    <div class="pipeline-card">
-                        <div class="card-head d-flex justify-content-between align-items-center">
-                            <div class="head-title d-flex align-items-center">
-                                <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">3</span>
-                                <span class="fw-bold text-dark small">Chunks</span>
-                            </div>
-                            <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick="openIndexConfigModal()">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                Settings
-                            </button>
-                        </div>
-                        <div class="card-body-scroll" id="list-chunks"></div>
-                    </div>
+              <div class="pipeline-card">
+                <div class="card-head d-flex justify-content-between align-items-center">
+                  <div class="head-title d-flex align-items-center">
+                    <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">2</span>
+                    <span class="fw-bold text-dark small">Corpus</span>
+                  </div>
+                  <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1"
+                    style="font-size: 0.75rem;" onclick="openChunkConfigModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                      </path>
+                    </svg>
+                    Settings
+                  </button>
                 </div>
+                <div class="card-body-scroll" id="list-corpus"></div>
+              </div>
+
+              <div class="pipeline-card">
+                <div class="card-head d-flex justify-content-between align-items-center">
+                  <div class="head-title d-flex align-items-center">
+                    <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">3</span>
+                    <span class="fw-bold text-dark small">Chunks</span>
+                  </div>
+                  <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1"
+                    style="font-size: 0.75rem;" onclick="openIndexConfigModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                      </path>
+                    </svg>
+                    Settings
+                  </button>
+                </div>
+                <div class="card-body-scroll" id="list-chunks"></div>
+              </div>
             </div>
+          </div>
         </div>
-    </dialog>
+      </dialog>
 
-    <aside class="chat-detail-sidebar" id="source-detail-panel">
-      <div class="detail-header">
-        <h3 class="detail-title">Reference Detail</h3>
-        <button class="btn btn-icon btn-sm" onclick="closeSourceDetail()">✕</button>
-      </div>
-      <div class="detail-content" id="source-detail-content">
-        <div class="text-muted small text-center mt-5">Select a reference to view details</div>
-      </div>
-    </aside>
+      <aside class="chat-detail-sidebar" id="source-detail-panel">
+        <div class="detail-header">
+          <h3 class="detail-title">Reference Detail</h3>
+          <button class="btn btn-icon btn-sm" onclick="closeSourceDetail()">✕</button>
+        </div>
+        <div class="detail-content" id="source-detail-content">
+          <div class="text-muted small text-center mt-5">Select a reference to view details</div>
+        </div>
+      </aside>
 
-  </div>
+    </div>
   </section>
 
   <div id="step-editor" class="step-editor-modal" hidden>
@@ -557,10 +751,14 @@
         </div>
         <div class="modal-body pt-2">
           <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3" role="tablist">
-            <li class="nav-item"><button class="nav-link active rounded-3 py-2 small" data-node-mode="tool" type="button">Tool</button></li>
-            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="branch" type="button">Branch</button></li>
-            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="loop" type="button">Loop</button></li>
-            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="custom" type="button">Custom</button></li>
+            <li class="nav-item"><button class="nav-link active rounded-3 py-2 small" data-node-mode="tool"
+                type="button">Tool</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="branch"
+                type="button">Branch</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="loop"
+                type="button">Loop</button></li>
+            <li class="nav-item"><button class="nav-link rounded-3 py-2 small" data-node-mode="custom"
+                type="button">Custom</button></li>
           </ul>
           <div id="node-picker-tool-panel" class="picker-content">
             <label class="form-label text-muted text-xs fw-bold text-uppercase">Server</label>
@@ -577,7 +775,7 @@
             <input type="number" min="1" class="form-control" id="node-picker-loop-times" value="2" />
           </div>
           <div id="node-picker-custom-panel" class="picker-content d-none">
-             <label class="form-label text-muted text-xs fw-bold text-uppercase">JSON Config</label>
+            <label class="form-label text-muted text-xs fw-bold text-uppercase">JSON Config</label>
             <textarea id="node-picker-custom" class="form-control code-font" rows="4"></textarea>
           </div>
           <div id="node-picker-error" class="text-danger small mt-2 d-none"></div>
@@ -591,143 +789,155 @@
 
   <dialog id="milvus-dialog" class="apple-modal">
     <h5 class="mb-3 fw-bold">Build Vector Index</h5>
-    
+
     <div class="alert alert-light border mb-3 p-2 small">
-        Target: <strong id="modal-target-db">Loading Configuration...</strong>
+      Target: <strong id="modal-target-db">Loading Configuration...</strong>
     </div>
-    
+
     <div class="mb-3">
-        <label class="form-label small text-muted text-uppercase fw-bold">Collection Name</label>
-        <input type="text" id="idx-collection" class="form-control" placeholder="e.g. wiki_v1">
+      <label class="form-label small text-muted text-uppercase fw-bold">Collection Name</label>
+      <input type="text" id="idx-collection" class="form-control" placeholder="e.g. wiki_v1">
     </div>
-    
+
     <div class="mb-4">
-        <label class="form-label small text-muted text-uppercase fw-bold">Mode</label>
-        <select id="idx-mode" class="form-select">
-            <option value="append">Append (Add Data)</option>
-            <option value="overwrite">Overwrite (Drop Collection)</option>
-        </select>
+      <label class="form-label small text-muted text-uppercase fw-bold">Mode</label>
+      <select id="idx-mode" class="form-select">
+        <option value="append">Append (Add Data)</option>
+        <option value="overwrite">Overwrite (Drop Collection)</option>
+      </select>
     </div>
-    
+
     <div class="modal-actions d-flex justify-content-end gap-2">
-        <button class="btn btn-light border btn-sm" onclick="document.getElementById('milvus-dialog').close()">Cancel</button>
-        <button class="btn btn-dark btn-sm" onclick="confirmIndexTask()">Start Indexing</button>
+      <button class="btn btn-light border btn-sm"
+        onclick="document.getElementById('milvus-dialog').close()">Cancel</button>
+      <button class="btn btn-dark btn-sm" onclick="confirmIndexTask()">Start Indexing</button>
     </div>
   </dialog>
 
   <dialog id="db-config-modal" class="apple-modal">
-      <h5 class="mb-3 fw-bold">Database Settings</h5>
-      
-      <div class="mb-3">
-          <label class="form-label small text-muted text-uppercase fw-bold">Milvus URI</label>
-          <input type="text" id="cfg-uri" class="form-control" placeholder="path/to/local.db OR http://localhost:19530">
-          <div class="form-text">Supports local file paths or remote HTTP/TCP connections.</div>
-      </div>
-      
-      <div class="mb-4">
-          <label class="form-label small text-muted text-uppercase fw-bold">Token (Optional)</label>
-          <input type="password" id="cfg-token" class="form-control" placeholder="API Key or user:password">
-      </div>
-      
-      <div class="modal-actions d-flex justify-content-end gap-2">
-          <button class="btn btn-light border btn-sm" onclick="document.getElementById('db-config-modal').close()">Cancel</button>
-          <button class="btn btn-dark btn-sm" onclick="saveDbConfig()">Save & Connect</button>
-      </div>
+    <h5 class="mb-3 fw-bold">Database Settings</h5>
+
+    <div class="mb-3">
+      <label class="form-label small text-muted text-uppercase fw-bold">Milvus URI</label>
+      <input type="text" id="cfg-uri" class="form-control" placeholder="path/to/local.db OR http://localhost:19530">
+      <div class="form-text">Supports local file paths or remote HTTP/TCP connections.</div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label small text-muted text-uppercase fw-bold">Token (Optional)</label>
+      <input type="password" id="cfg-token" class="form-control" placeholder="API Key or user:password">
+    </div>
+
+    <div class="modal-actions d-flex justify-content-end gap-2">
+      <button class="btn btn-light border btn-sm"
+        onclick="document.getElementById('db-config-modal').close()">Cancel</button>
+      <button class="btn btn-dark btn-sm" onclick="saveDbConfig()">Save & Connect</button>
+    </div>
   </dialog>
 
   <dialog id="folder-detail-modal" class="apple-modal">
     <h5 class="mb-3 fw-bold" id="folder-detail-title">Folder Contents</h5>
     <div id="folder-detail-list" class="folder-list-container" style="max-height: 300px; overflow-y: auto;">
-        </div>
-    <div class="modal-actions d-flex justify-content-end mt-3">
-        <button class="btn btn-dark btn-sm" onclick="document.getElementById('folder-detail-modal').close()">Close</button>
     </div>
-</dialog>
+    <div class="modal-actions d-flex justify-content-end mt-3">
+      <button class="btn btn-dark btn-sm"
+        onclick="document.getElementById('folder-detail-modal').close()">Close</button>
+    </div>
+  </dialog>
 
-<dialog id="chunk-config-modal" style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
-        <div class="card" style="width: 380px; border:none;">
-            <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
-                <h6 class="card-title m-0 fw-bold">Chunk Configuration</h6>
-                <button type="button" class="btn-close small" onclick="document.getElementById('chunk-config-modal').close()"></button>
-            </div>
-            <div class="card-body">
-                <form id="chunk-config-form">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Chunk Backend</label>
-                        <select id="cfg-chunk-backend" class="form-select form-select-sm">
-                            <option value="token" selected>token</option>
-                            <option value="sentence">sentence</option>
-                            <option value="recursive">recursive</option>
-                        </select>
-                    </div>
-    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Tokenizer / Counter</label>
-                        <select id="cfg-chunk-tokenizer" class="form-select form-select-sm">
-                            <option value="gpt2" selected>gpt2</option>
-                            <option value="character">character</option>
-                            <option value="word">word</option>
-                        </select>
-                    </div>
-    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Chunk Size</label>
-                        <div class="input-group input-group-sm">
-                            <input type="number" id="cfg-chunk-size" class="form-control" value="500" min="1">
-                        </div>
-                    </div>
-    
-                    <div class="mb-1">
-                        <label class="form-label small fw-bold text-muted">Use Title</label>
-                        <select id="cfg-chunk-title" class="form-select form-select-sm">
-                            <option value="true" selected>True</option>
-                            <option value="false">False</option>
-                        </select>
-                        <div class="form-text text-xs">Prepend document title to each chunk.</div>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
-                <button type="button" class="btn btn-sm btn-light border" onclick="document.getElementById('chunk-config-modal').close()">Cancel</button>
-                <button type="button" class="btn btn-sm btn-dark" onclick="saveChunkConfig()">Save Config</button>
-            </div>
-        </div>
-    </dialog>
+  <dialog id="chunk-config-modal"
+    style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
+    <div class="card" style="width: 380px; border:none;">
+      <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <h6 class="card-title m-0 fw-bold">Chunk Configuration</h6>
+        <button type="button" class="btn-close small"
+          onclick="document.getElementById('chunk-config-modal').close()"></button>
+      </div>
+      <div class="card-body">
+        <form id="chunk-config-form">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Chunk Backend</label>
+            <select id="cfg-chunk-backend" class="form-select form-select-sm">
+              <option value="token" selected>token</option>
+              <option value="sentence">sentence</option>
+              <option value="recursive">recursive</option>
+            </select>
+          </div>
 
-    <dialog id="index-config-modal" style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
-        <div class="card" style="width: 420px; border:none;">
-            <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
-                <h6 class="card-title m-0 fw-bold">Embedding Configuration</h6>
-                <button type="button" class="btn-close small" onclick="document.getElementById('index-config-modal').close()"></button>
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Tokenizer / Counter</label>
+            <select id="cfg-chunk-tokenizer" class="form-select form-select-sm">
+              <option value="gpt2" selected>gpt2</option>
+              <option value="character">character</option>
+              <option value="word">word</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Chunk Size</label>
+            <div class="input-group input-group-sm">
+              <input type="number" id="cfg-chunk-size" class="form-control" value="500" min="1">
             </div>
-            <div class="card-body">
-                <p class="text-muted small mb-3">Configure the embedding model for vector indexing. Uses OpenAI-compatible API.</p>
-                <form id="index-config-form">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">API Key</label>
-                        <input type="password" id="cfg-emb-api-key" class="form-control form-control-sm" placeholder="sk-...">
-                        <div class="form-text text-xs">Your OpenAI or compatible API key.</div>
-                    </div>
-    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Base URL</label>
-                        <input type="text" id="cfg-emb-base-url" class="form-control form-control-sm" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
-                        <div class="form-text text-xs">API endpoint. Change for Azure, local models, etc.</div>
-                    </div>
-    
-                    <div class="mb-1">
-                        <label class="form-label small fw-bold text-muted">Model Name</label>
-                        <input type="text" id="cfg-emb-model-name" class="form-control form-control-sm" value="text-embedding-3-small" placeholder="text-embedding-3-small">
-                        <div class="form-text text-xs">e.g. text-embedding-3-small, text-embedding-ada-002</div>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
-                <button type="button" class="btn btn-sm btn-light border" onclick="document.getElementById('index-config-modal').close()">Cancel</button>
-                <button type="button" class="btn btn-sm btn-dark" onclick="saveIndexConfig()">Save Config</button>
-            </div>
-        </div>
-    </dialog>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label small fw-bold text-muted">Use Title</label>
+            <select id="cfg-chunk-title" class="form-select form-select-sm">
+              <option value="true" selected>True</option>
+              <option value="false">False</option>
+            </select>
+            <div class="form-text text-xs">Prepend document title to each chunk.</div>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
+        <button type="button" class="btn btn-sm btn-light border"
+          onclick="document.getElementById('chunk-config-modal').close()">Cancel</button>
+        <button type="button" class="btn btn-sm btn-dark" onclick="saveChunkConfig()">Save Config</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="index-config-modal"
+    style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
+    <div class="card" style="width: 420px; border:none;">
+      <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
+        <h6 class="card-title m-0 fw-bold">Embedding Configuration</h6>
+        <button type="button" class="btn-close small"
+          onclick="document.getElementById('index-config-modal').close()"></button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">Configure the embedding model for vector indexing. Uses OpenAI-compatible API.
+        </p>
+        <form id="index-config-form">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">API Key</label>
+            <input type="password" id="cfg-emb-api-key" class="form-control form-control-sm" placeholder="sk-...">
+            <div class="form-text text-xs">Your OpenAI or compatible API key.</div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-muted">Base URL</label>
+            <input type="text" id="cfg-emb-base-url" class="form-control form-control-sm"
+              value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
+            <div class="form-text text-xs">API endpoint. Change for Azure, local models, etc.</div>
+          </div>
+
+          <div class="mb-1">
+            <label class="form-label small fw-bold text-muted">Model Name</label>
+            <input type="text" id="cfg-emb-model-name" class="form-control form-control-sm"
+              value="text-embedding-3-small" placeholder="text-embedding-3-small">
+            <div class="form-text text-xs">e.g. text-embedding-3-small, text-embedding-ada-002</div>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
+        <button type="button" class="btn btn-sm btn-light border"
+          onclick="document.getElementById('index-config-modal').close()">Cancel</button>
+        <button type="button" class="btn btn-sm btn-dark" onclick="saveIndexConfig()">Save Config</button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Background Task Notification Toast -->
   <div id="notification-container" class="notification-container"></div>
@@ -736,14 +946,22 @@
   <div id="background-tasks-panel" class="bg-tasks-panel d-none">
     <div class="bg-tasks-header">
       <h6>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
         Background Tasks
       </h6>
       <div class="d-flex gap-1 align-items-center">
         <button onclick="refreshBackgroundTasks()" title="Refresh">↻</button>
         <button onclick="clearCompletedTasks()" title="Clear completed">Clear</button>
         <button class="bg-panel-close-btn" onclick="toggleBackgroundPanel()" title="Close">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
       </div>
     </div>
@@ -754,7 +972,8 @@
 
   <!-- Background Tasks Floating Button -->
   <button id="bg-tasks-fab" class="bg-tasks-fab d-none" onclick="toggleBackgroundPanel()" title="Background Tasks">
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bg-icon-svg">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bg-icon-svg">
       <line x1="22" y1="2" x2="11" y2="13"></line>
       <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
     </svg>
@@ -765,7 +984,12 @@
   <dialog id="unified-modal" class="unified-modal">
     <div class="unified-modal-content">
       <div class="unified-modal-icon" id="unified-modal-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
       </div>
       <h3 class="unified-modal-title" id="unified-modal-title">Notification</h3>
       <p class="unified-modal-message" id="unified-modal-message"></p>
@@ -784,49 +1008,82 @@
   <!-- Chat Session Context Menu -->
   <div id="chat-session-context-menu" class="chat-session-context-menu d-none">
     <button type="button" class="chat-session-context-item" data-action="rename">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+      </svg>
       Rename
     </button>
     <button type="button" class="chat-session-context-item text-danger" data-action="delete">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
       Delete
     </button>
   </div>
 
   <!-- AI Assistant Panel -->
   <div class="ai-assistant-container" id="ai-assistant-container">
-    <!-- 收起状态的触发按钮 -->
+    <!-- Collapsed state trigger button -->
     <button class="ai-assistant-trigger" id="ai-assistant-trigger" title="AI Assistant">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path
+          d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+        <circle cx="7.5" cy="14.5" r="1.5" />
+        <circle cx="16.5" cy="14.5" r="1.5" />
+      </svg>
     </button>
-    
-    <!-- 展开状态的面板 -->
+
+    <!-- Expanded state panel -->
     <div class="ai-assistant-panel" id="ai-assistant-panel">
-      <!-- 左侧拖拽边框 -->
+      <!-- Left draggable border -->
       <div class="ai-panel-resizer" id="ai-panel-resizer"></div>
-      
-      <!-- 面板内容 -->
+
+      <!-- Panel content -->
       <div class="ai-panel-content">
-        <!-- 头部 -->
+        <!-- Header -->
         <div class="ai-panel-header">
           <div class="ai-panel-title">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+              <circle cx="7.5" cy="14.5" r="1.5" />
+              <circle cx="16.5" cy="14.5" r="1.5" />
+            </svg>
             <span>AI Assistant</span>
           </div>
           <div class="ai-panel-actions">
             <button class="ai-panel-btn d-none" id="ai-back-btn" title="Back to list">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
             </button>
             <button class="ai-panel-btn" id="ai-settings-btn" title="Settings">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+              </svg>
             </button>
             <button class="ai-panel-btn" id="ai-close-btn" title="Close">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
         </div>
-        
-        <!-- 连接状态 -->
+
+        <!-- Connection status -->
         <div class="ai-connection-status" id="ai-connection-status">
           <div class="ai-status-left">
             <span class="ai-status-dot disconnected"></span>
@@ -839,69 +1096,121 @@
         <div class="ai-view active" id="ai-home-view">
           <div class="ai-session-bar">
             <div class="ai-session-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4" />
+                <path d="M8 2v4" />
+                <path d="M3 10h18" />
+              </svg>
               <span>Recent</span>
             </div>
             <div class="ai-session-actions">
               <button class="ai-session-btn" id="ai-session-new" title="New session">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
               </button>
               <button class="ai-session-btn" id="ai-session-delete" title="Delete session">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
               </button>
             </div>
           </div>
           <div class="ai-session-list" id="ai-session-list"></div>
         </div>
-        
+
         <!-- Chat view -->
         <div class="ai-view d-none" id="ai-chat-view">
           <div class="ai-messages" id="ai-messages">
             <div class="ai-welcome">
               <div class="ai-welcome-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="7.5" cy="14.5" r="1.5"/><circle cx="16.5" cy="14.5" r="1.5"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path
+                    d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+                  <circle cx="7.5" cy="14.5" r="1.5" />
+                  <circle cx="16.5" cy="14.5" r="1.5" />
+                </svg>
               </div>
               <h4>UltraRAG AI Assistant</h4>
               <p>I can help you build pipelines, configure parameters, and edit prompts.</p>
               <p class="ai-welcome-hint">Click the settings icon to configure your API connection.</p>
-              
+
               <!-- Quick Action Cards -->
               <div class="ai-starter-chips">
-                <button class="ai-starter-chip" data-prompt="Update the current RAG pipeline to include a citation module, ensuring the final output displays source references for fact-checking purposes.">
+                <button class="ai-starter-chip"
+                  data-prompt="Update the current RAG pipeline to include a citation module, ensuring the final output displays source references for fact-checking purposes.">
                   <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
                   </span>
                   <span class="ai-starter-chip-text">Pipeline Adjustment</span>
                 </button>
-                <button class="ai-starter-chip" data-prompt="Optimize the system prompt for the [Insert Domain, e.g., Medical/Legal] domain. Please refine the instructions to ensure the generated responses strictly adhere to professional terminology and logical accuracy suitable for this field.">
+                <button class="ai-starter-chip"
+                  data-prompt="Optimize the system prompt for the [Insert Domain, e.g., Medical/Legal] domain. Please refine the instructions to ensure the generated responses strictly adhere to professional terminology and logical accuracy suitable for this field.">
                   <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
                   </span>
                   <span class="ai-starter-chip-text">Prompt Adaptation</span>
                 </button>
-                <button class="ai-starter-chip" data-prompt="Reconfigure the generation backend. Switch the backend type to OpenAI, set the model name to [Insert Model Name, e.g., Llama-3-70B], and update the API endpoint to port [Insert Port, e.g., 8000].">
+                <button class="ai-starter-chip"
+                  data-prompt="Reconfigure the generation backend. Switch the backend type to OpenAI, set the model name to [Insert Model Name, e.g., Llama-3-70B], and update the API endpoint to port [Insert Port, e.g., 8000].">
                   <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="4" y1="21" x2="4" y2="14" />
+                      <line x1="4" y1="10" x2="4" y2="3" />
+                      <line x1="12" y1="21" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12" y2="3" />
+                      <line x1="20" y1="21" x2="20" y2="16" />
+                      <line x1="20" y1="12" x2="20" y2="3" />
+                      <line x1="1" y1="14" x2="7" y2="14" />
+                      <line x1="9" y1="8" x2="15" y2="8" />
+                      <line x1="17" y1="16" x2="23" y2="16" />
+                    </svg>
                   </span>
                   <span class="ai-starter-chip-text">Parameter Settings</span>
                 </button>
-                <button class="ai-starter-chip" data-prompt="I want to redesign my RAG workflow based on this article/paper: [Insert Link]. Please analyze its core methodologies and assist me in constructing a similar pipeline architecture.">
+                <button class="ai-starter-chip"
+                  data-prompt="I want to redesign my RAG workflow based on this article/paper: [Insert Link]. Please analyze its core methodologies and assist me in constructing a similar pipeline architecture.">
                   <span class="ai-starter-chip-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
+                      <path d="M9 18h6" />
+                      <path d="M10 22h4" />
+                    </svg>
                   </span>
                   <span class="ai-starter-chip-text">Free-form Tuning</span>
                 </button>
               </div>
             </div>
           </div>
-          
-          <!-- 输入区域 -->
+
+          <!-- Input area -->
           <div class="ai-input-area">
             <div class="ai-input-wrapper">
-              <textarea id="ai-input" class="ai-input" placeholder="Ask me anything about your pipeline..." rows="1"></textarea>
+              <textarea id="ai-input" class="ai-input" placeholder="Ask me anything about your pipeline..."
+                rows="1"></textarea>
               <button class="ai-send-btn btn-send" id="ai-send-btn" title="Send">
                 <span id="ai-send-icon" class="send-icon-wrapper">
-                  <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="icon-send" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="19" x2="12" y2="5"></line>
                     <polyline points="5 12 12 5 19 12"></polyline>
                   </svg>
@@ -914,13 +1223,17 @@
           </div>
         </div>
       </div>
-      
-      <!-- 设置面板 - 必须在 ai-assistant-panel 内部 -->
+
+      <!-- Settings panel - must be inside ai-assistant-panel -->
       <div class="ai-settings-panel" id="ai-settings-panel">
         <div class="ai-settings-header">
           <h4>AI Settings</h4>
           <button class="ai-panel-btn" id="ai-settings-close" title="Close">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
         <div class="ai-settings-body">
@@ -942,7 +1255,11 @@
             <div class="ai-settings-input-wrapper">
               <input type="password" id="ai-api-key" class="ai-settings-input" placeholder="sk-..." />
               <button class="ai-toggle-visibility" id="ai-toggle-key" title="Toggle visibility">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </button>
             </div>
           </div>
@@ -969,4 +1286,5 @@
   <script src="vendor/js/highlight.min.js"></script>
   <script src="main.js"></script>
 </body>
+
 </html>

@@ -2,25 +2,25 @@
   --bg-body: #ffffff;
   --bg-surface: #f9f9fa;
   --bg-card: #ffffff;
-  
+
   --text-primary: #1a1a1a;
   --text-secondary: #6e6e80;
   --text-tertiary: #9ca3af;
-  
+
   --border-subtle: #e5e5e5;
   --accent-color: #10a37f;
   --accent-blue: #2563eb;
   --gradient-ai: linear-gradient(135deg, #4285f4, #9b72cb);
-  
+
   --radius-sm: 6px;
   --radius-md: 12px;
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-float: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  
+
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
-  
+
   --bg-input: #eff1f5;
   --bg-sidebar: #f5f5f7;
   --radius-lg: 16px;
@@ -36,21 +36,69 @@ body {
 }
 
 /* Utilities */
-.text-xs { font-size: 0.75rem; }
-.tracking-wider { letter-spacing: 0.05em; }
-.code-font { font-family: var(--font-mono); font-size: 0.85rem; }
-.fw-semibold { font-weight: 600; }
+.text-xs {
+  font-size: 0.75rem;
+}
 
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
 
-.fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
-.delay-1 { animation-delay: 0.1s; }
-.fade-in { animation: fadeInUp 0.3s ease-out forwards; }
+.code-font {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.fw-semibold {
+  font-weight: 600;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.delay-1 {
+  animation-delay: 0.1s;
+}
+
+.fade-in {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
 
 /* Layout & Containers */
-.main-container { padding-top: 80px; padding-bottom: 100px; min-height: 100vh; }
-.content-wrapper { max-width: 1400px; margin: 0 auto; padding: 0 1.5rem; }
+.main-container {
+  padding-top: 80px;
+  padding-bottom: 100px;
+  min-height: 100vh;
+}
+
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
 
 /* Wider container for Parameter View */
 .container-wide {
@@ -60,32 +108,37 @@ body {
   width: 100%;
 }
 
-/* 1. 恢复通用遮罩层的滚动能力 (修复参数页面) */
+/* 1. Restore scrolling capability for general overlay (fix parameter page) */
 .view-overlay {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--bg-surface);
   z-index: 2000;
-  display: flex; flex-direction: column;
-  
-  /* [修改] 改回 auto，让参数配置页可以滚动 */
-  overflow-y: auto; 
+  display: flex;
+  flex-direction: column;
+
+  /* Change back to auto to allow parameter configuration page to scroll */
+  overflow-y: auto;
 }
 
-/* 2. 单独锁定 Chat 界面的外层滚动 (保持 Chat 布局正常) */
+/* 2. Lock outer scrolling for Chat interface separately (maintain Chat layout) */
 #chat-view.view-overlay {
-  /* Chat 界面内部有自己的滚动条，所以外层必须锁死 */
+  /* Chat interface has its own scrollbar internally, so outer layer must be locked */
   overflow: hidden;
 }
 
 /* Headers */
 .navbar {
-  background: rgba(255, 255, 255, 0.8); 
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid transparent; 
+  border-bottom: 1px solid transparent;
   padding: 0.8rem 0;
 }
 
-/* Builder 专用导航栏 - 居中 Logo 布局 */
+/* Builder-specific navbar - centered Logo layout */
 .navbar.builder-navbar {
   background: var(--bg-sidebar);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
@@ -116,7 +169,8 @@ body {
 }
 
 .navbar.builder-navbar .navbar-logo-img {
-  height: 20px; /* 与 Chat 界面侧边栏 Logo 保持一致 */
+  height: 20px;
+  /* Keep consistent with Chat interface sidebar Logo */
   width: auto;
   object-fit: contain;
 }
@@ -146,50 +200,100 @@ body {
   background: #fee2e2;
   color: #dc2626;
 }
+
 .view-header {
-  position: sticky; top: 0; 
-  background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
-  padding: 1rem 2rem; display: flex; align-items: center; justify-content: center;
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-bottom: 1px solid var(--border-subtle);
-  z-index: 2010; min-height: 72px;
+  z-index: 2010;
+  min-height: 72px;
 }
 
 /* Back Button Styling */
 .view-header .btn-back-wrapper {
-  position: absolute; left: 1.5rem; top: 50%; transform: translateY(-50%); z-index: 2020;
+  position: absolute;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2020;
 }
+
 .btn-back {
-  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border-subtle);
-  background: #fff; color: var(--text-primary); display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; font-weight: bold; font-size: 1.2rem; cursor: pointer; box-shadow: var(--shadow-sm);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
 }
-.btn-back:hover { background: var(--text-primary); color: #fff; transform: scale(1.05); }
+
+.btn-back:hover {
+  background: var(--text-primary);
+  color: #fff;
+  transform: scale(1.05);
+}
 
 /* Status Indicators */
 .status-indicator {
-  font-size: 0.75rem; font-weight: 500; padding: 2px 8px; border-radius: 99px;
-  background-color: #f3f4f6; color: var(--text-secondary); display: inline-flex; align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background-color: #f3f4f6;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
 }
+
 .status-indicator::before {
-  content: ''; display: block; width: 6px; height: 6px; border-radius: 50%;
-  background-color: var(--text-tertiary); margin-right: 6px;
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-tertiary);
+  margin-right: 6px;
 }
-.status-indicator[data-status="running"]::before { background-color: var(--accent-blue); box-shadow: 0 0 4px var(--accent-blue); }
-.status-indicator[data-status="succeeded"]::before { background-color: var(--accent-color); }
-.status-indicator[data-status="failed"]::before { background-color: #ef4444; }
+
+.status-indicator[data-status="running"]::before {
+  background-color: var(--accent-blue);
+  box-shadow: 0 0 4px var(--accent-blue);
+}
+
+.status-indicator[data-status="succeeded"]::before {
+  background-color: var(--accent-color);
+}
+
+.status-indicator[data-status="failed"]::before {
+  background-color: #ef4444;
+}
 
 /* =========================================
    Parameter Configuration - New Layout
    ========================================= */
 
-/* 主容器 - 左右分栏 */
+/* Main container - left-right split layout */
 .parameter-container {
   display: flex;
   height: calc(100vh - 72px);
   background: var(--bg-surface);
 }
 
-/* 左侧：Server 导航侧边栏 */
+/* Left: Server navigation sidebar */
 .parameter-sidebar {
   width: 240px;
   background: var(--bg-sidebar);
@@ -288,7 +392,7 @@ body {
   color: #4338ca;
 }
 
-/* 右侧：参数配置主区域 */
+/* Right: Parameter configuration main area */
 .parameter-main {
   flex: 1;
   display: flex;
@@ -316,7 +420,7 @@ body {
   color: #94a3b8;
 }
 
-/* 参数 Section（每个 Server 一个） */
+/* Parameter Section (one per Server) */
 .parameter-section {
   background: #fff;
   border: none;
@@ -381,14 +485,14 @@ body {
   display: block;
 }
 
-/* 参数网格 */
+/* Parameter grid */
 .parameter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
 }
 
-/* 单个参数字段 */
+/* Single parameter field */
 .parameter-field {
   min-width: 0;
 }
@@ -434,7 +538,7 @@ textarea.parameter-input {
   min-height: 100px;
 }
 
-/* 底部操作按钮区 */
+/* Bottom action buttons area */
 .parameter-actions {
   display: flex;
   align-items: center;
@@ -451,26 +555,26 @@ textarea.parameter-input {
   gap: 8px;
 }
 
-/* 响应式 */
+/* Responsive */
 @media (max-width: 768px) {
   .parameter-container {
     flex-direction: column;
   }
-  
+
   .parameter-sidebar {
     width: 100%;
     max-height: 200px;
     border-right: none;
     border-bottom: 1px solid #e2e8f0;
   }
-  
+
   .parameter-nav {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     padding: 12px;
   }
-  
+
   .parameter-nav-item {
     flex: none;
     width: auto;
@@ -479,36 +583,179 @@ textarea.parameter-input {
 
 /* Run View Terminal */
 .terminal-container {
-  flex: 1; background: #1e1e1e; padding: 2rem; overflow-y: auto; display: flex; flex-direction: column;
+  flex: 1;
+  background: #1e1e1e;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
+
 .terminal-content {
-  color: #00ff9d; font-family: var(--font-mono); font-size: 0.9rem;
-  white-space: pre-wrap; border: none; background: transparent; margin: 0;
+  color: #00ff9d;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+  border: none;
+  background: transparent;
+  margin: 0;
 }
 
 /* Components: Flow, Nodes, Chat */
-.page-header { margin-bottom: 3rem; }
-.display-title { font-weight: 600; font-size: 2.5rem; letter-spacing: -0.03em; color: var(--text-primary); }
-.toolbar-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.75rem 1rem; box-shadow: var(--shadow-sm); }
-.form-control-flush { border: none; background: transparent; font-weight: 500; padding: 0.5rem; }
-.form-control-flush:focus { box-shadow: none; background: #f9fafb; border-radius: var(--radius-sm); }
-.btn-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); transition: all 0.2s; }
-.btn-icon:hover { background: #f3f4f6; color: var(--text-primary); }
+.page-header {
+  margin-bottom: 3rem;
+}
 
-.flow-canvas { background-color: var(--bg-surface); background-image: none; background-size: auto; border: none; border-radius: var(--radius-lg); min-height: 300px; padding: 2rem; display: flex; flex-direction: column; gap: 1rem; }
-.step-list { display: flex; flex-direction: column; gap: 1rem; }
-.flow-node { background: var(--bg-card); border: none; border-radius: var(--radius-lg); padding: 0; box-shadow: var(--shadow-card); transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden; }
-.flow-node:hover { box-shadow: var(--shadow-float); transform: translateY(-1px); }
-.flow-node-header { padding: 0.85rem 1rem; border-bottom: none; background: transparent; }
-.flow-node-title-group { display: flex; align-items: center; gap: 10px; }
-.flow-node-icon { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; background: rgba(37, 99, 235, 0.12); color: #2563eb; }
-.flow-node-icon[data-module="retriever"] { background: rgba(245, 158, 11, 0.16); color: #d97706; }
-.flow-node-icon[data-module="generation"] { background: rgba(16, 185, 129, 0.16); color: #059669; }
-.flow-node-icon[data-module="prompt"] { background: rgba(99, 102, 241, 0.18); color: #4f46e5; }
-.flow-node-icon[data-module="reranker"] { background: rgba(244, 114, 182, 0.18); color: #db2777; }
-.flow-node-icon[data-module="router"] { background: rgba(14, 116, 144, 0.18); color: #0e7490; }
-.flow-node-title { font-size: 0.95rem; font-weight: 600; margin: 0; color: #111827; }
-.flow-node-body { padding: 0 1rem 0.9rem; font-family: var(--font-mono); font-size: 0.8rem; color: #6b7280; background: transparent; white-space: pre-wrap; max-height: 120px; overflow-y: auto; }
+.display-title {
+  font-weight: 600;
+  font-size: 2.5rem;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.toolbar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-control-flush {
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  padding: 0.5rem;
+}
+
+.form-control-flush:focus {
+  box-shadow: none;
+  background: #f9fafb;
+  border-radius: var(--radius-sm);
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #f3f4f6;
+  color: var(--text-primary);
+}
+
+.flow-canvas {
+  background-color: var(--bg-surface);
+  background-image: none;
+  background-size: auto;
+  border: none;
+  border-radius: var(--radius-lg);
+  min-height: 300px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.flow-node {
+  background: var(--bg-card);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 0;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.flow-node:hover {
+  box-shadow: var(--shadow-float);
+  transform: translateY(-1px);
+}
+
+.flow-node-header {
+  padding: 0.85rem 1rem;
+  border-bottom: none;
+  background: transparent;
+}
+
+.flow-node-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flow-node-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.flow-node-icon[data-module="retriever"] {
+  background: rgba(245, 158, 11, 0.16);
+  color: #d97706;
+}
+
+.flow-node-icon[data-module="generation"] {
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+}
+
+.flow-node-icon[data-module="prompt"] {
+  background: rgba(99, 102, 241, 0.18);
+  color: #4f46e5;
+}
+
+.flow-node-icon[data-module="reranker"] {
+  background: rgba(244, 114, 182, 0.18);
+  color: #db2777;
+}
+
+.flow-node-icon[data-module="router"] {
+  background: rgba(14, 116, 144, 0.18);
+  color: #0e7490;
+}
+
+.flow-node-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.flow-node-body {
+  padding: 0 1rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #6b7280;
+  background: transparent;
+  white-space: pre-wrap;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
 /* Builder: compact flow blocks */
 .canvas-main .step-list {
   align-items: center;
@@ -553,12 +800,35 @@ textarea.parameter-input {
   white-space: normal;
 }
 
-.canvas-main .flow-node-server[data-module="retriever"] { background: rgba(245, 158, 11, 0.18); color: #d97706; }
-.canvas-main .flow-node-server[data-module="generation"] { background: rgba(16, 185, 129, 0.18); color: #059669; }
-.canvas-main .flow-node-server[data-module="prompt"] { background: rgba(99, 102, 241, 0.2); color: #4f46e5; }
-.canvas-main .flow-node-server[data-module="reranker"] { background: rgba(244, 114, 182, 0.2); color: #db2777; }
-.canvas-main .flow-node-server[data-module="router"] { background: rgba(14, 116, 144, 0.2); color: #0e7490; }
-.canvas-main .flow-node-server[data-module="benchmark"] { background: rgba(148, 163, 184, 0.25); color: #475569; }
+.canvas-main .flow-node-server[data-module="retriever"] {
+  background: rgba(245, 158, 11, 0.18);
+  color: #d97706;
+}
+
+.canvas-main .flow-node-server[data-module="generation"] {
+  background: rgba(16, 185, 129, 0.18);
+  color: #059669;
+}
+
+.canvas-main .flow-node-server[data-module="prompt"] {
+  background: rgba(99, 102, 241, 0.2);
+  color: #4f46e5;
+}
+
+.canvas-main .flow-node-server[data-module="reranker"] {
+  background: rgba(244, 114, 182, 0.2);
+  color: #db2777;
+}
+
+.canvas-main .flow-node-server[data-module="router"] {
+  background: rgba(14, 116, 144, 0.2);
+  color: #0e7490;
+}
+
+.canvas-main .flow-node-server[data-module="benchmark"] {
+  background: rgba(148, 163, 184, 0.25);
+  color: #475569;
+}
 
 .canvas-main .flow-node-body {
   padding: 12px;
@@ -637,28 +907,76 @@ textarea.parameter-input {
   opacity: 1;
   pointer-events: auto;
 }
+
 .flow-node .btn-outline-primary,
 .flow-node .btn-outline-danger {
   background: var(--bg-input);
   border: none;
   box-shadow: none;
 }
+
 .flow-node .btn-outline-primary:hover {
   background: #e8f0ff;
   color: var(--accent-blue);
 }
+
 .flow-node .btn-outline-danger:hover {
   background: #fee2e2;
   color: #ef4444;
 }
-.step-actions { position: absolute; top: 0.5rem; right: 0.5rem; opacity: 0; transition: opacity 0.2s; }
-.flow-node:hover .step-actions { opacity: 1; }
 
-.loop-container, .branch-container { background: #f8fafc; border: none; border-radius: var(--radius-md); padding: 1rem; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05); }
-.loop-header, .branch-header { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-.loop-header h6, .branch-header h6 { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;}
-.branch-router, .branch-case { background: #fff; border: none; border-radius: var(--radius-md); padding: 0.8rem; margin-bottom: 0.8rem; box-shadow: var(--shadow-sm); }
-.branch-router.active, .branch-case.active, .loop-container.active { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15), var(--shadow-sm); }
+.step-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.flow-node:hover .step-actions {
+  opacity: 1;
+}
+
+.loop-container,
+.branch-container {
+  background: #f8fafc;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.loop-header,
+.branch-header {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.loop-header h6,
+.branch-header h6 {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.branch-router,
+.branch-case {
+  background: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.branch-router.active,
+.branch-case.active,
+.loop-container.active {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15), var(--shadow-sm);
+}
 
 /* Builder: branch & loop as flowchart */
 .canvas-main .branch-container {
@@ -726,61 +1044,192 @@ textarea.parameter-input {
   color: #64748b;
 }
 
-.flow-insert-control { display: flex; justify-content: center; align-items: center; padding: 0.5rem 0; opacity: 0; transition: opacity 0.2s; height: 24px; margin: -12px 0; z-index: 5; position: relative; }
-.flow-canvas:hover .flow-insert-control, .flow-insert-control:hover, .flow-placeholder .flow-insert-control { opacity: 1; }
-.flow-placeholder .flow-insert-control { margin: 0; height: auto; }
-.flow-insert-button { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-subtle); background: #fff; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; box-shadow: var(--shadow-sm); transition: all 0.2s; padding: 0; }
-.flow-insert-button span:not(:first-child) { display: none; }
-.flow-insert-button:hover { background: var(--text-primary); color: #fff; transform: scale(1.1); }
-.flow-placeholder .flow-insert-button { width: auto; height: auto; padding: 0.5rem 1rem; border-radius: 99px; }
-.flow-placeholder .flow-insert-button span:not(:first-child) { display: inline; margin-left: 6px; font-size: 0.85rem;}
+.flow-insert-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+  height: 24px;
+  margin: -12px 0;
+  z-index: 5;
+  position: relative;
+}
 
-.context-breadcrumb .btn { background: #f3f4f6; border: none; color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; }
-.context-breadcrumb .btn-dark { background: var(--text-primary); color: #fff; }
-.code-block, .log-terminal { background: #1e1e1e; color: #d4d4d4; font-family: var(--font-mono); font-size: 0.8rem; padding: 1rem; border-radius: var(--radius-md); overflow-x: auto; }
-.log-terminal { min-height: 150px; max-height: 300px; border: 1px solid #333; }
+.flow-canvas:hover .flow-insert-control,
+.flow-insert-control:hover,
+.flow-placeholder .flow-insert-control {
+  opacity: 1;
+}
 
-.floating-actions { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 0.5rem; border-radius: 99px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; display: flex; align-items: center; }
-.btn-pill { border-radius: 99px; padding: 0.5rem 1.2rem; font-weight: 500; font-size: 0.9rem; }
-.btn-text { border: none; background: transparent; font-weight: 500; font-size: 0.9rem; }
-.btn-ai-gradient { background: var(--gradient-ai); color: white; border: none; }
+.flow-placeholder .flow-insert-control {
+  margin: 0;
+  height: auto;
+}
+
+.flow-insert-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: #fff;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.flow-insert-button span:not(:first-child) {
+  display: none;
+}
+
+.flow-insert-button:hover {
+  background: var(--text-primary);
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.flow-placeholder .flow-insert-button {
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+}
+
+.flow-placeholder .flow-insert-button span:not(:first-child) {
+  display: inline;
+  margin-left: 6px;
+  font-size: 0.85rem;
+}
+
+.context-breadcrumb .btn {
+  background: #f3f4f6;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.context-breadcrumb .btn-dark {
+  background: var(--text-primary);
+  color: #fff;
+}
+
+.code-block,
+.log-terminal {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.log-terminal {
+  min-height: 150px;
+  max-height: 300px;
+  border: 1px solid #333;
+}
+
+.floating-actions {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  padding: 0.5rem;
+  border-radius: 99px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+}
+
+.btn-pill {
+  border-radius: 99px;
+  padding: 0.5rem 1.2rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.btn-text {
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.btn-ai-gradient {
+  background: var(--gradient-ai);
+  color: white;
+  border: none;
+}
 
 .chat-container {
-  /* [修改] 改为 100% 以便让滚动条贴到屏幕最右边 */
-  max-width: 100%; 
-  margin: 0; 
-  
-  /* [保持原样] */
+  /* Change to 100% to make scrollbar stick to right edge of screen */
+  max-width: 100%;
+  margin: 0;
+
+  /* Keep as is */
   width: 100%;
   height: 100%;
-  display: flex; 
+  display: flex;
   flex-direction: column;
-  min-height: 0; 
+  min-height: 0;
 }
 
 #chat-history {
   padding: 2rem max(1rem, calc(50% - 400px));
-  
-  /* [保持原样] */
+
+  /* Keep as is */
   flex: 1;
-  overflow-y: auto; 
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   scroll-behavior: smooth;
 }
-.chat-bubble { max-width: 85%; padding: 0; line-height: 1.6; font-size: 1rem; }
-.chat-bubble.user { align-self: flex-end; background: #f3f4f6; color: #0d0d0d; padding: 0.75rem 1.25rem; border-radius: 20px 20px 4px 20px; }
+
+.chat-bubble {
+  max-width: 85%;
+  padding: 0;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: #f3f4f6;
+  color: #0d0d0d;
+  padding: 0.75rem 1.25rem;
+  border-radius: 20px 20px 4px 20px;
+}
+
 .chat-bubble.assistant {
   align-self: stretch;
   width: 100%;
   max-width: 100%;
   padding-right: 0;
 }
+
 .chat-bubble.assistant .msg-content {
   width: 100%;
 }
-.chat-bubble.assistant::before { content: none; display: none; }
+
+.chat-bubble.assistant::before {
+  content: none;
+  display: none;
+}
+
 .chat-bubble .msg-content {
   font-size: 0.95rem;
   line-height: 1.7;
@@ -788,9 +1237,19 @@ textarea.parameter-input {
   text-align: justify;
   text-align-last: left;
 }
-.chat-bubble .msg-content > :first-child { margin-top: 0; }
-.chat-bubble .msg-content > :last-child { margin-bottom: 0; }
-.chat-bubble .msg-content p { margin: 0 0 0.85rem; }
+
+.chat-bubble .msg-content> :first-child {
+  margin-top: 0;
+}
+
+.chat-bubble .msg-content> :last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble .msg-content p {
+  margin: 0 0 0.85rem;
+}
+
 .chat-bubble .msg-content h1,
 .chat-bubble .msg-content h2,
 .chat-bubble .msg-content h3,
@@ -802,16 +1261,33 @@ textarea.parameter-input {
   color: #0f172a;
   line-height: 1.3;
 }
-.chat-bubble .msg-content h1 { font-size: 1.4rem; }
-.chat-bubble .msg-content h2 { font-size: 1.25rem; }
-.chat-bubble .msg-content h3 { font-size: 1.15rem; }
-.chat-bubble .msg-content h4 { font-size: 1.05rem; }
+
+.chat-bubble .msg-content h1 {
+  font-size: 1.4rem;
+}
+
+.chat-bubble .msg-content h2 {
+  font-size: 1.25rem;
+}
+
+.chat-bubble .msg-content h3 {
+  font-size: 1.15rem;
+}
+
+.chat-bubble .msg-content h4 {
+  font-size: 1.05rem;
+}
+
 .chat-bubble .msg-content ul,
 .chat-bubble .msg-content ol {
   margin: 0 0 1rem 1.25rem;
   padding-left: 0.25rem;
 }
-.chat-bubble .msg-content li { margin: 0.2rem 0; }
+
+.chat-bubble .msg-content li {
+  margin: 0.2rem 0;
+}
+
 .chat-bubble .msg-content code {
   font-family: var(--font-mono);
   font-size: 0.85rem;
@@ -819,8 +1295,9 @@ textarea.parameter-input {
   border-radius: 6px;
   padding: 0.15rem 0.35rem;
 }
+
 /* ChatGPT-style Code Block Container */
-/* ChatGPT-style Code Block - 通用选择器 */
+/* ChatGPT-style Code Block - universal selector */
 .code-block-wrapper {
   position: relative;
   margin: 0 0 1rem;
@@ -848,7 +1325,7 @@ textarea.parameter-input {
   font-family: var(--font-mono);
 }
 
-/* 保留原有的具体选择器以确保优先级 */
+/* Keep original specific selectors to ensure priority */
 .chat-bubble .msg-content .code-block-wrapper {
   position: relative;
   margin: 0 0 1rem;
@@ -941,7 +1418,7 @@ textarea.parameter-input {
   border-radius: 0;
 }
 
-/* Chat 原文复制按钮（正文后、引用前） */
+/* Chat original text copy button (after body text, before citations) */
 .chat-copy-row {
   display: flex;
   justify-content: flex-start;
@@ -1064,11 +1541,12 @@ textarea.parameter-input {
 }
 
 /* Standalone pre (no wrapper) fallback */
-.chat-bubble .msg-content > pre:not(.code-block-wrapper pre) {
+.chat-bubble .msg-content>pre:not(.code-block-wrapper pre) {
   border-radius: 8px;
   border: 1px solid #e5e5e5;
   margin: 0 0 1rem;
 }
+
 .chat-bubble .msg-content blockquote {
   margin: 0 0 1rem;
   padding-left: 1rem;
@@ -1076,50 +1554,119 @@ textarea.parameter-input {
   color: var(--text-secondary);
   font-style: italic;
 }
+
 .chat-bubble .msg-content hr {
   border: none;
   border-top: 1px solid #e5e7eb;
   margin: 1.2rem 0;
 }
+
 .chat-input-wrapper {
-  /* [新增] 确保输入框居中 */
+  /* Ensure input box is centered */
   display: flex;
   justify-content: center;
-  
-  /* [保持原样 - 这里的背景色千万不能丢] */
+
+  /* Keep as is - background color here must not be lost */
   padding: 0 1rem 2rem 1rem;
-  flex-shrink: 0; 
-  background: #fff; /* <--- 之前丢失的就是这个！ */
+  flex-shrink: 0;
+  background: #fff;
+  /* <--- This was what was lost before! */
   z-index: 10;
   width: 100%;
 }
+
 .chat-input-container {
-  /* [新增] 限制输入框最大宽度，与气泡对齐 */
+  /* Limit input box max width, align with bubbles */
   width: 100%;
   max-width: 800px;
-  
-  /* [保持原样] */
+
+  /* Keep as is */
   background: #f4f4f4;
   border-radius: 30px;
   padding: 0.5rem;
   display: flex;
   align-items: center;
-  transition: background 0.2s, box-shadow 0.2s; border: 1px solid transparent;
+  transition: background 0.2s, box-shadow 0.2s;
+  border: 1px solid transparent;
 }
-.chat-input-container:focus-within { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: var(--border-subtle); }
-.chat-input { background: transparent; border: none; padding: 0.6rem 1rem; font-size: 1rem; box-shadow: none !important; }
-.btn-send { width: 40px; height: 40px; border-radius: 50%; background: var(--text-primary); color: #fff; border: none; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; }
-.btn-send:disabled { opacity: 0.5; }
+
+.chat-input-container:focus-within {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-subtle);
+}
+
+.chat-input {
+  background: transparent;
+  border: none;
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  box-shadow: none !important;
+}
+
+.btn-send {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.btn-send:disabled {
+  opacity: 0.5;
+}
 
 /* Modals */
-.step-editor-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1050; backdrop-filter: blur(4px); }
-.step-editor-modal:not([hidden]) { display: flex; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out; }
-.step-editor-content { background: #ffffff; border-radius: var(--radius-md); padding: 2rem; width: 600px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+.step-editor-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+  backdrop-filter: blur(4px);
+}
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+.step-editor-modal:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.step-editor-content {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
 
 
 /* Chat View Layout - Horizontal Split */
@@ -1142,50 +1689,54 @@ textarea.parameter-input {
 }
 
 .sidebar-header {
-  padding: 1.2rem 0.8rem; 
+  padding: 1.2rem 0.8rem;
 }
 
-/* 修改后：透明、无边框 (Clean Style) */
+/* Modified: transparent, no border (Clean Style) */
 .btn-new-chat {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
-  /* [核心修改] 去掉背景和边框，使其融入侧边栏 */
-  background: transparent; 
-  border: 1px solid transparent; 
-  
-  border-radius: 8px; /* 改小圆角，或者保持 99px 也可以，看你喜好，推荐 8px 更像菜单项 */
+
+  /* Core change: remove background and border to blend into sidebar */
+  background: transparent;
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+  /* Smaller border radius, or keep 99px, 8px recommended for menu-like appearance */
   padding: 0.6rem 0.8rem;
   font-size: 0.9rem;
   color: var(--text-primary);
   transition: all 0.2s;
-  box-shadow: none; /* 去掉阴影 */
-  justify-content: flex-start; 
+  box-shadow: none;
+  /* Remove shadow */
+  justify-content: flex-start;
 }
 
-/* [修改] 悬停效果：只在鼠标放上去时显示浅灰色背景 */
+/* Hover effect: only show light gray background on mouse hover */
 .btn-new-chat:hover {
-  background: rgba(0, 0, 0, 0.05); /* 淡淡的灰色 */
+  background: rgba(0, 0, 0, 0.05);
+  /* Light gray */
   border-color: transparent;
   box-shadow: none;
 }
 
-/* [保持] 激活状态 (Knowledge Base 被选中时) */
+/* Active state (when Knowledge Base is selected) */
 .btn-new-chat.active {
-  background: #e0e7ff;       
-  color: var(--accent-blue); 
-  border-color: transparent; /* 去掉边框 */
+  background: #e0e7ff;
+  color: var(--accent-blue);
+  border-color: transparent;
+  /* Remove border */
   font-weight: 600;
 }
 
-.btn-new-chat .icon { 
-  font-size: 1.1rem; 
-  line-height: 1; 
-  font-weight: 400; 
-  /* [新增] 固定图标宽度，保证对齐 */
-  width: 20px; 
+.btn-new-chat .icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  font-weight: 400;
+  /* Fix icon width to ensure alignment */
+  width: 20px;
   text-align: center;
 }
 
@@ -1199,7 +1750,8 @@ textarea.parameter-input {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin: 1rem 16px 0.5rem 16px; /* 统一左侧 margin 为 16px */
+  margin: 1rem 16px 0.5rem 16px;
+  /* Unify left margin to 16px */
   text-transform: uppercase;
 }
 
@@ -1207,7 +1759,7 @@ textarea.parameter-input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 左侧 20px 对齐标题，右侧 16px 对齐删除按钮 */
+  /* Left 20px align title, right 16px align delete button */
   padding: 0.8rem 16px 0.5rem 20px;
 }
 
@@ -1240,12 +1792,12 @@ textarea.parameter-input {
   background: rgba(220, 53, 69, 0.1);
 }
 
-/* Chat Session Bar - 类似 AI 助手的 Recent 标题栏 */
+/* Chat Session Bar - similar to AI assistant Recent title bar */
 .chat-session-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* 与 btn-nav 的左侧 padding 对齐：btn-nav 有 icon(20px) + gap(10px) 的偏移 */
+  /* Align with btn-nav left padding: btn-nav has icon(20px) + gap(10px) offset */
   padding: 12px 12px 12px 20px;
   margin-top: 8px;
 }
@@ -1288,7 +1840,11 @@ textarea.parameter-input {
   color: #ef4444;
 }
 
-.session-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
 
 /* Session Item */
 .chat-session-item {
@@ -1348,8 +1904,15 @@ textarea.parameter-input {
   color: #ef4444;
 }
 
-.chat-session-item:hover { background: rgba(0, 0, 0, 0.05); }
-.chat-session-item.active { background-color: #e0e7ff; color: var(--accent-blue); font-weight: 500; }
+.chat-session-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.chat-session-item.active {
+  background-color: #e0e7ff;
+  color: var(--accent-blue);
+  font-weight: 500;
+}
 
 .sidebar-footer {
   padding: 1rem;
@@ -1369,7 +1932,11 @@ textarea.parameter-input {
   border-radius: 6px;
   text-decoration: none;
 }
-.btn-sidebar-action:hover { background: #eef0f2; color: var(--text-primary); }
+
+.btn-sidebar-action:hover {
+  background: #eef0f2;
+  color: var(--text-primary);
+}
 
 /* Main Chat Area Adjustment */
 .chat-main {
@@ -1378,8 +1945,8 @@ textarea.parameter-input {
   flex-direction: column;
   position: relative;
   background: #fff;
-  min-width: 0; 
-  /* [新增] 确保高度被限制，并处理溢出 */
+  min-width: 0;
+  /* Ensure height is limited and handle overflow */
   height: 100%;
   overflow: hidden;
 }
@@ -1388,15 +1955,22 @@ textarea.parameter-input {
 @media (max-width: 768px) {
   .chat-sidebar {
     position: absolute;
-    left: 0; top: 0; bottom: 0;
+    left: 0;
+    top: 0;
+    bottom: 0;
     z-index: 2050;
     transform: translateX(-100%);
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   }
-  .chat-sidebar.show { transform: translateX(0); }
-  
+
+  .chat-sidebar.show {
+    transform: translateX(0);
+  }
+
   /* Override header for mobile */
-  .chat-main .view-header { padding-left: 1rem; }
+  .chat-main .view-header {
+    padding-left: 1rem;
+  }
 }
 
 /* --- Pipeline Selector (GPT Style) --- */
@@ -1411,11 +1985,14 @@ textarea.parameter-input {
   color: var(--text-primary);
   transition: background 0.2s;
 }
-.btn-pipeline-select:hover, .btn-pipeline-select:focus {
+
+.btn-pipeline-select:hover,
+.btn-pipeline-select:focus {
   background-color: #f0f0f0;
-  border: none; 
+  border: none;
   outline: none;
 }
+
 .btn-pipeline-select::after {
   margin-left: 0.5rem;
   opacity: 0.4;
@@ -1432,35 +2009,42 @@ textarea.parameter-input {
   align-items: center;
   margin-bottom: 2px;
 }
+
 #chat-pipeline-menu .dropdown-item.active {
-  background-color: #f9f9f9; /* 浅色背景而非深蓝 */
+  background-color: #f9f9f9;
+  /* Light background instead of dark blue */
   color: var(--text-primary);
 }
+
 #chat-pipeline-menu .dropdown-item:hover {
   background-color: #f3f3f3;
 }
-/* 选中时的对勾 */
+
+/* Checkmark when selected */
 #chat-pipeline-menu .dropdown-item.active::after {
   content: '✓';
   color: var(--text-primary);
   font-weight: bold;
 }
 
-/* --- 优化 Pipeline 下拉菜单 (限制高度 + 滚动) --- */
+/* --- Optimize Pipeline dropdown menu (limit height + scroll) --- */
 
-/* [修改] 同时选中 Builder 界面和 Chat 界面的下拉菜单 */
+/* Select dropdown menus for both Builder and Chat interfaces */
 #pipeline-menu,
 #chat-pipeline-menu {
-  /* 1. 限制高度 */
-  max-height: 320px;  /* 限制最大高度，超过这个高度就截断 */
-  overflow-y: auto;   /* 开启垂直滚动 */
-  
-  /* 2. 防止滚动穿透 */
-  overscroll-behavior: contain; 
-  
-  /* 3. 视觉微调 */
+  /* 1. Limit height */
+  max-height: 320px;
+  /* Limit max height, truncate if exceeded */
+  overflow-y: auto;
+  /* Enable vertical scroll */
+
+  /* 2. Prevent scroll penetration */
+  overscroll-behavior: contain;
+
+  /* 3. Visual fine-tuning */
   padding-right: 4px;
 }
+
 .pipeline-menu-item {
   display: flex;
   align-items: center;
@@ -1477,7 +2061,7 @@ textarea.parameter-input {
   flex-shrink: 0;
 }
 
-/* 针对滚动条的美化 (同时应用于两个菜单) */
+/* Scrollbar styling (applied to both menus) */
 #pipeline-menu::-webkit-scrollbar,
 #chat-pipeline-menu::-webkit-scrollbar {
   width: 6px;
@@ -1485,7 +2069,7 @@ textarea.parameter-input {
 
 #pipeline-menu::-webkit-scrollbar-track,
 #chat-pipeline-menu::-webkit-scrollbar-track {
-  background: transparent; 
+  background: transparent;
   margin: 4px 0;
 }
 
@@ -1500,9 +2084,9 @@ textarea.parameter-input {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
-/* --- 发送按钮样式 --- */
+/* --- Send button styles --- */
 
-/* 发送图标包装器 */
+/* Send icon wrapper */
 .send-icon-wrapper {
   display: flex;
   align-items: center;
@@ -1511,16 +2095,17 @@ textarea.parameter-input {
   height: 100%;
 }
 
-/* 停止按钮状态 - 类似通义千问的圆形停止按钮 */
+/* Stop button state - similar to Tongyi Qianwen circular stop button */
 .btn-send.stop {
   background-color: #1a1a1a !important;
   transform: scale(1);
 }
+
 .btn-send.stop:hover {
   background-color: #333 !important;
 }
 
-/* 停止图标 (圆角正方形) */
+/* Stop icon (rounded square) */
 .icon-stop {
   display: inline-block;
   width: 14px;
@@ -1531,26 +2116,33 @@ textarea.parameter-input {
 }
 
 @keyframes pulseStop {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
-/* --- 思考过程 (Thought Process) 样式 --- */
-/* 去线框化设计 + 毛玻璃效果 (Glassmorphism) */
+/* --- Thought Process styles --- */
+/* Borderless design + glassmorphism effect */
 .process-container {
   margin: 0.75rem 0;
   border-radius: 18px;
-  /* 毛玻璃效果：半透明白色背景 + 模糊 */
+  /* Glassmorphism effect: semi-transparent white background + blur */
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  /* 去线框化：移除硬边框，使用柔和阴影 */
+  /* Borderless: remove hard borders, use soft shadows */
   border: none;
   font-family: 'Inter', 'JetBrains Mono', monospace;
   font-size: 0.84rem;
   overflow: hidden;
-  /* 多层柔和阴影，增加层次感 */
-  box-shadow: 
+  /* Multi-layer soft shadows for depth */
+  box-shadow:
     0 4px 16px rgba(15, 23, 42, 0.04),
     0 8px 32px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -1558,7 +2150,7 @@ textarea.parameter-input {
 }
 
 .process-container:hover {
-  box-shadow: 
+  box-shadow:
     0 6px 20px rgba(15, 23, 42, 0.06),
     0 12px 40px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
@@ -1566,7 +2158,7 @@ textarea.parameter-input {
 
 .process-header {
   padding: 0.9rem 1.25rem;
-  /* 半透明渐变背景 */
+  /* Semi-transparent gradient background */
   background: linear-gradient(135deg, rgba(248, 250, 252, 0.85) 0%, rgba(241, 245, 249, 0.75) 100%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1606,11 +2198,11 @@ textarea.parameter-input {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  /* 柔和的分隔线替代硬边框 */
+  /* Soft divider instead of hard border */
   border-top: 1px solid rgba(226, 232, 240, 0.5);
   max-height: 360px;
   overflow-y: auto;
-  /* 毛玻璃效果 */
+  /* Glassmorphism effect */
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -1624,11 +2216,11 @@ textarea.parameter-input {
   flex: 1;
 }
 
-/* Chevron 图标样式与流畅旋转动画 */
+/* Chevron icon style with smooth rotation animation */
 .process-chevron {
   flex-shrink: 0;
   opacity: 0.5;
-  transition: 
+  transition:
     transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.2s ease;
 }
@@ -1637,7 +2229,7 @@ textarea.parameter-input {
   opacity: 0.8;
 }
 
-/* 展开时旋转 180° */
+/* Rotate 180° when expanded */
 .process-container:not(.collapsed) .process-chevron {
   transform: rotate(180deg);
   opacity: 0.7;
@@ -1664,7 +2256,7 @@ textarea.parameter-input {
   margin-bottom: 0.25rem;
 }
 
-/* [增强] 思考过程流式内容的显示 */
+/* Enhanced: Thought process streaming content display */
 .step-content-stream {
   display: block;
   font-size: 0.82rem;
@@ -1678,9 +2270,9 @@ textarea.parameter-input {
 }
 
 .step-content-stream span {
-  background: transparent; 
-  color: #4b5563; 
-  font-family: 'JetBrains Mono', monospace; 
+  background: transparent;
+  color: #4b5563;
+  font-family: 'JetBrains Mono', monospace;
 }
 
 .step-details {
@@ -1688,125 +2280,133 @@ textarea.parameter-input {
   font-size: 0.78rem;
   color: #475569;
   white-space: pre-wrap;
-  /* 毛玻璃效果的详情卡片 */
+  /* Glassmorphism detail card */
   background: rgba(248, 250, 252, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   padding: 0.6rem 0.85rem;
   border-radius: 10px;
-  /* 去线框化：使用内阴影替代边框 */
+  /* Borderless: use inner shadow instead of border */
   border: none;
-  box-shadow: 
+  box-shadow:
     inset 0 1px 2px rgba(148, 163, 184, 0.1),
     0 1px 3px rgba(15, 23, 42, 0.04);
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* === 深色模式支持 (Dark Mode) === */
+/* === Dark Mode Support === */
 @media (prefers-color-scheme: dark) {
   .process-container {
     background: rgba(30, 41, 59, 0.75);
-    box-shadow: 
+    box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.15),
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
-  
+
   .process-container:hover {
-    box-shadow: 
+    box-shadow:
       0 6px 20px rgba(0, 0, 0, 0.2),
       0 12px 40px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
-  
+
   .process-header {
     background: linear-gradient(135deg, rgba(51, 65, 85, 0.85) 0%, rgba(30, 41, 59, 0.75) 100%);
     color: #f1f5f9;
   }
-  
+
   .process-header:hover {
     background: linear-gradient(135deg, rgba(71, 85, 105, 0.9) 0%, rgba(51, 65, 85, 0.8) 100%);
   }
-  
+
   .process-chevron {
     opacity: 0.45;
   }
-  
+
   .process-header:hover .process-chevron {
     opacity: 0.75;
   }
-  
+
   .process-container:not(.collapsed) .process-chevron {
     opacity: 0.65;
   }
-  
+
   .process-header::before {
     background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
     box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15), 0 2px 8px rgba(59, 130, 246, 0.3);
   }
-  
+
   .process-body {
     background: rgba(30, 41, 59, 0.65);
     border-top-color: rgba(71, 85, 105, 0.4);
   }
-  
+
   .process-step {
     border-left-color: rgba(71, 85, 105, 0.6);
   }
-  
+
   .process-step:hover {
     border-left-color: rgba(96, 165, 250, 0.5);
   }
-  
+
   .step-title {
     color: #f1f5f9;
   }
-  
+
   .step-content-stream {
     color: #cbd5e1;
     border-left-color: rgba(71, 85, 105, 0.5);
   }
-  
+
   .step-content-stream span {
     color: #94a3b8;
   }
-  
+
   .step-details {
     background: rgba(51, 65, 85, 0.7);
     color: #94a3b8;
-    box-shadow: 
+    box-shadow:
       inset 0 1px 2px rgba(0, 0, 0, 0.15),
       0 1px 3px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* 动画 Spinner */
+/* Animated Spinner */
 .step-spinner {
   display: inline-block;
-  width: 12px; height: 12px;
+  width: 12px;
+  height: 12px;
   border: 2px solid #2563eb;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-/* 主消息内容容器 (防止样式冲突) */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Main message content container (prevent style conflicts) */
 .msg-content {
   line-height: 1.6;
 }
 
 
-/* --- 引用溯源 (Source Attribution) 样式 --- */
+/* --- Source Attribution styles --- */
 
-/* 1. 参考资料容器 */
+/* 1. Reference materials container */
 .reference-container {
   margin-top: 0.8rem;
   padding-top: 0.8rem;
   border-top: 1px solid #e5e5e5;
   font-size: 0.85rem;
-  background-color: #fff; /* 确保背景干净 */
-  border-radius: 0 0 4px 20px; /* 配合气泡圆角 */
+  background-color: #fff;
+  /* Ensure clean background */
+  border-radius: 0 0 4px 20px;
+  /* Match bubble border radius */
 }
 
 .ref-header {
@@ -1821,7 +2421,7 @@ textarea.parameter-input {
   gap: 0.4rem;
 }
 
-/* 2. 参考列表 */
+/* 2. Reference list */
 .ref-list {
   display: flex;
   flex-direction: column;
@@ -1829,10 +2429,11 @@ textarea.parameter-input {
   width: 100%;
 }
 
-/* 单个参考项 */
+/* Single reference item */
 .ref-item {
   display: flex;
-  align-items: flex-start; /* 顶部对齐 */
+  align-items: flex-start;
+  /* Top align */
   gap: 0.6rem;
   padding: 6px 8px;
   background: #f9fafb;
@@ -1846,11 +2447,12 @@ textarea.parameter-input {
 }
 
 .ref-item:hover {
-  background: #eff6ff; /* 悬浮变蓝 */
+  background: #eff6ff;
+  /* Hover turns blue */
   border-color: #bfdbfe;
 }
 
-/* 编号 [1] */
+/* Number [1] */
 .ref-id {
   color: #2563eb;
   font-weight: bold;
@@ -1864,28 +2466,33 @@ textarea.parameter-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1; /* 占据剩余空间 */
-  min-width: 0; /* 允许flex子元素缩小 */
+  flex: 1;
+  /* Take remaining space */
+  min-width: 0;
+  /* Allow flex child to shrink */
   font-size: 0.85rem;
   color: #4b5563;
   word-break: normal;
 }
 
-/* [合并与增强] 引用角标样式 */
-/* 删除之前的 .citation-link 定义，只保留这个增强版 */
+/* Merged and enhanced citation link styles */
+/* Delete previous .citation-link definition, keep only this enhanced version */
 .citation-link {
   color: #2563eb;
   font-weight: 600;
   cursor: pointer;
   margin: 0 2px;
-  font-size: 0.85em; /* 稍微大一点点更清晰 */
+  font-size: 0.85em;
+  /* Slightly larger for clarity */
   background: rgba(37, 99, 235, 0.08);
-  padding: 1px 5px; /* 加宽一点 */
+  padding: 1px 5px;
+  /* Widen a bit */
   border-radius: 4px;
   vertical-align: 1px;
   transition: all 0.2s;
   border: 1px solid transparent;
 }
+
 .citation-link:hover {
   background: #2563eb;
   color: #fff;
@@ -1894,12 +2501,17 @@ textarea.parameter-input {
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
-/* --- 引用交互样式 --- */
+/* --- Citation interaction styles --- */
 
-/* 1. 闪烁动画 (点击角标后，对应的文档卡片闪烁一下) */
+/* 1. Flash animation (document card flashes when citation link is clicked) */
 @keyframes flash-highlight {
-  0% { background-color: rgba(37, 99, 235, 0.3); }
-  100% { background-color: #f9fafb; }
+  0% {
+    background-color: rgba(37, 99, 235, 0.3);
+  }
+
+  100% {
+    background-color: #f9fafb;
+  }
 }
 
 .ref-item.active-highlight {
@@ -1915,7 +2527,8 @@ textarea.parameter-input {
    ========================================= */
 
 .chat-detail-sidebar {
-  width: 0; /* 默认收起 */
+  width: 0;
+  /* Collapsed by default */
   background-color: #ffffff;
   border-left: 1px solid var(--border-subtle);
   display: flex;
@@ -1923,24 +2536,29 @@ textarea.parameter-input {
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   flex-shrink: 0;
-  
-  /* [修改] 增加更明显的阴影，营造悬浮层级感 */
-  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
-  z-index: 100; /* 确保在最上层 */
+
+  /* Add more prominent shadow for floating layer effect */
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  /* Ensure on top layer */
 }
 
-/* 展开状态 */
+/* Expanded state */
 .chat-detail-sidebar.show {
-  width: 450px; /* [修改] 稍微加宽一点，阅读体验更好 */
+  width: 450px;
+  /* Slightly wider for better reading experience */
 }
 
 .detail-header {
-  padding: 1.2rem 1.5rem; /* [修改] 增加头部高度 */
-  border-bottom: 1px solid #f3f4f6; /* 更淡的分割线 */
+  padding: 1.2rem 1.5rem;
+  /* Increase header height */
+  border-bottom: 1px solid #f3f4f6;
+  /* Lighter divider */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #ffffff; /* [修改] 纯白背景更干净 */
+  background: #ffffff;
+  /* Pure white background for cleaner look */
 }
 
 .detail-title {
@@ -1948,34 +2566,42 @@ textarea.parameter-input {
   font-weight: 600;
   margin: 0;
   color: var(--text-primary);
-  /* 移除截断限制，允许显示完整标题 */
+  /* Remove truncation limit, allow full title display */
   word-wrap: break-word;
   word-break: break-word;
-  flex: 1; /* 占据剩余空间 */
-  min-width: 0; /* 允许flex子元素缩小并换行 */
-  padding-right: 1rem; /* 与关闭按钮保持间距 */
-  line-height: 1.5; /* 增加行高，多行显示更美观 */
+  flex: 1;
+  /* Take remaining space */
+  min-width: 0;
+  /* Allow flex child to shrink and wrap */
+  padding-right: 1rem;
+  /* Keep spacing with close button */
+  line-height: 1.5;
+  /* Increase line height for better multi-line display */
 }
 
-/* --- 内容区域 (核心阅读优化) --- */
+/* --- Content area (core reading optimization) --- */
 .detail-content {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem 2.5rem; /* [修改] 像 A4 纸一样的宽敞留白 */
-  
-  /* [关键修改] 去掉 pre-wrap，让 HTML 标签控制排版 */
-  white-space: normal; 
+  padding: 2rem 2.5rem;
+  /* Spacious padding like A4 paper */
+
+  /* Key change: remove pre-wrap, let HTML tags control layout */
+  white-space: normal;
   word-wrap: break-word;
-  
-  /* 字体优化 */
+
+  /* Font optimization */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 1rem;      /* 字号加大 */
-  line-height: 1.75;    /* 行高加大，呼吸感 */
-  color: #374151;       /* 深灰字色，对比度适中 */
+  font-size: 1rem;
+  /* Larger font size */
+  line-height: 1.75;
+  /* Increased line height for breathing space */
+  color: #374151;
+  /* Dark gray text, moderate contrast */
   background-color: #fff;
 }
 
-/* --- 引用文档标题样式 (新增) --- */
+/* --- Reference document title styles (new) --- */
 .source-doc-title {
   font-weight: 600;
   font-size: 1.1rem;
@@ -1986,25 +2612,28 @@ textarea.parameter-input {
   line-height: 1.5;
 }
 
-/* --- Markdown 元素样式 (新增) --- */
-/* 因为现在我们渲染 HTML 了，必须给标签加样式 */
+/* --- Markdown element styles (new) --- */
+/* Since we now render HTML, must add styles to tags */
 
 .detail-content p {
-  margin-bottom: 1.5em; /* 段落间距 */
-  text-align: left;     /* 保持左对齐，阅读更轻松 */
+  margin-bottom: 1.5em;
+  /* Paragraph spacing */
+  text-align: left;
+  /* Keep left align for easier reading */
 }
 
-.detail-content h1, 
-.detail-content h2, 
+.detail-content h1,
+.detail-content h2,
 .detail-content h3 {
   margin-top: 1.8em;
   margin-bottom: 0.8em;
   font-weight: 700;
-  color: #111827; /* 标题用纯黑 */
+  color: #111827;
+  /* Pure black for titles */
   line-height: 1.3;
 }
 
-.detail-content ul, 
+.detail-content ul,
 .detail-content ol {
   margin-bottom: 1.5em;
   padding-left: 1.5em;
@@ -2020,21 +2649,23 @@ textarea.parameter-input {
   color: #111827;
 }
 
-/* 引用块优化 */
+/* Blockquote optimization */
 .detail-content blockquote {
   border-left: 4px solid #e5e7eb;
   padding-left: 1rem;
   margin: 1.5rem 0;
   color: #6b7280;
   font-style: italic;
-  background: #f9fafb; /* 淡淡的背景 */
+  background: #f9fafb;
+  /* Light background */
   padding: 1rem;
   border-radius: 0 8px 8px 0;
 }
 
-/* 代码块优化 */
+/* Code block optimization */
 .detail-content pre {
-  background: #1e1e1e; /* 深色背景代码块，对比明显 */
+  background: #1e1e1e;
+  /* Dark background code block for clear contrast */
   color: #e5e5e5;
   padding: 1rem;
   border-radius: 8px;
@@ -2050,29 +2681,36 @@ textarea.parameter-input {
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-size: 0.85em;
-  color: #c2410c; /* 橙红色高亮行内代码 */
+  color: #c2410c;
+  /* Orange-red highlight for inline code */
 }
 
-/* 针对移动端的适配 */
+/* Mobile adaptation */
 @media (max-width: 992px) {
   .chat-detail-sidebar.show {
     position: absolute;
-    right: 0; top: 0; bottom: 0;
-    width: 90%; /* 移动端占宽一点 */
-    box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 90%;
+    /* Mobile takes more width */
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
     z-index: 2060;
   }
+
   .detail-content {
-    padding: 1.5rem; /* 移动端留白减小 */
+    padding: 1.5rem;
+    /* Reduce padding on mobile */
   }
 }
 
-/* [保留] 引用分组样式 (配合 main.js 的 ref-group) */
+/* Reference group styles (works with main.js ref-group) */
 .ref-group {
   margin-bottom: 0.8rem;
   padding-bottom: 0.8rem;
   border-bottom: 1px dashed #e5e7eb;
 }
+
 .ref-group:last-child {
   border-bottom: none;
   margin-bottom: 0;
@@ -2088,9 +2726,10 @@ textarea.parameter-input {
   padding-left: 4px;
 }
 
-/* 未被引用的文档 */
+/* Unreferenced documents */
 .ref-item.unused {
-  opacity: 0.6; /* 稍微提高一点透明度，别太淡 */
+  opacity: 0.6;
+  /* Slightly increase opacity, not too faint */
   background-color: #f8fafc;
   border-color: transparent;
   order: 10;
@@ -2102,14 +2741,15 @@ textarea.parameter-input {
   border-color: #e2e8f0;
 }
 
-/* 被引用的文档 */
+/* Referenced documents */
 .ref-item.used {
   border-left: 3px solid #2563eb;
   background-color: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* 加一点微阴影 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  /* Add subtle shadow */
 }
 
-/* 未使用的引用折叠区域 */
+/* Unused references collapsed section */
 .unused-refs-section {
   margin-top: 0.6rem;
   border-top: 1px dashed #e5e5e5;
@@ -2161,37 +2801,44 @@ textarea.parameter-input {
    Knowledge Base (KB) Manager Styles
    ========================================= */
 
-/* 知识库主视图容器 (复用 chat-main 的大部分属性) */
+/* Knowledge base main view container (reuses most properties from chat-main) */
 .kb-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden; /* 关键：防止双重滚动条 */
+  overflow: hidden;
+  /* Key: prevent double scrollbar */
   background-color: #fcfcfc;
 }
 
 .kb-wrapper {
   flex: 1;
-  display: flex;        /* 关键：启用 Flex */
+  display: flex;
+  /* Key: enable Flex */
   flex-direction: column;
-  min-height: 0;        /* 关键：允许子元素小于内容高度 (防止 Flex 溢出) */
-  padding: 1.5rem;      /* 保持你的 Padding */
-  overflow: hidden;     /* 自身不滚动 */
+  min-height: 0;
+  /* Key: allow child elements smaller than content height (prevent Flex overflow) */
+  padding: 1.5rem;
+  /* Keep your Padding */
+  overflow: hidden;
+  /* Self does not scroll */
 }
 
 .kb-container {
   flex: 1;
-  overflow-y: auto;     /* 开启垂直滚动 */
+  overflow-y: auto;
+  /* Enable vertical scroll */
   overflow-x: hidden;
-  padding-right: 5px;   /* 防止滚动条盖住内容 */
-  
-  /* 优化滚动体验 */
+  padding-right: 5px;
+  /* Prevent scrollbar covering content */
+
+  /* Optimize scroll experience */
   scroll-behavior: smooth;
 }
 
 
-/* 1. 主卡片容器 */
+/* 1. Main card container */
 .apple-card {
   background: #ffffff;
   border: 1px solid var(--border-subtle);
@@ -2199,10 +2846,11 @@ textarea.parameter-input {
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   max-width: 1100px;
-  margin: 0 auto;       /* 移除上下 margin，防止滚动条顶部有空隙 */
-  
-  /* [核心修复] 解锁高度，让它被垂直布局的内容撑开 */
-  height: auto !important; 
+  margin: 0 auto;
+  /* Remove top/bottom margin to prevent gap at top of scrollbar */
+
+  /* Core fix: unlock height, let it be expanded by vertically laid out content */
+  height: auto !important;
   min-height: auto !important;
   display: flex;
   flex-direction: column;
@@ -2227,7 +2875,8 @@ textarea.parameter-input {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 0; /* 极简模式，几乎没有内边距，像文字一样 */
+  padding: 4px 0;
+  /* Minimal mode, almost no padding, like text */
   border: none;
   background: transparent;
   color: #0f172a;
@@ -2247,7 +2896,8 @@ textarea.parameter-input {
 }
 
 .kb-conn-dot.connected {
-  background: #10b981; /* Green-500 */
+  background: #10b981;
+  /* Green-500 */
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
@@ -2273,56 +2923,64 @@ textarea.parameter-input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* 仅 Hover 时显示 URI，或者直接一直显示但颜色很淡 */
-  opacity: 0; 
+  /* Only show URI on hover, or always show but very light color */
+  opacity: 0;
   transition: opacity 0.2s;
 }
 
 .kb-connection-group:hover .kb-conn-uri {
-    opacity: 1;
+  opacity: 1;
 }
 
-/* 2. 三栏布局 */
+/* 2. Three-column layout */
 .kb-columns {
   display: flex;
-  gap: 16px; /* 列间距 */
+  gap: 16px;
+  /* Column spacing */
   width: 100%;
-  height: 100%; /* 撑满高度 */
+  height: 100%;
+  /* Fill height */
   overflow: hidden;
   padding-bottom: 0;
 }
 
-/* 强制每列平分宽度 */
+/* Force each column to share width equally */
 .pipeline-card {
-  flex: 1; /* 自动平分 */
-  min-width: 0; /* 允许内容压缩 */
+  flex: 1;
+  /* Auto share equally */
+  min-width: 0;
+  /* Allow content compression */
   display: flex;
   flex-direction: column;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  height: 100%; /* 撑满高度 */
+  height: 100%;
+  /* Fill height */
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-/* 覆盖之前可能存在的 .kb-pipeline-grid 样式 */
+/* Override previously existing .kb-pipeline-grid styles */
 .kb-pipeline-grid {
-  display: flex !important; /* 强制改为 Flex */
-  flex-direction: row !important; /* 强制水平排列 */
+  display: flex !important;
+  /* Force to Flex */
+  flex-direction: row !important;
+  /* Force horizontal arrangement */
   gap: 16px;
   height: 100%;
   width: 100%;
   overflow: hidden;
 }
 
-/* 响应式：如果屏幕真的很小，才允许变垂直，但一般弹窗够宽 */
+/* Responsive: only allow vertical when screen is really small, but modal is usually wide enough */
 @media (max-width: 768px) {
   .kb-pipeline-grid {
     flex-direction: column !important;
     height: auto;
     overflow-y: auto;
   }
+
   .pipeline-card {
     min-height: 300px;
   }
@@ -2334,7 +2992,8 @@ textarea.parameter-input {
   color: var(--text-secondary);
   margin-bottom: 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e2e8f0; /* [修改] 增加下划线区分 Header 和列表 */
+  border-bottom: 1px solid #e2e8f0;
+  /* Add underline to distinguish Header and list */
   font-weight: 700;
   letter-spacing: 0.05em;
   padding-left: 4px;
@@ -2347,7 +3006,7 @@ textarea.parameter-input {
   margin-top: 8px;
 }
 
-/* 3. 箭头分隔符 */
+/* 3. Arrow separator */
 .kb-arrow {
   display: flex;
   align-items: center;
@@ -2355,40 +3014,45 @@ textarea.parameter-input {
   color: #cbd5e1;
   font-weight: bold;
   font-size: 1.2rem;
-  height: 24px; /* 限制高度 */
-  margin: -4px 0; /* 拉近上下间距 */
+  height: 24px;
+  /* Limit height */
+  margin: -4px 0;
+  /* Reduce top/bottom spacing */
 }
 
-/* 4. 文件列表项 (Finder 风格: 双行 + 详细信息) */
+/* 4. File list item (Finder style: two lines + detailed info) */
 .file-item {
-  display: block; /* 必须是block才能包裹内容 */
+  display: block;
+  /* Must be block to wrap content */
   background: #fff;
   margin-bottom: 8px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-  /* 移除 padding，由 inner 控制 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  /* Remove padding, controlled by inner */
   padding: 0;
-  overflow: hidden; /* 确保圆角生效 */
+  overflow: hidden;
+  /* Ensure border radius works */
 }
 
 .file-item:hover {
   border-color: #d1d5db;
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
 }
 
 .file-item-inner {
   display: flex;
-  align-items: flex-start; /* 顶部对齐，如果是多行 */
+  align-items: flex-start;
+  /* Top align, if multi-line */
   padding: 10px 12px;
   width: 100%;
   cursor: pointer;
-  /* 确保整个区域可点 */
+  /* Ensure entire area is clickable */
 }
 
-/* 图标容器 */
+/* Icon container */
 .file-icon-wrapper {
   width: 32px;
   height: 32px;
@@ -2400,25 +3064,28 @@ textarea.parameter-input {
   background: #f8fafc;
   border-radius: 6px;
   color: #64748b;
-  margin-top: 2px; /* 视觉微调 */
+  margin-top: 2px;
+  /* Visual fine-tuning */
 }
 
-/* 文件夹图标颜色 */
+/* Folder icon color */
 .file-icon-wrapper svg.text-blue-500 {
-    color: #3b82f6;
+  color: #3b82f6;
 }
 
-/* 信息容器 */
+/* Info container */
 .file-info-wrapper {
   flex: 1;
-  min-width: 0; /* 允许截断 */
+  min-width: 0;
+  /* Allow truncation */
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow: hidden; /* [新增] 必须有，否则 flex 子元素不会截断 */
+  overflow: hidden;
+  /* Must have, otherwise flex child will not truncate */
 }
 
-/* 主标题：文件名 */
+/* Main title: filename */
 .file-title {
   font-weight: 600;
   font-size: 0.9rem;
@@ -2427,23 +3094,27 @@ textarea.parameter-input {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.4;
-  width: 100%; /* [新增] 强制占满容器 */
-  display: block; /* [新增] 确保是块级元素 */
+  width: 100%;
+  /* Force to fill container */
+  display: block;
+  /* Ensure block-level element */
 }
 
-/* 副标题：元数据 */
+/* Subtitle: metadata */
 .file-meta {
   font-size: 0.75rem;
   color: #94a3b8;
   display: flex;
   align-items: center;
   line-height: 1.4;
-  white-space: nowrap; /* [新增] 防止元数据换行 */
-  overflow: hidden;    /* [新增] 超出截断 */
+  white-space: nowrap;
+  /* Prevent metadata wrapping */
+  overflow: hidden;
+  /* Truncate overflow */
   text-overflow: ellipsis;
 }
 
-/* 查看详情链接 (作为文字显示) */
+/* View details link (displayed as text) */
 .meta-link {
   color: #3b82f6;
   font-weight: 500;
@@ -2461,7 +3132,7 @@ textarea.parameter-input {
   text-decoration: underline;
 }
 
-/* 操作区域 */
+/* Action area */
 .file-actions {
   display: flex;
   align-items: center;
@@ -2469,46 +3140,50 @@ textarea.parameter-input {
   gap: 4px;
 }
 
-/* 纯图标删除按钮 */
+/* Icon-only delete button */
 .btn-icon-only {
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    font-size: 1.1rem;
-    line-height: 1;
-    background: transparent;
-    border: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  background: transparent;
+  border: none;
 }
+
 .btn-icon-only:hover {
-    background-color: #fee2e2;
+  background-color: #fee2e2;
 }
 
-/* 文件夹详情列表 */
+/* Folder detail list */
 .folder-file-row {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f1f5f9;
-}
-.folder-file-row:last-child {
-    border-bottom: none;
-}
-.file-row-icon {
-    margin-right: 8px;
-    font-size: 1rem;
-}
-.file-row-name {
-    font-size: 0.85rem;
-    color: #334155;
-    flex: 1;
-    min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-/* 5. 状态通知条 */
+.folder-file-row:last-child {
+  border-bottom: none;
+}
+
+.file-row-icon {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+.file-row-name {
+  font-size: 0.85rem;
+  color: #334155;
+  flex: 1;
+  min-width: 0;
+}
+
+/* 5. Status notification bar */
 .status-bar {
   background: #eff6ff;
   color: #1d4ed8;
@@ -2523,7 +3198,10 @@ textarea.parameter-input {
   font-weight: 500;
   animation: fadeIn 0.3s ease-out;
 }
-.status-bar.hidden { display: none; }
+
+.status-bar.hidden {
+  display: none;
+}
 
 /* Loading Spinner */
 .spinner {
@@ -2535,7 +3213,7 @@ textarea.parameter-input {
   animation: spin 1s linear infinite;
 }
 
-/* 6. Dialog Modal (Milvus 配置弹窗) */
+/* 6. Dialog Modal (Milvus configuration popup) */
 .apple-modal {
   border: none;
   border-radius: 16px;
@@ -2552,41 +3230,57 @@ textarea.parameter-input {
   backdrop-filter: blur(3px);
 }
 
-/* 弹窗打开时的动画 */
+/* Animation when popup opens */
 .apple-modal[open] {
   animation: modal-in 0.3s ease-out;
 }
 
 @keyframes modal-in {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* 滚动条美化 (针对文件列表) */
-.col-list::-webkit-scrollbar { width: 4px; }
-.col-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-.col-list::-webkit-scrollbar-track { background: transparent; }
+/* Scrollbar styling (for file list) */
+.col-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.col-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.col-list::-webkit-scrollbar-track {
+  background: transparent;
+}
 
 
 /* =========================================
    KB Global Config & Collection List Styles (Final)
    ========================================= */
 
-/* 1. DB 状态指示灯（用于底部分割线之上） */
+/* 1. DB status indicator (above bottom divider) */
 .kb-index-section {
-    /* 确保配置按钮和状态灯对齐 */
-    display: flex;
-    flex-direction: column;
+  /* Ensure config button and status light align */
+  display: flex;
+  flex-direction: column;
 }
 
 .kb-index-section .col-header {
-    /* 避免与上面的 col-header 样式冲突，保证字体大小一致 */
-    font-size: 0.75rem; 
+  /* Avoid conflict with col-header style above, ensure consistent font size */
+  font-size: 0.75rem;
 }
 
-/* 2. Collection 列表容器 */
+/* 2. Collection list container */
 .index-grid {
-  /* 使用 Flex 布局代替 Grid，因为 Collection 数量不固定，堆叠更自然 */
+  /* Use Flex layout instead of Grid, since Collection count is variable, stacking is more natural */
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2595,7 +3289,7 @@ textarea.parameter-input {
   overflow-y: auto;
 }
 
-/* 3. 单个 Collection 卡片 */
+/* 3. Single Collection card */
 .index-card-group {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -2610,7 +3304,7 @@ textarea.parameter-input {
   box-shadow: 0 4px 6px rgba(37, 99, 235, 0.05);
 }
 
-/* 4. 集合标签样式 */
+/* 4. Collection tag styles */
 .coll-list {
   display: flex;
   flex-wrap: wrap;
@@ -2619,37 +3313,41 @@ textarea.parameter-input {
 }
 
 .index-card-group .index-icon {
-    font-size: 1.3rem;
-    color: var(--accent-blue);
+  font-size: 1.3rem;
+  color: var(--accent-blue);
 }
 
-/* 5. 模态框修正 */
+/* 5. Modal fixes */
 #db-config-modal .form-text {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 #milvus-dialog .alert strong {
-    font-family: var(--font-mono);
-    color: var(--text-primary);
+  font-family: var(--font-mono);
+  color: var(--text-primary);
 }
 
 .folder-file-row {
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-    font-size: 0.85rem;
-    display: flex;
-    justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+  display: flex;
+  justify-content: space-between;
 }
-.folder-file-row:last-child { border-bottom: none; }
+
+.folder-file-row:last-child {
+  border-bottom: none;
+}
 
 /* Chat Context Selector */
 #chat-collection-select {
   border-color: var(--border-subtle);
   cursor: pointer;
   padding-left: 12px;
-  padding-right: 32px; /* 留出箭头空间 */
+  padding-right: 32px;
+  /* Reserve space for arrow */
   font-weight: 500;
   color: var(--text-primary);
   box-shadow: none;
@@ -2667,16 +3365,17 @@ textarea.parameter-input {
 }
 
 /* =========================================
-   通义千问风格 Empty State
+   Tongyi Qianwen Style Empty State
    ========================================= */
 
-/* 空状态时的容器布局 - 让输入框垂直居中偏上 */
+/* Empty state container layout - center input box vertically and slightly up */
 .chat-container.empty-state {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding-bottom: 15vh; /* 整体向上偏移 */
+  padding-bottom: 15vh;
+  /* Overall upward offset */
 }
 
 .chat-container.empty-state #chat-history {
@@ -2692,7 +3391,7 @@ textarea.parameter-input {
   padding-bottom: 1rem;
 }
 
-/* 1. 欢迎语容器 */
+/* 1. Welcome message container */
 .empty-state-wrapper {
   max-width: 800px;
   margin: 0 auto;
@@ -2703,7 +3402,7 @@ textarea.parameter-input {
   padding-bottom: 1rem;
 }
 
-/* 2. 问候语区域 */
+/* 2. Greeting area */
 .greeting-section {
   text-align: center;
   width: 100%;
@@ -2711,7 +3410,7 @@ textarea.parameter-input {
   padding: 0 1rem;
 }
 
-/* 渐变文字 "Hello，UltraRAG" */
+/* Gradient text "Hello, UltraRAG" */
 .greeting-gradient {
   font-size: 2.5rem;
   font-weight: 700;
@@ -2725,7 +3424,7 @@ textarea.parameter-input {
   line-height: 1.3;
 }
 
-/* 3. 建议胶囊 (Chips) 容器 - 输入框下方 */
+/* 3. Suggestion chips container - below input box */
 .suggestion-chips-bottom {
   display: flex;
   flex-wrap: wrap;
@@ -2737,14 +3436,14 @@ textarea.parameter-input {
   margin: 0 auto;
 }
 
-/* 胶囊按钮本体 */
+/* Chip button body */
 .chip-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f0f4f9; 
+  background: #f0f4f9;
   border: 1px solid transparent;
-  border-radius: 16px; 
+  border-radius: 16px;
   padding: 12px 20px;
   font-size: 0.95rem;
   color: #1f1f1f;
@@ -2753,22 +3452,50 @@ textarea.parameter-input {
   font-weight: 500;
 }
 
-/* 分类配色 (更淡、更简约的灰调配色) */
-.chip-analysis { background-color: #f8f7ff !important; color: #6e6b7b !important; }
-.chip-analysis:hover { background-color: #f0eeff !important; border-color: #d9d6fe; }
+/* Category color scheme (lighter, more minimalist gray tones) */
+.chip-analysis {
+  background-color: #f8f7ff !important;
+  color: #6e6b7b !important;
+}
 
-.chip-explain { background-color: #f1f8fe !important; color: #5d707a !important; }
-.chip-explain:hover { background-color: #e2f1fd !important; border-color: #badcfb; }
+.chip-analysis:hover {
+  background-color: #f0eeff !important;
+  border-color: #d9d6fe;
+}
 
-.chip-implement { background-color: #f2f9f6 !important; color: #5c726b !important; }
-.chip-implement:hover { background-color: #e3f3ed !important; border-color: #b7e3d1; }
+.chip-explain {
+  background-color: #f1f8fe !important;
+  color: #5d707a !important;
+}
 
-.chip-insights { background-color: #f9f5f8 !important; color: #7a6673 !important; }
-.chip-insights:hover { background-color: #f4e9f1 !important; border-color: #e9cadf; }
+.chip-explain:hover {
+  background-color: #e2f1fd !important;
+  border-color: #badcfb;
+}
+
+.chip-implement {
+  background-color: #f2f9f6 !important;
+  color: #5c726b !important;
+}
+
+.chip-implement:hover {
+  background-color: #e3f3ed !important;
+  border-color: #b7e3d1;
+}
+
+.chip-insights {
+  background-color: #f9f5f8 !important;
+  color: #7a6673 !important;
+}
+
+.chip-insights:hover {
+  background-color: #f4e9f1 !important;
+  border-color: #e9cadf;
+}
 
 .chip-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .chip-icon {
@@ -2783,16 +3510,18 @@ textarea.parameter-input {
   height: 1.2rem;
 }
 
-/* 移动端适配：字体改小 */
+/* Mobile adaptation: reduce font size */
 @media (max-width: 768px) {
   .greeting-gradient {
     font-size: 1.2rem;
     white-space: normal;
   }
+
   .suggestion-chips-bottom {
     padding: 0.5rem;
     gap: 8px;
   }
+
   .suggestion-chips-bottom .chip-btn {
     padding: 10px 16px;
     font-size: 0.85rem;
@@ -2805,40 +3534,45 @@ textarea.parameter-input {
 
 #chat-history {
   scrollbar-width: thin;
-  /* 平时透明，悬停时或许无法像 Chrome 那样完美变色，但可以设为极浅 */
-  scrollbar-color: transparent transparent; 
-}
-#chat-history:hover {
-  scrollbar-color: rgba(0,0,0,0.15) transparent;
+  /* Usually transparent, hover may not change color perfectly like Chrome, but can be set very light */
+  scrollbar-color: transparent transparent;
 }
 
-/* Chrome, Safari, Edge 适配 */
+#chat-history:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* Chrome, Safari, Edge adaptation */
 #chat-history::-webkit-scrollbar {
-  display: block; /* 恢复显示 */
-  width: 8px;     /* 滚动条宽度 */
+  display: block;
+  /* Restore display */
+  width: 8px;
+  /* Scrollbar width */
   height: 8px;
 }
 
-/* 轨道：完全透明 */
+/* Track: completely transparent */
 #chat-history::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* 滑块：默认透明 (看起来像隐藏) */
+/* Thumb: transparent by default (appears hidden) */
 #chat-history::-webkit-scrollbar-thumb {
   background-color: transparent;
   border-radius: 4px;
-  border: 2px solid transparent; /* 增加透明边框让滑块显得更细 */
+  border: 2px solid transparent;
+  /* Add transparent border to make thumb appear thinner */
   background-clip: content-box;
   transition: background-color 0.3s;
 }
 
-/* 交互：只有鼠标悬停在聊天区域时，滑块才变色 */
+/* Interaction: thumb only changes color when hovering over chat area */
 #chat-history:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1); /* 浅灰色 */
+  background-color: rgba(0, 0, 0, 0.1);
+  /* Light gray */
 }
 
-/* 交互：鼠标抓取滑块时，稍微加深 */
+/* Interaction: slightly darker when mouse grabs thumb */
 #chat-history::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.25);
 }
@@ -2851,13 +3585,17 @@ textarea.parameter-input {
 .kb-selector-pill {
   display: flex;
   align-items: center;
-  background: #ffffff;       /* 白色背景，与灰色输入框形成对比 */
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 10px;       /* 圆润的角 */
+  background: #ffffff;
+  /* White background, contrasts with gray input box */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  /* Rounded corners */
   padding: 4px 8px 4px 10px;
-  margin-right: 8px;         /* 与输入框的间距 */
+  margin-right: 8px;
+  /* Spacing with input box */
   height: 32px;
-  flex-shrink: 0;            /* 防止被挤压 */
+  flex-shrink: 0;
+  /* Prevent being squeezed */
   transition: all 0.2s;
   cursor: pointer;
   position: relative;
@@ -2865,12 +3603,13 @@ textarea.parameter-input {
 
 .kb-selector-pill:hover {
   border-color: var(--accent-blue);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* 2. 重置 Select 样式：去掉默认边框和背景，让它充满胶囊 */
+/* 2. Reset Select style: remove default border and background, fill the pill */
 .kb-select-reset {
-  appearance: none;          /* 去掉默认下拉箭头 */
+  appearance: none;
+  /* Remove default dropdown arrow */
   -webkit-appearance: none;
   background: transparent;
   border: none;
@@ -2881,7 +3620,8 @@ textarea.parameter-input {
   margin: 0;
   cursor: pointer;
   outline: none;
-  max-width: 140px;          /* 限制最大宽度，防止名字太长 */
+  max-width: 140px;
+  /* Limit max width to prevent name too long */
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -2906,18 +3646,21 @@ textarea.parameter-input {
   align-items: center;
   transition: color 0.2s;
 }
+
 .btn-kb-refresh:hover {
   color: var(--accent-blue);
   background: rgba(37, 99, 235, 0.1);
 }
 
-/* 5. 调整输入框容器的 Padding，使其紧凑 */
+/* 5. Adjust input container padding to make it compact */
 .chat-input-container {
-  padding: 0.4rem 0.6rem; /* 稍微减小一点原本的 padding */
-  gap: 0;                 /* 使用 margin 控制间距 */
+  padding: 0.4rem 0.6rem;
+  /* Slightly reduce original padding */
+  gap: 0;
+  /* Use margin to control spacing */
 }
 
-/* 6. 移动端适配：屏幕太窄时缩短选择器 */
+/* 6. Mobile adaptation: shorten selector when screen is too narrow */
 @media (max-width: 576px) {
   .kb-select-reset {
     max-width: 80px;
@@ -2928,68 +3671,87 @@ textarea.parameter-input {
    Gemini-Style Input Container
    ========================================= */
 
-/* 1. 大容器：圆润的浅灰色卡片 */
-/* 1. 大容器：圆润的浅灰色卡片 */
+/* 1. Large container: rounded light gray card */
+/* 1. Large container: rounded light gray card */
 .chat-input-container {
   display: flex;
   flex-direction: column;
-  
-  /* [核心修改] 始终白色背景，不再是浅灰 */
-  background: #ffffff;    
-  
-  /* [核心修改] 始终显示边框和阴影 */
+
+  /* Core change: always white background, no longer light gray */
+  background: #ffffff;
+
+  /* Core change: always show border and shadow */
   border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 
   border-radius: 28px;
-  padding: 12px 12px 12px 20px; 
+  padding: 12px 12px 12px 20px;
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
   transition: all 0.2s ease;
 }
 
-/* 聚焦时：稍微加深一点阴影或边框颜色，增强交互感 */
+/* On focus: slightly darken shadow or border color to enhance interaction */
 .chat-input-container:focus-within {
-  border-color: var(--accent-blue); /* 聚焦变蓝边框 */
-  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  border-color: var(--accent-blue);
+  /* Focus turns blue border */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 
-/* 2. 输入框：占满上层 */
+/* 2. Input box: fill upper layer */
 .chat-input {
   background: transparent;
   border: none;
-  padding: 4px 0 12px 12px;  /* 左侧与下方 kb 图标对齐 */
+  padding: 4px 0 12px 12px;
+  /* Left align with kb icon below */
   font-size: 1.05rem;
   color: #0d0d0d;
   width: 100%;
   outline: none;
   box-shadow: none !important;
-  resize: none; /* 禁用默认的resize */
-  overflow-y: auto; /* 内容超出时显示滚动条 */
-  min-height: 24px; /* 最小高度 */
-  max-height: 200px; /* 最大高度，避免过高 */
-  line-height: 1.5; /* 行高 */
+  resize: none;
+  /* Disable default resize */
+  overflow-y: auto;
+  /* Show scrollbar when content overflows */
+  min-height: 24px;
+  /* Minimum height */
+  max-height: 200px;
+  /* Maximum height to avoid too high */
+  line-height: 1.5;
+  /* Line height */
 }
-.chat-input:focus { background: transparent; }
-.chat-input::placeholder { color: #8f8f8f; }
 
-/* [新增] 修复引擎未启动时的输入框样式 */
+.chat-input:focus {
+  background: transparent;
+}
+
+.chat-input::placeholder {
+  color: #8f8f8f;
+}
+
+/* Fix input box style when engine is not started */
 .chat-input:disabled {
-  background-color: transparent !important; /* 强制去背景 */
-  color: var(--text-secondary); /* 文字稍微变灰 */
-  opacity: 1; /* 防止浏览器默认的半透明让字看不清 */
+  background-color: transparent !important;
+  /* Force remove background */
+  color: var(--text-secondary);
+  /* Text slightly grayed */
+  opacity: 1;
+  /* Prevent browser default semi-transparency making text unclear */
   cursor: not-allowed;
 }
 
 
-/* 3. 操作栏：核心布局修复 */
+/* 3. Action bar: core layout fix */
 .actions-row {
   display: flex;
-  justify-content: space-between; /* [关键] 左一个，右一个 */
-  align-items: center;            /* 垂直居中 */
-  width: 100%;                    /* [关键] 必须占满容器宽度 */
+  justify-content: space-between;
+  /* Key: one left, one right */
+  align-items: center;
+  /* Vertical center */
+  width: 100%;
+  /* Key: must fill container width */
   margin-top: 4px;
 }
 
@@ -3006,7 +3768,7 @@ textarea.parameter-input {
   align-items: center;
 }
 
-/* 4. 知识库下拉选择器 */
+/* 4. Knowledge base dropdown selector */
 .kb-dropdown-wrapper {
   position: relative;
   display: inline-block;
@@ -3043,7 +3805,7 @@ textarea.parameter-input {
   border-color: #e5e7eb;
 }
 
-/* 下拉箭头 */
+/* Dropdown arrow */
 .kb-chevron {
   transition: transform 0.2s;
   opacity: 0.6;
@@ -3053,13 +3815,13 @@ textarea.parameter-input {
   transform: rotate(180deg);
 }
 
-/* 图标样式 */
+/* Icon style */
 .kb-icon-svg {
   flex-shrink: 0;
   color: inherit;
 }
 
-/* 下拉菜单 */
+/* Dropdown menu */
 .kb-dropdown-menu {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -3086,7 +3848,7 @@ textarea.parameter-input {
   transform: translateY(0);
 }
 
-/* 下拉菜单滚动条样式 */
+/* Dropdown menu scrollbar style */
 .kb-dropdown-menu::-webkit-scrollbar {
   width: 6px;
 }
@@ -3104,7 +3866,7 @@ textarea.parameter-input {
   background: #9ca3af;
 }
 
-/* 下拉选项 */
+/* Dropdown option */
 .kb-dropdown-item {
   display: flex;
   align-items: center;
@@ -3130,7 +3892,7 @@ textarea.parameter-input {
   background: #dbeafe;
 }
 
-/* 选中标记 */
+/* Selected marker */
 .kb-item-check {
   width: 16px;
   font-size: 0.75rem;
@@ -3142,7 +3904,7 @@ textarea.parameter-input {
   opacity: 1;
 }
 
-/* 选项文本 */
+/* Option text */
 .kb-item-text {
   flex: 1;
   white-space: nowrap;
@@ -3150,7 +3912,7 @@ textarea.parameter-input {
   text-overflow: ellipsis;
 }
 
-/* 数量徽章 */
+/* Count badge */
 .kb-item-count {
   font-size: 0.75rem;
   color: #9ca3af;
@@ -3164,21 +3926,22 @@ textarea.parameter-input {
   color: #3b82f6;
 }
 
-/* 隐藏原生 Select */
+/* Hide native Select */
 .kb-select-hidden {
   display: none !important;
 }
 
-/* 5. 发送按钮 */
+/* 5. Send button */
 .btn-send {
-  width: 40px; 
-  height: 40px; 
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #1a1a1a; /* 黑色背景 */
+  background: #1a1a1a;
+  /* Black background */
   color: #fff;
   border: none;
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   justify-content: center;
   transition: transform 0.2s, background 0.2s;
   padding: 0;
@@ -3190,10 +3953,13 @@ textarea.parameter-input {
 }
 
 .btn-send:disabled {
-  background-color: #f3f4f6; /* 浅灰底 */
-  color: #d1d5db; /* 浅灰图标 */
+  background-color: #f3f4f6;
+  /* Light gray background */
+  color: #d1d5db;
+  /* Light gray icon */
   cursor: not-allowed;
-  opacity: 1; /* 覆盖默认透明度 */
+  opacity: 1;
+  /* Override default opacity */
 }
 
 /* Background Mode Toggle Button (matching kb-visual-btn style) */
@@ -3247,11 +4013,12 @@ textarea.parameter-input {
    Collection Item Styling (Refined)
    ========================================= */
 
-/* 1. 给图标加一个淡淡的背景容器，增加层次感 */
+/* 1. Add light background container to icon for depth */
 .collection-icon-box {
   width: 36px;
   height: 36px;
-  background: #f0f9ff; /* 极浅的蓝色 */
+  background: #f0f9ff;
+  /* Very light blue */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -3260,10 +4027,11 @@ textarea.parameter-input {
 }
 
 .index-icon {
-  font-size: 1.1rem; /* 图标稍微调小一点，更精致 */
+  font-size: 1.1rem;
+  /* Slightly smaller icon for refinement */
 }
 
-/* 2. 优雅的删除按钮 */
+/* 2. Elegant delete button */
 .btn-delete-collection {
   width: 32px;
   height: 32px;
@@ -3271,31 +4039,38 @@ textarea.parameter-input {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  border: 1px solid transparent; /* 预留边框位置 */
+  border: 1px solid transparent;
+  /* Reserve border space */
   background: transparent;
-  color: #9ca3af; /* 默认浅灰色，不抢眼 */
+  color: #9ca3af;
+  /* Default light gray, unobtrusive */
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 0;
 }
 
-/* 悬停效果：变红，加浅红背景 */
+/* Hover effect: turn red, add light red background */
 .btn-delete-collection:hover {
-  background-color: #fef2f2; /* 浅红色背景 */
-  color: #ef4444;           /* 鲜艳的红色图标 */
-  border-color: #fee2e2;    /* 淡淡的红边框 */
-  transform: scale(1.05);   /* 微微放大 */
+  background-color: #fef2f2;
+  /* Light red background */
+  color: #ef4444;
+  /* Bright red icon */
+  border-color: #fee2e2;
+  /* Light red border */
+  transform: scale(1.05);
+  /* Slightly enlarge */
 }
 
-/* 按下效果 */
+/* Press effect */
 .btn-delete-collection:active {
   transform: scale(0.95);
   background-color: #fee2e2;
 }
 
-/* 微调卡片本身的内边距，让它看起来更透气 */
+/* Fine-tune card padding to make it more breathable */
 .index-card-group {
-  padding: 16px; /* 增加一点内边距 */
+  padding: 16px;
+  /* Increase padding a bit */
   border: 1px solid #e5e7eb;
 }
 
@@ -3303,12 +4078,14 @@ textarea.parameter-input {
    Refined KB List Icons & Buttons
    ========================================= */
 
-/* 1. 文件/文件夹的图标容器 */
+/* 1. File/folder icon container */
 .file-icon-box {
   width: 32px;
   height: 32px;
-  background: #f1f5f9;  /* 默认淡灰色 (文件) */
-  color: #64748b;       /* 深灰色图标 */
+  background: #f1f5f9;
+  /* Default light gray (file) */
+  color: #64748b;
+  /* Dark gray icon */
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -3317,20 +4094,20 @@ textarea.parameter-input {
   transition: all 0.2s;
 }
 
-/* 文件夹特有样式 (稍微带点蓝色) */
+/* Folder-specific style (slightly blue) */
 .file-icon-box.folder {
   background: #eff6ff;
   color: var(--accent-blue);
 }
 
-/* 2. 列表项本身 */
+/* 2. List item itself */
 .file-item {
-  /* 增加高度，让图标不拥挤 */
-  padding: 8px 12px; 
+  /* Increase height so icons are not crowded */
+  padding: 8px 12px;
   align-items: center;
 }
 
-/* 3. 查看(眼睛)按钮样式 */
+/* 3. View (eye) button style */
 .btn-icon-action {
   width: 28px;
   height: 28px;
@@ -3344,32 +4121,34 @@ textarea.parameter-input {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .btn-icon-action:hover {
   background: #f3f4f6;
   color: var(--text-primary);
 }
 
-/* 4. [复用] 确保 .btn-delete-collection 在文件列表里大小合适 */
-/* 如果之前定义的尺寸在文件列表里太大，可以微调，但通常 32px 刚好 */
+/* 4. Ensure .btn-delete-collection size is appropriate in file list */
+/* If previously defined size is too large in file list, can fine-tune, but usually 32px is fine */
 .file-item .btn-delete-collection {
-    width: 28px;  /* 在紧凑列表里稍微小一点 */
-    height: 28px;
+  width: 28px;
+  /* Slightly smaller in compact list */
+  height: 28px;
 }
 
 /* =========================================
    Bookshelf View (Library Style)
    ========================================= */
 
-/* 1. 书架网格 */
+/* 1. Bookshelf grid */
 .bookshelf-grid {
   display: grid;
-  /* 自动适应宽度，每本书最小 200px */
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+  /* Auto-adapt width, minimum 200px per book */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 24px;
   padding-bottom: 40px;
 }
 
-/* 2. 书本/集合卡片 - 极简 Linear 风格 */
+/* 2. Book/collection card - minimalist Linear style */
 .collection-card {
   background: #ffffff;
   border: 1px solid #e5e7eb;
@@ -3379,12 +4158,12 @@ textarea.parameter-input {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* 比例调整：不再强制很高，适应内容 */
-  min-height: 140px; 
+  /* Aspect ratio adjustment: no longer force high, adapt to content */
+  min-height: 140px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* 悬停效果：轻微上浮 + 柔和阴影 */
+/* Hover effect: slight float + soft shadow */
 .collection-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
@@ -3392,29 +4171,29 @@ textarea.parameter-input {
 }
 
 .kb-card-main {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .kb-icon-box {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    font-weight: 700;
-    margin-bottom: 16px;
-    flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .kb-info-box {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .kb-card-title {
@@ -3433,7 +4212,7 @@ textarea.parameter-input {
   font-weight: 500;
 }
 
-/* 删除按钮 (悬停出现) */
+/* Delete button (appears on hover) */
 .btn-delete-book {
   position: absolute;
   top: 12px;
@@ -3443,7 +4222,8 @@ textarea.parameter-input {
   border-radius: 6px;
   background: transparent;
   border: none;
-  color: #94a3b8; /* 默认灰色 */
+  color: #94a3b8;
+  /* Default gray */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3465,42 +4245,46 @@ textarea.parameter-input {
    Modal Workflow Layout (Fixed)
    ========================================= */
 
-/* 1. 强制横向布局，不许换行 */
+/* 1. Force horizontal layout, no wrapping */
 .kb-pipeline-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* 三列等宽 */
+  grid-template-columns: 1fr 1fr 1fr;
+  /* Three equal columns */
   gap: 16px;
-  height: 100%; /* 撑满弹窗高度 */
+  height: 100%;
+  /* Fill popup height */
   padding-bottom: 0;
   min-height: 400px;
 }
 
-/* 2. 隐藏原本的箭头容器 (我们用更优雅的方式) */
+/* 2. Hide original arrow container (we use a more elegant way) */
 .pipeline-arrow {
-  display: none; 
+  display: none;
 }
 
-/* 3. 优化卡片样式 */
+/* 3. Optimize card style */
 .pipeline-card {
   display: flex;
   flex-direction: column;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  height: 100%; /* 撑满高度 */
+  height: 100%;
+  /* Fill height */
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-/* 头部美化 */
+/* Header styling */
 .card-head {
   padding: 12px 16px;
-  background: #f8fafc; /* 浅灰头 */
+  background: #f8fafc;
+  /* Light gray header */
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 
-/* 列表区域 */
+/* List area */
 .card-body-scroll {
   flex: 1;
   overflow-y: auto;
@@ -3508,9 +4292,10 @@ textarea.parameter-input {
   background: #fff;
 }
 
-/* 4. 步骤徽章优化 */
+/* 4. Step badge optimization */
 .step-badge {
-  background: #0f172a; /* 深色背景 */
+  background: #0f172a;
+  /* Dark background */
   color: #fff;
   width: 22px;
   height: 22px;
@@ -3518,7 +4303,7 @@ textarea.parameter-input {
   margin-right: 8px;
 }
 
-/* 响应式：如果屏幕真的很小，才允许变垂直，但一般弹窗够宽 */
+/* Responsive: only allow vertical when screen is really small, but modal is usually wide enough */
 @media (max-width: 768px) {
   .kb-pipeline-grid {
     grid-template-columns: 1fr;
@@ -3530,35 +4315,45 @@ textarea.parameter-input {
    Scroll & Highlight Fixes
    ========================================= */
 
-/* 1. 确保弹窗内部布局撑满，强制内部滚动 */
+/* 1. Ensure popup internal layout fills, force internal scroll */
 #import-modal .modal-body {
-  height: 100%;           /* 撑满弹窗剩余空间 */
-  overflow: hidden;       /* 禁止整个弹窗滚动 */
+  height: 100%;
+  /* Fill remaining popup space */
+  overflow: hidden;
+  /* Prevent entire popup from scrolling */
   display: flex;
   flex-direction: column;
 }
 
 .kb-pipeline-grid {
-  height: 100%;           /* Grid 撑满 body */
-  min-height: 0;          /* 关键：允许 flex 子元素缩小以触发滚动 */
-  padding-bottom: 0;      /* 去掉底部内边距 */
+  height: 100%;
+  /* Grid fills body */
+  min-height: 0;
+  /* Key: allow flex child to shrink to trigger scroll */
+  padding-bottom: 0;
+  /* Remove bottom padding */
 }
 
-/* 新文件高亮样式 */
+/* New file highlight style */
 .file-item.new-upload {
-  background-color: #eff6ff;     /* 明显的淡蓝背景 */
-  border: 1px solid #60a5fa;     /* 蓝色边框 */
-  box-shadow: 0 2px 6px rgba(37,99,235,0.15);
-  position: relative;            /* 必须有，为了定位 badge */
-  z-index: 1;                    /* 确保浮在其他元素上面一点 */
-  /* [修改] 确保内容区域不会遮挡 NEW 标签的显示空间，或者让 NEW 标签挂在里面 */
+  background-color: #eff6ff;
+  /* Obvious light blue background */
+  border: 1px solid #60a5fa;
+  /* Blue border */
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+  position: relative;
+  /* Must have for positioning badge */
+  z-index: 1;
+  /* Ensure floats above other elements a bit */
+  /* Ensure content area does not block NEW label display space, or let NEW label hang inside */
 }
 
-/* "NEW" 徽章 */
+/* "NEW" badge */
 .file-item.new-upload::after {
   content: "NEW";
   position: absolute;
-  top: 6px;                      /* [修改] 改为内嵌显示，不再挂在外面 */
+  top: 6px;
+  /* Changed to inline display, no longer hanging outside */
   right: 6px;
   background: #2563eb;
   color: white;
@@ -3568,48 +4363,60 @@ textarea.parameter-input {
   font-weight: 800;
   letter-spacing: 0.5px;
   z-index: 10;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  pointer-events: none;          /* 防止挡住点击 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  /* Prevent blocking clicks */
 }
 
 /* =========================================
    Library View Layout (Fixed Header)
    ========================================= */
 
-/* 1. 让主视图容器撑满屏幕，并使用 Flex 布局 */
+/* 1. Make main view container fill screen and use Flex layout */
 #kb-main-view {
-  height: 100vh;          /* 强制占满视口高度 */
+  height: 100vh;
+  /* Force fill viewport height */
   display: flex;
-  flex-direction: column; /* 上下结构 */
-  overflow: hidden;       /* 禁止整个页面出现滚动条 */
+  flex-direction: column;
+  /* Top-bottom structure */
+  overflow: hidden;
+  /* Prevent entire page from showing scrollbar */
 }
 
-/* 2. 头部：防止被压缩 */
+/* 2. Header: prevent compression */
 #kb-main-view .view-header {
-  flex-shrink: 0;         /* 头部高度固定 */
+  flex-shrink: 0;
+  /* Header height fixed */
   z-index: 10;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03); /* 加一点阴影更有层次 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  /* Add shadow for more depth */
 }
 
-/* 3. 书架区域：占据剩余空间 + 内部滚动 */
+/* 3. Bookshelf area: occupy remaining space + internal scroll */
 #kb-main-view .kb-wrapper {
-  flex: 1;                /* 自动填满剩余高度 */
-  overflow-y: auto;       /* 核心：只有这个区域滚动 */
-  min-height: 0;          /* 防止 flex 子项溢出问题 */
-  
-  /* 优化滚动条体验 */
-  scroll-behavior: smooth; 
-  padding-bottom: 60px;   /* 底部留点余量，防止最后一排贴底 */
+  flex: 1;
+  /* Auto fill remaining height */
+  overflow-y: auto;
+  /* Core: only this area scrolls */
+  min-height: 0;
+  /* Prevent flex child overflow issue */
+
+  /* Optimize scrollbar experience */
+  scroll-behavior: smooth;
+  padding-bottom: 60px;
+  /* Leave bottom margin to prevent last row sticking to bottom */
 }
 
-/* 可选：美化书架的滚动条 */
+/* Optional: beautify bookshelf scrollbar */
 #kb-main-view .kb-wrapper::-webkit-scrollbar {
   width: 8px;
 }
+
 #kb-main-view .kb-wrapper::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 4px;
 }
+
 #kb-main-view .kb-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -3618,99 +4425,104 @@ textarea.parameter-input {
    Unified Sidebar - Full Reset & Pixel Perfect
    ========================================= */
 
-   .chat-sidebar {
-    width: 260px;
-    height: 100vh;
-    background-color: #f9f9fa;
-    border-right: 1px solid var(--border-subtle);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    font-family: var(--font-sans); /* 恢复 Inter 字体 */
-  }
-  
-  /* 统一水平对齐基准：20px */
-  .sidebar-toggle-wrapper, 
-  .btn-nav {
-    padding-left: 20px !important;
-    padding-right: 20px !important;
-  }
-  
-  /* 1. 顶部样式 */
-  .sidebar-header {
-    padding: 1rem 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .sidebar-toggle-wrapper {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.8rem;
-    min-height: 32px;
-  }
-  
-  .sidebar-toggle-wrapper .sidebar-label {
-    margin: 0 !important; /* 顶部 Feature 标签去除额外边距 */
-    padding: 0 !important; /* [新增] 去除嵌套 padding，防止双倍缩进 */
-  }
-  
-  /* Logo 样式 */
-  .sidebar-logo {
-    display: flex;
-    align-items: center;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .sidebar-logo-img {
-    height: 20px; /* 与右边的 toggle 按钮图标高度一致 */
-    width: auto;
-    object-fit: contain;
-  }
-  
-  .sidebar-logo-btn {
-    border: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-  }
-  
-  .sidebar-logo-btn:focus-visible {
-    outline: 2px solid #4f46e5;
-    border-radius: 6px;
-  }
-  
-  /* 侧边栏收缩时隐藏 logo */
-  .chat-sidebar.collapsed .sidebar-logo {
-    display: none !important;
-  }
+.chat-sidebar {
+  width: 260px;
+  height: 100vh;
+  background-color: #f9f9fa;
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  /* Restore Inter font */
+}
 
-  /* [新增] 收缩按钮统一风格 (黑色描边) */
-  #sidebar-toggle-btn {
-    color: #0d0d0d;
-  }
-  
-  /* 悬停时稍微加深背景 */
-  #sidebar-toggle-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #0d0d0d;
-  }
-  
-  /* 2. 中间列表（带置底弹性逻辑） */
-  .sidebar-list {
-    flex: 1; /* 占据剩余空间，将 footer 压到底部 */
-    overflow-y: auto;
-    padding: 0;
-  }
-  
+/* Unified horizontal alignment baseline: 20px */
+.sidebar-toggle-wrapper,
+.btn-nav {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+/* 1. Top style */
+.sidebar-header {
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-toggle-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  min-height: 32px;
+}
+
+.sidebar-toggle-wrapper .sidebar-label {
+  margin: 0 !important;
+  /* Remove extra margin from top Feature label */
+  padding: 0 !important;
+  /* Remove nested padding to prevent double indentation */
+}
+
+/* Logo style */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-logo-img {
+  height: 20px;
+  /* Match height with toggle button icon on right */
+  width: auto;
+  object-fit: contain;
+}
+
+.sidebar-logo-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sidebar-logo-btn:focus-visible {
+  outline: 2px solid #4f46e5;
+  border-radius: 6px;
+}
+
+/* Hide logo when sidebar collapses */
+.chat-sidebar.collapsed .sidebar-logo {
+  display: none !important;
+}
+
+/* Collapse button unified style (black outline) */
+#sidebar-toggle-btn {
+  color: #0d0d0d;
+}
+
+/* Slightly darken background on hover */
+#sidebar-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0d0d0d;
+}
+
+/* 2. Middle list (with bottom placement flex logic) */
+.sidebar-list {
+  flex: 1;
+  /* Take remaining space, push footer to bottom */
+  overflow-y: auto;
+  padding: 0;
+}
+
 .sidebar-label {
   font-size: 0.68rem;
   font-weight: 500;
@@ -3723,100 +4535,102 @@ textarea.parameter-input {
   display: flex;
   align-items: center;
 }
-  
-  /* 3. 底部样式 */
-  .sidebar-footer {
-    margin-top: auto; /* 置底关键 */
-    padding: 0.8rem 0 1.2rem 0;
-    border-top: 1px solid var(--border-subtle);
-  }
-  
-  /* --- 统一导航按钮样式 (精简字体) --- */
-  .btn-nav {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: transparent;
-    border: none;
-    padding: 9px 12px 9px 20px;
-    font-family: inherit;
-    font-size: 0.88rem;
-    font-weight: 500;
-    color: #0d0d0d;
-    transition: background 0.2s, color 0.2s;
-    cursor: pointer;
-    border-radius: 0;
-  }
-  
-  .btn-nav .icon {
-    color: #0d0d0d;
-    display: flex;
-    align-items: center;
-  }
-  
-  .btn-nav:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #0d0d0d;
-  }
-  
-  .btn-nav:hover .icon {
-    color: #0d0d0d;
-  }
-  
-  .btn-sidebar-toggle {
-    background: transparent;
-    border: none;
-    padding: 6px;
-    cursor: pointer;
-    color: #0d0d0d;
-    margin-right: -6px; /* 补偿内边距，让图标贴齐右边 */
-    display: flex;
-    align-items: center;
-  }
-  
-  /* =========================================
-     极致收缩状态 (.collapsed)
+
+/* 3. Bottom style */
+.sidebar-footer {
+  margin-top: auto;
+  /* Key to bottom placement */
+  padding: 0.8rem 0 1.2rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* --- Unified navigation button style (simplified font) --- */
+.btn-nav {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 9px 12px 9px 20px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #0d0d0d;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.btn-nav .icon {
+  color: #0d0d0d;
+  display: flex;
+  align-items: center;
+}
+
+.btn-nav:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0d0d0d;
+}
+
+.btn-nav:hover .icon {
+  color: #0d0d0d;
+}
+
+.btn-sidebar-toggle {
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #0d0d0d;
+  margin-right: -6px;
+  /* Compensate padding to align icon to right */
+  display: flex;
+  align-items: center;
+}
+
+/* =========================================
+     Extreme Collapsed State (.collapsed)
      ========================================= */
-  
-  .chat-sidebar.collapsed {
-    width: 68px;
-  }
-  
-  /* 彻底隐藏：中间列表、文字标签、按钮文字内容 */
-  .chat-sidebar.collapsed .sidebar-list,
-  .chat-sidebar.collapsed .sidebar-label,
-  .chat-sidebar.collapsed .btn-text {
-    display: none !important;
-  }
-  
-  /* 全部图标居中对齐 */
-  .chat-sidebar.collapsed .sidebar-toggle-wrapper,
-  .chat-sidebar.collapsed .btn-nav {
-    justify-content: center !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    width: 100% !important;
-  }
-  
-  .chat-sidebar.collapsed .icon {
-    margin: 0 !important;
-    width: 24px;
-    display: flex;
-    justify-content: center;
-  }
-  
-  /* 收缩图标旋转 */
-  .chat-sidebar.collapsed #sidebar-toggle-btn {
-    margin: 0;
-    transform: rotate(180deg);
-  }
+
+.chat-sidebar.collapsed {
+  width: 68px;
+}
+
+/* Completely hide: middle list, text labels, button text content */
+.chat-sidebar.collapsed .sidebar-list,
+.chat-sidebar.collapsed .sidebar-label,
+.chat-sidebar.collapsed .btn-text {
+  display: none !important;
+}
+
+/* All icons center aligned */
+.chat-sidebar.collapsed .sidebar-toggle-wrapper,
+.chat-sidebar.collapsed .btn-nav {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+}
+
+.chat-sidebar.collapsed .icon {
+  margin: 0 !important;
+  width: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Collapse icon rotation */
+.chat-sidebar.collapsed #sidebar-toggle-btn {
+  margin: 0;
+  transform: rotate(180deg);
+}
 
 /* =========================================
    Background Tasks UI
    ========================================= */
 
-/* 通知容器 */
+/* Notification container */
 .notification-container {
   position: fixed;
   top: 80px;
@@ -3836,7 +4650,7 @@ textarea.parameter-input {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.12),
     0 4px 16px rgba(0, 0, 0, 0.08),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
@@ -3852,7 +4666,7 @@ textarea.parameter-input {
 
 .notification-toast:hover {
   transform: translateX(-4px) scale(1.01);
-  box-shadow: 
+  box-shadow:
     0 16px 48px rgba(0, 0, 0, 0.15),
     0 6px 20px rgba(0, 0, 0, 0.1);
 }
@@ -3944,6 +4758,7 @@ textarea.parameter-input {
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -3955,6 +4770,7 @@ textarea.parameter-input {
     opacity: 1;
     transform: translateX(0);
   }
+
   to {
     opacity: 0;
     transform: translateX(100%);
@@ -4020,7 +4836,7 @@ textarea.parameter-input {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 24px 80px rgba(0, 0, 0, 0.12),
     0 8px 24px rgba(0, 0, 0, 0.08),
     inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
@@ -4198,8 +5014,15 @@ textarea.parameter-input {
 }
 
 @keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
 }
 
 .bg-task-meta {
@@ -4229,7 +5052,7 @@ textarea.parameter-input {
 .bg-task-detail-modal {
   border: none;
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 40px 100px rgba(0, 0, 0, 0.2),
     0 12px 36px rgba(0, 0, 0, 0.12);
   padding: 0;
@@ -4392,7 +5215,7 @@ textarea.parameter-input {
 .interrupt-confirm-dialog {
   border: none;
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 40px 100px rgba(0, 0, 0, 0.2),
     0 12px 36px rgba(0, 0, 0, 0.12);
   padding: 0;
@@ -4508,14 +5331,14 @@ textarea.parameter-input {
     right: 12px;
     max-width: none;
   }
-  
+
   .bg-tasks-panel {
     left: 12px;
     right: 12px;
     width: auto;
     bottom: 80px;
   }
-  
+
   .bg-tasks-fab {
     bottom: 16px;
     right: 16px;
@@ -4525,7 +5348,7 @@ textarea.parameter-input {
 }
 
 /* ==========================================
-   知识库选择提示弹窗
+   Knowledge Base Selection Alert Dialog
    ========================================== */
 .kb-alert-dialog {
   border: none;
@@ -4548,13 +5371,14 @@ textarea.parameter-input {
 }
 
 @keyframes kb-alert-in {
-  from { 
-    opacity: 0; 
-    transform: translateY(30px) scale(0.9); 
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0) scale(1); 
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -4648,6 +5472,7 @@ textarea.parameter-input {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -4763,10 +5588,11 @@ textarea.parameter-input {
    Canvas-Style Full Screen Layout
    ========================================= */
 
-/* 主容器 - 全屏布局 (仅用于 Builder 界面) */
+/* Main container - fullscreen layout (only for Builder interface) */
 .canvas-main {
   position: fixed;
-  top: 52px; /* navbar 高度 */
+  top: 52px;
+  /* navbar height */
   left: 0;
   right: 0;
   bottom: 0;
@@ -4774,7 +5600,8 @@ textarea.parameter-input {
   flex-direction: column;
   background: var(--bg-surface);
   overflow: hidden;
-  z-index: 1000; /* 低于 Chat 和 Parameter overlay (z-index: 2000) */
+  z-index: 1000;
+  /* Lower than Chat and Parameter overlay (z-index: 2000) */
 }
 
 /* Builder-only theme overrides */
@@ -4794,13 +5621,13 @@ textarea.parameter-input {
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-/* 隐藏时完全不显示 */
+/* Completely hidden when not shown */
 .canvas-main.d-none {
   display: none !important;
 }
 
 /* =========================================
-   Workspace Layout (新功能栏布局)
+   Workspace Layout (New Feature Bar Layout)
    ========================================= */
 
 .workspace-layout {
@@ -4810,7 +5637,7 @@ textarea.parameter-input {
   min-height: 0;
 }
 
-/* 功能切换侧边栏 - 与Chat界面风格一致 */
+/* Function toggle sidebar - consistent with Chat interface style */
 .workspace-sidebar {
   width: 72px;
   background: var(--bg-sidebar);
@@ -4828,14 +5655,17 @@ textarea.parameter-input {
   padding: 16px 0;
   gap: 4px;
 }
+
 .workspace-nav-top {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .workspace-nav-spacer {
   flex: 1;
 }
+
 .workspace-nav-divider {
   height: 1px;
   background: rgba(15, 23, 42, 0.08);
@@ -4875,7 +5705,7 @@ textarea.parameter-input {
   letter-spacing: 0;
 }
 
-/* 主内容区 */
+/* Main content area */
 .workspace-content {
   flex: 1;
   display: flex;
@@ -4897,7 +5727,7 @@ textarea.parameter-input {
 }
 
 /* =========================================
-   Parameters Panel (集成版)
+   Parameters Panel (Integrated Version)
    ========================================= */
 
 .params-layout {
@@ -5234,6 +6064,7 @@ textarea.parameter-input {
 .chat-session-context-item.text-danger:hover {
   background: #fef2f2;
 }
+
 .prompts-editor-container {
   flex: 1;
   display: flex;
@@ -5297,7 +6128,7 @@ textarea.parameter-input {
   color: #94a3b8;
 }
 
-/* 左右分栏布局 */
+/* Left-right split layout */
 .canvas-split-layout {
   flex: 1;
   display: flex;
@@ -5305,7 +6136,7 @@ textarea.parameter-input {
   min-height: 0;
 }
 
-/* 左侧面板 - Visual Builder */
+/* Left panel - Visual Builder */
 .canvas-left-panel {
   flex: none;
   width: var(--workspace-pane-width, 280px);
@@ -5318,7 +6149,7 @@ textarea.parameter-input {
   box-shadow: inset -1px 0 0 rgba(15, 23, 42, 0.06);
 }
 
-/* 右侧面板 - YAML Editor */
+/* Right panel - YAML Editor */
 .canvas-right-panel {
   flex: 1;
   min-width: 320px;
@@ -5328,7 +6159,7 @@ textarea.parameter-input {
   overflow: hidden;
 }
 
-/* 面板头部 */
+/* Panel header */
 .canvas-panel-header {
   display: flex;
   align-items: center;
@@ -5365,7 +6196,7 @@ textarea.parameter-input {
   color: #1e293b;
 }
 
-/* Pipeline Name 输入框 */
+/* Pipeline Name input box */
 .pipeline-name-input {
   background: var(--bg-input);
   border: none;
@@ -5392,7 +6223,7 @@ textarea.parameter-input {
   color: #94a3b8;
 }
 
-/* Prompt Name 输入框 - 与 pipeline-name-input 风格一致 */
+/* Prompt Name input box - consistent with pipeline-name-input style */
 .prompt-name-input {
   background: var(--bg-input);
   border: none;
@@ -5428,7 +6259,7 @@ textarea.parameter-input {
   background: transparent;
 }
 
-/* 工具栏 */
+/* Toolbar */
 .panel-toolbar {
   display: flex;
   align-items: center;
@@ -5531,7 +6362,7 @@ textarea.parameter-input {
   margin: 0 4px;
 }
 
-/* Ghost 按钮样式 */
+/* Ghost button style */
 .btn-ghost {
   background: transparent;
   border: none;
@@ -5551,7 +6382,7 @@ textarea.parameter-input {
   color: #ef4444;
 }
 
-/* 编辑器专用按钮样式 */
+/* Editor-specific button style */
 .editor-header .btn-sm {
   font-size: 0.8rem;
   padding: 6px 12px;
@@ -5589,7 +6420,7 @@ textarea.parameter-input {
   color: #fff;
 }
 
-/* 同步状态指示器 */
+/* Sync status indicator */
 .sync-status {
   display: flex;
   align-items: center;
@@ -5622,7 +6453,7 @@ textarea.parameter-input {
   color: #fbbf24;
 }
 
-/* 画布主体 */
+/* Canvas main body */
 .canvas-body {
   flex: 1;
   overflow-y: auto;
@@ -5643,7 +6474,7 @@ textarea.parameter-input {
   margin-top: 12px;
 }
 
-/* 左侧面板按钮样式 */
+/* Left panel button style */
 .canvas-left-panel .btn-sm {
   padding: 6px 10px;
   font-size: 0.8rem;
@@ -5670,7 +6501,7 @@ textarea.parameter-input {
   background: #ffe4e6;
 }
 
-/* 可拖拽的分隔条 */
+/* Draggable divider */
 .canvas-resizer {
   width: 4px;
   background: #e2e8f0;
@@ -5698,7 +6529,7 @@ textarea.parameter-input {
   background: var(--accent-blue);
 }
 
-/* YAML 编辑器容器 */
+/* YAML editor container */
 .yaml-editor-container {
   flex: 1;
   display: flex;
@@ -5712,7 +6543,7 @@ textarea.parameter-input {
   overflow: hidden;
 }
 
-/* 行号 Gutter */
+/* Line number Gutter */
 .yaml-gutter {
   width: 50px;
   padding: 16px 12px 16px 0;
@@ -5729,14 +6560,15 @@ textarea.parameter-input {
 }
 
 .yaml-gutter .line-number {
-  height: 1.6em; /* 与 line-height 一致 */
+  height: 1.6em;
+  /* Match line-height */
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 4px;
 }
 
-/* YAML 编辑器 */
+/* YAML editor */
 .yaml-editor {
   flex: 1;
   padding: 16px;
@@ -5757,7 +6589,7 @@ textarea.parameter-input {
   color: #94a3b8;
 }
 
-/* 滚动条美化 */
+/* Scrollbar styling */
 .yaml-editor::-webkit-scrollbar,
 .yaml-gutter::-webkit-scrollbar {
   width: 10px;
@@ -5777,7 +6609,7 @@ textarea.parameter-input {
   background: #94a3b8;
 }
 
-/* 错误提示条 */
+/* Error message bar */
 .yaml-error-bar {
   display: flex;
   align-items: center;
@@ -5886,7 +6718,7 @@ textarea.parameter-input {
   display: none;
 }
 
-/* 响应式调整 */
+/* Responsive adjustments */
 @media (max-width: 992px) {
   .canvas-split-layout {
     flex-direction: column;
@@ -5905,7 +6737,7 @@ textarea.parameter-input {
   }
 }
 
-/* 隐藏 Builder 内部不需要的元素 */
+/* Hide unnecessary elements inside Builder */
 .canvas-main .code-preview {
   display: none;
 }
@@ -6005,7 +6837,7 @@ body.ai-panel-open .canvas-main {
   pointer-events: none;
 }
 
-/* 触发按钮 - 与Chat界面风格统一 */
+/* Trigger button - unified with Chat interface style */
 .ai-assistant-trigger {
   position: absolute;
   right: 16px;
@@ -6040,7 +6872,7 @@ body.ai-panel-open .canvas-main {
   display: none;
 }
 
-/* 主面板 */
+/* Main panel */
 .ai-assistant-panel {
   position: fixed;
   right: 0;
@@ -6065,7 +6897,7 @@ body.ai-panel-open .canvas-main {
   transform: translateX(0);
 }
 
-/* 拖拽调整大小的边框 */
+/* Draggable resize border */
 .ai-panel-resizer {
   position: absolute;
   left: 0;
@@ -6089,7 +6921,7 @@ body.ai-panel-open .canvas-main {
   overflow: hidden;
 }
 
-/* 头部 - 与Chat风格统一 */
+/* Header - unified with Chat style */
 .ai-panel-header {
   display: flex;
   align-items: center;
@@ -6137,7 +6969,7 @@ body.ai-panel-open .canvas-main {
   color: #1e293b;
 }
 
-/* 连接状态 - 与Chat风格统一 */
+/* Connection status - unified with Chat style */
 .ai-connection-status {
   display: flex;
   align-items: center;
@@ -6280,9 +7112,12 @@ body.ai-panel-open .canvas-main {
   width: 100%;
   text-align: left;
   border: none;
-  background: transparent; /* 默认透明 */
-  border-radius: 12px;     /* 圆角稍微大一点 */
-  padding: 12px 14px;      /* 增加呼吸感 */
+  background: transparent;
+  /* Default transparent */
+  border-radius: 12px;
+  /* Slightly larger border radius */
+  padding: 12px 14px;
+  /* Increase breathing space */
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -6293,12 +7128,15 @@ body.ai-panel-open .canvas-main {
 }
 
 .ai-session-item:hover {
-  background: #f1f5f9; /* 极浅灰 */
+  background: #f1f5f9;
+  /* Very light gray */
 }
 
 .ai-session-item.active {
-  background: #eff6ff; /* 浅蓝背景 */
-  color: #1e40af;      /* 深蓝文字 */
+  background: #eff6ff;
+  /* Light blue background */
+  color: #1e40af;
+  /* Dark blue text */
 }
 
 .ai-session-title-text {
@@ -6314,11 +7152,18 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
-/* 消息列表 */
+/* Message list */
 .ai-messages {
   flex: 1;
   overflow-y: auto;
@@ -6372,7 +7217,7 @@ body.ai-panel-open .canvas-main {
   color: var(--text-secondary, #94a3b8) !important;
 }
 
-/* 消息样式 - 与Chat界面风格统一 */
+/* Message style - unified with Chat interface style */
 .ai-message {
   display: flex;
   flex-direction: column;
@@ -6385,8 +7230,15 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ai-message.user {
@@ -6397,12 +7249,12 @@ body.ai-panel-open .canvas-main {
   align-items: stretch;
 }
 
-/* 隐藏头像，使用与Chat一致的样式 */
+/* Hide avatar, use style consistent with Chat */
 .ai-message-avatar {
   display: none;
 }
 
-/* AI标签 - 与Chat的assistant标签一致 */
+/* AI label - consistent with Chat assistant label */
 .ai-message.assistant::before {
   content: none;
   display: none;
@@ -6417,7 +7269,7 @@ body.ai-panel-open .canvas-main {
   text-align-last: left;
 }
 
-/* 用户消息 - 与Chat风格一致 */
+/* User message - consistent with Chat style */
 .ai-message.user .ai-message-content {
   background: #f3f4f6;
   color: var(--text-primary, #1e293b);
@@ -6425,7 +7277,7 @@ body.ai-panel-open .canvas-main {
   border-radius: 20px 20px 4px 20px;
 }
 
-/* AI消息 - 与Chat风格一致（无背景） */
+/* AI message - consistent with Chat style (no background) */
 .ai-message.assistant .ai-message-content {
   background: transparent;
   padding: 0;
@@ -6440,15 +7292,16 @@ body.ai-panel-open .canvas-main {
   margin-bottom: 0;
 }
 
-/* 代码样式 - 与Chat风格统一 - 改为白底 */
+/* Code style - unified with Chat style - changed to white background */
 .ai-message-content code {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   background: rgba(0, 0, 0, 0.05);
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
-  color: #c026d3; /* 紫红色 */
-  border: 1px solid rgba(0,0,0,0.05);
+  color: #c026d3;
+  /* Magenta */
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 /* AI Message ChatGPT-style Code Block */
@@ -6541,7 +7394,7 @@ body.ai-panel-open .canvas-main {
 
 .ai-message.user .ai-message-content code {
   background: rgba(255, 255, 255, 0.4);
-  border-color: rgba(255,255,255,0.2);
+  border-color: rgba(255, 255, 255, 0.2);
   color: inherit;
 }
 
@@ -6551,7 +7404,7 @@ body.ai-panel-open .canvas-main {
   color: inherit;
 }
 
-/* AI 操作块 */
+/* AI action block */
 .ai-action-block {
   margin: 12px 0;
   border: 1px solid #e2e8f0;
@@ -6647,9 +7500,17 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes aiFlash {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35); }
-  60% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
+  }
+
+  60% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
 }
 
 .ai-error-card {
@@ -6681,23 +7542,29 @@ body.ai-panel-open .canvas-main {
   background: #111827;
 }
 
-/* 输入区域 - 与Chat风格统一 */
+/* Input area - unified with Chat style */
 .ai-input-area {
-  padding: 16px 20px 20px; /* 增加底部 padding */
-  border-top: none;        /* 去掉线条 */
-  background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 20%); /* 渐变过渡 */
+  padding: 16px 20px 20px;
+  /* Increase bottom padding */
+  border-top: none;
+  /* Remove line */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #fff 20%);
+  /* Gradient transition */
 }
 
 .ai-input-wrapper {
   display: flex;
   flex-direction: row;
-  align-items: flex-end; /* 底部对齐，适应多行 */
+  align-items: flex-end;
+  /* Bottom align, adapt to multi-line */
   gap: 10px;
   background: #ffffff;
   border: none;
-  border-radius: 24px; /* 大圆角胶囊 */
+  border-radius: 24px;
+  /* Large rounded pill */
   padding: 12px 16px;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04); /* 深邃柔和投影 */
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  /* Deep soft shadow */
   transition: all 0.2s ease;
 }
 
@@ -6742,7 +7609,7 @@ body.ai-panel-open .canvas-main {
   text-align: center;
 }
 
-/* 设置面板 - 覆盖在主面板内容上 */
+/* Settings panel - overlay on main panel content */
 .ai-settings-panel {
   position: absolute;
   left: 0;
@@ -6872,7 +7739,7 @@ body.ai-panel-open .canvas-main {
   color: #991b1b;
 }
 
-/* 思考中动画 */
+/* Thinking animation */
 .ai-thinking {
   display: flex;
   align-items: center;
@@ -6888,20 +7755,41 @@ body.ai-panel-open .canvas-main {
   animation: thinking 1.4s infinite ease-in-out both;
 }
 
-.ai-thinking-dot:nth-child(1) { animation-delay: -0.32s; }
-.ai-thinking-dot:nth-child(2) { animation-delay: -0.16s; }
-.ai-thinking-dot:nth-child(3) { animation-delay: 0; }
+.ai-thinking-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.ai-thinking-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.ai-thinking-dot:nth-child(3) {
+  animation-delay: 0;
+}
 
 @keyframes thinking {
-  0%, 80%, 100% { transform: scale(0); }
-  40% { transform: scale(1); }
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
 }
+
 /* =========================================
    UI Optimizations
    ========================================= */
 
 /* Unified Border Radius */
-.btn, .form-control, .parameter-input, .btn-ghost, .nav-item-count {
+.btn,
+.form-control,
+.parameter-input,
+.btn-ghost,
+.nav-item-count {
   border-radius: var(--radius-sm, 6px) !important;
 }
 
@@ -6971,7 +7859,9 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Navbar AI Button Styling */
@@ -6991,7 +7881,7 @@ body.ai-panel-open .canvas-main {
 #navbar-ai-btn:hover {
   background: #eef1f6;
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #navbar-ai-btn.active {
@@ -7126,7 +8016,7 @@ body.ai-panel-open .canvas-main {
    Apple-Style AI Assistant UI Refinements
    ========================================= */
 
-/* 1. 输入区域 - 悬浮胶囊风格 */
+/* 1. Input area - floating pill style */
 .ai-input-area {
   border-top: none;
   background: linear-gradient(to bottom, rgba(249, 250, 251, 0), #f9fafb 15%);
@@ -7137,13 +8027,14 @@ body.ai-panel-open .canvas-main {
 .ai-input-wrapper {
   display: flex;
   flex-direction: row;
-  align-items: center; /* 垂直居中对齐 */
+  align-items: center;
+  /* Vertical center align */
   gap: 12px;
   background: #ffffff;
   border: none;
   border-radius: 26px;
   padding: 10px 12px 10px 18px;
-  box-shadow: 
+  box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.04),
     0 12px 36px -8px rgba(0, 0, 0, 0.12),
     0 4px 16px -4px rgba(0, 0, 0, 0.06);
@@ -7152,7 +8043,7 @@ body.ai-panel-open .canvas-main {
 
 .ai-input-wrapper:focus-within {
   background: #fff;
-  box-shadow: 
+  box-shadow:
     0 0 0 1px rgba(37, 99, 235, 0.15),
     0 16px 48px -8px rgba(37, 99, 235, 0.15),
     0 6px 20px -4px rgba(37, 99, 235, 0.08);
@@ -7182,7 +8073,7 @@ body.ai-panel-open .canvas-main {
   font-weight: 400;
 }
 
-/* 发送按钮 - 动态状态变化 */
+/* Send button - dynamic state change */
 .ai-send-btn {
   width: 38px;
   height: 38px;
@@ -7194,15 +8085,15 @@ body.ai-panel-open .canvas-main {
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
-  
-  /* 默认：禁用状态 - 半透明灰 */
+
+  /* Default: disabled state - semi-transparent gray */
   background: #e5e7eb;
   color: #9ca3af;
   opacity: 0.6;
 }
 
 .ai-send-btn.active {
-  /* 激活状态：品牌渐变色 */
+  /* Active state: brand gradient color */
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: #fff;
   opacity: 1;
@@ -7227,7 +8118,7 @@ body.ai-panel-open .canvas-main {
   letter-spacing: 0.02em;
 }
 
-/* 2. 连接状态栏 - 极简内联风格 */
+/* 2. Connection status bar - minimalist inline style */
 .ai-connection-status {
   display: flex;
   align-items: center;
@@ -7265,11 +8156,14 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { 
+
+  0%,
+  100% {
     box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
     transform: scale(1);
   }
-  50% { 
+
+  50% {
     box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1), 0 0 12px rgba(34, 197, 94, 0.3);
     transform: scale(1.1);
   }
@@ -7281,8 +8175,17 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes pulseConnecting {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.9); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
 }
 
 .ai-status-dot.disconnected {
@@ -7295,7 +8198,7 @@ body.ai-panel-open .canvas-main {
   color: #64748b;
 }
 
-/* 模型名称徽章 */
+/* Model name badge */
 .ai-model-badge {
   display: inline-flex;
   align-items: center;
@@ -7317,7 +8220,7 @@ body.ai-panel-open .canvas-main {
   border-radius: 0;
 }
 
-/* 3. 侧边栏会话列表 - 用面代替线 */
+/* 3. Sidebar session list - use surface instead of line */
 .ai-session-bar {
   padding: 12px 14px 10px;
   border-bottom: none;
@@ -7419,7 +8322,7 @@ body.ai-panel-open .canvas-main {
   color: #1e40af;
 }
 
-/* 不使用边框表示选中 */
+/* Do not use border to indicate selection */
 .ai-session-item.active::before {
   display: none;
 }
@@ -7455,7 +8358,7 @@ body.ai-panel-open .canvas-main {
   background: rgba(0, 0, 0, 0.02);
 }
 
-/* 4. 空状态欢迎界面 - 添加推荐问题 */
+/* 4. Empty state welcome interface - add recommended questions */
 .ai-welcome {
   display: flex;
   flex-direction: column;
@@ -7479,8 +8382,15 @@ body.ai-panel-open .canvas-main {
 }
 
 @keyframes floatIcon {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .ai-welcome-icon svg {
@@ -7510,7 +8420,7 @@ body.ai-panel-open .canvas-main {
   color: #b4b4b4 !important;
 }
 
-/* 推荐问题卡片 */
+/* Recommended question card */
 .ai-starter-chips {
   display: flex;
   flex-direction: column;
@@ -7534,7 +8444,7 @@ body.ai-panel-open .canvas-main {
   color: #475569;
   font-size: 0.85rem;
   font-weight: 450;
-  box-shadow: 
+  box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.04),
     0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -7542,7 +8452,7 @@ body.ai-panel-open .canvas-main {
 .ai-starter-chip:hover {
   background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 0 0 1px rgba(59, 130, 246, 0.1),
     0 6px 16px rgba(0, 0, 0, 0.08);
 }
@@ -7573,7 +8483,7 @@ body.ai-panel-open .canvas-main {
   line-height: 1.35;
 }
 
-/* 面板头部 - 更轻盈 */
+/* Panel header - lighter */
 .ai-panel-header {
   box-shadow: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
@@ -7607,7 +8517,7 @@ body.ai-panel-open .canvas-main {
   color: #475569;
 }
 
-/* 消息样式优化 */
+/* Message style optimization */
 .ai-message.assistant .ai-message-content {
   color: #334155;
   font-size: 0.92rem;
@@ -7644,12 +8554,12 @@ body.ai-panel-open .canvas-main {
   padding: 10px 14px;
 }
 
-/* 消息列表背景 */
+/* Message list background */
 .ai-messages {
   background: #f9fafb;
 }
 
-/* Home View 背景 */
+/* Home View background */
 .ai-view#ai-home-view {
   background: #fff;
 }
