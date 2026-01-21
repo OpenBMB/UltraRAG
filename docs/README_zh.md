@@ -62,12 +62,13 @@ UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试�
 
 系统内置强大的 Pipeline Builder，支持‘画布拖拽’与‘代码编辑’的双向实时同步，并允许在线精细化调整 Pipeline 参数与 Prompt；更创新引入了 智能 AI 助手，深度辅助 Pipeline 结构设计、参数调优及 Prompt 生成的全开发流程。构建完成的逻辑流可 一键转化 为交互式对话系统，并无缝集成 知识库管理组件，支持用户构建专属知识库进行文档问答，真正实现了从底层逻辑构建、数据治理到上层应用交付的一站式闭环。
 
-<p align="center">
+<!-- <p align="center">
   <picture>
     <img alt="UltraRAG_UI" src="../docs/chat_menu.png" width=80%>
   </picture>
-</p>
+</p> -->
 
+https://github.com/user-attachments/assets/82b194ba-5ff9-42b4-8542-6b78a87e11ef
 
 ### 核心亮点
 
