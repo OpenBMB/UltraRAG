@@ -28,7 +28,7 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
-- [2026.01.20] 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced! |[🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)|
+- [2026.01.20] 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced 👉 |[🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)|
 
 <details>
 <summary>Previous News</summary>

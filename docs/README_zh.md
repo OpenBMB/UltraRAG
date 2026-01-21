@@ -28,7 +28,7 @@
 
 *更新日志* 🔥
 
-- [2026.01.20] 🎉 发布 AgentCPM-Report 模型！DeepResearch 终于本地化了：8B 端侧写作智能体 AgentCPM-Report 开源！|[🤗 模型](https://huggingface.co/openbmb/AgentCPM-Report)|
+- [2026.01.20] 🎉 发布 AgentCPM-Report 模型！DeepResearch 终于本地化了：8B 端侧写作智能体 AgentCPM-Report 开源 👉 |[🤗 模型](https://huggingface.co/openbmb/AgentCPM-Report)|
 
 <details>
 <summary>历史更新</summary>
