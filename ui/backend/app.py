@@ -1414,7 +1414,7 @@ def parse_ai_actions(content: str, context: Dict) -> list:
             import json
 
             parsed_value = json.loads(value)
-        except:
+        except Exception:
             parsed_value = value
 
         actions.append(

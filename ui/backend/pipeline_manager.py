@@ -1078,12 +1078,12 @@ def chat_multiturn_stream(
                 token_queue.put(None)
                 return
 
-            # 发送 step_start 事件
+            # Send step_start event
             token_queue.put(
                 {"type": "step_start", "name": "multiturn_generate", "depth": 0}
             )
 
-            # 执行流式生成
+            # Execute streaming generation
             full_content = ""
 
             async def generate():
@@ -1852,7 +1852,7 @@ def run_background_chat(
                 BACKGROUND_SESSION_MANAGER.remove(bg_session_id)
             return
 
-        # 准备上下文
+        # Prepare context
         try:
             param_path, original_text, dataset_path = _prepare_chat_context(
                 name, question
@@ -1868,29 +1868,30 @@ def run_background_chat(
             str(path) for path in sorted(OUTPUT_DIR.glob(f"memory_*_{name}_*.json"))
         }
 
-        # 收集 sources
+        # Collect sources
         collected_sources = []
 
-        async def token_callback(event_data):
+        async def token_callback(event_data: Any) -> None:
+            """Callback for collecting sources from events."""
             if isinstance(event_data, dict):
                 if event_data.get("type") == "sources":
                     docs = event_data.get("data", [])
                     collected_sources.extend(docs)
 
         try:
-            # 执行 pipeline
+            # Execute pipeline
             res = bg_session.run_chat(token_callback, dynamic_params)
 
-            # 恢复原始参数文件
+            # Restore original parameter file
             param_path.write_text(original_text, encoding="utf-8")
 
-            # 提取结果
+            # Extract result
             final_ans = _extract_result(res)
             mem_ans, mem_file = _find_memory_answer(name, before_memory)
 
             answer = final_ans or mem_ans or "No answer generated"
 
-            # 更新任务为完成状态
+            # Update task to completed status
             BACKGROUND_TASK_MANAGER.update_task(
                 task_id, status="completed", result=answer, sources=collected_sources
             )
@@ -2006,7 +2007,16 @@ def save_kb_config(config: Dict[str, str]):
     KB_CONFIG_PATH.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
 
-def _get_milvus_client():
+def _get_milvus_client() -> Any:
+    """Get Milvus client instance.
+
+    Returns:
+        MilvusClient instance
+
+    Raises:
+        ValueError: If URI is empty
+        Exception: If connection fails
+    """
     cfg = load_kb_config()
     try:
         milvus_cfg = cfg.get("milvus", {})
@@ -2025,26 +2035,41 @@ def _get_milvus_client():
 
 
 def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
-    def _scan_files(d: Path, category: str):
+    """List knowledge base files across all categories.
+
+    Returns:
+        Dictionary with files organized by category (raw, corpus, chunks, index)
+    """
+
+    def _scan_files(d: Path, category: str) -> List[Dict[str, Any]]:
+        """Scan files in a directory and return file information.
+
+        Args:
+            d: Directory path to scan
+            category: Category name (raw, corpus, chunks)
+
+        Returns:
+            List of file information dictionaries
+        """
         items = []
         if not d.exists():
             return items
 
-        # 加载目录级别的显示名称映射（用于文件）
+        # Load directory-level display name mapping (for files)
         dir_display_map = _load_display_names_map(d)
 
         for f in sorted(d.glob("*")):
             if f.name.startswith("."):
                 continue
             if f.name.startswith("_"):
-                continue  # 跳过元数据文件 (_meta.json, _display_names.json)
+                continue  # Skip metadata files (_meta.json, _display_names.json)
 
             is_dir = f.is_dir()
 
             size = 0
             file_count = 0
             if is_dir:
-                # 计算大小时排除 _meta.json
+                # Calculate size excluding _meta.json
                 for p in f.rglob("*"):
                     if p.is_file() and not p.name.startswith("_"):
                         size += p.stat().st_size
@@ -2052,24 +2077,24 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
             else:
                 size = f.stat().st_size
 
-            # [新增] 读取 display_name
-            display_name = f.name  # 默认使用文件名
+            # [New] Read display_name
+            display_name = f.name  # Default to filename
             if is_dir:
-                # 文件夹：从 _meta.json 读取
+                # Folder: read from _meta.json
                 meta = _read_folder_meta(f)
                 if meta and meta.get("display_name"):
                     display_name = meta["display_name"]
             else:
-                # 文件：从目录级别映射读取
+                # File: read from directory-level mapping
                 if f.name in dir_display_map:
                     display_name = dir_display_map[f.name]
                 else:
-                    # 默认显示去掉后缀的文件名
+                    # Default to filename without extension
                     display_name = f.stem
 
             item = {
                 "name": f.name,
-                "display_name": display_name,  # [新增]
+                "display_name": display_name,  # [New]
                 "path": _as_project_relative(f),
                 "size": size,
                 "mtime": f.stat().st_mtime,
@@ -2120,23 +2145,38 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
 
 
 def _generate_display_name(original_names: List[str]) -> str:
-    """生成用户友好的显示名称"""
+    """Generate user-friendly display name.
+
+    Args:
+        original_names: List of original file names
+
+    Returns:
+        Display name string
+    """
     if not original_names:
         return "Untitled"
 
-    # 取第一个文件的原始名称（不含后缀）
+    # Take first file's original name (without extension)
     first_name = Path(original_names[0]).stem
 
     if len(original_names) == 1:
-        # 单文件：直接使用文件名
+        # Single file: use filename directly
         return first_name
     else:
-        # 多文件：第一个文件名 + 数量后缀
+        # Multiple files: first filename + count suffix
         return f"{first_name} (+{len(original_names) - 1} more)"
 
 
-def _write_folder_meta(folder_path: Path, display_name: str, original_files: List[str]):
-    """写入文件夹元数据"""
+def _write_folder_meta(
+    folder_path: Path, display_name: str, original_files: List[str]
+) -> None:
+    """Write folder metadata.
+
+    Args:
+        folder_path: Path to folder
+        display_name: Display name for the folder
+        original_files: List of original file names
+    """
     meta_path = folder_path / "_meta.json"
     meta_data = {
         "display_name": display_name,
@@ -2151,7 +2191,14 @@ def _write_folder_meta(folder_path: Path, display_name: str, original_files: Lis
 
 
 def _read_folder_meta(folder_path: Path) -> Optional[Dict[str, Any]]:
-    """读取文件夹元数据"""
+    """Read folder metadata.
+
+    Args:
+        folder_path: Path to folder
+
+    Returns:
+        Metadata dictionary or None if not found
+    """
     meta_path = folder_path / "_meta.json"
     if not meta_path.exists():
         return None
@@ -2164,7 +2211,14 @@ def _read_folder_meta(folder_path: Path) -> Optional[Dict[str, Any]]:
 
 
 def _load_display_names_map(directory: Path) -> Dict[str, str]:
-    """加载目录级别的显示名称映射"""
+    """Load directory-level display name mapping.
+
+    Args:
+        directory: Directory path
+
+    Returns:
+        Dictionary mapping filenames to display names
+    """
     map_path = directory / "_display_names.json"
     if not map_path.exists():
         return {}
@@ -2176,8 +2230,13 @@ def _load_display_names_map(directory: Path) -> Dict[str, str]:
         return {}
 
 
-def _save_display_names_map(directory: Path, name_map: Dict[str, str]):
-    """保存目录级别的显示名称映射"""
+def _save_display_names_map(directory: Path, name_map: Dict[str, str]) -> None:
+    """Save directory-level display name mapping.
+
+    Args:
+        directory: Directory path
+        name_map: Dictionary mapping filenames to display names
+    """
     map_path = directory / "_display_names.json"
     try:
         with open(map_path, "w", encoding="utf-8") as f:
@@ -2186,15 +2245,33 @@ def _save_display_names_map(directory: Path, name_map: Dict[str, str]):
         LOGGER.warning(f"Failed to save display names map: {e}")
 
 
-def _register_display_name(directory: Path, filename: str, display_name: str):
-    """注册文件的显示名称"""
+def _register_display_name(
+    directory: Path, filename: str, display_name: str
+) -> None:
+    """Register file display name.
+
+    Args:
+        directory: Directory path
+        filename: File name
+        display_name: Display name to register
+    """
     name_map = _load_display_names_map(directory)
     name_map[filename] = display_name
     _save_display_names_map(directory, name_map)
 
 
 def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
+    """Upload multiple files to knowledge base.
 
+    Args:
+        file_objs: List of file objects to upload
+
+    Returns:
+        Dictionary with upload session information
+
+    Raises:
+        Exception: If upload fails
+    """
     if not file_objs:
         return {"error": "No files provided"}
 
@@ -2205,18 +2282,19 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
     session_dir.mkdir(parents=True, exist_ok=True)
 
     saved_files = []
-    original_names = []  # [新增] 记录原始文件名
+    original_names = []  # [New] Record original file names
     total_size = 0
 
     try:
         for file_obj in file_objs:
-
             original_name = file_obj.filename
-            original_names.append(original_name)  # [新增] 保存原始名
+            original_names.append(original_name)  # [New] Save original name
 
             safe_name = _secure_filename_unicode(original_name)
             if not safe_name:
-                safe_name = f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
+                safe_name = (
+                    f"file_{str(uuid.uuid4())[:8]}{Path(original_name).suffix}"
+                )
 
             save_path = session_dir / safe_name
 
@@ -2232,17 +2310,18 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
             saved_files.append(safe_name)
             total_size += save_path.stat().st_size
 
-        # [新增] 生成显示名并写入元数据
+        # [New] Generate display name and write metadata
         display_name = _generate_display_name(original_names)
         _write_folder_meta(session_dir, display_name, original_names)
 
         LOGGER.info(
-            f"Created upload session: {session_dir} with {len(saved_files)} files. Display: {display_name}"
+            f"Created upload session: {session_dir} with {len(saved_files)} files. "
+            f"Display: {display_name}"
         )
 
         return {
             "name": session_id,
-            "display_name": display_name,  # [新增]
+            "display_name": display_name,  # [New]
             "path": _as_project_relative(session_dir),
             "size": total_size,
             "type": "folder",
@@ -2257,6 +2336,18 @@ def upload_kb_files_batch(file_objs: List[Any]) -> Dict[str, Any]:
 
 
 def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
+    """Delete a knowledge base file or collection.
+
+    Args:
+        category: File category (raw, corpus, chunks, collection, index)
+        filename: File or collection name
+
+    Returns:
+        Dictionary with deletion status
+
+    Raises:
+        Exception: If deletion fails
+    """
     base_dir = None
     if category == "raw":
         base_dir = KB_RAW_DIR
@@ -2295,7 +2386,18 @@ def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
         raise e
 
 
-def _delete_milvus_collection(name: str):
+def _delete_milvus_collection(name: str) -> Dict[str, str]:
+    """Delete a Milvus collection.
+
+    Args:
+        name: Collection name
+
+    Returns:
+        Dictionary with deletion status
+
+    Raises:
+        Exception: If deletion fails
+    """
     try:
         client = _get_milvus_client()
         if client.has_collection(name):
@@ -2309,7 +2411,11 @@ def _delete_milvus_collection(name: str):
 
 
 def clear_staging_area() -> Dict[str, Any]:
-    """清空暂存区：删除 raw, corpus, chunks 三个目录中的所有文件"""
+    """Clear staging area: delete all files in raw, corpus, chunks directories.
+
+    Returns:
+        Dictionary with deletion counts and any errors
+    """
     deleted_counts = {"raw": 0, "corpus": 0, "chunks": 0}
     errors = []
 
@@ -2322,7 +2428,7 @@ def clear_staging_area() -> Dict[str, Any]:
             continue
 
         try:
-            # 遍历目录中的所有文件和文件夹
+            # Iterate through all files and folders in directory
             for item in base_dir.iterdir():
                 if item.name.startswith("."):
                     continue
@@ -2366,12 +2472,29 @@ def run_kb_pipeline_tool(
     target_file_path: str,
     output_dir: str,
     collection_name: Optional[str] = None,
-    index_mode: str = "append",  # 'append' (追加), 'overwrite' (覆盖)
-    chunk_params: Optional[Dict[str, Any]] = None,  # [新增] 接收参数
+    index_mode: str = "append",  # 'append' (append), 'overwrite' (overwrite)
+    chunk_params: Optional[Dict[str, Any]] = None,  # [New] Receive parameters
     embedding_params: Optional[
         Dict[str, Any]
-    ] = None,  # [新增] Embedding 配置 (用于 milvus_index)
+    ] = None,  # [New] Embedding configuration (for milvus_index)
 ) -> Dict[str, Any]:
+    """Run knowledge base pipeline tool.
+
+    Args:
+        pipeline_name: Name of the pipeline to run
+        target_file_path: Path to target file or directory
+        output_dir: Output directory path
+        collection_name: Optional Milvus collection name
+        index_mode: Index mode ("append" or "overwrite")
+        chunk_params: Optional chunking parameters
+        embedding_params: Optional embedding parameters
+
+    Returns:
+        Dictionary with execution result
+
+    Raises:
+        PipelineManagerError: If pipeline or parameters not found
+    """
 
     pipeline_cfg = load_pipeline(pipeline_name)
     if not pipeline_cfg:
@@ -2389,15 +2512,15 @@ def run_kb_pipeline_tool(
     stem = target_file.stem
     override_params = {}
 
-    # [新增] 获取源文件的 display_name，用于传递给输出
+    # [New] Get source file's display_name to pass to output
     source_display_name = None
     if target_file.is_dir():
-        # 源是文件夹（Raw 阶段）
+        # Source is folder (Raw stage)
         meta = _read_folder_meta(target_file)
         if meta and meta.get("display_name"):
             source_display_name = meta["display_name"]
     else:
-        # 源是文件（Corpus/Chunks 阶段），从目录映射读取
+        # Source is file (Corpus/Chunks stage), read from directory mapping
         parent_map = _load_display_names_map(target_file.parent)
         if target_file.name in parent_map:
             source_display_name = parent_map[target_file.name]
@@ -2412,7 +2535,7 @@ def run_kb_pipeline_tool(
                 "text_corpus_save_path": out_path,
             }
         }
-        # [新增] 注册输出文件的 display_name
+        # [New] Register output file's display_name
         if source_display_name:
             _register_display_name(
                 Path(output_dir), f"{stem}.jsonl", source_display_name
@@ -2421,19 +2544,19 @@ def run_kb_pipeline_tool(
     elif pipeline_name == "corpus_chunk":
         out_path = os.path.join(output_dir, f"{stem}.jsonl")
 
-        # [修改] 基础参数
+        # [Modified] Base parameters
         corpus_override = {"raw_chunk_path": str(target_file), "chunk_path": out_path}
 
         if chunk_params:
             try:
                 if "chunk_size" in chunk_params:
                     chunk_params["chunk_size"] = int(chunk_params["chunk_size"])
-            except:
+            except Exception:
                 pass
             corpus_override.update(chunk_params)
 
         override_params = {"corpus": corpus_override}
-        # [新增] 注册输出文件的 display_name
+        # [New] Register output file's display_name
         if source_display_name:
             _register_display_name(
                 Path(output_dir), f"{stem}.jsonl", source_display_name
@@ -2442,7 +2565,7 @@ def run_kb_pipeline_tool(
     elif pipeline_name == "milvus_index":
         requested_name = collection_name if collection_name else stem
 
-        # 获取已存在的 collection 名称与显示名，用于去重
+        # Get existing collection names and display names for deduplication
         existing_collections: set[str] = set()
         existing_display_names: set[str] = set()
         client = None
@@ -2454,7 +2577,9 @@ def run_kb_pipeline_tool(
                     desc = client.describe_collection(_name).get("description", "")
                 except Exception:
                     desc = ""
-                existing_display_names.add(_extract_display_name_from_desc(desc, _name))
+                existing_display_names.add(
+                    _extract_display_name_from_desc(desc, _name)
+                )
         except Exception as exc:
             raise PipelineManagerError(f"Milvus connection failed: {exc}") from exc
         finally:
@@ -2464,11 +2589,11 @@ def run_kb_pipeline_tool(
             except Exception:
                 pass
 
-        # 转拼音 -> ASCII slug，再去重
+        # Convert to pinyin -> ASCII slug, then deduplicate
         slug_base = _transliterate_name(requested_name)
         safe_collection_name = _make_unique_name(slug_base, existing_collections)
 
-        # 显示名按原输入，若重名则添加 (1) 递增
+        # Display name uses original input, add (1) increment if duplicate
         display_collection_name = _make_unique_display(
             requested_name, existing_display_names
         )
@@ -2479,10 +2604,10 @@ def run_kb_pipeline_tool(
         milvus_config_dict = dict(full_kb_cfg["milvus"])
         milvus_config_dict["collection_display_name"] = display_collection_name
 
-        # 确保父目录存在
+        # Ensure parent directory exists
         KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 
-        # [新增] 构建 embedding backend 配置
+        # [New] Build embedding backend configuration
         retriever_override = {
             "corpus_path": str(target_file),
             "collection_name": safe_collection_name,
@@ -2491,7 +2616,7 @@ def run_kb_pipeline_tool(
             "index_backend_configs": {"milvus": milvus_config_dict},
         }
 
-        # 如果用户配置了 Embedding 参数，则使用 OpenAI backend
+        # If user configured Embedding parameters, use OpenAI backend
         if embedding_params and embedding_params.get("api_key"):
             retriever_override["backend"] = "openai"
             retriever_override["backend_configs"] = {
