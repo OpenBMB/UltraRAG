@@ -62,12 +62,13 @@ UltraRAG UI breaks through the boundaries of traditional chat interfaces and evo
 
 The system has a built-in powerful Pipeline Builder that supports bidirectional real-time synchronization between 'canvas drag-and-drop' and 'code editing', and allows online fine-tuning of Pipeline parameters and Prompts. It also innovatively introduces an intelligent AI assistant that deeply assists in the entire development process of Pipeline structure design, parameter tuning, and Prompt generation. The completed logic flow can be **converted with one click** into an interactive chat system and seamlessly integrates **knowledge base management components**, supporting users to build their own knowledge bases for document Q&A, truly achieving a one-stop closed loop from underlying logic construction, data governance to upper-layer application delivery.
 
-<p align="center">
+<!-- <p align="center">
   <picture>
     <img alt="UltraRAG_UI" src="./docs/chat_menu.png" width=80%>
   </picture>
-</p>
+</p> -->
 
+https://github.com/user-attachments/assets/03a2045e-26ca-4426-bc18-cfc3e9520ea2
 
 ### Key Highlights
 
