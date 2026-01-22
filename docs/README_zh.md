@@ -122,7 +122,7 @@ cd UltraRAG
 
 - 全量安装：如果您希望完整体验 UltraRAG 的检索、生成、语料处理及评测功能，请运行：
   ```shell
-  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  uv sync --all-extras
   ```
 - 按需安装：如果您只需运行定模块，按需保留对应 `--extra`，例如：
 
@@ -140,9 +140,15 @@ cd UltraRAG
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 # 2. 构建镜像
-docker build -t ultrarag:latest .
+docker build -t ultrarag:v0.3.0 .
+
+# 您也可以使用我们构建好的镜像：
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基本依赖，cpu版本
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基本依赖，gpu版本
+docker pull hdxin2002/ultrarag:v0.3.0          # 完整依赖，gpu版本
+
 # 3. 启动容器（已自动映射 5050 端口）
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
 提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
 
