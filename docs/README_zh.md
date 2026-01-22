@@ -131,6 +131,32 @@ cd UltraRAG
   uv sync --extra generation  # 仅生成模块
   ```
 
+最后激活虚拟环境：
+
+```shell
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+如果你希望在一个已有环境中安装依赖，可直接使用`pip`进行安装：
+
+```shell
+# 核心依赖
+uv pip install -e .
+
+# 全量安装
+uv pip install -e ".[all]"
+
+# 按需安装
+uv pip install -e ".[retriever]"
+```
+
 ### 方式二：Docker 容器部署
 
 如果您不想配置本地 Python 环境，可以使用 Docker 一键启动。

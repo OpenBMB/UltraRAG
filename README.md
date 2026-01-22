@@ -131,6 +131,32 @@ Please choose one synchronization method according to your usage scenario:
   uv sync --extra generation  # Generation module only
   ```
 
+Finally, activate the virtual environment:
+
+```shell
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+If you want to install dependencies in an existing environment, you can directly use `pip` for installation:
+
+```shell
+# Core dependencies
+uv pip install -e .
+
+# Full installation
+uv pip install -e ".[all]"
+
+# On-demand installation
+uv pip install -e ".[retriever]"
+```
+
 ### Method 2: Docker Container Deployment
 
 If you don't want to configure a local Python environment, you can use Docker to start with one click.
