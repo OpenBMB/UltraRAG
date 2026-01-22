@@ -68,7 +68,9 @@ The system has a built-in powerful Pipeline Builder that supports bidirectional 
   </picture>
 </p> -->
 
-https://github.com/user-attachments/assets/03a2045e-26ca-4426-bc18-cfc3e9520ea2
+
+https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
+
 
 ### Key Highlights
 
@@ -122,7 +124,7 @@ Please choose one synchronization method according to your usage scenario:
 
 - Full installation: If you want to fully experience UltraRAG's retrieval, generation, corpus processing, and evaluation functions, please run:
   ```shell
-  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  uv sync --all-extras
   ```
 - On-demand installation: If you only need to run specific modules, keep the corresponding `--extra` as needed, for example:
 
@@ -130,6 +132,32 @@ Please choose one synchronization method according to your usage scenario:
   uv sync --extra retriever   # Retrieval module only
   uv sync --extra generation  # Generation module only
   ```
+
+Finally, activate the virtual environment:
+
+```shell
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+If you want to install dependencies in an existing environment, you can directly use `pip` for installation:
+
+```shell
+# Core dependencies
+uv pip install -e .
+
+# Full installation
+uv pip install -e ".[all]"
+
+# On-demand installation
+uv pip install -e ".[retriever]"
+```
 
 ### Method 2: Docker Container Deployment
 
@@ -140,9 +168,15 @@ If you don't want to configure a local Python environment, you can use Docker to
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 # 2. Build image
-docker build -t ultrarag:latest .
+docker build -t ultrarag:v0.3.0 .
+
+# You can also use our pre-built images:
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # Basic dependencies, CPU version
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # Basic dependencies, GPU version
+docker pull hdxin2002/ultrarag:v0.3.0          # Full dependencies, GPU version
+
 # 3. Start container (port 5050 is automatically mapped)
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
 Note: After the container starts, UltraRAG UI will run automatically. You can directly access `http://localhost:5050` in your browser to use it.
 

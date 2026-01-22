@@ -68,7 +68,9 @@ UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试�
   </picture>
 </p> -->
 
-https://github.com/user-attachments/assets/82b194ba-5ff9-42b4-8542-6b78a87e11ef
+
+https://github.com/user-attachments/assets/9cca0d4f-fb47-4232-9e47-69bfbb7b5d5d
+
 
 ### 核心亮点
 
@@ -122,7 +124,7 @@ cd UltraRAG
 
 - 全量安装：如果您希望完整体验 UltraRAG 的检索、生成、语料处理及评测功能，请运行：
   ```shell
-  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  uv sync --all-extras
   ```
 - 按需安装：如果您只需运行定模块，按需保留对应 `--extra`，例如：
 
@@ -130,6 +132,32 @@ cd UltraRAG
   uv sync --extra retriever   # 仅检索模块
   uv sync --extra generation  # 仅生成模块
   ```
+
+最后激活虚拟环境：
+
+```shell
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+如果你希望在一个已有环境中安装依赖，可直接使用`pip`进行安装：
+
+```shell
+# 核心依赖
+uv pip install -e .
+
+# 全量安装
+uv pip install -e ".[all]"
+
+# 按需安装
+uv pip install -e ".[retriever]"
+```
 
 ### 方式二：Docker 容器部署
 
@@ -140,9 +168,15 @@ cd UltraRAG
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
 # 2. 构建镜像
-docker build -t ultrarag:latest .
+docker build -t ultrarag:v0.3.0 .
+
+# 您也可以使用我们构建好的镜像：
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基本依赖，cpu版本
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基本依赖，gpu版本
+docker pull hdxin2002/ultrarag:v0.3.0          # 完整依赖，gpu版本
+
 # 3. 启动容器（已自动映射 5050 端口）
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
 提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
 
