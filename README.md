@@ -68,7 +68,9 @@ The system has a built-in powerful Pipeline Builder that supports bidirectional 
   </picture>
 </p> -->
 
-https://github.com/user-attachments/assets/03a2045e-26ca-4426-bc18-cfc3e9520ea2
+
+https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
+
 
 ### Key Highlights
 
