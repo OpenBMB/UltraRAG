@@ -68,7 +68,9 @@ UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试�
   </picture>
 </p> -->
 
-https://github.com/user-attachments/assets/82b194ba-5ff9-42b4-8542-6b78a87e11ef
+
+https://github.com/user-attachments/assets/9cca0d4f-fb47-4232-9e47-69bfbb7b5d5d
+
 
 ### 核心亮点
 
