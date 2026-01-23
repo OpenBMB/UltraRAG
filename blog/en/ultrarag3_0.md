@@ -12,6 +12,8 @@ Today, **UltraRAG 3.0** is jointly released by **THUNLP Lab at Tsinghua Universi
 - **An embedded intelligent development assistant — your interactive development guide:**  
   A framework-aware AI assistant supports Pipeline generation and prompt optimization through natural language interaction, dramatically lowering the barrier to entry.
 
+https://github.com/user-attachments/assets/617d83b9-b9f0-4a12-ba92-40e1f35a7f49
+
 ## Logic Becomes Application: Zero Distance from Orchestration to Interaction
 
 Let algorithms move beyond cold console logs. By automatically handling UI encapsulation and parameter binding, UltraRAG 3.0 ensures that the moment logical orchestration is complete, a fully interactive demo interface is generated simultaneously.
@@ -25,6 +27,8 @@ Let algorithms move beyond cold console logs. By automatically handling UI encap
 - **One-Click Build and Validation:**  
   After construction, clicking the “Build” button triggers automatic logic checks and syntax validation, followed by dynamic generation of parameter panels. Once parameters are set, static algorithmic logic instantly becomes a fully interactive system — truly achieving *what you write is what you get, and what you get is immediately usable*.
 
+https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
+
 ## Rejecting the “Black Box”: Making Complex RAG Reasoning Fully Transparent
 
 As RAG systems evolve from single-pass retrieval to multi-round dynamic decision-making, reasoning chains can easily span hundreds of steps. Without visibility into intermediate states, debugging becomes a process of blind trial and error.
@@ -34,6 +38,10 @@ UltraRAG 3.0 redefines the **Chat interface** — it is not only the entry point
 Through the “Show Thinking” panel, UltraRAG provides pixel-level, real-time visualization of the entire reasoning process. From complex loops and branches to concrete tool invocations, **all intermediate states are streamed and presented in a structured form**. Even for long-horizon workflows such as DeepResearch, developers can monitor execution progress in real time, eliminating opaque waiting periods.
 
 When bad cases arise, there is no need to search through backend logs. Developers can directly compare retrieved evidence slices with the final answer in the interface to quickly determine whether the issue originates from **data-level noise** or **model-level hallucination**, significantly shortening the iteration cycle.
+
+https://github.com/user-attachments/assets/50621bb5-f9f6-4fd5-b64f-f9ecd75b7da7
+
+https://github.com/user-attachments/assets/662447d3-05d3-4537-b290-f16fa3aeb52f
 
 ## Breaking Free from Framework Lock-In
 
@@ -60,6 +68,8 @@ Below are four real interaction scenarios illustrating how natural language is t
 
 3. **Configuration Update: Easily Switch Backend Parameters**  
    > User: “I want to switch the generation backend. Please change the generation model backend to OpenAI, set the model name to qwen3-32b, and deploy the API service on port 65503.”
+
+https://github.com/user-attachments/assets/3adc552e-8e6a-48cf-8e29-05ca2ac84a94
 
 4. **Free-Form Optimization: From Concept to Implementation**  
    > User: “I want to redesign my RAG workflow by referencing this paper: https://arxiv.org/pdf/2410.08821 (DeepNote). Please analyze its core ideas and help me construct a similar Pipeline architecture.”
