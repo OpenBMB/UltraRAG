@@ -47,6 +47,8 @@ Less Code, Lower Barrier, Faster Deployment
 
 ## About UltraRAG
 
+<a href="https://trendshift.io/repositories/18747" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18747" alt="OpenBMB%2FUltraRAG | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
 UltraRAG is the first lightweight RAG development framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture design, jointly launched by [THUNLP](https://nlp.csai.tsinghua.edu.cn/) at Tsinghua University, [NEUIR](https://neuir.github.io) at Northeastern University, [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars).
 
 Designed for research exploration and industrial prototyping, UltraRAG standardizes core RAG components (Retriever, Generation, etc.) as independent **MCP Servers**, combined with the powerful workflow orchestration capabilities of the **MCP Client**. Developers can achieve precise orchestration of complex control structures such as conditional branches and loops simply through YAML configuration.
