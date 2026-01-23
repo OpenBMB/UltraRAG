@@ -29,7 +29,9 @@ cd UltraRAG
 
 **安装依赖**
 
-请根据您的使用场景选择一种同步方式：
+请根据您的使用场景，选择一种模式安装依赖：
+
+**A：创建新环境** 使用 `uv sync` 自动创建虚拟环境并同步依赖：
 
 - 核心依赖：如果您只需运行基础核心功能，如只使用 UltraRAG UI：
   ```shell
@@ -38,7 +40,7 @@ cd UltraRAG
 
 - 全量安装：如果您希望完整体验 UltraRAG 的检索、生成、语料处理及评测功能，请运行：
   ```shell
-  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  uv sync --all-extras
   ```
 - 按需安装：如果您只需运行定模块，按需保留对应 `--extra`，例如：
 
@@ -47,20 +49,63 @@ cd UltraRAG
   uv sync --extra generation  # 仅生成模块
   ```
 
+安装完成后，激活虚拟环境：
+
+```shell
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+**B：安装至已有环境** 如果您希望将 UltraRAG 安装到当前已激活的 Python 环境中，请使用 `uv pip`：
+
+```shell
+# 核心依赖
+uv pip install -e .
+
+# 全量安装
+uv pip install -e ".[all]"
+
+# 按需安装
+uv pip install -e ".[retriever]"
+```
+
+
 ## Docker 容器部署
 
 如果您不想配置本地 Python 环境，可以使用 Docker 一键启动。
+
+**获取代码与镜像**
 
 ```shell
 # 1. 下载代码
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
-# 2. 构建镜像
-docker build -t ultrarag:latest .
-# 3. 启动容器（已自动映射 5050 端口）
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
+
+# 2. 准备镜像 (二选一)
+# 选项 A：从 Docker Hub 拉取
+
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基础版 (CPU)
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基础版 (GPU)
+docker pull hdxin2002/ultrarag:v0.3.0          # 完整版 (GPU)
+
+# 选项 B：本地构建
+docker build -t ultrarag:v0.3.0 .
+
 ```
-提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
+
+**启动容器**
+
+```shell
+# 启动容器（已自动映射 5050 端口）
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
+```
+
+<Note>容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。</Note>
 
 ## 验证安装
 

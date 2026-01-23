@@ -29,38 +29,84 @@ cd UltraRAG
 
 **Install Dependencies**
 
-Please choose a synchronization method according to your usage scenario:
+Choose one of the following modes to install dependencies based on your use case:
 
-- **Core Dependencies**: If you only need to run basic core functions, such as using only UltraRAG UI:
+**A: Create a New Environment** Use `uv sync` to automatically create a virtual environment and synchronize dependencies:
+
+- Core dependencies: If you only need to run basic core functions, such as only using UltraRAG UI:
   ```shell
   uv sync
   ```
 
-- **Full Installation**: If you want to fully experience UltraRAG's retrieval, generation, corpus processing, and evaluation functions, please run:
+- Full installation: If you want to fully experience UltraRAG's retrieval, generation, corpus processing, and evaluation functions, please run:
   ```shell
-  uv sync --extra retriever --extra generation --extra corpus --extra evaluation
+  uv sync --all-extras
   ```
-- **On-Demand Installation**: If you only need to run specific modules, retain the corresponding `--extra` as needed, for example:
+- On-demand installation: If you only need to run specific modules, keep the corresponding `--extra` as needed, for example:
 
   ```shell
   uv sync --extra retriever   # Retrieval module only
   uv sync --extra generation  # Generation module only
   ```
 
-## Docker Container Deployment
-
-If you don't want to configure a local Python environment, you can use Docker for a one-click start.
+Once installed, activate the virtual environment:
 
 ```shell
-# 1. Download code
+# Windows CMD
+.venv\Scripts\activate.bat
+
+# Windows Powershell
+.venv\Scripts\Activate.ps1
+
+# macOS / Linux
+source .venv/bin/activate
+```
+
+**B: Install into an Existing Environment** To install UltraRAG into your currently active Python environment, use `uv pip`:
+
+```shell
+# Core dependencies
+uv pip install -e .
+
+# Full installation
+uv pip install -e ".[all]"
+
+# On-demand installation
+uv pip install -e ".[retriever]"
+```
+
+## Docker Container Deployment
+
+If you prefer not to configure a local Python environment, you can deploy using Docker.
+
+**Get Code and Images**
+
+```shell
+# 1. Clone the repository
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
-# 2. Build image
-docker build -t ultrarag:latest .
+
+# 2. Prepare the image (choose one)
+# Option A: Pull from Docker Hub
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # Base version (CPU)
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # Base version (GPU)
+docker pull hdxin2002/ultrarag:v0.3.0          # Full version (GPU)
+
+# Option B: Build locally
+docker build -t ultrarag:v0.3.0 .
+
 # 3. Start container (port 5050 is automatically mapped)
-docker run -it --gpus all -p 5050:5050 ultrarag:latest
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
-Tip: The container will automatically run UltraRAG UI after startup. You can access `http://localhost:5050` directly in your browser.
+
+**Start the Container**
+
+```shell
+# Start the container (Port 5050 is mapped by default)
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
+```
+
+<Note>After the container starts, UltraRAG UI will run automatically. You can directly access `http://localhost:5050` in your browser to use it.</Note>
 
 ## Verify Installation
 
