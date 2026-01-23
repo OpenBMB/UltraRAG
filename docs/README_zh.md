@@ -47,6 +47,8 @@
 
 ## 关于 UltraRAG
 
+<a href="https://trendshift.io/repositories/18747" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18747" alt="OpenBMB%2FUltraRAG | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+
 UltraRAG 是由清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验室、东北大学 [NEUIR](https://neuir.github.io) 实验室、[OpenBMB](https://www.openbmb.cn/home) 与 [AI9stars](https://github.com/AI9Stars) 联合推出的首个基于 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) 架构设计的轻量级 RAG 开发框架。
 
 专为科研探索与工业原型设计打造，UltraRAG 将 RAG 中的核心组件（Retriever、Generation 等）标准化封装为独立的 **MCP Server**，配合 **MCP Client** 强大的流程调度能力，开发者仅需通过 YAML 配置，即可实现对条件分支、循环等复杂控制结构的精确编排。
