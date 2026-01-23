@@ -795,15 +795,17 @@
     </div>
 
     <div class="mb-3">
-      <label class="form-label small text-muted text-uppercase fw-bold">Collection Name</label>
+      <label class="form-label small text-muted text-uppercase fw-bold" id="idx-collection-label">Collection Name</label>
       <input type="text" id="idx-collection" class="form-control" placeholder="e.g. wiki_v1">
+      <select id="idx-collection-select" class="form-select d-none"></select>
     </div>
 
     <div class="mb-4">
       <label class="form-label small text-muted text-uppercase fw-bold">Mode</label>
       <select id="idx-mode" class="form-select">
-        <option value="append">Append (Add Data)</option>
-        <option value="overwrite">Overwrite (Drop Collection)</option>
+        <option value="new">New</option>
+        <option value="append">Append</option>
+        <option value="overwrite">Overwrite</option>
       </select>
     </div>
 

@@ -134,6 +134,12 @@ def _normalize_collection_name(raw_name: str) -> str:
     return normalized[:MAX_COLLECTION_NAME_LEN]
 
 
+def _normalize_display_name(name: str) -> str:
+    normalized = unicodedata.normalize("NFKC", str(name or "")).strip().lower()
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized
+
+
 def _make_safe_collection_name(display_name: str) -> tuple[str, str]:
     base = _normalize_collection_name(display_name)
 
@@ -2567,7 +2573,8 @@ def run_kb_pipeline_tool(
 
         # Get existing collection names and display names for deduplication
         existing_collections: set[str] = set()
-        existing_display_names: set[str] = set()
+        existing_display_names: dict[str, str] = {}
+        display_name_lookup: dict[str, str] = {}
         client = None
         try:
             client = _get_milvus_client()
@@ -2577,9 +2584,9 @@ def run_kb_pipeline_tool(
                     desc = client.describe_collection(_name).get("description", "")
                 except Exception:
                     desc = ""
-                existing_display_names.add(
-                    _extract_display_name_from_desc(desc, _name)
-                )
+                display_name = _extract_display_name_from_desc(desc, _name)
+                existing_display_names[_name] = display_name
+                display_name_lookup[_normalize_display_name(display_name)] = _name
         except Exception as exc:
             raise PipelineManagerError(f"Milvus connection failed: {exc}") from exc
         finally:
@@ -2589,14 +2596,33 @@ def run_kb_pipeline_tool(
             except Exception:
                 pass
 
-        # Convert to pinyin -> ASCII slug, then deduplicate
-        slug_base = _transliterate_name(requested_name)
-        safe_collection_name = _make_unique_name(slug_base, existing_collections)
+        existing_display_name_values = set(existing_display_names.values())
+        normalized_request = _normalize_display_name(requested_name)
+        matched_collection = None
+        if requested_name in existing_collections:
+            matched_collection = requested_name
+        elif normalized_request and normalized_request in display_name_lookup:
+            matched_collection = display_name_lookup[normalized_request]
 
-        # Display name uses original input, add (1) increment if duplicate
-        display_collection_name = _make_unique_display(
-            requested_name, existing_display_names
-        )
+        if matched_collection and index_mode == "new":
+            raise PipelineManagerError(
+                "Collection name already exists. Choose append or overwrite."
+            )
+
+        if matched_collection and index_mode in {"append", "overwrite"}:
+            safe_collection_name = matched_collection
+            display_collection_name = existing_display_names.get(
+                matched_collection, requested_name
+            )
+        else:
+            # Convert to pinyin -> ASCII slug, then deduplicate
+            slug_base = _transliterate_name(requested_name)
+            safe_collection_name = _make_unique_name(slug_base, existing_collections)
+
+            # Display name uses original input, add (1) increment if duplicate
+            display_collection_name = _make_unique_display(
+                requested_name, existing_display_name_values
+            )
 
         is_overwrite = index_mode == "overwrite"
 

@@ -28,7 +28,7 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
-- [2026.01.23] 🎉 🎉 UltraRAG 3.0 Released: Say no to "black box" development—make every line of reasoning logic clearly visible 👉|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/ultrarag3_0.md)|
+- [2026.01.23] 🎉 UltraRAG 3.0 Released: Say no to "black box" development—make every line of reasoning logic clearly visible 👉|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/ultrarag3_0.md)|
 - [2026.01.20] 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced 👉 |[🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)|
 
 <details>

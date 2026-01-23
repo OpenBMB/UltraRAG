@@ -190,6 +190,8 @@ const els = {
     // Milvus modal related (keep and confirm ID)
     milvusDialog: document.getElementById("milvus-dialog"),
     idxCollection: document.getElementById("idx-collection"),
+    idxCollectionLabel: document.getElementById("idx-collection-label"),
+    idxCollectionSelect: document.getElementById("idx-collection-select"),
     idxMode: document.getElementById("idx-mode"),
     // [New] Refresh button
     refreshCollectionsBtn: document.getElementById("refresh-collections-btn"),
@@ -373,6 +375,97 @@ function showConfirm(message, options = {}) {
     });
 }
 
+/**
+ * Show a choice dialog with two actions.
+ * @param {string} message - The message to display
+ * @param {object} options - Configuration options
+ * @param {string} options.title - Modal title (default: "Choose an option")
+ * @param {string} options.type - Icon type: 'info' | 'warning' | 'confirm' (default: 'warning')
+ * @param {string} options.primaryText - Primary button label
+ * @param {string} options.secondaryText - Secondary button label
+ * @param {string} options.cancelText - Cancel button label
+ * @param {string} options.primaryValue - Value returned for primary button
+ * @param {string} options.secondaryValue - Value returned for secondary button
+ * @param {boolean} options.dangerPrimary - Whether primary is dangerous
+ * @param {boolean} options.dangerSecondary - Whether secondary is dangerous
+ * @returns {Promise<string|null>}
+ */
+function showChoice(message, options = {}) {
+    const {
+        title = "Choose an option",
+        type = "warning",
+        primaryText = "Primary",
+        secondaryText = "Secondary",
+        cancelText = "Cancel",
+        primaryValue = "primary",
+        secondaryValue = "secondary",
+        dangerPrimary = false,
+        dangerSecondary = false
+    } = options;
+
+    return new Promise((resolve) => {
+        const modal = document.getElementById("unified-modal");
+        const iconEl = document.getElementById("unified-modal-icon");
+        const titleEl = document.getElementById("unified-modal-title");
+        const messageEl = document.getElementById("unified-modal-message");
+        const actionsEl = document.getElementById("unified-modal-actions");
+
+        if (!modal) {
+            console.warn("Unified modal not found, falling back to confirm");
+            resolve(window.confirm(message) ? primaryValue : null);
+            return;
+        }
+
+        // Set icon based on type (reuse confirm icon if unknown)
+        iconEl.className = `unified-modal-icon ${type}`;
+        const icons = {
+            info: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
+            warning: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+            confirm: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+        };
+        iconEl.innerHTML = icons[type] || icons.confirm;
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        const primaryClass = dangerPrimary ? "unified-modal-btn-danger" : "unified-modal-btn-primary";
+        const secondaryClass = dangerSecondary ? "unified-modal-btn-danger" : "unified-modal-btn-secondary";
+        actionsEl.innerHTML = `
+      <button class="btn unified-modal-btn unified-modal-btn-secondary" id="unified-modal-cancel">${escapeHtml(cancelText)}</button>
+      <button class="btn unified-modal-btn ${secondaryClass}" id="unified-modal-secondary">${escapeHtml(secondaryText)}</button>
+      <button class="btn unified-modal-btn ${primaryClass}" id="unified-modal-primary">${escapeHtml(primaryText)}</button>
+    `;
+
+        const cancelBtn = document.getElementById("unified-modal-cancel");
+        const secondaryBtn = document.getElementById("unified-modal-secondary");
+        const primaryBtn = document.getElementById("unified-modal-primary");
+
+        let resolved = false;
+        const closeWith = (result) => {
+            if (resolved) return;
+            resolved = true;
+            modal.close();
+            resolve(result);
+        };
+
+        cancelBtn.onclick = () => closeWith(null);
+        secondaryBtn.onclick = () => closeWith(secondaryValue);
+        primaryBtn.onclick = () => closeWith(primaryValue);
+
+        // Close on backdrop click = cancel
+        modal.onclick = (e) => {
+            if (e.target === modal) closeWith(null);
+        };
+
+        // Escape = cancel
+        modal.onkeydown = (e) => {
+            if (e.key === "Escape") closeWith(null);
+        };
+
+        modal.showModal();
+    });
+}
+
 // Make functions globally available
 window.showModal = showModal;
 window.showConfirm = showConfirm;
@@ -396,6 +489,8 @@ let pendingInsert = null;
 
 let currentTargetFile = null;
 let existingFilesSnapshot = new Set();
+let indexCollectionsCache = [];
+let lastIndexMode = "new";
 
 // Open import workspace modal
 window.openImportModal = async function () {
@@ -491,6 +586,12 @@ async function refreshKBFiles() {
 
         // 2. Refresh main page bookshelf
         renderCollectionList(null, data.index);
+
+        // 2.5 Refresh index collection cache for dropdown usage
+        indexCollectionsCache = data.index || [];
+        if (els.idxMode && els.idxMode.value !== "new") {
+            renderIndexCollectionSelect(indexCollectionsCache, els.idxCollectionSelect ? els.idxCollectionSelect.value : "");
+        }
 
         // 3. Update status
         updateDbStatusUI(data.db_status, data.db_config);
@@ -942,7 +1043,7 @@ window.saveIndexConfig = function () {
 // ==========================================
 
 // Handle action button clicks (mounted to window)
-window.handleKBAction = function (filePath, pipelineName) {
+window.handleKBAction = async function (filePath, pipelineName) {
     currentTargetFile = filePath;
 
     if (pipelineName === 'milvus_index') {
@@ -953,6 +1054,11 @@ window.handleKBAction = function (filePath, pipelineName) {
         // Auto-fill Collection name (use filename as default collection name)
         const fileName = filePath.split('/').pop().replace('.jsonl', '').replace('.', '_');
         if (els.idxCollection) els.idxCollection.value = fileName;
+
+        if (els.idxMode) {
+            els.idxMode.value = lastIndexMode || "new";
+        }
+        await syncIndexModeUI(els.idxMode ? els.idxMode.value : "new", { forceFetch: true });
 
         if (els.milvusDialog) els.milvusDialog.showModal();
         return;
@@ -968,24 +1074,253 @@ window.handleKBAction = function (filePath, pipelineName) {
 };
 
 // Confirm index creation (mounted to window)
-window.confirmIndexTask = function () {
-    if (!els.idxCollection || !els.idxMode) return;
-    const collName = els.idxCollection.value.trim();
+function normalizeKbName(value) {
+    if (value === null || value === undefined) return "";
+    let text = String(value).trim();
+    try {
+        text = text.normalize("NFKC");
+    } catch (e) {
+        // Fallback for environments without normalize
+    }
+    return text.toLowerCase();
+}
 
-    if (!collName) { showModal("Collection name is required", { title: "Validation Error", type: "warning" }); return; }
-    const mode = els.idxMode.value;
+function getCollectionDisplayName(collection) {
+    if (!collection) return "";
+    return collection.display_name || collection.name || "";
+}
 
+function findMatchingCollection(collections, inputName) {
+    const normalizedInput = normalizeKbName(inputName);
+    if (!normalizedInput || !Array.isArray(collections)) return null;
+    return collections.find(c => {
+        const displayName = normalizeKbName(c.display_name || c.name);
+        const rawName = normalizeKbName(c.name);
+        return normalizedInput === displayName || normalizedInput === rawName;
+    }) || null;
+}
+
+async function loadIndexCollections(options = {}) {
+    const { forceFetch = false } = options;
+    if (!forceFetch && Array.isArray(indexCollectionsCache) && indexCollectionsCache.length > 0) {
+        return indexCollectionsCache;
+    }
+    try {
+        const data = await fetchJSON('/api/kb/files');
+        indexCollectionsCache = data.index || [];
+        return indexCollectionsCache;
+    } catch (e) {
+        console.warn("Failed to load collections for index modal", e);
+        return null;
+    }
+}
+
+function renderIndexCollectionSelect(collections, selectedName = "") {
+    if (!els.idxCollectionSelect) return;
+    const select = els.idxCollectionSelect;
+    select.innerHTML = "";
+
+    if (!Array.isArray(collections)) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Failed to load collections";
+        opt.disabled = true;
+        opt.selected = true;
+        select.appendChild(opt);
+        select.disabled = true;
+        return;
+    }
+
+    if (collections.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No collections found";
+        opt.disabled = true;
+        opt.selected = true;
+        select.appendChild(opt);
+        select.disabled = true;
+        return;
+    }
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select a collection";
+    placeholder.disabled = true;
+    select.appendChild(placeholder);
+
+    collections.forEach(c => {
+        const opt = document.createElement("option");
+        const displayName = getCollectionDisplayName(c);
+        opt.value = c.name;
+        opt.textContent = displayName || c.name;
+        if (c.name === selectedName) opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    if (!selectedName) placeholder.selected = true;
+    select.disabled = false;
+}
+
+async function syncIndexModeUI(mode, options = {}) {
+    const { forceFetch = false, collections = null, selectedName = "" } = options;
+    const activeMode = mode || "new";
+    lastIndexMode = activeMode;
+
+    const isNew = activeMode === "new";
+    if (els.idxCollectionLabel) {
+        els.idxCollectionLabel.textContent = isNew ? "Collection Name" : "Existing Collection";
+    }
+    if (els.idxCollection) {
+        els.idxCollection.classList.toggle("d-none", !isNew);
+    }
+    if (els.idxCollectionSelect) {
+        els.idxCollectionSelect.classList.toggle("d-none", isNew);
+    }
+
+    if (!isNew) {
+        const list = Array.isArray(collections)
+            ? collections
+            : await loadIndexCollections({ forceFetch });
+        renderIndexCollectionSelect(list, selectedName || (els.idxCollectionSelect ? els.idxCollectionSelect.value : ""));
+    }
+}
+
+function startIndexTask(collectionName, mode) {
     if (els.milvusDialog) els.milvusDialog.close();
 
     // Start task, pass embedding configuration
     runKBTask('milvus_index', currentTargetFile, {
-        collection_name: collName,
+        collection_name: collectionName,
         index_mode: mode,
         // OpenAI Embedding parameters
         emb_api_key: indexConfigState.api_key,
         emb_base_url: indexConfigState.base_url,
         emb_model_name: indexConfigState.model_name
     });
+}
+
+async function confirmIndexMode(mode, collection) {
+    const label = getCollectionDisplayName(collection) || collection?.name || "";
+    if (mode === "append") {
+        return await showConfirm(
+            `Append data to the existing collection "${label}"?`,
+            {
+                title: "Append Confirmation",
+                type: "info",
+                confirmText: "Continue",
+                cancelText: "Cancel"
+            }
+        );
+    }
+    if (mode === "overwrite") {
+        return await showConfirm(
+            `Overwrite the existing collection "${label}"? This will drop and rebuild the collection.`,
+            {
+                title: "Overwrite Confirmation",
+                type: "warning",
+                confirmText: "Overwrite",
+                cancelText: "Cancel",
+                danger: true
+            }
+        );
+    }
+    if (mode === "new") {
+        return await showConfirm(
+            `Create a new collection named "${label}"?`,
+            {
+                title: "Create Collection",
+                type: "info",
+                confirmText: "Create",
+                cancelText: "Cancel"
+            }
+        );
+    }
+    return true;
+}
+
+window.confirmIndexTask = async function () {
+    if (!els.idxMode) return;
+    const mode = els.idxMode.value || "new";
+
+    const collections = await loadIndexCollections({ forceFetch: true });
+    if (collections === null) {
+        await showModal("Failed to load existing collections. Please try again.", {
+            title: "Load Failed",
+            type: "error"
+        });
+        return;
+    }
+
+    if (mode === "new") {
+        if (!els.idxCollection) return;
+        const inputName = els.idxCollection.value.trim();
+        if (!inputName) {
+            showModal("Collection name is required", { title: "Validation Error", type: "warning" });
+            return;
+        }
+
+        const matched = findMatchingCollection(collections, inputName);
+        if (matched) {
+            const displayName = getCollectionDisplayName(matched);
+            const choice = await showChoice(
+                `Collection name "${inputName}" already exists${displayName && displayName !== inputName ? ` as "${displayName}"` : ""}. Choose "Append" to add data or "Overwrite" to drop and rebuild.`,
+                {
+                    title: "Name Already Exists",
+                    type: "warning",
+                    primaryText: "Append",
+                    secondaryText: "Overwrite",
+                    cancelText: "Cancel",
+                    primaryValue: "append",
+                    secondaryValue: "overwrite",
+                    dangerSecondary: true
+                }
+            );
+
+            if (!choice) {
+                if (els.idxCollection) els.idxCollection.focus();
+                return;
+            }
+
+            if (els.idxMode) els.idxMode.value = choice;
+            await syncIndexModeUI(choice, { collections, selectedName: matched.name });
+
+            const confirmed = await confirmIndexMode(choice, matched);
+            if (!confirmed) return;
+
+            startIndexTask(matched.name, choice);
+            return;
+        }
+
+        const confirmedNew = await confirmIndexMode("new", { name: inputName, display_name: inputName });
+        if (!confirmedNew) return;
+
+        startIndexTask(inputName, "new");
+        return;
+    }
+
+    if (!els.idxCollectionSelect) return;
+    if (collections.length === 0) {
+        await showModal("No existing collections found. Use \"New\" mode to create one.", {
+            title: "No Collections",
+            type: "warning"
+        });
+        return;
+    }
+
+    const selectedName = els.idxCollectionSelect.value;
+    if (!selectedName) {
+        await showModal("Please select a collection.", {
+            title: "Selection Required",
+            type: "warning"
+        });
+        return;
+    }
+
+    const selectedCollection = collections.find(c => c.name === selectedName) || { name: selectedName };
+    const confirmed = await confirmIndexMode(mode, selectedCollection);
+    if (!confirmed) return;
+
+    startIndexTask(selectedCollection.name, mode);
 };
 
 // handleFileUpload restored (no longer needs sessionStems)
@@ -5245,6 +5580,13 @@ function bindEvents() {
                 els.refreshCollectionsBtn.innerHTML = '↻';
             }
         };
+    }
+
+    if (els.idxMode) {
+        els.idxMode.addEventListener("change", async () => {
+            const mode = els.idxMode.value || "new";
+            await syncIndexModeUI(mode, { forceFetch: true });
+        });
     }
 
     if (els.chatBack) {
