@@ -28,6 +28,7 @@
 
 *更新日志* 🔥
 
+- [2026.01.23] 🎉 UltraRAG 3.0 发布：拒绝“盲盒”开发，让每一行推理逻辑都清晰可见 👉|[📖 博客](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/cn/ultrarag3_0.md)|
 - [2026.01.20] 🎉 发布 AgentCPM-Report 模型！DeepResearch 终于本地化了：8B 端侧写作智能体 AgentCPM-Report 开源 👉 |[🤗 模型](https://huggingface.co/openbmb/AgentCPM-Report)|
 
 <details>
@@ -56,11 +57,11 @@ UltraRAG 是由清华大学 [THUNLP](https://nlp.csai.tsinghua.edu.cn/) 实验�
   </picture>
 </p>
 
-### UltraRAG UI：从“对话演示”到“全栈开发”
+### UltraRAG UI
 
-UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试与演示于一体的 可视化的 RAG 全流程集成开发环境（IDE）。
+UltraRAG UI 突破了传统对话界面的边界，演进为集编排、调试与演示于一体的 可视化的 RAG 全流程集成开发环境。
 
-系统内置强大的 Pipeline Builder，支持‘画布拖拽’与‘代码编辑’的双向实时同步，并允许在线精细化调整 Pipeline 参数与 Prompt；更创新引入了 智能 AI 助手，深度辅助 Pipeline 结构设计、参数调优及 Prompt 生成的全开发流程。构建完成的逻辑流可 一键转化 为交互式对话系统，并无缝集成 知识库管理组件，支持用户构建专属知识库进行文档问答，真正实现了从底层逻辑构建、数据治理到上层应用交付的一站式闭环。
+系统内置强大的 Pipeline Builder，支持‘画布搭建’与‘代码编辑’的双向实时同步，并允许在线精细化调整 Pipeline 参数与 Prompt；更引入了 智能 AI 助手，深度辅助 Pipeline 结构设计、参数调优及 Prompt 生成的全开发流程。构建完成的逻辑流可 一键转化 为交互式对话系统，并无缝集成 知识库管理组件，支持用户构建专属知识库进行文档问答，真正实现了从底层逻辑构建、数据治理到应用部署的一站式闭环。
 
 <!-- <p align="center">
   <picture>
@@ -91,7 +92,7 @@ https://github.com/user-attachments/assets/9cca0d4f-fb47-4232-9e47-69bfbb7b5d5d
 
 我们提供了两种安装方式：本地源码安装（推荐使用 `uv` 进行包管理）和 Docker 容器部署
 
-### 方式一：源码安装（推荐）
+### 方式一：源码安装
 
 我们强烈推荐使用 [uv](https://github.com/astral-sh/uv) 来管理 Python 环境与依赖，它能极大地提升安装速度。
 
@@ -115,7 +116,9 @@ cd UltraRAG
 
 **安装依赖**
 
-请根据您的使用场景选择一种同步方式：
+请根据您的使用场景，选择一种模式安装依赖：
+
+**A：创建新环境** 使用 `uv sync` 自动创建虚拟环境并同步依赖：
 
 - 核心依赖：如果您只需运行基础核心功能，如只使用 UltraRAG UI：
   ```shell
@@ -133,7 +136,7 @@ cd UltraRAG
   uv sync --extra generation  # 仅生成模块
   ```
 
-最后激活虚拟环境：
+安装完成后，激活虚拟环境：
 
 ```shell
 # Windows CMD
@@ -145,8 +148,7 @@ cd UltraRAG
 # macOS / Linux
 source .venv/bin/activate
 ```
-
-如果你希望在一个已有环境中安装依赖，可直接使用`pip`进行安装：
+**B：安装至已有环境** 如果您希望将 UltraRAG 安装到当前已激活的 Python 环境中，请使用 `uv pip`：
 
 ```shell
 # 核心依赖
@@ -163,21 +165,32 @@ uv pip install -e ".[retriever]"
 
 如果您不想配置本地 Python 环境，可以使用 Docker 一键启动。
 
+**获取代码与镜像**
+
 ```shell
 # 1. 下载代码
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
-# 2. 构建镜像
+
+# 2. 准备镜像 (二选一)
+# 选项 A：从 Docker Hub 拉取
+
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基础版 (CPU)
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基础版 (GPU)
+docker pull hdxin2002/ultrarag:v0.3.0          # 完整版 (GPU)
+
+# 选项 B：本地构建
 docker build -t ultrarag:v0.3.0 .
 
-# 您也可以使用我们构建好的镜像：
-docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基本依赖，cpu版本
-docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基本依赖，gpu版本
-docker pull hdxin2002/ultrarag:v0.3.0          # 完整依赖，gpu版本
+```
 
-# 3. 启动容器（已自动映射 5050 端口）
+**启动容器**
+
+```shell
+# 启动容器（已自动映射 5050 端口）
 docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
+
 提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
 
 ### 验证安装
@@ -210,7 +223,7 @@ Hello, UltraRAG v3!
 专为开发者与最终用户设计，提供完整的 UI 交互与复杂应用案例。
 - [快速启动](https://ultrarag.openbmb.cn/pages/cn/ui/start)：了解如何启动 UltraRAG UI，并熟悉管理员模式下的各项高级配置。
 - [部署指南](https://ultrarag.openbmb.cn/pages/cn/ui/prepare)：详细的生产环境部署教程，涵盖检索器 (Retriever)、生成模型 (LLM) 以及 Milvus 向量库的搭建。
-- [深度研究](https://ultrarag.openbmb.cn/pages/cn/demo/deepresearch)：旗舰案例，部署一个深度研究 Pipeline。配合 SurveyCPM 模型，可自动执行多步联网检索与整合，生成数万字的综述报告。
+- [深度研究](https://ultrarag.openbmb.cn/pages/cn/demo/deepresearch)：旗舰案例，部署一个深度研究 Pipeline。配合 AgentCPM-Report 模型，可自动执行多步检索与整合，生成数万字的综述报告。
 
 ## 贡献
 

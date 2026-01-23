@@ -28,6 +28,7 @@ Less Code, Lower Barrier, Faster Deployment
 
 *Latest News* 🔥
 
+- [2026.01.23] 🎉 🎉 UltraRAG 3.0 Released: Say no to "black box" development—make every line of reasoning logic clearly visible 👉|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/ultrarag3_0.md)|
 - [2026.01.20] 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced 👉 |[🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)|
 
 <details>
@@ -35,8 +36,8 @@ Less Code, Lower Barrier, Faster Deployment
 
 - [2025.11.11] 🎉 UltraRAG 2.1 Released: Enhanced knowledge ingestion & multimodal support, with a more complete unified evaluation system!
 - [2025.09.23] New daily RAG paper digest, updated every day 👉 |[📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
-- [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
-- [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
+- [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM)|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
+- [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
 - [2025.08.28] 🎉 UltraRAG 2.0 Released! UltraRAG 2.0 is fully upgraded: build a high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation! We have preserved the UltraRAG v2 code, which can be viewed at [v2](https://github.com/OpenBMB/UltraRAG/tree/v2).
 - [2025.01.23] UltraRAG Released! Enabling large models to better comprehend and utilize knowledge bases. The UltraRAG 1.0 code is still available at [v1](https://github.com/OpenBMB/UltraRAG/tree/v1).
 
@@ -56,11 +57,11 @@ Designed for research exploration and industrial prototyping, UltraRAG standardi
   </picture>
 </p>
 
-### UltraRAG UI: From "Chat Demo" to "Full-Stack Development"
+### UltraRAG UI
 
-UltraRAG UI breaks through the boundaries of traditional chat interfaces and evolves into a visual RAG full-process integrated development environment (IDE) that integrates orchestration, debugging, and demonstration.
+UltraRAG UI transcends the boundaries of traditional chat interfaces, evolving into a visual RAG Integrated Development Environment (IDE) that combines orchestration, debugging, and demonstration.
 
-The system has a built-in powerful Pipeline Builder that supports bidirectional real-time synchronization between 'canvas drag-and-drop' and 'code editing', and allows online fine-tuning of Pipeline parameters and Prompts. It also innovatively introduces an intelligent AI assistant that deeply assists in the entire development process of Pipeline structure design, parameter tuning, and Prompt generation. The completed logic flow can be **converted with one click** into an interactive chat system and seamlessly integrates **knowledge base management components**, supporting users to build their own knowledge bases for document Q&A, truly achieving a one-stop closed loop from underlying logic construction, data governance to upper-layer application delivery.
+The system features a powerful built-in Pipeline Builder that supports bidirectional real-time synchronization between "Canvas Construction" and "Code Editing," allowing for granular online adjustments of pipeline parameters and prompts. Furthermore, it introduces an Intelligent AI Assistant to empower the entire development lifecycle, from pipeline structural design to parameter tuning and prompt generation. Once constructed, logic flows can be converted into interactive dialogue systems with a single click. The system seamlessly integrates Knowledge Base Management components, enabling users to build custom knowledge bases for document Q&A. This truly realizes a one-stop closed loop, spanning from underlying logic construction and data governance to final application deployment.
 
 <!-- <p align="center">
   <picture>
@@ -91,7 +92,7 @@ https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
 
 We provide two installation methods: local source code installation (recommended using `uv` for package management) and Docker container deployment
 
-### Method 1: Source Code Installation (Recommended)
+### Method 1: Source Code Installation
 
 We strongly recommend using [uv](https://github.com/astral-sh/uv) to manage Python environments and dependencies, as it can greatly improve installation speed.
 
@@ -115,7 +116,9 @@ cd UltraRAG
 
 **Install Dependencies**
 
-Please choose one synchronization method according to your usage scenario:
+Choose one of the following modes to install dependencies based on your use case:
+
+**A: Create a New Environment** Use `uv sync` to automatically create a virtual environment and synchronize dependencies:
 
 - Core dependencies: If you only need to run basic core functions, such as only using UltraRAG UI:
   ```shell
@@ -133,7 +136,7 @@ Please choose one synchronization method according to your usage scenario:
   uv sync --extra generation  # Generation module only
   ```
 
-Finally, activate the virtual environment:
+Once installed, activate the virtual environment:
 
 ```shell
 # Windows CMD
@@ -146,7 +149,7 @@ Finally, activate the virtual environment:
 source .venv/bin/activate
 ```
 
-If you want to install dependencies in an existing environment, you can directly use `pip` for installation:
+**B: Install into an Existing Environment** To install UltraRAG into your currently active Python environment, use `uv pip`:
 
 ```shell
 # Core dependencies
@@ -161,23 +164,35 @@ uv pip install -e ".[retriever]"
 
 ### Method 2: Docker Container Deployment
 
-If you don't want to configure a local Python environment, you can use Docker to start with one click.
+If you prefer not to configure a local Python environment, you can deploy using Docker.
+
+**Get Code and Images**
 
 ```shell
-# 1. Download code
+# 1. Clone the repository
 git clone https://github.com/OpenBMB/UltraRAG.git --depth 1
 cd UltraRAG
-# 2. Build image
-docker build -t ultrarag:v0.3.0 .
 
-# You can also use our pre-built images:
-docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # Basic dependencies, CPU version
-docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # Basic dependencies, GPU version
-docker pull hdxin2002/ultrarag:v0.3.0          # Full dependencies, GPU version
+# 2. Prepare the image (choose one)
+# Option A: Pull from Docker Hub
+docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # Base version (CPU)
+docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # Base version (GPU)
+docker pull hdxin2002/ultrarag:v0.3.0          # Full version (GPU)
+
+# Option B: Build locally
+docker build -t ultrarag:v0.3.0 .
 
 # 3. Start container (port 5050 is automatically mapped)
 docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
+
+**Start the Container**
+
+```shell
+# Start the container (Port 5050 is mapped by default)
+docker run -it --gpus all -p 5050:5050 <docker_image_name>
+```
+
 Note: After the container starts, UltraRAG UI will run automatically. You can directly access `http://localhost:5050` in your browser to use it.
 
 ### Verify Installation
@@ -210,7 +225,7 @@ Designed for researchers, providing data, experimental workflows, and visualizat
 Designed for developers and end users, providing complete UI interaction and complex application cases.
 - [Quick Start](https://ultrarag.openbmb.cn/pages/en/ui/start): Learn how to start UltraRAG UI and familiarize yourself with various advanced configurations in administrator mode.
 - [Deployment Guide](https://ultrarag.openbmb.cn/pages/en/ui/prepare): Detailed production environment deployment tutorials, covering the setup of Retriever, Generation models (LLM), and Milvus vector database.
-- [Deep Research](https://ultrarag.openbmb.cn/pages/en/demo/deepresearch): Flagship case, deploy a Deep Research Pipeline. Combined with the SurveyCPM model, it can automatically perform multi-step online retrieval and integration to generate tens of thousands of words of survey reports.
+- [Deep Research](https://ultrarag.openbmb.cn/pages/en/demo/deepresearch): Flagship case, deploy a Deep Research Pipeline. Combined with the AgentCPM-Report model, it can automatically perform multi-step retrieval and integration to generate tens of thousands of words of survey reports.
 
 ## Contributing
 
