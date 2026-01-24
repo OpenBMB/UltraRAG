@@ -253,6 +253,7 @@ Hello, UltraRAG v3!
 
 - 关于技术问题及功能请求，请使用 [GitHub Issues](https://github.com/OpenBMB/UltraRAG/issues) 功能。
 - 关于使用上的问题、意见以及任何关于 RAG 技术的讨论，欢迎加入我们的[微信群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png)，[飞书群组](https://github.com/OpenBMB/UltraRAG/blob/main/docs/feishu_qr.png)和[discord](https://discord.gg/yRFFjjJnnS)，与我们共同交流。
+- 如果您有任何疑问、反馈或想与我们取得联系，请随时通过电子邮件发送至 yanyk.thu@gmail.com。
 
 <table>
   <tr>

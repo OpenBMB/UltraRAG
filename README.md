@@ -255,6 +255,7 @@ If you find this repository helpful for your research, please consider giving us
 
 - For technical issues and feature requests, please use [GitHub Issues](https://github.com/OpenBMB/UltraRAG/issues).
 - For questions about usage, feedback, or any discussions related to RAG technologies, you are welcome to join our [WeChat group](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png), [Feishu group](https://github.com/OpenBMB/UltraRAG/blob/main/docs/feishu_qr.png), and [Discord](https://discord.gg/yRFFjjJnnS) to exchange ideas with us.
+- If you have any questions, feedback, or would like to get in touch, please feel free to reach out to us via email at yanyk.thu@gmail.com
 
 <table>
   <tr>
