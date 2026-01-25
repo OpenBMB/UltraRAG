@@ -14,6 +14,48 @@ from PIL import Image
 from tqdm import tqdm
 from ultrarag.server import UltraRAG_MCP_Server
 
+
+def _validate_path(user_path: str, allowed_base: Optional[str] = None) -> Path:
+    """Validate and sanitize file path to prevent path traversal attacks.
+    
+    Args:
+        user_path: User-provided file path
+        allowed_base: Optional base directory to restrict paths to
+        
+    Returns:
+        Resolved and validated Path object
+        
+    Raises:
+        ValueError: If path traversal is detected or path is invalid
+    """
+    try:
+        # Resolve the path to absolute
+        safe_path = Path(user_path).resolve()
+        
+        # If allowed_base is provided, ensure path is within it
+        if allowed_base:
+            base_path = Path(allowed_base).resolve()
+            try:
+                # Check if safe_path is relative to base_path
+                safe_path.relative_to(base_path)
+            except ValueError:
+                raise ValueError(
+                    f"Path traversal detected: '{user_path}' is outside allowed directory '{allowed_base}'"
+                )
+        
+        # Additional safety: check for suspicious patterns
+        path_str = str(safe_path)
+        if ".." in path_str or path_str.startswith("/etc/") or path_str.startswith("/proc/"):
+            # Double check even after resolve
+            if ".." in str(Path(user_path)):
+                raise ValueError(f"Path traversal detected: '{user_path}' contains '..'")
+        
+        return safe_path
+    except (OSError, ValueError) as e:
+        if isinstance(e, ValueError):
+            raise
+        raise ValueError(f"Invalid path: {user_path}") from e
+
 app = UltraRAG_MCP_Server("corpus")
 
 
@@ -171,7 +213,15 @@ async def build_text_corpus(
     PMLIKE_EXT = [".pdf", ".xps", ".oxps", ".epub", ".mobi", ".fb2"]
     DOCX_EXT = [".docx"]
 
-    in_path = os.path.abspath(parse_file_path)
+    # Validate and sanitize path to prevent path traversal
+    try:
+        safe_path = _validate_path(parse_file_path)
+        in_path = str(safe_path)
+    except ValueError as e:
+        err_msg = f"Invalid file path: {e}"
+        app.logger.error(err_msg)
+        raise ToolError(err_msg)
+    
     if not os.path.exists(in_path):
         err_msg = f"Input path not found: {in_path}"
         app.logger.error(err_msg)
@@ -224,6 +274,7 @@ async def build_text_corpus(
                 app.logger.error(err_msg)
                 raise ToolError(err_msg)
             try:
+                doc = None
                 with suppress_stdout():
                     doc = pymupdf.open(fp)
                     texts = []
@@ -235,6 +286,13 @@ async def build_text_corpus(
                     content = "\n\n".join(texts)
             except Exception as e:
                 app.logger.warning(f"PDF read failed: {fp} | {e}")
+            finally:
+                # Ensure PDF document is closed to prevent memory leaks
+                if doc is not None:
+                    try:
+                        doc.close()
+                    except Exception:
+                        pass
         else:
             warn_msg = f"Unsupported file type, skip: {fp}"
             app.logger.warning(warn_msg)
@@ -291,13 +349,28 @@ async def build_image_corpus(
         app.logger.error(err_msg)
         raise ToolError(err_msg)
 
-    in_path = os.path.abspath(parse_file_path)
+    # Validate and sanitize path to prevent path traversal
+    try:
+        safe_path = _validate_path(parse_file_path)
+        in_path = str(safe_path)
+    except ValueError as e:
+        err_msg = f"Invalid file path: {e}"
+        app.logger.error(err_msg)
+        raise ToolError(err_msg)
+    
     if not os.path.exists(in_path):
         err_msg = f"Input path not found: {in_path}"
         app.logger.error(err_msg)
         raise ToolError(err_msg)
 
-    corpus_jsonl = os.path.abspath(image_corpus_save_path)
+    # Validate output path
+    try:
+        safe_output_path = _validate_path(image_corpus_save_path)
+        corpus_jsonl = str(safe_output_path)
+    except ValueError as e:
+        err_msg = f"Invalid output path: {e}"
+        app.logger.error(err_msg)
+        raise ToolError(err_msg)
     out_root = os.path.dirname(corpus_jsonl) or os.getcwd()
     base_img_dir = os.path.join(out_root, "image")
     os.makedirs(base_img_dir, exist_ok=True)
@@ -329,12 +402,16 @@ async def build_image_corpus(
         out_img_dir = os.path.join(base_img_dir, stem)
         os.makedirs(out_img_dir, exist_ok=True)
 
+        doc = None
         try:
             with suppress_stdout():
                 doc = pymupdf.open(pdf_path)
         except Exception as e:
             warn_msg = f"Skip PDF (open failed): {pdf_path} | reason: {e}"
             app.logger.warning(warn_msg)
+            continue
+
+        if doc is None:
             continue
 
         if getattr(doc, "is_encrypted", False):
@@ -393,6 +470,13 @@ async def build_image_corpus(
                 }
             )
             gid += 1
+        
+        # Ensure PDF document is closed to prevent memory leaks
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception:
+                pass
 
     _save_jsonl(valid_rows, corpus_jsonl)
     info_msg = (
@@ -429,7 +513,15 @@ async def mineru_parse(
         app.logger.error(err_msg)
         raise ToolError(err_msg)
 
-    in_path = os.path.abspath(parse_file_path)
+    # Validate and sanitize path to prevent path traversal
+    try:
+        safe_path = _validate_path(parse_file_path)
+        in_path = str(safe_path)
+    except ValueError as e:
+        err_msg = f"Invalid file path: {e}"
+        app.logger.error(err_msg)
+        raise ToolError(err_msg)
+    
     if not os.path.exists(in_path):
         err_msg = f"Input path not found: {in_path}"
         app.logger.error(err_msg)
