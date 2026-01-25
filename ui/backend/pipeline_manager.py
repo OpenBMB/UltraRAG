@@ -144,7 +144,8 @@ def _make_safe_collection_name(display_name: str) -> tuple[str, str]:
     base = _normalize_collection_name(display_name)
 
     if not base:
-        digest = hashlib.sha1(display_name.encode("utf-8")).hexdigest()[:8]
+        # Use SHA-256 instead of SHA-1 for security
+        digest = hashlib.sha256(display_name.encode("utf-8")).hexdigest()[:8]
         base = f"kb_{digest}"
 
     safe_name = base
