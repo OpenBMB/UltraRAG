@@ -22,6 +22,8 @@
 |
 <a href="../README.md"><b>English</b></a>
 |
+<a href="./README_ja.md"><b>日本語</b></a>
+|
 </p>
 
 ---

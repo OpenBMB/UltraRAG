@@ -22,6 +22,8 @@ Less Code, Lower Barrier, Faster Deployment
 |
 <b>English</b>
 |
+<a href="./docs/README_ja.md"><b>日本語</b></a>
+|
 </p>
 
 ---
