@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from jinja2 import Template
+from jinja2.sandbox import SandboxedEnvironment
+from markupsafe import escape
 
 from fastmcp.prompts import PromptMessage
 from ultrarag.server import UltraRAG_MCP_Server
@@ -11,24 +13,86 @@ from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("prompt")
 
+# Create a sandboxed Jinja2 environment for security
+_sandboxed_env = SandboxedEnvironment(autoescape=True)
+
+
+def _validate_template_path(template_path: Union[str, Path]) -> Path:
+    """Validate template path to prevent path traversal.
+    
+    Args:
+        template_path: Path to template file
+        
+    Returns:
+        Validated Path object
+        
+    Raises:
+        ValueError: If path is invalid or contains traversal attempts
+    """
+    path = Path(template_path)
+    
+    # Check for path traversal
+    if ".." in str(path):
+        raise ValueError(f"Path traversal detected in template path: {template_path}")
+    
+    # Resolve to absolute path
+    try:
+        resolved = path.resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid template path: {template_path}") from e
+    
+    return resolved
+
 
 def load_prompt_template(template_path: Union[str, Path]) -> Template:
-    """Load Jinja2 template from file.
+    """Load Jinja2 template from file with security validation.
 
     Args:
         template_path: Path to template file
 
     Returns:
-        Jinja2 Template object
+        Jinja2 Template object from sandboxed environment
 
     Raises:
         FileNotFoundError: If template file doesn't exist
+        ValueError: If template path is invalid
     """
-    if not os.path.exists(template_path):
+    # Validate path to prevent traversal
+    safe_path = _validate_template_path(template_path)
+    
+    if not safe_path.exists():
         raise FileNotFoundError(f"Template file not found: {template_path}")
-    with open(template_path, "r", encoding="utf-8") as f:
+    
+    # Load template using sandboxed environment
+    with open(safe_path, "r", encoding="utf-8") as f:
         template_content = f.read()
-    return Template(template_content)
+    
+    # Use sandboxed environment to prevent code injection
+    return _sandboxed_env.from_string(template_content)
+
+
+def _safe_render(template: Template, **kwargs: Any) -> str:
+    """Safely render a template with escaped user inputs.
+    
+    Args:
+        template: Jinja2 Template object
+        **kwargs: Template variables (will be escaped if strings)
+        
+    Returns:
+        Rendered template string
+    """
+    # Escape all string inputs to prevent XSS and injection
+    safe_kwargs = {}
+    for key, value in kwargs.items():
+        if isinstance(value, str):
+            safe_kwargs[key] = escape(value)
+        elif isinstance(value, list):
+            # Escape string items in lists
+            safe_kwargs[key] = [escape(str(item)) if isinstance(item, str) else item for item in value]
+        else:
+            safe_kwargs[key] = value
+    
+    return template.render(**safe_kwargs)
 
 
 @app.prompt(output="q_ls,template->prompt_ls")
@@ -45,7 +109,7 @@ def qa_boxed(q_ls: List[str], template: Union[str, Path]) -> List[PromptMessage]
     template: Template = load_prompt_template(template)
     ret = []
     for q in q_ls:
-        p = template.render(question=q)
+        p = _safe_render(template, question=q)
         ret.append(p)
     return ret
 
@@ -71,7 +135,7 @@ def qa_boxed_multiple_choice(
     CHOICES: List[str] = list(string.ascii_uppercase)  # A, B, ..., Z
     for q, choices in zip(q_ls, choices_ls):
         choices_text = "\n".join(f"{CHOICES[i]}: {c}" for i, c in enumerate(choices))
-        p = template.render(question=q, choices=choices_text)
+        p = _safe_render(template, question=q, choices=choices_text)
         ret.append(p)
     return ret
 
@@ -94,7 +158,7 @@ def qa_rag_boxed(
     ret = []
     for q, psg in zip(q_ls, ret_psg):
         passage_text = "\n".join(psg)
-        p = template.render(question=q, documents=passage_text)
+        p = _safe_render(template, question=q, documents=passage_text)
         ret.append(p)
     return ret
 
@@ -123,7 +187,7 @@ def qa_rag_boxed_multiple_choice(
     for q, psg, choices in zip(q_ls, ret_psg, choices_ls):
         passage_text = "\n".join(psg)
         choices_text = "\n".join(f"{CHOICES[i]}: {c}" for i, c in enumerate(choices))
-        p = template.render(question=q, documents=passage_text, choices=choices_text)
+        p = _safe_render(template, question=q, documents=passage_text, choices=choices_text)
         ret.append(p)
     return ret
 
@@ -148,7 +212,7 @@ def RankCoT_kr(
     ret = []
     for q, psg in zip(q_ls, ret_psg):
         passage_text = "\n".join(psg)
-        p = template.render(question=q, documents=passage_text)
+        p = _safe_render(template, question=q, documents=passage_text)
         ret.append(p)
     return ret
 
@@ -172,7 +236,7 @@ def RankCoT_qa(
     template: Template = load_prompt_template(template)
     ret = []
     for q, cot in zip(q_ls, kr_ls):
-        p = template.render(question=q, CoT=cot)
+        p = _safe_render(template, question=q, CoT=cot)
         ret.append(p)
     return ret
 
@@ -202,7 +266,7 @@ def ircot_next_prompt(
                 continue
             passage_text = "" if psg is None else "\n".join(psg)
             ret.append(
-                template.render(documents=passage_text, question=q, cur_answer="")
+                _safe_render(template, documents=passage_text, question=q, cur_answer="")
             )
         return ret
     # Multi turn
@@ -228,7 +292,7 @@ def ircot_next_prompt(
         cur_answer = " ".join(all_cots).strip()
         q = memory_q_ls[0][i]
         ret.append(
-            template.render(documents=passage_text, question=q, cur_answer=cur_answer)
+            _safe_render(template, documents=passage_text, question=q, cur_answer=cur_answer)
         )
     return ret
 
@@ -252,7 +316,7 @@ def webnote_init_page(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan in zip(q_ls, plan_ls):
-        p = template.render(question=q, plan=plan)
+        p = _safe_render(template, question=q, plan=plan)
         all_prompts.append(p)
     return all_prompts
 
@@ -274,7 +338,7 @@ def webnote_gen_plan(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q in q_ls:
-        p = template.render(question=q)
+        p = _safe_render(template, question=q)
         all_prompts.append(p)
     return all_prompts
 
@@ -300,7 +364,7 @@ def webnote_gen_subq(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan, page in zip(q_ls, plan_ls, page_ls):
-        p = template.render(question=q, plan=plan, page=page)
+        p = _safe_render(template, question=q, plan=plan, page=page)
         all_prompts.append(p)
     return all_prompts
 
@@ -332,8 +396,8 @@ def webnote_fill_page(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, plan, page, subq, psg in zip(q_ls, plan_ls, page_ls, subq_ls, psg_ls):
-        p = template.render(
-            question=q, plan=plan, sub_question=subq, docs_text=psg, page=page
+        p = _safe_render(
+            template, question=q, plan=plan, sub_question=subq, docs_text=psg, page=page
         )
         all_prompts.append(p)
     return all_prompts
@@ -358,7 +422,7 @@ def webnote_gen_answer(
     template: Template = load_prompt_template(template)
     all_prompts = []
     for q, page in zip(q_ls, page_ls):
-        p = template.render(page=page, question=q)
+        p = _safe_render(template, page=page, question=q)
         all_prompts.append(p)
     return all_prompts
 
@@ -387,7 +451,7 @@ def search_r1_gen(
         passages = psg[:3]
         passage_text = "\n".join(passages)
         _pro = prompt.content.text
-        p = template.render(history=_pro, answer=ans, passages=passage_text)
+        p = _safe_render(template, history=_pro, answer=ans, passages=passage_text)
         ret.append(p)
     return ret
 
@@ -416,7 +480,7 @@ def r1_searcher_gen(
         passages = psg[:5]
         passage_text = "\n".join(passages)
         _pro = prompt.content.text
-        p = template.render(history=_pro, answer=ans, passages=passage_text)
+        p = _safe_render(template, history=_pro, answer=ans, passages=passage_text)
         ret.append(p)
     return ret
 
@@ -439,7 +503,7 @@ def search_o1_init(
 
     ret = []
     for q in q_ls:
-        p = template.render(question=q)
+        p = _safe_render(template, question=q)
         ret.append(p)
     return ret
 
@@ -482,7 +546,8 @@ def search_o1_reasoning_indocument(
         ]
         formatted_history_str = "\n\n".join(formatted_history_parts)
 
-        p = template.render(
+        p = _safe_render(
+            template,
             prev_reasoning=formatted_history_str,
             search_query=squery,
             document=passage_text,
@@ -515,7 +580,7 @@ def search_o1_insert(
     template: Template = load_prompt_template(template)
     prompt_ls = []
     for q in q_ls:
-        p = template.render(question=q)
+        p = _safe_render(template, question=q)
         prompt_ls.append(p)
 
     ret = []
@@ -559,7 +624,7 @@ def gen_subq(
     all_prompts = []
     for q, psg in zip(q_ls, ret_psg):
         passage_text = "\n".join(psg)
-        p = template.render(question=q, documents=passage_text)
+        p = _safe_render(template, question=q, documents=passage_text)
         all_prompts.append(p)
     return all_prompts
 
@@ -584,7 +649,7 @@ def check_passages(
     all_prompts = []
     for q, psg in zip(q_ls, ret_psg):
         passage_text = "\n".join(psg)
-        p = template.render(question=q, documents=passage_text)
+        p = _safe_render(template, question=q, documents=passage_text)
         all_prompts.append(p)
     return all_prompts
 
@@ -606,7 +671,7 @@ def evisrag_vqa(
     template: Template = load_prompt_template(template)
     ret = []
     for q, psg in zip(q_ls, ret_psg):
-        p = template.render(question=q)
+        p = _safe_render(template, question=q)
         p = p.replace("<image>", "<image>" * len(psg))
         ret.append(p)
     return ret
@@ -902,7 +967,8 @@ def surveycpm_search(
         else:
             survey_str = _print_tasknote(survey, abbr=True)
 
-        p = template.render(
+        p = _safe_render(
+            template,
             user_query=instruction,
             current_outline=survey_str,
             current_instruction=f"You need to update {cursor}",
@@ -933,7 +999,7 @@ def surveycpm_init_plan(
     ret = []
     for instruction, retrieved_info in zip(instruction_ls, retrieved_info_ls):
         info = retrieved_info if retrieved_info != "<PAD>" else ""
-        p = template.render(user_query=instruction, current_information=info)
+        p = _safe_render(template, user_query=instruction, current_information=info)
         ret.append(p)
     return ret
 
@@ -972,7 +1038,8 @@ def surveycpm_write(
         )
         info = retrieved_info if retrieved_info != "<PAD>" else ""
         survey_str = _print_tasknote_hire(survey, last_detail=True)
-        p = template.render(
+        p = _safe_render(
+            template,
             user_query=instruction,
             current_survey=survey_str,
             current_instruction=f"You need to update {cursor}",
@@ -1008,7 +1075,7 @@ def surveycpm_extend_plan(
             json.loads(survey_json) if survey_json and survey_json != "<PAD>" else {}
         )
         survey_str = _print_tasknote(survey, abbr=False)
-        p = template.render(user_query=instruction, current_survey=survey_str)
+        p = _safe_render(template, user_query=instruction, current_survey=survey_str)
         ret.append(p)
     return ret
 
