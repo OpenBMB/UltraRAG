@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any, List, Optional, Sequence
 
@@ -62,6 +63,25 @@ class MilvusIndexBackend(BaseIndexBackend):
 
         self.client = None
 
+    @staticmethod
+    def _validate_collection_name(name: str) -> bool:
+        """Validate collection name to prevent injection attacks.
+        
+        Args:
+            name: Collection name to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        if not name or not isinstance(name, str):
+            return False
+        # Only allow alphanumeric characters, underscores, and hyphens
+        # Maximum length check
+        if len(name) > 255:
+            return False
+        # Pattern: alphanumeric, underscore, hyphen only
+        return bool(re.match(r'^[a-zA-Z0-9_-]+$', name))
+
     def _resolve_index_path(self, index_path: Optional[str]) -> str:
         """Resolve Milvus URI from config.
 
@@ -115,7 +135,15 @@ class MilvusIndexBackend(BaseIndexBackend):
 
         Raises:
             RuntimeError: If collection creation fails
+            ValueError: If collection name is invalid
         """
+        # Validate collection name to prevent injection
+        if not self._validate_collection_name(collection_name):
+            raise ValueError(
+                f"[milvus] Invalid collection name: '{collection_name}'. "
+                "Collection names must contain only alphanumeric characters, underscores, and hyphens."
+            )
+        
         client = self._client_connect()
 
         has_collection = client.has_collection(collection_name)
@@ -208,6 +236,13 @@ class MilvusIndexBackend(BaseIndexBackend):
 
         client = self._client_connect()
         target_collection = kwargs.get("collection_name", self.collection_name)
+        
+        # Validate collection name to prevent injection
+        if target_collection and not self._validate_collection_name(target_collection):
+            raise ValueError(
+                f"[milvus] Invalid collection name: '{target_collection}'. "
+                "Collection names must contain only alphanumeric characters, underscores, and hyphens."
+            )
 
         passed_contents = kwargs.get("contents", None)
         passed_metadatas = kwargs.get("metadatas", None)
@@ -293,6 +328,13 @@ class MilvusIndexBackend(BaseIndexBackend):
 
         client = self._client_connect()
         target_collection = kwargs.get("collection_name", self.collection_name)
+        
+        # Validate collection name to prevent injection
+        if target_collection and not self._validate_collection_name(target_collection):
+            raise ValueError(
+                f"[milvus] Invalid collection name: '{target_collection}'. "
+                "Collection names must contain only alphanumeric characters, underscores, and hyphens."
+            )
 
         query_embeddings = np.asarray(query_embeddings, dtype=np.float32, order="C")
         if query_embeddings.ndim != 2:
