@@ -1430,6 +1430,23 @@ def parse_ai_actions(content: str, context: Dict) -> list:
 
 
 if __name__ == "__main__":
+    import os
+    
     logging.basicConfig(level=logging.INFO)
     app = create_app()
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    
+    # Security: Use environment variables to control debug mode and host
+    # Never enable debug mode in production or expose debugger to network
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    host = os.getenv("FLASK_HOST", "127.0.0.1" if debug_mode else "0.0.0.0")
+    port = int(os.getenv("FLASK_PORT", "5050"))
+    
+    # Additional safety: Never allow debug=True with host='0.0.0.0'
+    if debug_mode and host == "0.0.0.0":
+        app.logger.warning(
+            "Security warning: Debug mode should not be enabled with host='0.0.0.0'. "
+            "Using host='127.0.0.1' instead."
+        )
+        host = "127.0.0.1"
+    
+    app.run(host=host, port=port, debug=debug_mode)
