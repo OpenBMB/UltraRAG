@@ -26,6 +26,183 @@ function persistActiveEngines() {
 const UI_LANGUAGE_STORAGE_KEY = "ultrarag_ui_language";
 const UI_LANGUAGE_MAP = { en: "English", zh: "中文" };
 
+const LOCALES = {
+    en: {
+        settings: "Settings",
+        builder: "Builder",
+        language: "Language",
+        new_chat: "New Chat",
+        knowledge_base: "Knowledge Base",
+        no_knowledge_base: "No Knowledge Base",
+        recent: "Recent",
+        select_pipeline: "Select Pipeline",
+        background: "Background",
+        placeholder_chat_input: "Ask UltraRAG",
+        greeting_explore: "What shall we explore today?",
+        bg_tasks_title: "Background Tasks",
+        bg_tasks_refresh: "Refresh",
+        bg_tasks_clear: "Clear",
+        bg_tasks_clear_completed: "Clear completed",
+        bg_tasks_close: "Close",
+        bg_tasks_empty: "No background tasks",
+        bg_task_running: "Running",
+        bg_task_completed: "Completed",
+        bg_task_failed: "Failed",
+        bg_task_completed_title: "Background Task Completed",
+        bg_task_failed_title: "Background Task Failed",
+        bg_task_loading_details: "Loading task details...",
+        bg_task_loading_details_failed: "Failed to load task details.",
+        bg_task_task_not_found: "Task not found",
+        bg_task_copy_result: "Copy Result",
+        bg_task_load_current: "Load to Current Chat",
+        bg_task_load_new: "Load to New Chat",
+        bg_task_delete: "Delete",
+        bg_task_question: "Question",
+        bg_task_error: "Error",
+        bg_task_unknown_error: "Unknown error",
+        bg_task_processing: "Processing your request...",
+        bg_task_loading_to_current: "Loading to chat...",
+        bg_task_loading_to_new: "Loading to new chat...",
+        bg_task_loaded: "Loaded",
+        bg_task_loaded_new: "Background task loaded to a new chat",
+        bg_task_loaded_current: "Background task loaded to the current chat",
+        bg_task_load_failed: "Load Failed",
+        bg_tasks_switch_chat: "Please switch to Chat to view background tasks.",
+        status_ready: "Ready",
+        status_offline: "Offline",
+        status_engine_offline: "Engine Offline",
+        status_thinking: "Thinking...",
+        status_initializing: "Initializing...",
+        status_reconnecting: "Reconnecting...",
+        status_params_missing: "Params Missing",
+        status_engine_ready: "Engine Ready",
+        status_engine_error: "Engine Error",
+        status_error: "Error",
+        status_interrupted: "Interrupted",
+        status_suspending: "Suspending...",
+    },
+    zh: {
+        settings: "设置",
+        builder: "搭建器",
+        language: "语言",
+        new_chat: "新建对话",
+        knowledge_base: "知识库",
+        no_knowledge_base: "无知识库",
+        recent: "最近",
+        select_pipeline: "选择流程",
+        background: "后台执行",
+        placeholder_chat_input: "向 UltraRAG 提问",
+        greeting_explore: "今天想探索什么？",
+        bg_tasks_title: "后台任务",
+        bg_tasks_refresh: "刷新",
+        bg_tasks_clear: "清除",
+        bg_tasks_clear_completed: "清除已完成",
+        bg_tasks_close: "关闭",
+        bg_tasks_empty: "暂无后台任务",
+        bg_task_running: "进行中",
+        bg_task_completed: "已完成",
+        bg_task_failed: "失败",
+        bg_task_completed_title: "后台任务完成",
+        bg_task_failed_title: "后台任务失败",
+        bg_task_loading_details: "加载任务详情中...",
+        bg_task_loading_details_failed: "加载任务详情失败。",
+        bg_task_task_not_found: "未找到任务",
+        bg_task_copy_result: "复制结果",
+        bg_task_load_current: "加载到当前对话",
+        bg_task_load_new: "加载到新对话",
+        bg_task_delete: "删除",
+        bg_task_question: "问题",
+        bg_task_error: "错误",
+        bg_task_unknown_error: "未知错误",
+        bg_task_processing: "正在处理请求...",
+        bg_task_loading_to_current: "正在加载到对话...",
+        bg_task_loading_to_new: "正在加载到新对话...",
+        bg_task_loaded: "已加载",
+        bg_task_loaded_new: "后台任务已加载到新对话",
+        bg_task_loaded_current: "后台任务已加载到当前对话",
+        bg_task_load_failed: "加载失败",
+        bg_tasks_switch_chat: "请切换到聊天页面查看后台任务。",
+        status_ready: "就绪",
+        status_offline: "离线",
+        status_engine_offline: "引擎离线",
+        status_thinking: "思考中...",
+        status_initializing: "初始化中...",
+        status_reconnecting: "重新连接中...",
+        status_params_missing: "参数缺失",
+        status_engine_ready: "引擎就绪",
+        status_engine_error: "引擎错误",
+        status_error: "错误",
+        status_interrupted: "已中断",
+        status_suspending: "暂停中...",
+    },
+};
+
+function t(key) {
+    const lang = state.uiLanguage || "en";
+    const table = LOCALES[lang] || LOCALES.en;
+    return table[key] || LOCALES.en[key] || key;
+}
+
+function updateI18nTexts() {
+    const mappings = [
+        { selector: '[data-i18n="settings"]', key: "settings" },
+        { selector: '[data-i18n="builder"]', key: "builder" },
+        { selector: '[data-i18n="language"]', key: "language" },
+        { selector: '[data-i18n="new_chat"]', key: "new_chat" },
+        { selector: '[data-i18n="recent"]', key: "recent" },
+        { selector: '[data-i18n="background"]', key: "background" },
+        { selector: '[data-i18n="bg_tasks_title"]', key: "bg_tasks_title" },
+        { selector: '[data-i18n="bg_tasks_clear"]', key: "bg_tasks_clear" },
+        { selector: '[data-i18n="bg_tasks_empty"]', key: "bg_tasks_empty" },
+        { selector: '[data-i18n="no_knowledge_base"]', key: "no_knowledge_base" },
+    ];
+
+    mappings.forEach(({ selector, key }) => {
+        document.querySelectorAll(selector).forEach((el) => {
+            el.textContent = t(key);
+        });
+    });
+
+    // Title attributes
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+        const key = el.getAttribute("data-i18n-title");
+        if (key) el.title = t(key);
+    });
+
+    // Knowledge base label: only update when no selection
+    document.querySelectorAll('[data-i18n="knowledge_base"]').forEach((el) => {
+        const hasSelection = el.dataset.selected === "true";
+        if (!hasSelection) el.textContent = t("knowledge_base");
+    });
+
+    // Select pipeline label: keep selected pipeline name if exists
+    const chatPipelineLabel = document.getElementById("chat-pipeline-label");
+    if (chatPipelineLabel) {
+        const fallbackName = chatPipelineLabel.dataset.currentName;
+        const name = state.selectedPipeline || fallbackName;
+        if (name) {
+            chatPipelineLabel.textContent = name;
+            chatPipelineLabel.dataset.selected = "true";
+            chatPipelineLabel.dataset.currentName = name;
+        } else {
+            chatPipelineLabel.textContent = t("select_pipeline");
+            chatPipelineLabel.dataset.selected = "false";
+        }
+    }
+
+    // Placeholder updates
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+        chatInput.placeholder = t("placeholder_chat_input");
+    }
+
+    // Empty state greeting
+    const greeting = document.querySelector(".greeting-gradient");
+    if (greeting) {
+        greeting.textContent = t("greeting_explore");
+    }
+}
+
 function resolveInitialLanguage() {
     try {
         const stored = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
@@ -2507,7 +2684,16 @@ async function renderChatPipelineMenu() {
 
     // Update top label
     if (els.chatPipelineLabel) {
-        els.chatPipelineLabel.textContent = state.selectedPipeline || "Select Pipeline";
+        const fallbackName = els.chatPipelineLabel.dataset.currentName;
+        const name = state.selectedPipeline || fallbackName;
+        if (name) {
+            els.chatPipelineLabel.textContent = name;
+            els.chatPipelineLabel.dataset.selected = "true";
+            els.chatPipelineLabel.dataset.currentName = name;
+        } else {
+            els.chatPipelineLabel.textContent = t("select_pipeline");
+            els.chatPipelineLabel.dataset.selected = "false";
+        }
     }
 }
 
@@ -2975,7 +3161,7 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">What shall we explore today?</span>
+                        <span class="greeting-gradient">${t("greeting_explore")}</span>
                     </div>
                 </div>
             </div>
@@ -3074,14 +3260,33 @@ function setChatStatus(message, variant = "info") {
     if (!els.chatStatus) return;
     const badge = els.chatStatus;
     const variants = { info: "bg-light text-dark", ready: "bg-light text-dark", running: "bg-primary text-white", success: "bg-success text-white", warn: "bg-warning text-dark", error: "bg-danger text-white" };
-    badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`; badge.textContent = message || "";
+    const statusMap = {
+        "Ready": "status_ready",
+        "Offline": "status_offline",
+        "Engine Offline": "status_engine_offline",
+        "Thinking...": "status_thinking",
+        "Initializing...": "status_initializing",
+        "Reconnecting...": "status_reconnecting",
+        "Params Missing": "status_params_missing",
+        "Engine Ready": "status_engine_ready",
+        "Engine Error": "status_engine_error",
+        "Error": "status_error",
+        "Interrupted": "status_interrupted",
+        "Suspending...": "status_suspending",
+    };
+    const key = statusMap[message] || null;
+    badge.className = `badge rounded-pill border ${variants[variant] || variants.info}`;
+    badge.textContent = key ? t(key) : (message || "");
 }
 
 function updateChatIdleStatus() {
     if (state.chat.engineSessionId) {
         setChatStatus("Ready", "ready");
     } else {
-        setChatStatus("Engine Offline", "info");
+        // Avoid overriding to offline if a pipeline is selected but engine state is ambiguous
+        if (!state.selectedPipeline) {
+            setChatStatus("Engine Offline", "info");
+        }
     }
 }
 
@@ -5729,7 +5934,7 @@ window.clearKbSelection = function (e) {
     // Simulate selecting empty item
     const mockItem = document.createElement('div');
     mockItem.dataset.value = "";
-    mockItem.dataset.label = "Knowledge Base";
+    mockItem.dataset.label = t("knowledge_base");
     selectKbOption(mockItem);
 };
 
@@ -5764,10 +5969,12 @@ window.selectKbOption = function (itemEl) {
     // Update trigger display
     if (value) {
         label.textContent = labelText;
+        label.dataset.selected = "true";
         trigger.classList.add('active');
         if (clearBtn) clearBtn.style.display = 'inline-flex';
     } else {
-        label.textContent = "Knowledge Base";
+        label.textContent = t("knowledge_base");
+        label.dataset.selected = "false";
         trigger.classList.remove('active');
         if (clearBtn) clearBtn.style.display = 'none';
     }
@@ -5804,7 +6011,7 @@ function renderKbDropdownOptions(collections) {
 
     // Sync hidden select options
     if (hiddenSelect) {
-        hiddenSelect.innerHTML = '<option value="">No Knowledge Base</option>';
+        hiddenSelect.innerHTML = `<option value="">${t('no_knowledge_base')}</option>`;
         collections.forEach(c => {
             const displayName = c.display_name || c.name;
             const opt = document.createElement("option");
@@ -5823,15 +6030,18 @@ function renderKbDropdownOptions(collections) {
         const selectedCollection = collections.find(c => c.name === currentVal);
         if (selectedCollection) {
             label.textContent = selectedCollection.display_name || selectedCollection.name;
+            label.dataset.selected = "true";
             trigger.classList.add('active');
             if (clearBtn) clearBtn.style.display = 'inline-flex';
         } else {
-            label.textContent = "Knowledge Base";
+            label.textContent = t("knowledge_base");
+            label.dataset.selected = "false";
             trigger.classList.remove('active');
             if (clearBtn) clearBtn.style.display = 'none';
         }
     } else if (trigger) {
-        label.textContent = "Knowledge Base";
+        label.textContent = t("knowledge_base");
+        label.dataset.selected = "false";
         trigger.classList.remove('active');
         if (clearBtn) clearBtn.style.display = 'none';
     }
@@ -5853,11 +6063,13 @@ window.updateKbLabel = function (selectEl) {
     const selectedVal = selectEl.value;
 
     if (!selectedVal) {
-        label.textContent = "Knowledge Base";
+        label.textContent = t("knowledge_base");
+        label.dataset.selected = "false";
         trigger.classList.remove('active');
     } else {
         const selectedText = selectEl.options[selectEl.selectedIndex].text;
         label.textContent = selectedText;
+        label.dataset.selected = "true";
         trigger.classList.add('active');
     }
 };
@@ -5989,6 +6201,8 @@ function applyUILanguage(lang) {
         els.settingsLanguageLabel.textContent = UI_LANGUAGE_MAP[resolved];
     }
 
+    updateI18nTexts();
+
     document.querySelectorAll("[data-ui-lang]").forEach((btn) => {
         const isActive = btn.getAttribute("data-ui-lang") === resolved;
         btn.classList.toggle("active", isActive);
@@ -6099,6 +6313,24 @@ function setupSettingsMenu() {
             await navigateBackToBuilder();
             closeMenu();
         };
+    }
+
+    // Ensure chat pipeline dropdown closes after selection
+    const chatPipelineDropdown = document.getElementById("chatPipelineDropdown");
+    const chatPipelineMenu = document.getElementById("chat-pipeline-menu");
+    if (chatPipelineDropdown && chatPipelineMenu) {
+        chatPipelineMenu.addEventListener("click", () => {
+            if (window.bootstrap?.Dropdown) {
+                const inst =
+                    window.bootstrap.Dropdown.getInstance(chatPipelineDropdown) ||
+                    new window.bootstrap.Dropdown(chatPipelineDropdown);
+                inst.hide();
+            } else {
+                chatPipelineDropdown.classList.remove("show");
+                chatPipelineMenu.classList.remove("show");
+                chatPipelineDropdown.setAttribute("aria-expanded", "false");
+            }
+        });
     }
 }
 
@@ -6289,7 +6521,7 @@ async function requestBrowserNotification(title, message) {
 // Toggle background tasks panel
 window.toggleBackgroundPanel = function () {
     if (state.mode !== Modes.CHAT) {
-        showNotification('info', 'Background Tasks', 'Please switch to Chat to view background tasks.');
+        showNotification('info', t('bg_tasks_title'), t('bg_tasks_switch_chat'));
         return;
     }
 
@@ -6339,7 +6571,7 @@ function checkForCompletedTasks(tasks) {
             backgroundTaskState.notifiedTasks.add(task.task_id);
             showNotification(
                 'success',
-                'Background Task Completed',
+                t('bg_task_completed_title'),
                 task.question,
                 () => showBackgroundTaskDetail(task.task_id)
             );
@@ -6347,7 +6579,7 @@ function checkForCompletedTasks(tasks) {
             backgroundTaskState.notifiedTasks.add(task.task_id);
             showNotification(
                 'error',
-                'Background Task Failed',
+                t('bg_task_failed_title'),
                 task.error || task.question,
                 () => showBackgroundTaskDetail(task.task_id)
             );
@@ -6361,17 +6593,22 @@ function renderBackgroundTasksList() {
     if (!container) return;
 
     if (backgroundTaskState.tasks.length === 0) {
-        container.innerHTML = '<div class="text-muted text-center py-4 small">No background tasks</div>';
+        container.innerHTML = `<div class="text-muted text-center py-4 small">${t('bg_tasks_empty')}</div>`;
         return;
     }
 
     container.innerHTML = backgroundTaskState.tasks.map(task => {
         const time = task.created_at ? new Date(task.created_at * 1000).toLocaleTimeString() : '';
+        const statusText = task.status === 'running'
+            ? t('bg_task_running')
+            : task.status === 'completed'
+                ? t('bg_task_completed')
+                : t('bg_task_failed');
         return `
             <div class="bg-task-item ${task.status}" onclick="showBackgroundTaskDetail('${task.task_id}')">
                 <div class="bg-task-header">
                     <div class="bg-task-question">${escapeHtml(task.question)}</div>
-                    <span class="bg-task-status ${task.status}">${task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed'}</span>
+                    <span class="bg-task-status ${task.status}">${statusText}</span>
                 </div>
                 <div class="bg-task-meta">
                     <span>${task.pipeline_name}</span>
@@ -6420,14 +6657,15 @@ function updateBackgroundTasksCount() {
     }
 }
 
-function renderTaskDetailLoading(modal, message = 'Loading task details...') {
+function renderTaskDetailLoading(modal, message = null) {
     if (!modal) return;
+    const loadingMessage = message || t('bg_task_loading_details');
     modal.innerHTML = `
         <div style="padding: 32px; text-align: center;">
             <div class="spinner-border" style="color: #3b82f6; width: 2.5rem; height: 2.5rem;" role="status">
-                <span class="visually-hidden">Loading...</span>
+                <span class="visually-hidden">${t('bg_task_loading_details')}</span>
             </div>
-            <div style="margin-top: 16px; color: var(--text-secondary);">${escapeHtml(message)}</div>
+            <div style="margin-top: 16px; color: var(--text-secondary);">${escapeHtml(loadingMessage)}</div>
         </div>
     `;
 }
@@ -6442,7 +6680,7 @@ function setLoadButtonsLoading(taskId, isLoading, target) {
             btn.dataset.originalText = btn.dataset.originalText || btn.innerHTML;
             btn.disabled = true;
             btn.classList.add('disabled');
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${btn.dataset.loadTarget === 'new' ? 'Loading to new chat...' : 'Loading to chat...'}`;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>${btn.dataset.loadTarget === 'new' ? t('bg_task_loading_to_new') : t('bg_task_loading_to_current')}`;
         } else {
             btn.disabled = false;
             btn.classList.remove('disabled');
@@ -6466,7 +6704,7 @@ window.showBackgroundTaskDetail = async function (taskId) {
         document.body.appendChild(modal);
     }
 
-    renderTaskDetailLoading(modal, 'Loading task details...');
+    renderTaskDetailLoading(modal, t('bg_task_loading_details'));
     modal.showModal();
     backgroundTaskState.detailLoadingTaskId = taskId;
 
@@ -6483,22 +6721,26 @@ window.showBackgroundTaskDetail = async function (taskId) {
                 task = backgroundTaskState.tasks.find(t => t.task_id === taskId);
             }
             if (!task) {
-                showNotification('error', 'Error', 'Task not found');
+                showNotification('error', t('status_error'), t('bg_task_task_not_found'));
                 if (modal) modal.close();
                 backgroundTaskState.detailLoadingTaskId = null;
                 return;
             }
         }
 
-        const statusText = task.status === 'running' ? 'Running' : task.status === 'completed' ? 'Completed' : 'Failed';
+        const statusText = task.status === 'running'
+            ? t('bg_task_running')
+            : task.status === 'completed'
+                ? t('bg_task_completed')
+                : t('bg_task_failed');
 
         const actionButtons = `
             ${task.status === 'completed' ? `
-                <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">Copy Result</button>
-                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">Load to Current Chat</button>
-                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">Load to New Chat</button>
+                <button class="btn btn-primary" onclick="copyTaskResult('${taskId}')">${t('bg_task_copy_result')}</button>
+                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="current" onclick="loadTaskToChat('${taskId}','current')">${t('bg_task_load_current')}</button>
+                <button class="btn btn-outline-secondary" data-task-id="${taskId}" data-load-target="new" onclick="loadTaskToChat('${taskId}','new')">${t('bg_task_load_new')}</button>
             ` : ''}
-            <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">Delete</button>
+            <button class="btn btn-outline-danger ms-auto" onclick="deleteBackgroundTask('${taskId}')">${t('bg_task_delete')}</button>
         `;
 
         modal.innerHTML = `
@@ -6513,7 +6755,7 @@ window.showBackgroundTaskDetail = async function (taskId) {
             </div>
             <div class="bg-task-detail-body">
                 <div class="bg-task-detail-question">
-                    <strong>Question</strong>
+                    <strong>${t('bg_task_question')}</strong>
                     ${escapeHtml(task.full_question || task.question)}
                 </div>
                 ${task.status === 'completed' ? `
@@ -6522,15 +6764,15 @@ window.showBackgroundTaskDetail = async function (taskId) {
                     </div>
                 ` : task.status === 'failed' ? `
                     <div class="bg-task-detail-question" style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.15);">
-                        <strong style="color: #ef4444;">Error</strong>
-                        ${escapeHtml(task.error || 'Unknown error')}
+                        <strong style="color: #ef4444;">${t('bg_task_error')}</strong>
+                        ${escapeHtml(task.error || t('bg_task_unknown_error'))}
                     </div>
                 ` : `
                     <div style="text-align: center; padding: 40px 20px;">
                         <div class="spinner-border" style="color: #3b82f6; width: 2rem; height: 2rem;" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                            <span class="visually-hidden">${t('bg_task_loading_details')}</span>
                         </div>
-                        <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">Processing your request...</div>
+                        <div style="margin-top: 16px; color: var(--text-secondary); font-size: 0.9rem;">${t('bg_task_processing')}</div>
                     </div>
                 `}
             </div>
@@ -6556,7 +6798,7 @@ window.showBackgroundTaskDetail = async function (taskId) {
         }
     } catch (e) {
         console.error('Failed to load task detail:', e);
-        renderTaskDetailLoading(modal, 'Failed to load task details.');
+        renderTaskDetailLoading(modal, t('bg_task_loading_details_failed'));
     } finally {
         backgroundTaskState.detailLoadingTaskId = null;
     }
@@ -6657,10 +6899,14 @@ window.loadTaskToChat = async function (taskId, target = 'current') {
         const modal = document.getElementById('bg-task-detail-modal');
         if (modal) modal.close();
 
-        showNotification('success', 'Loaded', target === 'new' ? 'Background task loaded to a new chat' : 'Background task loaded to the current chat');
+        showNotification(
+            'success',
+            t('bg_task_loaded'),
+            target === 'new' ? t('bg_task_loaded_new') : t('bg_task_loaded_current')
+        );
     } catch (e) {
         console.error('Failed to load task to chat:', e);
-        showNotification('error', 'Load Failed', e.message || 'Unable to load task into chat.');
+        showNotification('error', t('bg_task_load_failed'), e.message || t('bg_task_load_failed'));
     } finally {
         backgroundTaskState.loadToChatTaskId = null;
         backgroundTaskState.loadToChatTarget = null;

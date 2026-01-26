@@ -5077,7 +5077,7 @@ textarea.parameter-input {
 }
 
 .bg-tasks-header h6 {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-secondary);
   letter-spacing: 0.05em;
@@ -5197,7 +5197,7 @@ textarea.parameter-input {
 }
 
 .bg-task-question {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-primary);
   flex: 1;
@@ -5338,7 +5338,7 @@ textarea.parameter-input {
   padding: 18px 20px;
   border-radius: 14px;
   margin-bottom: 20px;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   color: var(--text-primary);
 }
