@@ -4434,8 +4434,9 @@ textarea.parameter-input {
   flex-direction: column;
   flex-shrink: 0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  overflow: visible; /* Allow dropdown menus to overflow */
   font-family: var(--font-sans);
+  z-index: 100; /* Ensure sidebar and its dropdowns are above main content */
   /* Restore Inter font */
 }
 
@@ -4520,6 +4521,7 @@ textarea.parameter-input {
   flex: 1;
   /* Take remaining space, push footer to bottom */
   overflow-y: auto;
+  overflow-x: visible; /* Allow flyouts to be seen if they extend */
   padding: 0;
 }
 
@@ -4542,6 +4544,225 @@ textarea.parameter-input {
   /* Key to bottom placement */
   padding: 0.8rem 0 1.2rem 0;
   border-top: 1px solid var(--border-subtle);
+  position: relative; /* Ensure relative positioning for dropdown context */
+  z-index: 100; /* Ensure footer is above other elements */
+}
+
+.settings-menu {
+  position: relative;
+}
+
+/* Revert trigger style to match other nav buttons (btn-nav) */
+.settings-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 9px 12px 9px 20px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #0d0d0d;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.settings-trigger:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0d0d0d;
+}
+
+.settings-trigger .icon {
+  color: #0d0d0d;
+  display: flex;
+  align-items: center;
+}
+
+/* Dropdown Menu - appears above the button */
+.settings-dropdown {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(100% + 4px);
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 1000; /* High z-index to be above everything */
+  min-width: 200px;
+  overflow: visible; /* CRITICAL: Allow flyout to be seen */
+}
+
+.settings-menu.open .settings-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.settings-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Increased gap for better spacing */
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: #0d0d0d;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+  position: relative;
+  white-space: nowrap; /* Prevent wrapping */
+}
+
+.settings-item:hover {
+  background: #f5f5f5;
+}
+
+.settings-item .item-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d0d0d;
+  flex-shrink: 0;
+}
+
+.settings-item .item-text {
+  flex: 1;
+  font-weight: 500;
+  display: flex;
+  align-items: center; /* Center text vertically */
+}
+
+.settings-item .item-desc {
+  display: none; /* Hide description as requested for single line */
+}
+
+.submenu-caret {
+  margin-left: auto;
+  color: #888;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Language item with submenu - ensure single line layout */
+.settings-item-has-submenu {
+  display: flex;
+  flex-direction: row; /* Force horizontal layout */
+  align-items: center;
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.settings-item-has-submenu:hover {
+  background: #f5f5f5;
+}
+
+.settings-item-main {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  white-space: nowrap;
+}
+
+/* Flyout Submenu for Language */
+.settings-submenu {
+  display: none;
+  position: absolute;
+  left: calc(100% + 8px); /* Place to the right with a small gap */
+  top: 0;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  z-index: 2000; /* Above the main dropdown */
+}
+
+.settings-item-has-submenu:hover .settings-submenu,
+.settings-item-has-submenu:focus-within .settings-submenu,
+.settings-item-has-submenu.submenu-open .settings-submenu {
+  display: flex;
+}
+
+.settings-submenu-item {
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.88rem;
+  color: #0d0d0d;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.settings-submenu-item:hover {
+  background: #f5f5f5;
+}
+
+.settings-submenu-item.active {
+  color: var(--accent-blue, #4f46e5);
+  font-weight: 600;
+  background: #f0f7ff;
+}
+
+.settings-submenu-item .flag-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px; /* Emoji size */
+  line-height: 1;
+}
+
+/* Sidebar Collapsed State Adjustments */
+.chat-sidebar.collapsed .settings-trigger {
+  justify-content: center;
+  padding: 10px 8px;
+}
+
+.chat-sidebar.collapsed .settings-trigger .btn-text {
+  display: none;
+}
+
+.chat-sidebar.collapsed .settings-dropdown {
+  left: 60px;
+  right: auto;
+  bottom: 10px;
 }
 
 /* --- Unified navigation button style (simplified font) --- */

@@ -23,6 +23,24 @@ function persistActiveEngines() {
     }
 }
 
+const UI_LANGUAGE_STORAGE_KEY = "ultrarag_ui_language";
+const UI_LANGUAGE_MAP = { en: "English", zh: "中文" };
+
+function resolveInitialLanguage() {
+    try {
+        const stored = localStorage.getItem(UI_LANGUAGE_STORAGE_KEY);
+        if (stored && UI_LANGUAGE_MAP[stored]) {
+            return stored;
+        }
+    } catch (e) {
+        console.warn("Failed to load UI language", e);
+    }
+
+    const browserLang = (navigator.language || "").toLowerCase();
+    if (browserLang.startsWith("zh")) return "zh";
+    return "en";
+}
+
 const state = {
     selectedPipeline: null,
     steps: [],
@@ -39,6 +57,8 @@ const state = {
 
     // Application mode: true = admin (full interface), false = chat-only
     adminMode: true,
+
+    uiLanguage: resolveInitialLanguage(),
 
     // [Modified] Chat state management
     chat: {
@@ -124,7 +144,6 @@ const els = {
 
     // Chat Controls
     chatPipelineName: document.getElementById("chat-pipeline-name"),
-    chatBack: document.getElementById("chat-back"),
     chatHistory: document.getElementById("chat-history"),
     chatForm: document.getElementById("chat-form"),
     chatInput: document.getElementById("chat-input"),
@@ -135,6 +154,11 @@ const els = {
     clearAllChats: document.getElementById("clear-all-chats"),
     demoToggleBtn: document.getElementById("demo-toggle-btn"), // Engine toggle button
     chatCollectionSelect: document.getElementById("chat-collection-select"),
+    settingsMenu: document.getElementById("settings-menu"),
+    settingsMenuTrigger: document.getElementById("settings-menu-trigger"),
+    settingsDropdown: document.getElementById("settings-dropdown"),
+    settingsBuilder: document.getElementById("settings-builder"),
+    settingsLanguageLabel: document.getElementById("settings-language-label"),
 
     // [New] View containers
     chatMainView: document.getElementById("chat-main-view"),
@@ -5589,38 +5613,7 @@ function bindEvents() {
         });
     }
 
-    if (els.chatBack) {
-        const navigateBackToBuilder = async () => {
-            try {
-                saveCurrentSession(true);
-            } catch (e) {
-                console.error(e);
-            }
-
-            setChatRunning(false);
-
-            setMode(Modes.BUILDER);
-            updateUrlForView(Modes.BUILDER);
-            if (typeof switchWorkspaceMode === 'function') {
-                switchWorkspaceMode('pipeline');
-            }
-        };
-
-        els.chatBack.onclick = async () => {
-            if (state.chat.running) {
-                showInterruptConfirmDialog(async () => {
-                    if (state.chat.controller) {
-                        state.chat.controller.abort();
-                        state.chat.controller = null;
-                    }
-                    await navigateBackToBuilder();
-                });
-                return;
-            }
-
-            await navigateBackToBuilder();
-        };
-    }
+    setupSettingsMenu();
 
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
@@ -5892,6 +5885,7 @@ async function bootstrap() {
     }
 
     setMode(initialMode);
+    applyUILanguage(state.uiLanguage);
 
     if (!state.adminMode && initialMode === Modes.CHAT) {
         // Chat-only mode: directly enter Chat view
@@ -5971,8 +5965,140 @@ async function bootstrap() {
 // Hide admin-related buttons in Chat-only mode
 function applyChatOnlyMode() {
     // Hide "Configure Pipeline" back button (not allowed to return to Builder)
-    if (els.chatBack) {
-        els.chatBack.style.display = 'none';
+    if (els.settingsBuilder) {
+        els.settingsBuilder.style.display = "none";
+    }
+    if (els.settingsMenu) {
+        els.settingsMenu.classList.remove("open");
+    }
+}
+
+function applyUILanguage(lang) {
+    const resolved = UI_LANGUAGE_MAP[lang] ? lang : "en";
+    state.uiLanguage = resolved;
+
+    try {
+        localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, resolved);
+    } catch (e) {
+        console.warn("Failed to persist UI language", e);
+    }
+
+    document.documentElement.setAttribute("data-ui-lang", resolved);
+
+    if (els.settingsLanguageLabel) {
+        els.settingsLanguageLabel.textContent = UI_LANGUAGE_MAP[resolved];
+    }
+
+    document.querySelectorAll("[data-ui-lang]").forEach((btn) => {
+        const isActive = btn.getAttribute("data-ui-lang") === resolved;
+        btn.classList.toggle("active", isActive);
+    });
+}
+
+async function navigateBackToBuilder() {
+    try {
+        saveCurrentSession(true);
+    } catch (e) {
+        console.error(e);
+    }
+
+    setChatRunning(false);
+
+    setMode(Modes.BUILDER);
+    updateUrlForView(Modes.BUILDER);
+    if (typeof switchWorkspaceMode === "function") {
+        switchWorkspaceMode("pipeline");
+    }
+}
+
+function setupSettingsMenu() {
+    if (!els.settingsMenu) return;
+
+    const closeMenu = () => {
+        els.settingsMenu.classList.remove("open");
+        const languageItem = document.getElementById("settings-language");
+        if (languageItem) languageItem.classList.remove("submenu-open");
+    };
+    const toggleMenu = () => els.settingsMenu.classList.toggle("open");
+
+    if (els.settingsMenuTrigger) {
+        els.settingsMenuTrigger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
+    }
+
+    document.addEventListener("click", (e) => {
+        if (!els.settingsMenu.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            closeMenu();
+        }
+    });
+
+    // Language submenu: keep open after hover/click until outside click
+    const languageItem = document.getElementById("settings-language");
+    if (languageItem) {
+        const openSubmenu = () => languageItem.classList.add("submenu-open");
+        const closeSubmenu = () => languageItem.classList.remove("submenu-open");
+
+        languageItem.addEventListener("mouseenter", openSubmenu);
+        languageItem.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isOpen = languageItem.classList.contains("submenu-open");
+            if (isOpen) {
+                closeSubmenu();
+            } else {
+                openSubmenu();
+            }
+        });
+
+        // Keep submenu open when moving between item and submenu
+        const languageSubmenu = document.getElementById("settings-language-submenu");
+        if (languageSubmenu) {
+            languageSubmenu.addEventListener("mouseenter", openSubmenu);
+            languageSubmenu.addEventListener("click", (e) => e.stopPropagation());
+        }
+
+        // Close submenu on outside click
+        document.addEventListener("click", (e) => {
+            if (!languageItem.contains(e.target)) {
+                closeSubmenu();
+            }
+        });
+    }
+
+    const languageButtons = document.querySelectorAll("[data-ui-lang]");
+    languageButtons.forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const lang = btn.getAttribute("data-ui-lang");
+            applyUILanguage(lang);
+            closeMenu();
+        });
+    });
+
+    if (els.settingsBuilder) {
+        els.settingsBuilder.onclick = async (e) => {
+            e?.stopPropagation();
+            if (state.chat.running) {
+                showInterruptConfirmDialog(async () => {
+                    if (state.chat.controller) {
+                        state.chat.controller.abort();
+                        state.chat.controller = null;
+                    }
+                    await navigateBackToBuilder();
+                });
+                return;
+            }
+
+            await navigateBackToBuilder();
+            closeMenu();
+        };
     }
 }
 
