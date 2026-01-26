@@ -201,6 +201,9 @@ window.I18N_LOCALES.en = {
   chat_error_title: "Chat Error",
   chat_backend_error_message: "Backend Error: {error}",
   chat_network_error_message: "Network Error: {error}",
+  chat_show_thinking: "Show Thinking",
+  chat_cited_references: "Cited References",
+  chat_other_retrieved: "Other Retrieved",
 
   builder_editor_reset_message: "This will reset the editor content to match the current canvas state. Any manual edits in the editor will be lost.",
   builder_editor_reset_title: "Reset Editor",

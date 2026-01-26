@@ -170,6 +170,19 @@ function updateI18nTexts() {
     if (greeting) {
         greeting.textContent = t("greeting_explore");
     }
+
+    // Update chat history i18n texts (Show Thinking, Cited References, Other Retrieved)
+    document.querySelectorAll(".process-header > span[data-i18n-key='chat_show_thinking']").forEach((el) => {
+        el.textContent = t("chat_show_thinking");
+    });
+    document.querySelectorAll(".ref-header[data-i18n-key='chat_cited_references']").forEach((el) => {
+        const count = el.dataset.count || 0;
+        el.textContent = `${t("chat_cited_references")} (${count})`;
+    });
+    document.querySelectorAll(".unused-header span[data-i18n-key='chat_other_retrieved']").forEach((el) => {
+        const count = el.dataset.count || 0;
+        el.textContent = `${t("chat_other_retrieved")} (${count})`;
+    });
 }
 
 function resolveInitialLanguage() {
@@ -182,8 +195,7 @@ function resolveInitialLanguage() {
         console.warn("Failed to load UI language", e);
     }
 
-    const browserLang = (navigator.language || "").toLowerCase();
-    if (browserLang.startsWith("zh")) return "zh";
+    // Default to English
     return "en";
 }
 
@@ -1710,10 +1722,12 @@ function setBuildButtonState(state = "idle", label = "") {
 
 function markUnsavedChanges() {
     state.unsavedChanges = true;
+    setYamlSyncStatus('modified');
 }
 
 function clearUnsavedChanges() {
     state.unsavedChanges = false;
+    setYamlSyncStatus('synced');
 }
 
 function snapshotSavedYaml(content = "") {
@@ -3719,7 +3733,9 @@ function renderSources(bubble, sources, usedIds = null) {
     if (usedSources.length > 0) {
         const usedHeader = document.createElement("div");
         usedHeader.className = "ref-header";
-        usedHeader.textContent = `Cited References (${usedSources.length})`;
+        usedHeader.setAttribute("data-i18n-key", "chat_cited_references");
+        usedHeader.dataset.count = usedSources.length;
+        usedHeader.textContent = `${t("chat_cited_references")} (${usedSources.length})`;
         refContainer.appendChild(usedHeader);
 
         const usedList = document.createElement("div");
@@ -3740,7 +3756,7 @@ function renderSources(bubble, sources, usedIds = null) {
         const unusedHeader = document.createElement("div");
         unusedHeader.className = "ref-header unused-header";
         unusedHeader.innerHTML = `
-            <span>Other Retrieved (${unusedSources.length})</span>
+            <span data-i18n-key="chat_other_retrieved" data-count="${unusedSources.length}">${t("chat_other_retrieved")} (${unusedSources.length})</span>
             <span class="toggle-icon">▶</span>
         `;
         unusedHeader.onclick = () => {
@@ -3788,7 +3804,7 @@ function renderStepsFromHistory(bubble, steps, isInterrupted = false) {
     procDiv.className = "process-container collapsed"; // Collapsed by default
     procDiv.innerHTML = `
         <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
-            <span>Show Thinking</span>
+            <span data-i18n-key="chat_show_thinking">${t("chat_show_thinking")}</span>
             <svg class="process-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
@@ -3891,7 +3907,7 @@ function updateProcessUI(entryIndex, eventData) {
         // Expanded structure by default
         procDiv.innerHTML = `
             <div class="process-header" onclick="this.parentNode.classList.toggle('collapsed')">
-                <span>Show Thinking</span>
+                <span data-i18n-key="chat_show_thinking">${t("chat_show_thinking")}</span>
                 <svg class="process-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
@@ -4524,7 +4540,7 @@ function showYamlError(message) {
         setYamlSyncStatus('error');
     } else {
         els.yamlErrorBar.classList.add('d-none');
-        setYamlSyncStatus('synced');
+        setYamlSyncStatus(state.unsavedChanges ? 'modified' : 'synced');
     }
 }
 
@@ -7427,7 +7443,7 @@ async function switchWorkspaceMode(mode) {
     if (!mode) return;
     if (mode === workspaceState.currentMode) return;
 
-    if (workspaceState.currentMode === 'pipeline' && mode !== 'pipeline') {
+    if (workspaceState.currentMode === 'pipeline' && mode !== 'pipeline' && state.unsavedChanges) {
         const ok = await showConfirm(t("builder_workspace_switch_unsaved_message"), {
             title: t("builder_unsaved_changes_title"),
             type: "warning",
@@ -7435,6 +7451,15 @@ async function switchWorkspaceMode(mode) {
             cancelText: t("common_cancel")
         });
         if (!ok) return;
+
+        // Discard unsaved changes: restore editor to last saved state
+        if (els.yamlEditor && state.lastSavedYaml !== undefined) {
+            els.yamlEditor.value = state.lastSavedYaml;
+            updateYamlLineNumbers();
+            setYamlSyncStatus('synced');
+            await syncYamlToCanvasOnly({ markUnsaved: false });
+        }
+        clearUnsavedChanges();
     }
 
     workspaceState.currentMode = mode;

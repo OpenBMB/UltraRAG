@@ -201,6 +201,9 @@ window.I18N_LOCALES.zh = {
   chat_error_title: "对话错误",
   chat_backend_error_message: "后端错误：{error}",
   chat_network_error_message: "网络错误：{error}",
+  chat_show_thinking: "显示思考",
+  chat_cited_references: "引用来源",
+  chat_other_retrieved: "其他检索",
 
   builder_editor_reset_message: "此操作会将编辑器内容重置为当前画布状态，所有手动编辑将丢失。",
   builder_editor_reset_title: "重置编辑器",
