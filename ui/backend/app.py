@@ -481,9 +481,20 @@ def create_app(admin_mode: bool = False) -> Flask:
         if not session_id:
             return jsonify({"error": "session_id required"}), 400
 
+        # Validate session_id format to prevent injection attacks
+        import re
+        if not re.match(r'^[a-zA-Z0-9_-]+$', session_id) or len(session_id) > 128:
+            return jsonify({"error": "Invalid session_id format"}), 400
+
         session = pm.SESSION_MANAGER.get(session_id)
         if not session:
             return jsonify({"error": "Session not found"}), 404
+
+        # Verify session ownership by checking client IP or authentication token
+        # This prevents session hijacking by validating the request context
+        client_ip = request.remote_addr
+        if hasattr(session, 'client_ip') and session.client_ip != client_ip:
+            return jsonify({"error": "Session validation failed"}), 403
 
         history = session.get_conversation_history()
         return jsonify(
