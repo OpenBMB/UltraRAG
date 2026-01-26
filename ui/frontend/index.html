@@ -642,19 +642,19 @@
       <div class="kb-main d-none" id="kb-main-view">
         <header
           class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
-          <h3 class="m-0 fs-5 fw-bold text-dark">Collections</h3>
+          <h3 class="m-0 fs-5 fw-bold text-dark" data-i18n="kb_collections">Knowledge Base</h3>
 
           <div class="d-flex gap-2 align-items-center">
             <div class="kb-connection-group">
               <button type="button" class="kb-conn-chip" id="db-connection-chip" onclick="openDbConfigModal()"
-                title="Endpoint">
+                data-i18n-title="kb_endpoint" title="Endpoint">
                 <span id="db-connection-status" class="kb-conn-dot disconnected"></span>
-                <span id="db-connection-text" class="kb-conn-text">Connecting</span>
+                <span id="db-connection-text" class="kb-conn-text" data-i18n="kb_connecting">Connecting</span>
               </button>
               <small class="kb-conn-uri" id="db-uri-display">—</small>
             </div>
 
-            <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()">
+            <button class="btn btn-outline-secondary btn-sm" onclick="openDbConfigModal()" data-i18n="kb_configure_db">
               Configure DB
             </button>
 
@@ -664,7 +664,7 @@
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              New Collection
+              <span data-i18n="kb_new_collection">New Knowledge Base</span>
             </button>
           </div>
         </header>
@@ -680,12 +680,12 @@
         <div class="d-flex flex-column h-100">
           <div class="modal-header px-4 py-3 border-bottom d-flex justify-content-between align-items-center bg-white">
             <div>
-              <h5 class="m-0 fw-bold">Import Knowledge</h5>
-              <small class="text-muted">Process raw documents into vector index.</small>
+              <h5 class="m-0 fw-bold" data-i18n="kb_import_knowledge">Import Knowledge</h5>
+              <small class="text-muted" data-i18n="kb_import_subtitle">Process raw documents into vector index.</small>
             </div>
             <div class="d-flex gap-2">
-              <button class="btn btn-light btn-sm text-danger" onclick="clearStagingArea()"
-                title="Clear all temporary files">Delete All</button>
+              <button class="btn btn-light btn-sm text-danger" onclick="clearStagingArea()" data-i18n="kb_delete_all"
+                data-i18n-title="kb_clear_temp_files" title="Clear all temporary files">Delete All</button>
               <button class="btn-close" onclick="closeImportModal()"></button>
             </div>
           </div>
@@ -703,12 +703,12 @@
                 <div class="card-head d-flex justify-content-between align-items-center">
                   <div class="head-title d-flex align-items-center">
                     <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">1</span>
-                    <span class="fw-bold text-dark small">Raw Files</span>
+                    <span class="fw-bold text-dark small" data-i18n="kb_raw_files">Raw Files</span>
                   </div>
                   <input type="file" id="file-upload" multiple hidden onchange="handleFileUpload(this)">
                   <button class="btn btn-dark btn-sm py-0 px-2" style="font-size: 0.8rem;"
                     onclick="document.getElementById('file-upload').click()">
-                    Upload
+                    <span data-i18n="kb_upload">Upload</span>
                   </button>
                 </div>
                 <div class="card-body-scroll" id="list-raw"></div>
@@ -718,7 +718,7 @@
                 <div class="card-head d-flex justify-content-between align-items-center">
                   <div class="head-title d-flex align-items-center">
                     <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">2</span>
-                    <span class="fw-bold text-dark small">Corpus</span>
+                    <span class="fw-bold text-dark small" data-i18n="kb_corpus">Corpus</span>
                   </div>
                   <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1"
                     style="font-size: 0.75rem;" onclick="openChunkConfigModal()">
@@ -729,7 +729,7 @@
                         d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
                       </path>
                     </svg>
-                    Settings
+                    <span data-i18n="settings">Settings</span>
                   </button>
                 </div>
                 <div class="card-body-scroll" id="list-corpus"></div>
@@ -739,7 +739,7 @@
                 <div class="card-head d-flex justify-content-between align-items-center">
                   <div class="head-title d-flex align-items-center">
                     <span class="step-badge rounded-circle d-flex align-items-center justify-content-center">3</span>
-                    <span class="fw-bold text-dark small">Chunks</span>
+                    <span class="fw-bold text-dark small" data-i18n="kb_chunks">Chunks</span>
                   </div>
                   <button class="btn btn-light border btn-sm py-0 px-2 text-muted d-flex align-items-center gap-1"
                     style="font-size: 0.75rem;" onclick="openIndexConfigModal()">
@@ -750,7 +750,7 @@
                         d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
                       </path>
                     </svg>
-                    Settings
+                    <span data-i18n="settings">Settings</span>
                   </button>
                 </div>
                 <div class="card-body-scroll" id="list-chunks"></div>
@@ -830,61 +830,62 @@
   </div>
 
   <dialog id="milvus-dialog" class="apple-modal">
-    <h5 class="mb-3 fw-bold">Build Vector Index</h5>
+    <h5 class="mb-3 fw-bold" data-i18n="kb_build_vector_index">Build Vector Index</h5>
 
     <div class="alert alert-light border mb-3 p-2 small">
-      Target: <strong id="modal-target-db">Loading Configuration...</strong>
+      <span data-i18n="kb_target">Target</span>: <strong id="modal-target-db" data-i18n="kb_loading_config">Loading Configuration...</strong>
     </div>
 
     <div class="mb-3">
-      <label class="form-label small text-muted text-uppercase fw-bold" id="idx-collection-label">Collection Name</label>
+      <label class="form-label small text-muted text-uppercase fw-bold" id="idx-collection-label"
+        data-i18n="kb_collection_name">Collection Name</label>
       <input type="text" id="idx-collection" class="form-control" placeholder="e.g. wiki_v1">
       <select id="idx-collection-select" class="form-select d-none"></select>
     </div>
 
     <div class="mb-4">
-      <label class="form-label small text-muted text-uppercase fw-bold">Mode</label>
+      <label class="form-label small text-muted text-uppercase fw-bold" data-i18n="kb_mode">Mode</label>
       <select id="idx-mode" class="form-select">
-        <option value="new">New</option>
-        <option value="append">Append</option>
-        <option value="overwrite">Overwrite</option>
+        <option value="new" data-i18n="kb_mode_new">New</option>
+        <option value="append" data-i18n="kb_mode_append">Append</option>
+        <option value="overwrite" data-i18n="kb_mode_overwrite">Overwrite</option>
       </select>
     </div>
 
     <div class="modal-actions d-flex justify-content-end gap-2">
-      <button class="btn btn-light border btn-sm"
+      <button class="btn btn-light border btn-sm" data-i18n="kb_cancel"
         onclick="document.getElementById('milvus-dialog').close()">Cancel</button>
-      <button class="btn btn-dark btn-sm" onclick="confirmIndexTask()">Start Indexing</button>
+      <button class="btn btn-dark btn-sm" data-i18n="kb_start_indexing" onclick="confirmIndexTask()">Start Indexing</button>
     </div>
   </dialog>
 
   <dialog id="db-config-modal" class="apple-modal">
-    <h5 class="mb-3 fw-bold">Database Settings</h5>
+    <h5 class="mb-3 fw-bold" data-i18n="kb_database_settings">Database Settings</h5>
 
     <div class="mb-3">
-      <label class="form-label small text-muted text-uppercase fw-bold">Milvus URI</label>
+      <label class="form-label small text-muted text-uppercase fw-bold" data-i18n="kb_milvus_uri">Milvus URI</label>
       <input type="text" id="cfg-uri" class="form-control" placeholder="path/to/local.db OR http://localhost:19530">
-      <div class="form-text">Supports local file paths or remote HTTP/TCP connections.</div>
+      <div class="form-text" data-i18n="kb_milvus_uri_help">Supports local file paths or remote HTTP/TCP connections.</div>
     </div>
 
     <div class="mb-4">
-      <label class="form-label small text-muted text-uppercase fw-bold">Token (Optional)</label>
+      <label class="form-label small text-muted text-uppercase fw-bold" data-i18n="kb_token_optional">Token (Optional)</label>
       <input type="password" id="cfg-token" class="form-control" placeholder="API Key or user:password">
     </div>
 
     <div class="modal-actions d-flex justify-content-end gap-2">
-      <button class="btn btn-light border btn-sm"
+      <button class="btn btn-light border btn-sm" data-i18n="kb_cancel"
         onclick="document.getElementById('db-config-modal').close()">Cancel</button>
-      <button class="btn btn-dark btn-sm" onclick="saveDbConfig()">Save & Connect</button>
+      <button class="btn btn-dark btn-sm" data-i18n="kb_save_connect" onclick="saveDbConfig()">Save & Connect</button>
     </div>
   </dialog>
 
   <dialog id="folder-detail-modal" class="apple-modal">
-    <h5 class="mb-3 fw-bold" id="folder-detail-title">Folder Contents</h5>
+    <h5 class="mb-3 fw-bold" id="folder-detail-title" data-i18n="kb_folder_contents">Folder Contents</h5>
     <div id="folder-detail-list" class="folder-list-container" style="max-height: 300px; overflow-y: auto;">
     </div>
     <div class="modal-actions d-flex justify-content-end mt-3">
-      <button class="btn btn-dark btn-sm"
+      <button class="btn btn-dark btn-sm" data-i18n="kb_close"
         onclick="document.getElementById('folder-detail-modal').close()">Close</button>
     </div>
   </dialog>
@@ -893,14 +894,14 @@
     style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
     <div class="card" style="width: 380px; border:none;">
       <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
-        <h6 class="card-title m-0 fw-bold">Chunk Configuration</h6>
+        <h6 class="card-title m-0 fw-bold" data-i18n="kb_chunk_configuration">Chunk Configuration</h6>
         <button type="button" class="btn-close small"
           onclick="document.getElementById('chunk-config-modal').close()"></button>
       </div>
       <div class="card-body">
         <form id="chunk-config-form">
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Chunk Backend</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_chunk_backend">Chunk Backend</label>
             <select id="cfg-chunk-backend" class="form-select form-select-sm">
               <option value="token" selected>token</option>
               <option value="sentence">sentence</option>
@@ -909,7 +910,7 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Tokenizer / Counter</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_tokenizer_counter">Tokenizer / Counter</label>
             <select id="cfg-chunk-tokenizer" class="form-select form-select-sm">
               <option value="gpt2" selected>gpt2</option>
               <option value="character">character</option>
@@ -918,26 +919,27 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Chunk Size</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_chunk_size">Chunk Size</label>
             <div class="input-group input-group-sm">
               <input type="number" id="cfg-chunk-size" class="form-control" value="500" min="1">
             </div>
           </div>
 
           <div class="mb-1">
-            <label class="form-label small fw-bold text-muted">Use Title</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_use_title">Use Title</label>
             <select id="cfg-chunk-title" class="form-select form-select-sm">
               <option value="true" selected>True</option>
               <option value="false">False</option>
             </select>
-            <div class="form-text text-xs">Prepend document title to each chunk.</div>
+            <div class="form-text text-xs" data-i18n="kb_use_title_help">Prepend document title to each chunk.</div>
           </div>
         </form>
       </div>
       <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
-        <button type="button" class="btn btn-sm btn-light border"
+        <button type="button" class="btn btn-sm btn-light border" data-i18n="kb_cancel"
           onclick="document.getElementById('chunk-config-modal').close()">Cancel</button>
-        <button type="button" class="btn btn-sm btn-dark" onclick="saveChunkConfig()">Save Config</button>
+        <button type="button" class="btn btn-sm btn-dark" data-i18n="kb_save_config"
+          onclick="saveChunkConfig()">Save Config</button>
       </div>
     </div>
   </dialog>
@@ -946,39 +948,39 @@
     style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
     <div class="card" style="width: 420px; border:none;">
       <div class="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
-        <h6 class="card-title m-0 fw-bold">Embedding Configuration</h6>
+        <h6 class="card-title m-0 fw-bold" data-i18n="kb_embedding_configuration">Embedding Configuration</h6>
         <button type="button" class="btn-close small"
           onclick="document.getElementById('index-config-modal').close()"></button>
       </div>
       <div class="card-body">
-        <p class="text-muted small mb-3">Configure the embedding model for vector indexing. Uses OpenAI-compatible API.
-        </p>
+        <p class="text-muted small mb-3" data-i18n="kb_embedding_desc">Configure the embedding model for vector indexing. Uses OpenAI-compatible API.</p>
         <form id="index-config-form">
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">API Key</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_api_key">API Key</label>
             <input type="password" id="cfg-emb-api-key" class="form-control form-control-sm" placeholder="sk-...">
-            <div class="form-text text-xs">Your OpenAI or compatible API key.</div>
+            <div class="form-text text-xs" data-i18n="kb_api_key_help">Your OpenAI or compatible API key.</div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Base URL</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_base_url">Base URL</label>
             <input type="text" id="cfg-emb-base-url" class="form-control form-control-sm"
               value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
-            <div class="form-text text-xs">API endpoint. Change for Azure, local models, etc.</div>
+            <div class="form-text text-xs" data-i18n="kb_base_url_help">API endpoint. Change for Azure, local models, etc.</div>
           </div>
 
           <div class="mb-1">
-            <label class="form-label small fw-bold text-muted">Model Name</label>
+            <label class="form-label small fw-bold text-muted" data-i18n="kb_model_name">Model Name</label>
             <input type="text" id="cfg-emb-model-name" class="form-control form-control-sm"
               value="text-embedding-3-small" placeholder="text-embedding-3-small">
-            <div class="form-text text-xs">e.g. text-embedding-3-small, text-embedding-ada-002</div>
+            <div class="form-text text-xs" data-i18n="kb_model_name_help">e.g. text-embedding-3-small, text-embedding-ada-002</div>
           </div>
         </form>
       </div>
       <div class="card-footer bg-light border-top d-flex justify-content-end gap-2 py-2">
-        <button type="button" class="btn btn-sm btn-light border"
+        <button type="button" class="btn btn-sm btn-light border" data-i18n="kb_cancel"
           onclick="document.getElementById('index-config-modal').close()">Cancel</button>
-        <button type="button" class="btn btn-sm btn-dark" onclick="saveIndexConfig()">Save Config</button>
+        <button type="button" class="btn btn-sm btn-dark" data-i18n="kb_save_config"
+          onclick="saveIndexConfig()">Save Config</button>
       </div>
     </div>
   </dialog>
@@ -1331,6 +1333,8 @@
   <script src="vendor/js/auto-render.min.js"></script>
   <!-- Highlight.js for code syntax highlighting -->
   <script src="vendor/js/highlight.min.js"></script>
+  <script src="i18n/en.js"></script>
+  <script src="i18n/zh.js"></script>
   <script src="main.js"></script>
 </body>
 

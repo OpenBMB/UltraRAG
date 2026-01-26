@@ -26,141 +26,28 @@ function persistActiveEngines() {
 const UI_LANGUAGE_STORAGE_KEY = "ultrarag_ui_language";
 const UI_LANGUAGE_MAP = { en: "English", zh: "中文" };
 
-const LOCALES = {
-    en: {
-        settings: "Settings",
-        builder: "Builder",
-        language: "Language",
-        new_chat: "New Chat",
-        knowledge_base: "Knowledge Base",
-        no_knowledge_base: "No Knowledge Base",
-        recent: "Recent",
-        select_pipeline: "Select Pipeline",
-        background: "Background",
-        placeholder_chat_input: "Ask UltraRAG",
-        greeting_explore: "What shall we explore today?",
-        bg_tasks_title: "Background Tasks",
-        bg_tasks_refresh: "Refresh",
-        bg_tasks_clear: "Clear",
-        bg_tasks_clear_completed: "Clear completed",
-        bg_tasks_close: "Close",
-        bg_tasks_empty: "No background tasks",
-        bg_task_running: "Running",
-        bg_task_completed: "Completed",
-        bg_task_failed: "Failed",
-        bg_task_completed_title: "Background Task Completed",
-        bg_task_failed_title: "Background Task Failed",
-        bg_task_loading_details: "Loading task details...",
-        bg_task_loading_details_failed: "Failed to load task details.",
-        bg_task_task_not_found: "Task not found",
-        bg_task_copy_result: "Copy Result",
-        bg_task_load_current: "Load to Current Chat",
-        bg_task_load_new: "Load to New Chat",
-        bg_task_delete: "Delete",
-        bg_task_question: "Question",
-        bg_task_error: "Error",
-        bg_task_unknown_error: "Unknown error",
-        bg_task_processing: "Processing your request...",
-        bg_task_loading_to_current: "Loading to chat...",
-        bg_task_loading_to_new: "Loading to new chat...",
-        bg_task_loaded: "Loaded",
-        bg_task_loaded_new: "Background task loaded to a new chat",
-        bg_task_loaded_current: "Background task loaded to the current chat",
-        bg_task_load_failed: "Load Failed",
-        bg_tasks_switch_chat: "Please switch to Chat to view background tasks.",
-        status_ready: "Ready",
-        status_offline: "Offline",
-        status_engine_offline: "Engine Offline",
-        status_thinking: "Thinking...",
-        status_initializing: "Initializing...",
-        status_reconnecting: "Reconnecting...",
-        status_params_missing: "Params Missing",
-        status_engine_ready: "Engine Ready",
-        status_engine_error: "Engine Error",
-        status_error: "Error",
-        status_interrupted: "Interrupted",
-        status_suspending: "Suspending...",
-    },
-    zh: {
-        settings: "设置",
-        builder: "搭建器",
-        language: "语言",
-        new_chat: "新建对话",
-        knowledge_base: "知识库",
-        no_knowledge_base: "无知识库",
-        recent: "最近",
-        select_pipeline: "选择流程",
-        background: "后台执行",
-        placeholder_chat_input: "向 UltraRAG 提问",
-        greeting_explore: "今天想探索什么？",
-        bg_tasks_title: "后台任务",
-        bg_tasks_refresh: "刷新",
-        bg_tasks_clear: "清除",
-        bg_tasks_clear_completed: "清除已完成",
-        bg_tasks_close: "关闭",
-        bg_tasks_empty: "暂无后台任务",
-        bg_task_running: "进行中",
-        bg_task_completed: "已完成",
-        bg_task_failed: "失败",
-        bg_task_completed_title: "后台任务完成",
-        bg_task_failed_title: "后台任务失败",
-        bg_task_loading_details: "加载任务详情中...",
-        bg_task_loading_details_failed: "加载任务详情失败。",
-        bg_task_task_not_found: "未找到任务",
-        bg_task_copy_result: "复制结果",
-        bg_task_load_current: "加载到当前对话",
-        bg_task_load_new: "加载到新对话",
-        bg_task_delete: "删除",
-        bg_task_question: "问题",
-        bg_task_error: "错误",
-        bg_task_unknown_error: "未知错误",
-        bg_task_processing: "正在处理请求...",
-        bg_task_loading_to_current: "正在加载到对话...",
-        bg_task_loading_to_new: "正在加载到新对话...",
-        bg_task_loaded: "已加载",
-        bg_task_loaded_new: "后台任务已加载到新对话",
-        bg_task_loaded_current: "后台任务已加载到当前对话",
-        bg_task_load_failed: "加载失败",
-        bg_tasks_switch_chat: "请切换到聊天页面查看后台任务。",
-        status_ready: "就绪",
-        status_offline: "离线",
-        status_engine_offline: "引擎离线",
-        status_thinking: "思考中...",
-        status_initializing: "初始化中...",
-        status_reconnecting: "重新连接中...",
-        status_params_missing: "参数缺失",
-        status_engine_ready: "引擎就绪",
-        status_engine_error: "引擎错误",
-        status_error: "错误",
-        status_interrupted: "已中断",
-        status_suspending: "暂停中...",
-    },
-};
+const LOCALES = window.I18N_LOCALES || {};
+const DEFAULT_LOCALE = "en";
 
 function t(key) {
-    const lang = state.uiLanguage || "en";
-    const table = LOCALES[lang] || LOCALES.en;
-    return table[key] || LOCALES.en[key] || key;
+    const lang = state.uiLanguage || DEFAULT_LOCALE;
+    const table = LOCALES[lang] || LOCALES[DEFAULT_LOCALE] || {};
+    const fallback = LOCALES[DEFAULT_LOCALE] || {};
+    return table[key] || fallback[key] || key;
+}
+
+function formatTemplate(template, params = {}) {
+    return String(template).replace(/\{(\w+)\}/g, (_, key) =>
+        params[key] !== undefined ? String(params[key]) : `{${key}}`
+    );
 }
 
 function updateI18nTexts() {
-    const mappings = [
-        { selector: '[data-i18n="settings"]', key: "settings" },
-        { selector: '[data-i18n="builder"]', key: "builder" },
-        { selector: '[data-i18n="language"]', key: "language" },
-        { selector: '[data-i18n="new_chat"]', key: "new_chat" },
-        { selector: '[data-i18n="recent"]', key: "recent" },
-        { selector: '[data-i18n="background"]', key: "background" },
-        { selector: '[data-i18n="bg_tasks_title"]', key: "bg_tasks_title" },
-        { selector: '[data-i18n="bg_tasks_clear"]', key: "bg_tasks_clear" },
-        { selector: '[data-i18n="bg_tasks_empty"]', key: "bg_tasks_empty" },
-        { selector: '[data-i18n="no_knowledge_base"]', key: "no_knowledge_base" },
-    ];
-
-    mappings.forEach(({ selector, key }) => {
-        document.querySelectorAll(selector).forEach((el) => {
-            el.textContent = t(key);
-        });
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute("data-i18n");
+        if (!key) return;
+        if (key === "knowledge_base") return; // handled below to avoid overwriting selection
+        el.textContent = t(key);
     });
 
     // Title attributes
@@ -174,6 +61,16 @@ function updateI18nTexts() {
         const hasSelection = el.dataset.selected === "true";
         if (!hasSelection) el.textContent = t("knowledge_base");
     });
+
+    // Refresh DB status text for KB page on language switch
+    if (currentDbStatus) {
+        updateDbStatusUI(currentDbStatus, currentDbConfig);
+    }
+
+    // Refresh KB cards to update vector labels on language switch
+    if (Array.isArray(indexCollectionsCache) && indexCollectionsCache.length > 0) {
+        renderCollectionList(null, indexCollectionsCache);
+    }
 
     // Select pipeline label: keep selected pipeline name if exists
     const chatPipelineLabel = document.getElementById("chat-pipeline-label");
@@ -692,6 +589,8 @@ let currentTargetFile = null;
 let existingFilesSnapshot = new Set();
 let indexCollectionsCache = [];
 let lastIndexMode = "new";
+let currentDbConfig = null;
+let currentDbStatus = null;
 
 // Open import workspace modal
 window.openImportModal = async function () {
@@ -733,10 +632,10 @@ window.closeImportModal = function () {
 
 // Clear staging area
 window.clearStagingArea = async function () {
-    const confirmed = await showConfirm("Are you sure you want to clear ALL temporary files (Raw, Corpus, Chunks)?", {
-        title: "Clear Staging Area",
+    const confirmed = await showConfirm(t("kb_clear_staging_prompt"), {
+        title: t("kb_clear_staging_title"),
         type: "warning",
-        confirmText: "Clear All",
+        confirmText: t("kb_clear_all"),
         danger: true
     });
     if (!confirmed) return;
@@ -748,23 +647,32 @@ window.clearStagingArea = async function () {
         if (res.ok) {
             const total = data.total_deleted || 0;
             const counts = data.deleted_counts || {};
-            let message = `Deleted:\n- Raw: ${counts.raw || 0} items\n- Corpus: ${counts.corpus || 0} items\n- Chunks: ${counts.chunks || 0} items\n\nTotal: ${total} items`;
+            let message = formatTemplate(t("kb_deleted_summary"), {
+                raw: counts.raw || 0,
+                corpus: counts.corpus || 0,
+                chunks: counts.chunks || 0,
+                total
+            });
 
             if (data.errors && data.errors.length > 0) {
-                message += `\n\nNote: Some errors occurred:\n${data.errors.slice(0, 3).join('\n')}`;
+                message += `\n\n${formatTemplate(t("kb_note_errors"), {
+                    errors: data.errors.slice(0, 3).join('\n')
+                })}`;
                 if (data.errors.length > 3) {
-                    message += `\n... and ${data.errors.length - 3} more errors`;
+                    message += `\n${formatTemplate(t("kb_more_errors"), {
+                        count: data.errors.length - 3
+                    })}`;
                 }
             }
 
-            await showModal(message, { title: "Staging Area Cleared", type: "success" });
+            await showModal(message, { title: t("kb_staging_cleared_title"), type: "success" });
             await refreshKBFiles();
         } else {
-            await showModal("Clear failed: " + (data.error || res.statusText), { title: "Error", type: "error" });
+            await showModal(t("kb_clear_failed") + (data.error || res.statusText), { title: t("status_error"), type: "error" });
         }
     } catch (e) {
         console.error(e);
-        await showModal("Clear error: " + e.message, { title: "Error", type: "error" });
+        await showModal(t("kb_clear_error") + e.message, { title: t("status_error"), type: "error" });
     }
 };
 
@@ -772,9 +680,9 @@ window.clearStagingArea = async function () {
 
 // Helper function specifically for refreshing modal views
 function refreshKBModalViews(data) {
-    renderKBList(document.getElementById('list-raw'), data.raw, 'build_text_corpus', 'Parse');
-    renderKBList(document.getElementById('list-corpus'), data.corpus, 'corpus_chunk', 'Chunk');
-    renderKBList(document.getElementById('list-chunks'), data.chunks, 'milvus_index', 'Index');
+    renderKBList(document.getElementById('list-raw'), data.raw, 'build_text_corpus', t("kb_action_parse"));
+    renderKBList(document.getElementById('list-corpus'), data.corpus, 'corpus_chunk', t("kb_action_chunk"));
+    renderKBList(document.getElementById('list-chunks'), data.chunks, 'milvus_index', t("kb_action_index"));
 }
 
 // Refresh file list (main function)
@@ -808,7 +716,7 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
     container.innerHTML = '';
 
     if (!files || files.length === 0) {
-        container.innerHTML = '<div class="text-muted small text-center mt-5 opacity-50">Empty</div>';
+        container.innerHTML = `<div class="text-muted small text-center mt-5 opacity-50">${t("kb_empty")}</div>`;
         return;
     }
 
@@ -838,7 +746,7 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
         // 3. Metadata row content
         let metaText = sizeStr;
         if (isFolder && f.file_count) {
-            metaText = `${f.file_count} files · ${sizeStr}`;
+            metaText = `${f.file_count} ${t("kb_files")} · ${sizeStr}`;
         }
 
         // 4. Action button
@@ -847,7 +755,7 @@ function renderKBList(container, files, nextPipeline, actionLabel) {
         // 5. Delete button
         let deleteBtn = '';
         if (f.category !== 'collection') {
-            deleteBtn = `<button class="btn btn-sm text-danger ms-2 btn-icon-only flex-shrink-0" onclick="event.stopPropagation(); deleteKBFile('${f.category}', '${f.name}')" title="Delete">×</button>`;
+            deleteBtn = `<button class="btn btn-sm text-danger ms-2 btn-icon-only flex-shrink-0" onclick="event.stopPropagation(); deleteKBFile('${f.category}', '${f.name}')" title="${t("kb_delete")}">×</button>`;
         }
 
         // 6. Card click event
@@ -914,13 +822,13 @@ window.inspectFolder = async function (category, folderName, displayName) {
                     </div>
                 `).join('');
             } else {
-                listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty (No visible files)</div>';
+                listContainer.innerHTML = `<div class="text-center text-muted small mt-3">${t("kb_empty_no_visible")}</div>`;
             }
         } else {
-            listContainer.innerHTML = '<div class="text-center text-muted small mt-3">Empty Folder</div>';
+            listContainer.innerHTML = `<div class="text-center text-muted small mt-3">${t("kb_empty_folder")}</div>`;
         }
     } catch (e) {
-        if (listContainer) listContainer.innerHTML = `<div class="text-danger small p-2">Error: ${e.message}</div>`;
+        if (listContainer) listContainer.innerHTML = `<div class="text-danger small p-2">${t("status_error")}: ${e.message}</div>`;
         console.error(e);
     }
 };
@@ -980,8 +888,8 @@ function renderCollectionList(container, collections) {
         grid.innerHTML = `
             <div class="col-12 text-center py-5 text-muted" style="grid-column: 1 / -1;">
                 <div style="font-size:3rem; margin-bottom:1rem; opacity:0.3;">📚</div>
-                <h5>Library is empty</h5>
-                <p>Click "New Collection" to import documents.</p>
+                <h5>${t("kb_library_empty_title")}</h5>
+                <p>${t("kb_library_empty_hint")}</p>
             </div>
         `;
         return;
@@ -996,7 +904,7 @@ function renderCollectionList(container, collections) {
         const card = document.createElement('div');
         card.className = 'collection-card kb-card';
 
-        const countStr = c.count !== undefined ? `${c.count} vectors` : 'Ready';
+        const countStr = c.count !== undefined ? `${c.count} ${t("kb_vectors")}` : t("kb_ready");
         const colors = pickKbColors(displayName || c.name || "collection");
         const coverInitial = getKbInitial(displayName || c.name || "C");
 
@@ -1011,7 +919,7 @@ function renderCollectionList(container, collections) {
                      <div class="kb-meta-count">${countStr}</div>
                 </div>
                 
-                <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="Delete Collection">
+                <button class="btn-delete-book" onclick="event.stopPropagation(); deleteKBFile('collection', '${c.name}')" title="${t("kb_delete_collection")}">
                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             </div>
@@ -1024,6 +932,7 @@ function renderCollectionList(container, collections) {
 // UI status update
 function updateDbStatusUI(status, config) {
     currentDbConfig = config;
+    currentDbStatus = status;
 
     const chip = els.dbConnectionChip || document.getElementById('db-connection-chip');
     const statusTextEl = els.dbConnectionText || document.getElementById('db-connection-text');
@@ -1033,14 +942,16 @@ function updateDbStatusUI(status, config) {
     // Status dot & text
     const statusClass = status === 'connected' ? 'connected' : (status === 'connecting' ? 'connecting' : 'disconnected');
     els.dbConnectionStatus.className = `kb-conn-dot ${statusClass}`;
-    statusTextEl.textContent = status === 'connected' ? 'Connected' : (status === 'connecting' ? 'Connecting...' : 'Disconnected');
+    statusTextEl.textContent = status === 'connected'
+        ? t('kb_connected')
+        : (status === 'connecting' ? t('kb_connecting') : t('kb_disconnected'));
     chip.setAttribute('data-status', statusClass);
 
     // URI display: use shortened version in main text, full address in tooltip
-    const fullUri = (config && config.milvus && config.milvus.uri) ? config.milvus.uri : "Not configured";
+    const fullUri = (config && config.milvus && config.milvus.uri) ? config.milvus.uri : t("kb_not_configured");
     const shortUri = fullUri.length > 38 ? `${fullUri.slice(0, 16)}…${fullUri.slice(-12)}` : fullUri;
     els.dbUriDisplay.textContent = shortUri;
-    chip.title = `Endpoint: ${fullUri}`;
+    chip.title = `${t("kb_endpoint")}: ${fullUri}`;
 }
 
 // Configuration modal logic (mounted to window)
@@ -1065,7 +976,7 @@ window.saveDbConfig = async function () {
     const uri = els.cfgUri.value.trim();
     const token = els.cfgToken.value.trim();
 
-    if (!uri) { showModal("URI is required", { title: "Validation Error", type: "warning" }); return; }
+    if (!uri) { showModal(t("kb_uri_required"), { title: t("kb_validation_error"), type: "warning" }); return; }
 
     const fullConfig = window._currentFullKbConfig || {};
     if (!fullConfig.milvus) fullConfig.milvus = {};
@@ -1165,7 +1076,7 @@ window.saveChunkConfig = function () {
     const useTitleStr = document.getElementById('cfg-chunk-title').value;
 
     if (isNaN(size) || size <= 0) {
-        showModal("Chunk size must be a positive number", { title: "Validation Error", type: "warning" });
+        showModal(t("kb_chunk_size_invalid"), { title: t("kb_validation_error"), type: "warning" });
         return;
     }
 
@@ -1216,12 +1127,12 @@ window.saveIndexConfig = function () {
     const modelName = document.getElementById('cfg-emb-model-name').value.trim();
 
     if (!baseUrl) {
-        showModal("Base URL is required", { title: "Validation Error", type: "warning" });
+        showModal(t("kb_base_url_required"), { title: t("kb_validation_error"), type: "warning" });
         return;
     }
 
     if (!modelName) {
-        showModal("Model Name is required", { title: "Validation Error", type: "warning" });
+        showModal(t("kb_model_name_required"), { title: t("kb_validation_error"), type: "warning" });
         return;
     }
 
@@ -1249,7 +1160,7 @@ window.handleKBAction = async function (filePath, pipelineName) {
 
     if (pipelineName === 'milvus_index') {
         // Update hint and default value in Milvus modal
-        const uriTxt = els.dbUriDisplay ? els.dbUriDisplay.textContent : "Current DB";
+        const uriTxt = els.dbUriDisplay ? els.dbUriDisplay.textContent : t("kb_current_db");
         if (els.modalTargetDb) els.modalTargetDb.textContent = uriTxt;
 
         // Auto-fill Collection name (use filename as default collection name)
@@ -1369,7 +1280,7 @@ async function syncIndexModeUI(mode, options = {}) {
 
     const isNew = activeMode === "new";
     if (els.idxCollectionLabel) {
-        els.idxCollectionLabel.textContent = isNew ? "Collection Name" : "Existing Collection";
+        els.idxCollectionLabel.textContent = isNew ? t("kb_collection_name") : t("kb_existing_collection");
     }
     if (els.idxCollection) {
         els.idxCollection.classList.toggle("d-none", !isNew);
@@ -1404,35 +1315,35 @@ async function confirmIndexMode(mode, collection) {
     const label = getCollectionDisplayName(collection) || collection?.name || "";
     if (mode === "append") {
         return await showConfirm(
-            `Append data to the existing collection "${label}"?`,
+            formatTemplate(t("kb_confirm_append"), { label }),
             {
-                title: "Append Confirmation",
+                title: t("kb_confirm_append_title"),
                 type: "info",
-                confirmText: "Continue",
-                cancelText: "Cancel"
+                confirmText: t("kb_continue"),
+                cancelText: t("kb_cancel")
             }
         );
     }
     if (mode === "overwrite") {
         return await showConfirm(
-            `Overwrite the existing collection "${label}"? This will drop and rebuild the collection.`,
+            formatTemplate(t("kb_confirm_overwrite"), { label }),
             {
-                title: "Overwrite Confirmation",
+                title: t("kb_confirm_overwrite_title"),
                 type: "warning",
-                confirmText: "Overwrite",
-                cancelText: "Cancel",
+                confirmText: t("kb_mode_overwrite"),
+                cancelText: t("kb_cancel"),
                 danger: true
             }
         );
     }
     if (mode === "new") {
         return await showConfirm(
-            `Create a new collection named "${label}"?`,
+            formatTemplate(t("kb_confirm_new"), { label }),
             {
-                title: "Create Collection",
+                title: t("kb_confirm_new_title"),
                 type: "info",
-                confirmText: "Create",
-                cancelText: "Cancel"
+                confirmText: t("kb_create"),
+                cancelText: t("kb_cancel")
             }
         );
     }
@@ -1445,8 +1356,8 @@ window.confirmIndexTask = async function () {
 
     const collections = await loadIndexCollections({ forceFetch: true });
     if (collections === null) {
-        await showModal("Failed to load existing collections. Please try again.", {
-            title: "Load Failed",
+        await showModal(t("kb_load_collections_failed"), {
+            title: t("kb_load_failed_title"),
             type: "error"
         });
         return;
@@ -1456,21 +1367,29 @@ window.confirmIndexTask = async function () {
         if (!els.idxCollection) return;
         const inputName = els.idxCollection.value.trim();
         if (!inputName) {
-            showModal("Collection name is required", { title: "Validation Error", type: "warning" });
+            showModal(t("kb_collection_name_required"), { title: t("kb_validation_error"), type: "warning" });
             return;
         }
 
         const matched = findMatchingCollection(collections, inputName);
         if (matched) {
             const displayName = getCollectionDisplayName(matched);
+            const displayNameSuffix = displayName && displayName !== inputName
+                ? (state.uiLanguage === "zh"
+                    ? `（别名“${displayName}”）`
+                    : ` as "${displayName}"`)
+                : "";
             const choice = await showChoice(
-                `Collection name "${inputName}" already exists${displayName && displayName !== inputName ? ` as "${displayName}"` : ""}. Choose "Append" to add data or "Overwrite" to drop and rebuild.`,
+                formatTemplate(t("kb_collection_exists"), {
+                    inputName,
+                    displayName: displayNameSuffix
+                }),
                 {
-                    title: "Name Already Exists",
+                    title: t("kb_name_exists_title"),
                     type: "warning",
-                    primaryText: "Append",
-                    secondaryText: "Overwrite",
-                    cancelText: "Cancel",
+                    primaryText: t("kb_mode_append"),
+                    secondaryText: t("kb_mode_overwrite"),
+                    cancelText: t("kb_cancel"),
                     primaryValue: "append",
                     secondaryValue: "overwrite",
                     dangerSecondary: true
@@ -1501,8 +1420,8 @@ window.confirmIndexTask = async function () {
 
     if (!els.idxCollectionSelect) return;
     if (collections.length === 0) {
-        await showModal("No existing collections found. Use \"New\" mode to create one.", {
-            title: "No Collections",
+        await showModal(t("kb_no_collections_message"), {
+            title: t("kb_no_collections_title"),
             type: "warning"
         });
         return;
@@ -1510,8 +1429,8 @@ window.confirmIndexTask = async function () {
 
     const selectedName = els.idxCollectionSelect.value;
     if (!selectedName) {
-        await showModal("Please select a collection.", {
-            title: "Selection Required",
+        await showModal(t("kb_select_collection_message"), {
+            title: t("kb_select_collection_title"),
             type: "warning"
         });
         return;
@@ -1535,20 +1454,20 @@ window.handleFileUpload = async function (input) {
         formData.append('file', input.files[i]);
     }
 
-    updateKBStatus(true, 'Uploading...');
+    updateKBStatus(true, t('kb_uploading'));
     try {
         const res = await fetch('/api/kb/upload', { method: 'POST', body: formData });
         if (res.ok) {
             await refreshKBFiles();
             updateKBStatus(false);
         } else {
-            showModal("Upload failed", { title: "Error", type: "error" });
+            showModal(t("kb_upload_failed"), { title: t("status_error"), type: "error" });
             updateKBStatus(false);
         }
     } catch (e) {
         console.error(e);
         updateKBStatus(false);
-        showModal("Upload error: " + e.message, { title: "Error", type: "error" });
+        showModal(t("kb_upload_error") + e.message, { title: t("status_error"), type: "error" });
     } finally {
         input.value = '';
     }
@@ -1556,11 +1475,11 @@ window.handleFileUpload = async function (input) {
 
 // Delete file (mounted to window)
 window.deleteKBFile = async function (category, filename) {
-    const action = category === 'collection' ? 'drop this collection' : 'delete this file';
-    const confirmed = await showConfirm(`Permanently ${action} (${filename})?`, {
-        title: "Delete Confirmation",
+    const action = category === 'collection' ? t('kb_delete_collection_action') : t('kb_delete_file_action');
+    const confirmed = await showConfirm(formatTemplate(t("kb_delete_confirm_message"), { action, name: filename }), {
+        title: t("kb_delete_confirm_title"),
         type: "warning",
-        confirmText: "Delete",
+        confirmText: t("kb_delete"),
         danger: true
     });
     if (!confirmed) return;
@@ -1571,7 +1490,7 @@ window.deleteKBFile = async function (category, filename) {
             refreshKBFiles();
         } else {
             const err = await res.json();
-            showModal("Delete failed: " + (err.error || res.statusText), { title: "Error", type: "error" });
+            showModal(t("kb_delete_failed") + (err.error || res.statusText), { title: t("status_error"), type: "error" });
         }
     } catch (e) {
         console.error(e);
@@ -1582,7 +1501,7 @@ window.deleteKBFile = async function (category, filename) {
 
 // Core: submit task and poll
 async function runKBTask(pipelineName, filePath, extraParams = {}) {
-    updateKBStatus(true, `Running ${pipelineName}...`);
+    updateKBStatus(true, formatTemplate(t("kb_running_task"), { task: pipelineName }));
 
     try {
         // A. Submit task
@@ -1605,7 +1524,7 @@ async function runKBTask(pipelineName, filePath, extraParams = {}) {
             throw new Error(data.error || 'Task start failed');
         }
     } catch (e) {
-        showModal(e.message, { title: "Task Error", type: "error" });
+        showModal(e.message, { title: t("kb_task_error_title"), type: "error" });
         updateKBStatus(false);
     }
 }
