@@ -66,7 +66,7 @@ services:
     runtime: nvidia
     environment:
       # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
       # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
       - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
@@ -114,7 +114,7 @@ services:
     runtime: nvidia
     environment:
       # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
       # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
       - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
@@ -175,7 +175,7 @@ services:
   #   runtime: nvidia
   #   environment:
   #     # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
-  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
   #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
   #     # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
   #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
@@ -233,7 +233,7 @@ services:
   #     - vllm
   #   environment:
   #     # Hugging Face mirror (for CN networks). Used by huggingface_hub / transformers / infinity-emb.
-  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
   #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
   #     # PyTorch wheel index for GPU installs (used by UI runtime auto-install when RETRIEVER_BACKEND=infinity)
   #     - TORCH_CUDA_TAG=${TORCH_CUDA_TAG:-cu121}
