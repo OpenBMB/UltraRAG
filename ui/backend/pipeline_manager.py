@@ -444,6 +444,47 @@ class DemoSession:
             )
             self._multiturn_active = False
 
+    def _build_demo_backend_overrides(
+        self, dynamic_params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Force demo backends to openai for generation/retriever servers."""
+        override_params: Dict[str, Any] = (
+            dynamic_params.copy() if isinstance(dynamic_params, dict) else {}
+        )
+        pipeline_name = self._pipeline_name
+        if not pipeline_name:
+            return override_params
+
+        try:
+            pipeline_cfg = load_pipeline(pipeline_name)
+        except Exception as exc:  # pragma: no cover - best effort
+            LOGGER.debug("Failed to load pipeline for backend overrides: %s", exc)
+            return override_params
+
+        servers = pipeline_cfg.get("servers")
+        if not isinstance(servers, dict):
+            return override_params
+
+        for server_name, server_path in servers.items():
+            if not isinstance(server_path, str):
+                continue
+            is_generation = server_path == "servers/generation" or server_path.endswith(
+                "/generation"
+            )
+            is_retriever = server_path == "servers/retriever" or server_path.endswith(
+                "/retriever"
+            )
+            if not (is_generation or is_retriever):
+                continue
+
+            server_override = override_params.get(server_name)
+            if not isinstance(server_override, dict):
+                server_override = {}
+                override_params[server_name] = server_override
+            server_override["backend"] = "openai"
+
+        return override_params
+
     def run_multiturn_chat(
         self, callback: Any, dynamic_params: Optional[Dict[str, Any]] = None
     ) -> Any:
@@ -465,8 +506,8 @@ class DemoSession:
 
         funcs = _ensure_client_funcs()
 
-        # Build override_params, passing conversation history
-        override_params = dynamic_params.copy() if dynamic_params else {}
+        # Build override_params and enforce demo backends
+        override_params = self._build_demo_backend_overrides(dynamic_params)
 
         # Inject messages into generation parameters (as global variable)
         # We need to set messages before execute_pipeline
@@ -513,6 +554,7 @@ class DemoSession:
             raise PipelineManagerError("Session not active")
 
         funcs = _ensure_client_funcs()
+        override_params = self._build_demo_backend_overrides(dynamic_params)
         self._current_future = asyncio.run_coroutine_threadsafe(
             funcs["exec_pipe"](
                 self._client,
@@ -520,7 +562,7 @@ class DemoSession:
                 is_demo=True,
                 return_all=True,
                 stream_callback=callback,
-                override_params=dynamic_params,
+                override_params=override_params,
             ),
             self._loop,
         )

@@ -6493,6 +6493,79 @@ textarea.parameter-input {
   gap: 6px;
 }
 
+/* Parameter Simplified Toggle Switch */
+.params-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.params-toggle-label:hover {
+  background: var(--bg-input);
+}
+
+.params-toggle-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.params-toggle-checkbox {
+  display: none;
+}
+
+.params-toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.params-toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.params-toggle-checkbox:checked + .params-toggle-switch {
+  background: var(--accent-blue, #3b82f6);
+}
+
+.params-toggle-checkbox:checked + .params-toggle-switch::after {
+  transform: translateX(16px);
+}
+
+/* Parameter header bar for overlay panel */
+.parameter-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.parameter-header-bar .parameter-hint {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
 .canvas-panel-header .btn-outline-secondary,
 .canvas-panel-header .btn-outline-primary {
   border: none;

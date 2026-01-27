@@ -245,6 +245,8 @@ window.I18N_LOCALES.zh = {
   builder_params_hint: "从左侧选择 Servers 以配置参数，或展开下方全部配置。",
   builder_params_save: "保存参数",
   builder_params_enter_chat: "进入对话模式",
+  builder_params_simplified: "精简模式",
+  builder_params_toggle_title: "切换精简/完整参数显示",
   builder_node_add_title: "添加节点",
   builder_node_tab_tool: "工具",
   builder_node_tab_branch: "分支",

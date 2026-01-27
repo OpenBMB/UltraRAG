@@ -245,6 +245,8 @@ window.I18N_LOCALES.en = {
   builder_params_hint: "Select a server from the left to configure its parameters, or expand all sections below.",
   builder_params_save: "Save Parameters",
   builder_params_enter_chat: "Enter Chat Mode",
+  builder_params_simplified: "Simplified",
+  builder_params_toggle_title: "Toggle between simplified and full parameter display",
   builder_node_add_title: "Add Node",
   builder_node_tab_tool: "Tool",
   builder_node_tab_branch: "Branch",

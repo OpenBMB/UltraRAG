@@ -228,6 +228,11 @@
                   <span class="panel-title" data-i18n="builder_params_panel_title">Parameters</span>
                 </div>
                 <div class="panel-toolbar">
+                  <label class="params-toggle-label" title="Toggle between simplified and full parameter display" data-i18n-title="builder_params_toggle_title">
+                    <span class="params-toggle-text" data-i18n="builder_params_simplified">Simplified</span>
+                    <input type="checkbox" id="params-simplified-toggle" class="params-toggle-checkbox" checked>
+                    <span class="params-toggle-switch"></span>
+                  </label>
                   <button type="button" id="params-save-btn" class="btn btn-sm btn-dark">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -392,8 +397,15 @@
       <!-- Right: parameter configuration area -->
       <main class="parameter-main">
         <div class="parameter-content">
-          <p class="parameter-hint" data-i18n="builder_params_hint">Select a server from the left to configure its parameters, or expand all sections
-            below.</p>
+          <div class="parameter-header-bar">
+            <p class="parameter-hint" data-i18n="builder_params_hint">Select a server from the left to configure its parameters, or expand all sections
+              below.</p>
+            <label class="params-toggle-label" title="Toggle between simplified and full parameter display" data-i18n-title="builder_params_toggle_title">
+              <span class="params-toggle-text" data-i18n="builder_params_simplified">Simplified</span>
+              <input type="checkbox" id="parameter-simplified-toggle" class="params-toggle-checkbox" checked>
+              <span class="params-toggle-switch"></span>
+            </label>
+          </div>
           <div id="parameter-form" class="parameter-sections"></div>
         </div>
 

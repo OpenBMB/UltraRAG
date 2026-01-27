@@ -216,6 +216,9 @@ const state = {
     // Application mode: true = admin (full interface), false = chat-only
     adminMode: true,
 
+    // Simplified parameter display mode: true = show only essential params, false = show all
+    simplifiedParams: true,
+
     uiLanguage: resolveInitialLanguage(),
 
     // [Modified] Chat state management
@@ -5703,8 +5706,111 @@ function flattenParameters(obj, prefix = "") {
         else entries.push({ path, value: val, type: Array.isArray(val) ? "array" : (val === null ? "null" : typeof val) });
     }); return entries;
 }
+
+// Filter parameters for simplified display
+// For generation-type servers: hide backend, show only openai backend_configs, extra_params, sampling_params, system_prompt
+// For retriever-type servers: hide backend, show only openai backend_configs, query_instruction, top_k
+function filterServerParameters(entries) {
+    // If simplified mode is disabled, return all entries with displayPath
+    if (!state.simplifiedParams) {
+        return entries.map(e => ({ ...e, displayPath: e.path }));
+    }
+    
+    // Get server type mapping from pipeline config
+    const servers = (state.pipelineConfig && state.pipelineConfig.servers) || {};
+    
+    // Build sets of server names that map to generation or retriever types
+    const generationServers = new Set();
+    const retrieverServers = new Set();
+    
+    Object.entries(servers).forEach(([name, path]) => {
+        if (typeof path === 'string') {
+            if (path === 'servers/generation' || path.endsWith('/generation')) {
+                generationServers.add(name);
+            } else if (path === 'servers/retriever' || path.endsWith('/retriever')) {
+                retrieverServers.add(name);
+            }
+        }
+    });
+    
+    // Helper function to get server name from path
+    function getServerName(path) {
+        const parts = path.split('.');
+        return parts[0];
+    }
+    
+    // Helper function to check if path matches generation-type allowed patterns
+    function isGenerationAllowed(serverName, path) {
+        const patterns = [
+            new RegExp(`^${serverName}\\.backend_configs\\.openai\\.`),
+            new RegExp(`^${serverName}\\.extra_params\\.`),
+            new RegExp(`^${serverName}\\.sampling_params\\.`),
+            new RegExp(`^${serverName}\\.system_prompt$`)
+        ];
+        return patterns.some(pattern => pattern.test(path));
+    }
+    
+    // Helper function to check if path matches retriever-type allowed patterns
+    function isRetrieverAllowed(serverName, path) {
+        const patterns = [
+            new RegExp(`^${serverName}\\.backend_configs\\.openai\\.`),
+            new RegExp(`^${serverName}\\.query_instruction$`),
+            new RegExp(`^${serverName}\\.top_k$`)
+        ];
+        return patterns.some(pattern => pattern.test(path));
+    }
+    
+    return entries.filter(e => {
+        const path = e.path;
+        const serverName = getServerName(path);
+        
+        // For generation-type server parameters
+        if (generationServers.has(serverName)) {
+            // Skip the backend field itself
+            if (path === `${serverName}.backend`) return false;
+            // Skip non-openai backend_configs
+            if (path.startsWith(`${serverName}.backend_configs.`) && !path.startsWith(`${serverName}.backend_configs.openai.`)) return false;
+            // Check if matches allowed patterns
+            return isGenerationAllowed(serverName, path);
+        }
+        
+        // For retriever-type server parameters
+        if (retrieverServers.has(serverName)) {
+            // Skip the backend field itself
+            if (path === `${serverName}.backend`) return false;
+            // Skip non-openai backend_configs
+            if (path.startsWith(`${serverName}.backend_configs.`) && !path.startsWith(`${serverName}.backend_configs.openai.`)) return false;
+            // Skip index_backend related fields
+            if (path === `${serverName}.index_backend`) return false;
+            if (path.startsWith(`${serverName}.index_backend_configs.`)) return false;
+            // Skip other non-essential fields
+            const skipPattern = new RegExp(`^${serverName}\\.(batch_size|collection_name|corpus_path|gpu_ids|is_demo|is_multimodal|model_name_or_path)$`);
+            if (skipPattern.test(path)) return false;
+            // Check if matches allowed patterns
+            return isRetrieverAllowed(serverName, path);
+        }
+        
+        // Allow all other parameters
+        return true;
+    }).map(e => {
+        // Simplify display path by removing 'openai' level from backend_configs
+        let simplifiedPath = e.path;
+        if (e.path.includes('.backend_configs.openai.')) {
+            simplifiedPath = e.path.replace('.backend_configs.openai.', '.backend_configs.');
+        }
+        return { ...e, displayPath: simplifiedPath };
+    });
+}
 function setNestedValue(obj, path, val) {
     const p = path.split("."); let c = obj; for (let i = 0; i < p.length - 1; i++) { if (!c[p[i]]) c[p[i]] = {}; c = c[p[i]]; } c[p[p.length - 1]] = val;
+}
+
+// Sync simplified parameter toggle state between the two toggle switches
+function syncSimplifiedToggles() {
+    const overlayToggle = document.getElementById('parameter-simplified-toggle');
+    const inlineToggle = document.getElementById('params-simplified-toggle');
+    if (overlayToggle) overlayToggle.checked = state.simplifiedParams;
+    if (inlineToggle) inlineToggle.checked = state.simplifiedParams;
 }
 
 function renderParameterForm() {
@@ -5718,7 +5824,9 @@ function renderParameterForm() {
         return;
     }
 
-    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
+    let entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
+    // Apply server-specific parameter filtering for simplified display
+    entries = filterServerParameters(entries);
     if (!entries.length) {
         container.innerHTML = '<div class="parameter-empty"><p>The current Pipeline has no editable parameters.</p></div>';
         return;
@@ -5727,7 +5835,7 @@ function renderParameterForm() {
     // Group parameters by server
     const grouped = {};
     entries.forEach(e => {
-        const parts = e.path.split('.');
+        const parts = (e.displayPath || e.path).split('.');
         const serverName = parts[0].toUpperCase();
         if (!grouped[serverName]) grouped[serverName] = [];
         grouped[serverName].push({
@@ -5882,6 +5990,26 @@ function bindEvents() {
     if (els.parameterSave) els.parameterSave.onclick = saveParameterForm;
     if (els.parameterBack) els.parameterBack.onclick = () => setMode(Modes.BUILDER);
     if (els.parameterChat) els.parameterChat.onclick = safeOpenChatView;
+
+    // Parameter simplified toggle - overlay panel
+    const parameterSimplifiedToggle = document.getElementById('parameter-simplified-toggle');
+    if (parameterSimplifiedToggle) {
+        parameterSimplifiedToggle.addEventListener('change', (e) => {
+            state.simplifiedParams = e.target.checked;
+            syncSimplifiedToggles();
+            renderParameterForm();
+        });
+    }
+
+    // Parameter simplified toggle - inline panel  
+    const paramsSimplifiedToggle = document.getElementById('params-simplified-toggle');
+    if (paramsSimplifiedToggle) {
+        paramsSimplifiedToggle.addEventListener('change', (e) => {
+            state.simplifiedParams = e.target.checked;
+            syncSimplifiedToggles();
+            renderParameterFormInline();
+        });
+    }
 
     if (els.workspaceChatBtn) {
         els.workspaceChatBtn.onclick = safeOpenChatView;
@@ -7545,7 +7673,9 @@ function renderParameterFormInline() {
         return;
     }
 
-    const entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
+    let entries = flattenParameters(state.parameterData).filter(e => !/^benchmark(\.|$)/i.test(e.path));
+    // Apply server-specific parameter filtering for simplified display
+    entries = filterServerParameters(entries);
     if (!entries.length) {
         container.innerHTML = '<div class="params-empty"><p>No editable parameters.</p></div>';
         return;
@@ -7554,7 +7684,7 @@ function renderParameterFormInline() {
     // Group parameters by server
     const grouped = {};
     entries.forEach(e => {
-        const parts = e.path.split('.');
+        const parts = (e.displayPath || e.path).split('.');
         const serverName = parts[0].toUpperCase();
         if (!grouped[serverName]) grouped[serverName] = [];
         grouped[serverName].push({
