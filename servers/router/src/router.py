@@ -116,10 +116,10 @@ def search_o1_check(
 ) -> Dict[str, List[Dict[str, Any]]]:
 
     def get_eos(text: str) -> bool:
-        if "<|end_search_query|>" in text:
-            return False
-        elif "<|im_end|>" in text:
+        if "<|im_end|>" in text:
             return True
+        elif "<|end_search_query|>" in text:
+            return False
         else:
             return True
 
