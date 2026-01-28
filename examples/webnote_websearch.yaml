@@ -32,7 +32,7 @@ pipeline:
           - generation.generate:
               output:
                 ans_ls: subq_ls
-          - retriever.retriever_tavily_search:
+          - retriever.retriever_websearch:
               input:
                 query_list: subq_ls
               output:

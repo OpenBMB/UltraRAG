@@ -8,4 +8,4 @@ servers:
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
-- retriever.retriever_tavily_search
+- retriever.retriever_websearch

@@ -52,6 +52,29 @@ index_backend_configs:
       params: {}
     index_chunk_size: 1000
 
+websearch_backend: tavily # options: tavily, exa, zhipuai
+websearch_backend_configs:
+  exa:
+    api_key: ""
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  tavily:
+    api_key: ""
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  zhipuai:
+    api_key: ""
+    base_url: "https://open.bigmodel.cn/api/paas/v4/web_search"
+    search_engine: "search_std"
+    search_intent: false
+    search_recency_filter: "noLimit"
+    content_size: "medium"
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+
 batch_size: 16
 top_k: 5
 gpu_ids: "1"

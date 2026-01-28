@@ -14,6 +14,7 @@ import uuid
 from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 from index_backends import BaseIndexBackend, create_index_backend
+from websearch_backends import create_websearch_backend
 
 app = UltraRAG_MCP_Server("retriever")
 
@@ -53,16 +54,12 @@ class Retriever:
             output="retriever_url,q_ls,top_k,query_instruction->ret_psg",
         )
         mcp_inst.tool(
-            self.retriever_exa_search,
-            output="q_ls,top_k,retrieve_thread_num->ret_psg",
+            self.retriever_websearch,
+            output="q_ls,top_k,retrieve_thread_num,websearch_backend,websearch_backend_configs->ret_psg",
         )
         mcp_inst.tool(
-            self.retriever_tavily_search,
-            output="q_ls,top_k,retrieve_thread_num->ret_psg",
-        )
-        mcp_inst.tool(
-            self.retriever_zhipuai_search,
-            output="q_ls,top_k,retrieve_thread_num->ret_psg",
+            self.retriever_batch_websearch,
+            output="batch_query_list,top_k,retrieve_thread_num,websearch_backend,websearch_backend_configs->ret_psg_ls",
         )
 
     def _drop_keys(self, d: Dict[str, Any], banned: List[str]) -> Dict[str, Any]:
@@ -1050,255 +1047,96 @@ class Retriever:
         scores = scores.tolist() if isinstance(scores, np.ndarray) else scores
         return {"ret_psg": results}
 
-    async def _parallel_search(
-        self,
-        query_list: List[str],
-        retrieve_thread_num: int,
-        desc: str,
-        worker_factory,
-    ) -> Dict[str, List[List[str]]]:
-        """Execute parallel search using worker factory.
-
-        Args:
-            query_list: List of query strings
-            retrieve_thread_num: Maximum number of concurrent workers
-            desc: Description for progress bar
-            worker_factory: Async function factory that takes (idx, query) and returns (idx, passages)
-
-        Returns:
-            Dictionary with 'ret_psg' containing retrieved passages
-        """
-        sem = asyncio.Semaphore(retrieve_thread_num)
-
-        async def _wrap(i: int, q: str):
-            async with sem:
-                return await worker_factory(i, q)
-
-        tasks = [asyncio.create_task(_wrap(i, q)) for i, q in enumerate(query_list)]
-        ret: List[List[str]] = [None] * len(query_list)
-
-        iterator = tqdm(asyncio.as_completed(tasks), total=len(tasks), desc=desc)
-        for fut in iterator:
-            idx, psg_ls = await fut
-            ret[idx] = psg_ls
-        return {"ret_psg": ret}
-
-    async def retriever_exa_search(
+    async def retriever_websearch(
         self,
         query_list: List[str],
         top_k: Optional[int] = 5,
         retrieve_thread_num: Optional[int] = 1,
+        websearch_backend: str = "tavily",
+        websearch_backend_configs: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, List[List[str]]]:
-        """Search using Exa API.
+        """Unified web search tool with multiple backends.
 
         Args:
             query_list: List of query strings
             top_k: Number of top results to return per query
             retrieve_thread_num: Maximum number of concurrent workers
+            websearch_backend: Backend name ("tavily", "exa", "zhipuai")
+            websearch_backend_configs: Backend configuration dictionary
 
         Returns:
             Dictionary with 'ret_psg' containing retrieved passages
-
-        Raises:
-            ImportError: If exa_py is not installed
-            ToolError: If API key is invalid or search fails
         """
+        if isinstance(query_list, str):
+            query_list = [query_list]
+        queries = [str(q) for q in (query_list or [])]
+        if not queries:
+            return {"ret_psg": []}
 
-        try:
-            from exa_py import AsyncExa
-            from exa_py.api import Result
-        except ImportError:
-            err_msg = (
-                "exa_py is not installed. Please install it with `pip install exa_py`."
-            )
-            app.logger.error(err_msg)
-            raise ImportError(err_msg)
+        backend_name = (websearch_backend or "tavily").lower()
+        backend_cfgs = websearch_backend_configs or {}
+        if not isinstance(backend_cfgs, dict):
+            raise ValueError("websearch_backend_configs must be a dict")
 
-        exa_api_key = os.environ.get("EXA_API_KEY", "")
-        exa = AsyncExa(api_key=exa_api_key if exa_api_key else "EMPTY")
-
-        async def worker_factory(idx: int, q: str):
-            retries, delay = 3, 1.0
-            for attempt in range(retries):
-                try:
-                    resp = await exa.search_and_contents(
-                        q, num_results=top_k, text=True
-                    )
-                    results: List[Result] = getattr(resp, "results", []) or []
-                    psg_ls: List[str] = [(r.text or "") for r in results]
-                    return idx, psg_ls
-                except Exception as e:
-                    status = getattr(getattr(e, "response", None), "status_code", None)
-                    if status == 401 or "401" in str(e):
-                        err_msg = (
-                            "Unauthorized (401): Invalid or missing EXA_API_KEY. "
-                            "Please set it to use Exa."
-                        )
-                        app.logger.error(err_msg)
-                        raise ToolError(err_msg) from e
-                    warn_msg = f"[exa][retry {attempt+1}] failed (idx={idx}): {e}"
-                    app.logger.warning(warn_msg)
-                    await asyncio.sleep(delay)
-            return idx, []
-
-        return await self._parallel_search(
-            query_list=query_list,
+        backend_cfg = backend_cfgs.get(backend_name, {})
+        backend = create_websearch_backend(
+            name=backend_name, logger=app.logger, config=backend_cfg
+        )
+        ret_psg = await backend.search(
+            query_list=queries,
+            top_k=top_k,
             retrieve_thread_num=retrieve_thread_num or 1,
-            desc="EXA Searching:",
-            worker_factory=worker_factory,
+        )
+        return {"ret_psg": ret_psg}
+
+    async def retriever_batch_websearch(
+        self,
+        batch_query_list: List[List[str]],
+        top_k: Optional[int] = 5,
+        retrieve_thread_num: Optional[int] = 1,
+        websearch_backend: str = "tavily",
+        websearch_backend_configs: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, List[List[List[str]]]]:
+        """Batch web search for SurveyCPM-style queries.
+
+        Args:
+            batch_query_list: List of query lists (one batch per list)
+            top_k: Number of top results to return per query
+            retrieve_thread_num: Maximum number of concurrent workers
+            websearch_backend: Backend name ("tavily", "exa", "zhipuai")
+            websearch_backend_configs: Backend configuration dictionary
+
+        Returns:
+            Dictionary with 'ret_psg_ls' containing retrieved passages for each batch
+        """
+        if not batch_query_list:
+            return {"ret_psg_ls": []}
+
+        backend_name = (websearch_backend or "tavily").lower()
+        backend_cfgs = websearch_backend_configs or {}
+        if not isinstance(backend_cfgs, dict):
+            raise ValueError("websearch_backend_configs must be a dict")
+        backend_cfg = backend_cfgs.get(backend_name, {})
+        backend = create_websearch_backend(
+            name=backend_name, logger=app.logger, config=backend_cfg
         )
 
-    async def retriever_tavily_search(
-        self,
-        query_list: List[str],
-        top_k: Optional[int] = 5,
-        retrieve_thread_num: Optional[int] = 1,
-    ) -> Dict[str, List[List[str]]]:
-        """Search using Tavily API.
-
-        Args:
-            query_list: List of query strings
-            top_k: Number of top results to return per query
-            retrieve_thread_num: Maximum number of concurrent workers
-
-        Returns:
-            Dictionary with 'ret_psg' containing retrieved passages
-
-        Raises:
-            ImportError: If tavily is not installed
-            MissingAPIKeyError: If TAVILY_API_KEY is not set
-            ToolError: If API key is invalid or search fails
-        """
-
-        try:
-            from tavily import (
-                AsyncTavilyClient,
-                BadRequestError,
-                UsageLimitExceededError,
-                InvalidAPIKeyError,
-                MissingAPIKeyError,
-            )
-        except ImportError:
-            err_msg = "tavily is not installed. Please install it with `pip install tavily-python`."
-            app.logger.error(err_msg)
-            raise ImportError(err_msg)
-
-        tavily_api_key = os.environ.get("TAVILY_API_KEY", "")
-        if not tavily_api_key:
-            err_msg = (
-                "TAVILY_API_KEY environment variable is not set. "
-                "Please set it to use Tavily."
-            )
-            app.logger.error(err_msg)
-            raise MissingAPIKeyError(err_msg)
-        tavily = AsyncTavilyClient(api_key=tavily_api_key)
-
-        async def worker_factory(idx: int, q: str):
-            retries, delay = 3, 1.0
-            for attempt in range(retries):
-                try:
-                    resp = await tavily.search(query=q, max_results=top_k)
-                    results: List[Dict[str, Any]] = resp["results"]
-                    psg_ls: List[str] = [(r.get("content") or "") for r in results]
-                    return idx, psg_ls
-                except UsageLimitExceededError as e:
-                    err_msg = f"Usage limit exceeded: {e}"
-                    app.logger.error(err_msg)
-                    raise ToolError(err_msg) from e
-                except InvalidAPIKeyError as e:
-                    err_msg = f"Invalid API key: {e}"
-                    app.logger.error(err_msg)
-                    raise ToolError(err_msg) from e
-                except (BadRequestError, Exception) as e:
-                    warn_msg = f"[tavily][retry {attempt+1}] failed (idx={idx}): {e}"
-                    app.logger.warning(warn_msg)
-                    await asyncio.sleep(delay)
-            return idx, []
-
-        return await self._parallel_search(
-            query_list=query_list,
-            retrieve_thread_num=retrieve_thread_num or 1,
-            desc="Tavily Searching:",
-            worker_factory=worker_factory,
-        )
-
-    async def retriever_zhipuai_search(
-        self,
-        query_list: List[str],
-        top_k: Optional[int] = 5,
-        retrieve_thread_num: Optional[int] = 1,
-    ) -> Dict[str, List[List[str]]]:
-        """Search using ZhipuAI web search API.
-
-        Args:
-            query_list: List of query strings
-            top_k: Number of top results to return per query
-            retrieve_thread_num: Maximum number of concurrent workers
-
-        Returns:
-            Dictionary with 'ret_psg' containing retrieved passages
-
-        Raises:
-            ToolError: If ZHIPUAI_API_KEY is not set or search fails
-        """
-
-        zhipuai_api_key = os.environ.get("ZHIPUAI_API_KEY", "")
-        if not zhipuai_api_key:
-            err_msg = (
-                "ZHIPUAI_API_KEY environment variable is not set. "
-                "Please set it to use ZhipuAI."
-            )
-            app.logger.error(err_msg)
-            raise ToolError(err_msg)
-
-        retrieval_url = "https://open.bigmodel.cn/api/paas/v4/web_search"
-        headers = {
-            "Authorization": f"Bearer {zhipuai_api_key}",
-            "Content-Type": "application/json",
-        }
-
-        async with aiohttp.ClientSession() as session:
-
-            async def worker_factory(idx: int, q: str):
-                retries, delay = 3, 1.0
-                for attempt in range(retries):
-                    try:
-                        payload = {
-                            "search_query": q,
-                            "search_engine": "search_std",
-                            "search_intent": False,
-                            "count": top_k,
-                            "search_recency_filter": "noLimit",
-                            "content_size": "medium",
-                        }
-                        async with session.post(
-                            retrieval_url, json=payload, headers=headers
-                        ) as resp:
-                            resp.raise_for_status()
-                            data = await resp.json()
-                            results: List[Dict[str, Any]] = data.get(
-                                "search_result", []
-                            )
-                            psg_ls: List[str] = [
-                                (r.get("content") or "") for r in results
-                            ]
-                            return idx, (
-                                psg_ls[:top_k] if top_k is not None else psg_ls
-                            )
-                    except (aiohttp.ClientError, Exception) as e:
-                        warn_msg = (
-                            f"[zhipuai][retry {attempt+1}] failed (idx={idx}): {e}"
-                        )
-                        app.logger.warning(warn_msg)
-                        await asyncio.sleep(delay)
-                return idx, []
-
-            return await self._parallel_search(
-                query_list=query_list,
+        ret_psg_ls: List[List[List[str]]] = []
+        for query_list in batch_query_list:
+            if not query_list:
+                ret_psg_ls.append([])
+                continue
+            if isinstance(query_list, str):
+                query_list = [query_list]
+            queries = [str(q) for q in query_list]
+            ret_psg = await backend.search(
+                query_list=queries,
+                top_k=top_k,
                 retrieve_thread_num=retrieve_thread_num or 1,
-                desc="ZhipuAI Searching:",
-                worker_factory=worker_factory,
             )
+            ret_psg_ls.append(ret_psg)
+
+        return {"ret_psg_ls": ret_psg_ls}
 
 
 if __name__ == "__main__":

@@ -1,0 +1,87 @@
+# AgentCPM-Report Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  generation: servers/generation
+  retriever: servers/retriever
+  prompt: servers/prompt
+  router: servers/router
+  custom: servers/custom
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data:
+    output:
+      q_ls: instruction_ls
+- retriever.retriever_init
+- generation.generation_init
+- custom.surveycpm_init_citation_registry
+- custom.surveycpm_state_init
+- loop:
+    times: 140
+    steps:
+    - branch:
+        router:
+        - router.surveycpm_state_router
+        branches:
+          search:
+          - prompt.surveycpm_search:
+              output:
+                prompt_ls: search_prompt_ls          
+          - generation.generate:
+              input:
+                prompt_ls: search_prompt_ls
+              output:
+                ans_ls: search_response_ls
+          - custom.surveycpm_parse_search_response:
+              input:
+                response_ls: search_response_ls       
+          - retriever.retriever_batch_websearch:
+              input:
+                batch_query_list: keywords_ls
+          - custom.surveycpm_process_passages_with_citation
+          - custom.surveycpm_update_state
+          analyst-init_plan:
+          - prompt.surveycpm_init_plan:
+              output:
+                prompt_ls: init_plan_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: init_plan_prompt_ls
+              output:
+                ans_ls: init_plan_response_ls
+          - custom.surveycpm_after_init_plan:
+              input:
+                response_ls: init_plan_response_ls
+          - custom.surveycpm_update_state
+          write:
+          - prompt.surveycpm_write:
+              output:
+                prompt_ls: write_prompt_ls
+          - generation.generate:
+              input:
+                prompt_ls: write_prompt_ls
+              output:
+                ans_ls: write_response_ls
+          - custom.surveycpm_after_write:
+              input:
+                response_ls: write_response_ls
+          - custom.surveycpm_update_state
+          analyst-extend_plan:
+          - prompt.surveycpm_extend_plan:
+              output:
+                prompt_ls: extend_prompt_ls         
+          - generation.generate:
+              input:
+                prompt_ls: extend_prompt_ls
+              output:
+                ans_ls: extend_response_ls
+          - custom.surveycpm_after_extend:
+              input:
+                response_ls: extend_response_ls
+          - custom.surveycpm_update_state
+          done: []
+- custom.surveycpm_format_output:
+    output:
+      ans_ls: final_survey_ls

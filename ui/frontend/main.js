@@ -3352,19 +3352,54 @@ function setChatRunning(isRunning) {
 function canUseChat() { return Boolean(state.isBuilt && state.selectedPipeline && state.parameterData); }
 
 /**
- * Check if current pipeline contains retriever service
- * By checking if servers in pipeline config contains "retriever" key
+ * Collect tool names from pipeline steps
  */
-function pipelineHasRetriever() {
-    if (!state.pipelineConfig || typeof state.pipelineConfig !== 'object') {
-        return false;
+function collectToolNamesFromSteps(steps, set = new Set()) {
+    for (const step of steps || []) {
+        if (typeof step === "string") {
+            const name = step.trim();
+            if (name) set.add(name);
+        } else if (isToolConfigStep(step)) {
+            const toolName = Object.keys(step)[0];
+            if (toolName) set.add(toolName);
+        } else if (step && typeof step === "object") {
+            if (step.loop && Array.isArray(step.loop.steps)) {
+                collectToolNamesFromSteps(step.loop.steps, set);
+            } else if (step.branch) {
+                collectToolNamesFromSteps(step.branch.router || [], set);
+                Object.values(step.branch.branches || {}).forEach(bs => collectToolNamesFromSteps(bs || [], set));
+            }
+        }
     }
-    const servers = state.pipelineConfig.servers;
-    if (!servers || typeof servers !== 'object') {
-        return false;
-    }
-    // Check if servers object keys contain 'retriever'
-    return Object.keys(servers).some(key => key.toLowerCase() === 'retriever');
+    return set;
+}
+
+/**
+ * Check if current pipeline requires knowledge base selection
+ * Only enforce when retriever search tools are present (exclude websearch tools)
+ */
+function pipelineRequiresKnowledgeBase() {
+    const steps = (state.pipelineConfig && Array.isArray(state.pipelineConfig.pipeline))
+        ? state.pipelineConfig.pipeline
+        : (Array.isArray(state.steps) ? state.steps : []);
+    const toolNames = collectToolNamesFromSteps(steps, new Set());
+    if (!toolNames.size) return false;
+
+    const retrieverTools = [...toolNames]
+        .map(name => name.toLowerCase())
+        .filter(name => name.startsWith("retriever."));
+    if (!retrieverTools.length) return false;
+
+    const kbFreeRetrieverTools = new Set([
+        "retriever.retriever_init",
+        "retriever.retriever_embed",
+        "retriever.retriever_index",
+        "retriever.bm25_index",
+        "retriever.retriever_websearch",
+        "retriever.retriever_batch_websearch",
+    ]);
+
+    return retrieverTools.some(name => !kbFreeRetrieverTools.has(name));
 }
 
 /**
@@ -3388,9 +3423,9 @@ function validateKnowledgeBaseSelection() {
         return true;
     }
 
-    // 2. Check if pipeline contains retriever
-    if (!pipelineHasRetriever()) {
-        // Doesn't contain retriever, no validation needed
+    // 2. Check if pipeline requires knowledge base
+    if (!pipelineRequiresKnowledgeBase()) {
+        // Pipeline doesn't need knowledge base selection
         return true;
     }
 

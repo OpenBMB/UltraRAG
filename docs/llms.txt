@@ -1740,19 +1740,21 @@ async def retriever_deploy_search(
 
 ---
 
-## `retriever_exa_search`
+## `retriever_websearch`
 
 **Signature**
 ```python
-async def retriever_exa_search(
+async def retriever_websearch(
     query_list: List[str],
     top_k: Optional[int] | None = 5,
     retrieve_thread_num: Optional[int] | None = 1,
+    websearch_backend: str = "tavily",
+    websearch_backend_configs: Optional[Dict[str, Any]] | None = None,
 ) -> Dict[str, List[List[str]]]
 ```
 
 **Function**
-- Calls **Exa** Web retrieval (requires `EXA_API_KEY`).
+- Unified Web retrieval tool. Choose backend via `websearch_backend` (`tavily`, `exa`, `zhipuai`) and configure in `websearch_backend_configs`.
 
 **Output Format (JSON)**
 ```json
@@ -1761,44 +1763,25 @@ async def retriever_exa_search(
 
 ---
 
-## `retriever_tavily_search`
+## `retriever_batch_websearch`
 
 **Signature**
 ```python
-async def retriever_tavily_search(
-    query_list: List[str],
+async def retriever_batch_websearch(
+    batch_query_list: List[List[str]],
     top_k: Optional[int] | None = 5,
     retrieve_thread_num: Optional[int] | None = 1,
-) -> Dict[str, List[List[str]]]
+    websearch_backend: str = "tavily",
+    websearch_backend_configs: Optional[Dict[str, Any]] | None = None,
+) -> Dict[str, List[List[List[str]]]]
 ```
 
 **Function**
-- Calls **Tavily** Web retrieval (requires `TAVILY_API_KEY`).
+- Batch Web retrieval for SurveyCPM-style pipelines.
 
 **Output Format (JSON)**
 ```json
-{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
-```
-
----
-
-## `retriever_zhipuai_search`
-
-**Signature**
-```python
-async def retriever_zhipuai_search(
-    query_list: List[str],
-    top_k: Optional[int] | None = 5,
-    retrieve_thread_num: Optional[int] | None = 1,
-) -> Dict[str, List[List[str]]]
-```
-
-**Function**
-- Calls **ZhipuAI** `web_search` (requires `ZHIPUAI_API_KEY`).
-
-**Output Format (JSON)**
-```json
-{"ret_psg": [["snippet 1", "snippet 2"], ["..." ]]} 
+{"ret_psg_ls": [[["snippet 1", "snippet 2"]], ["..." ]]} 
 ```
 
 
@@ -1854,6 +1837,30 @@ index_backend_configs:
       index_type: AUTOINDEX
       metric_type: IP
 
+# Websearch Backend Configuration
+websearch_backend: tavily # options: tavily, exa, zhipuai
+websearch_backend_configs:
+  exa:
+    api_key: ""
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  tavily:
+    api_key: ""
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  zhipuai:
+    api_key: ""
+    base_url: "https://open.bigmodel.cn/api/paas/v4/web_search"
+    search_engine: "search_std"
+    search_intent: false
+    search_recency_filter: "noLimit"
+    content_size: "medium"
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+
 batch_size: 16
 top_k: 5
 gpu_ids: "1"
@@ -1877,13 +1884,15 @@ Parameter Description:
 | `index_backend` | str | Index backend: `faiss`, `milvus` |
 | `backend_configs` | dict | Parameter configuration for each backend (see table below) |
 | `index_backend_configs` | dict | Parameter configuration for each index backend (see table below) |
+| `websearch_backend` | str | Web search backend: `tavily`, `exa`, `zhipuai` |
+| `websearch_backend_configs` | dict | Web search backend configs (api_key, retries, payload, etc.) |
 | `batch_size` | int | Batch size for vector generation or retrieval |
 | `top_k` | int | Number of returned candidate passages |
 | `gpu_ids` | str | Specify visible GPU devices, e.g., `"0,1"` |
 | `query_instruction` | str | Query prefix (used by instruction-tuning models) |
 | `is_multimodal` | bool | Whether to enable multimodal embedding (e.g., image) |
 | `overwrite` | bool | Whether to overwrite if embedding or index file already exists |
-| `retrieve_thread_num` | int | Concurrent thread number for external Web retrieval (Exa/Tavily/Zhipu) |
+| `retrieve_thread_num` | int | Concurrent thread number for Web retrieval |
 | `retriever_url` | str | URL of deployed retriever server |
 | `is_demo` | bool | Demo mode switch (forces OpenAI+Milvus, simplified configuration) |
 
@@ -3652,7 +3661,7 @@ pipeline:
           - generation.generate:
               output:
                 ans_ls: subq_ls
-          - retriever.retriever_tavily_search:
+          - retriever.retriever_websearch:
               input:
                 query_list: subq_ls
               output:
@@ -3740,6 +3749,13 @@ prompt:
 retriever:
   retrieve_thread_num: 1
   top_k: 5
+  websearch_backend: tavily
+  websearch_backend_configs:
+    tavily:
+      api_key: ""
+      retries: 3
+      base_delay: 1.0
+      search_kwargs: {}
 ```
 
 
@@ -7398,7 +7414,7 @@ UltraRAG will automatically read this file and load relevant configurations at s
 
 **Step 2: Web Search**
 
-The following example demonstrates how to use Tavily API for Web retrieval:
+The following example demonstrates how to use the unified Web search tool:
 
 ```yaml examples/web_search.yaml icon="/images/yaml.svg"
 # MCP Server
@@ -7409,7 +7425,7 @@ servers:
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
-- retriever.retriever_tavily_search
+- retriever.retriever_websearch
 ```
 
 Compile Pipeline:
@@ -7433,6 +7449,13 @@ benchmark:
 retriever:
   retrieve_thread_num: 1
   top_k: 5
+  websearch_backend: tavily
+  websearch_backend_configs:
+    tavily:
+      api_key: ""
+      retries: 3
+      base_delay: 1.0
+      search_kwargs: {}
 ```
 
 Execute the following command to start the Web retrieval process:
@@ -7440,7 +7463,7 @@ Execute the following command to start the Web retrieval process:
 ultrarag run examples/web_search.yaml
 ```
 
-<Note>You can replace retriever_tavily_search with retriever_exa_search or retriever_zhipuai_search as the Web retrieval source.</Note>
+<Note>Switch Web retrieval backend via `websearch_backend` and `websearch_backend_configs`.</Note>
 
 ### Deploy Retriever Server
 
