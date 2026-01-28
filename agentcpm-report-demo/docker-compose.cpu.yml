@@ -7,7 +7,7 @@ services:
   gguf-downloader:
     image: python:3.11-slim
     environment:
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
       - HF_TOKEN=${HF_TOKEN:-}
       - GGUF_REPO_ID=${GGUF_REPO_ID:-openbmb/AgentCPM-Report-GGUF}
@@ -39,7 +39,7 @@ services:
       gguf-downloader:
         condition: service_completed_successfully
     environment:
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       # Reuse the same model id UltraRAG will send to /v1/chat/completions
       - LLM_MODEL_NAME=${LLM_MODEL_NAME:-openBMB/AgentCPM-Report-GGUF}
     volumes:
@@ -123,7 +123,7 @@ services:
       - milvus
       - llama-cpp
     environment:
-      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
       - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
       - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
       - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
@@ -170,7 +170,7 @@ services:
   #     - milvus
   #     - llama-cpp
   #   environment:
-  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirrors.com}
+  #     - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
   #     - HF_HUB_ENABLE_HF_TRANSFER=${HF_HUB_ENABLE_HF_TRANSFER:-1}
   #     - ULTRARAG_MILVUS_URI=${ULTRARAG_MILVUS_URI:-http://milvus:19530}
   #     - ULTRARAG_AUTO_INSTALL_KB_DEPS=${ULTRARAG_AUTO_INSTALL_KB_DEPS:-1}
