@@ -9,7 +9,7 @@ description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "fastmcp==2.14.3",
+    "fastmcp==2.14.4",
     "mcp",
     "rich",
     "pandas",
