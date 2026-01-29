@@ -85,10 +85,8 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 SERVERS_DIR = PROJECT_ROOT / "servers"
 PIPELINES_DIR = PROJECT_ROOT / "examples"
-LEGACY_PIPELINES_DIR = BASE_DIR / "pipelines"
 CHAT_DATASET_DIR = PROJECT_ROOT / "data" / "chat_sessions"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 
@@ -238,7 +236,6 @@ def _extract_display_name_from_desc(desc: str, fallback: str) -> str:
 
 
 for d in [
-    LEGACY_PIPELINES_DIR,
     CHAT_DATASET_DIR,
     OUTPUT_DIR,
     KB_RAW_DIR,
@@ -1316,10 +1313,7 @@ def pipeline_path(name: str) -> Path:
 
 def _find_pipeline_file(name: str) -> Path | None:
     p = pipeline_path(name)
-    if p.exists():
-        return p
-    l = LEGACY_PIPELINES_DIR / f"{name}.yaml"
-    return l if l.exists() else None
+    return p if p.exists() else None
 
 
 def _parameter_candidates(config_file: Path) -> List[Path]:
@@ -1382,29 +1376,28 @@ HIDDEN_PIPELINES = {
 
 def list_pipelines() -> List[Dict[str, Any]]:
     res = []
-    for d in [PIPELINES_DIR, LEGACY_PIPELINES_DIR]:
-        if d.exists():
-            for f in d.glob("*.yaml"):
-                # Skip pipelines in hidden list
-                if f.stem in HIDDEN_PIPELINES:
-                    continue
+    if PIPELINES_DIR.exists():
+        for f in PIPELINES_DIR.glob("*.yaml"):
+            # Skip pipelines in hidden list
+            if f.stem in HIDDEN_PIPELINES:
+                continue
 
-                if not any(r["name"] == f.stem for r in res):
+            if not any(r["name"] == f.stem for r in res):
 
-                    param_path = d / "parameter" / f"{f.stem}_parameter.yaml"
-                    if not param_path.exists():
-                        param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
+                param_path = PIPELINES_DIR / "parameter" / f"{f.stem}_parameter.yaml"
+                if not param_path.exists():
+                    param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
 
-                    is_ready = param_path.exists()
+                is_ready = param_path.exists()
 
-                    res.append(
-                        {
-                            "name": f.stem,
-                            "config": yaml.safe_load(f.read_text(encoding="utf-8"))
-                            or {},
-                            "is_ready": is_ready,
-                        }
-                    )
+                res.append(
+                    {
+                        "name": f.stem,
+                        "config": yaml.safe_load(f.read_text(encoding="utf-8"))
+                        or {},
+                        "is_ready": is_ready,
+                    }
+                )
     return res
 
 
