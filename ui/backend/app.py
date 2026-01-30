@@ -1105,6 +1105,26 @@ def create_app(admin_mode: bool = False) -> Flask:
         """Handle AI chat request"""
         import requests
 
+        def safe_first_item(value: Any) -> Dict[str, Any]:
+            if isinstance(value, list) and value:
+                first = value[0]
+                return first if isinstance(first, dict) else {}
+            return {}
+
+        def safe_json_response(resp: requests.Response) -> Dict[str, Any]:
+            try:
+                return json.loads(resp.content)
+            except Exception:
+                try:
+                    return resp.json()
+                except Exception:
+                    return {}
+
+        def decode_sse_line(raw_line: Any) -> str:
+            if isinstance(raw_line, bytes):
+                return raw_line.decode("utf-8", errors="replace")
+            return str(raw_line)
+
         payload = request.get_json(force=True)
         settings = payload.get("settings", {})
         messages = payload.get("messages", [])
@@ -1150,17 +1170,18 @@ def create_app(admin_mode: bool = False) -> Flask:
                             stream=True,
                             timeout=120,
                         )
+                        resp.encoding = "utf-8"
 
                         if resp.status_code != 200:
                             yield f"data: {json.dumps({'type': 'error', 'message': f'API error: {resp.status_code}'})}\n\n"
                             return
 
                         full_text = ""
-                        for raw_line in resp.iter_lines(decode_unicode=True):
+                        for raw_line in resp.iter_lines(decode_unicode=False):
                             if not raw_line:
                                 continue
 
-                            line = raw_line.strip()
+                            line = decode_sse_line(raw_line).strip()
                             if not line:
                                 continue
 
@@ -1175,11 +1196,11 @@ def create_app(admin_mode: bool = False) -> Flask:
                             except Exception:
                                 continue
 
-                            delta = (
-                                data.get("choices", [{}])[0]
-                                .get("delta", {})
-                                .get("content", "")
-                            )
+                            choice = safe_first_item(data.get("choices"))
+                            delta_block = choice.get("delta")
+                            if not isinstance(delta_block, dict):
+                                delta_block = {}
+                            delta = delta_block.get("content", "")
                             if delta:
                                 full_text += delta
                                 yield f"data: {json.dumps({'type': 'token', 'content': delta, 'is_final': False})}\n\n"
@@ -1192,9 +1213,15 @@ def create_app(admin_mode: bool = False) -> Flask:
                         LOGGER.error(f"AI chat stream error: {e}")
                         yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
+                stream_headers = {
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                }
                 return Response(
                     stream_with_context(stream_openai_chat()),
-                    mimetype="text/event-stream",
+                    content_type="text/event-stream; charset=utf-8",
+                    headers=stream_headers,
                 )
 
             if provider == "openai" or provider == "custom":
@@ -1211,14 +1238,15 @@ def create_app(admin_mode: bool = False) -> Flask:
                 resp = requests.post(
                     chat_url, headers=headers, json=chat_payload, timeout=120
                 )
+                resp.encoding = "utf-8"
 
                 if resp.status_code == 200:
-                    data = resp.json()
-                    content = (
-                        data.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", "")
-                    )
+                    data = safe_json_response(resp)
+                    choice = safe_first_item(data.get("choices"))
+                    message_block = choice.get("message")
+                    if not isinstance(message_block, dict):
+                        message_block = {}
+                    content = message_block.get("content", "")
 
                     # Parse for actions
                     actions = parse_ai_actions(content, context)
@@ -1251,10 +1279,17 @@ def create_app(admin_mode: bool = False) -> Flask:
                 resp = requests.post(
                     chat_url, headers=headers, json=chat_payload, timeout=120
                 )
+                resp.encoding = "utf-8"
 
                 if resp.status_code == 200:
-                    data = resp.json()
-                    content = data.get("content", [{}])[0].get("text", "")
+                    data = safe_json_response(resp)
+                    content_entries = data.get("content")
+                    if isinstance(content_entries, list):
+                        content = safe_first_item(content_entries).get("text", "")
+                    elif isinstance(content_entries, str):
+                        content = content_entries
+                    else:
+                        content = ""
                     actions = parse_ai_actions(content, context)
                     return jsonify({"content": content, "actions": actions})
                 else:
@@ -1267,14 +1302,15 @@ def create_app(admin_mode: bool = False) -> Flask:
                 resp = requests.post(
                     chat_url, headers=headers, json=chat_payload, timeout=120
                 )
+                resp.encoding = "utf-8"
 
                 if resp.status_code == 200:
-                    data = resp.json()
-                    content = (
-                        data.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", "")
-                    )
+                    data = safe_json_response(resp)
+                    choice = safe_first_item(data.get("choices"))
+                    message_block = choice.get("message")
+                    if not isinstance(message_block, dict):
+                        message_block = {}
+                    content = message_block.get("content", "")
                     actions = parse_ai_actions(content, context)
                     return jsonify({"content": content, "actions": actions})
                 else:
