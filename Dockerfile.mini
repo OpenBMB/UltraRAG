@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.1-cudnn-devel-ubuntu24.04
+FROM ubuntu:24.04
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -19,7 +19,7 @@ RUN apt-get update && \
 WORKDIR /ultrarag
 COPY . .
 
-RUN uv sync --frozen --no-dev --all-extras
+RUN uv sync --frozen --no-dev
 
 EXPOSE 5050
 

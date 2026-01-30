@@ -4,10 +4,14 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
+import tempfile
+import zipfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set
+from xml.etree import ElementTree as ET
 
 from fastmcp.exceptions import ToolError
 from PIL import Image
@@ -73,6 +77,124 @@ def suppress_stdout():
     finally:
         os.dup2(saved_stdout_fd, stdout_fd)
         os.close(saved_stdout_fd)
+
+
+def _local_name(tag: str) -> str:
+    if "}" in tag:
+        return tag.split("}", 1)[1]
+    return tag
+
+
+def _read_docx_text_zip(fp: str) -> Optional[str]:
+    try:
+        with zipfile.ZipFile(fp) as zf:
+            if "word/document.xml" not in zf.namelist():
+                return None
+            xml_bytes = zf.read("word/document.xml")
+    except zipfile.BadZipFile:
+        return None
+    except Exception as e:
+        app.logger.warning(f"Docx zip read failed: {fp} | {e}")
+        return None
+
+    try:
+        root = ET.fromstring(xml_bytes)
+    except Exception as e:
+        app.logger.warning(f"Docx xml parse failed: {fp} | {e}")
+        return None
+
+    paras: List[str] = []
+    for p in root.iter():
+        if _local_name(p.tag) != "p":
+            continue
+        buf: List[str] = []
+        for node in p.iter():
+            lname = _local_name(node.tag)
+            if lname == "t":
+                if node.text:
+                    buf.append(node.text)
+            elif lname == "tab":
+                buf.append("\t")
+            elif lname in ("br", "cr"):
+                buf.append("\n")
+        para_text = "".join(buf).strip()
+        if para_text:
+            paras.append(para_text)
+    return "\n".join(paras)
+
+
+def _read_docx_text(fp: str) -> Optional[str]:
+    docx_import_error: Optional[Exception] = None
+    try:
+        from docx import Document
+    except ImportError as e:
+        docx_import_error = e
+    else:
+        try:
+            doc = Document(fp)
+            full_text = [para.text for para in doc.paragraphs]
+            for table in doc.tables:
+                for row in table.rows:
+                    row_text = [cell.text for cell in row.cells]
+                    full_text.append(" | ".join(row_text))
+            return "\n".join(full_text)
+        except Exception as e:
+            app.logger.warning(f"Docx read failed (python-docx): {fp} | {e}")
+
+    content = _read_docx_text_zip(fp)
+    if content is not None:
+        return content
+
+    if docx_import_error is not None:
+        err_msg = "python-docx not installed and docx zip parse failed. Please `pip install python-docx`."
+        app.logger.error(err_msg)
+        raise ToolError(err_msg)
+    return None
+
+
+def _find_office_cmd() -> Optional[str]:
+    return shutil.which("soffice") or shutil.which("libreoffice")
+
+
+def _convert_to_docx_with_office(fp: str, out_dir: str, office_cmd: str) -> Optional[str]:
+    cmd = [
+        office_cmd,
+        "--headless",
+        "--convert-to",
+        "docx",
+        "--outdir",
+        out_dir,
+        fp,
+    ]
+    try:
+        subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            timeout=60,
+        )
+    except Exception as e:
+        app.logger.warning(f"Office convert failed: {fp} | {e}")
+        return None
+
+    expected = Path(out_dir) / f"{Path(fp).stem}.docx"
+    if expected.exists():
+        return str(expected)
+    for p in Path(out_dir).glob("*.docx"):
+        return str(p)
+    return None
+
+
+def _read_via_office_convert(fp: str) -> Optional[str]:
+    office_cmd = _find_office_cmd()
+    if not office_cmd:
+        return None
+    with tempfile.TemporaryDirectory(prefix="ultrarag_docx_") as tmpdir:
+        out_path = _convert_to_docx_with_office(fp, tmpdir, office_cmd)
+        if not out_path:
+            return None
+        return _read_docx_text(out_path)
 
 
 def _save_jsonl(rows: Iterable[Dict[str, Any]], file_path: str) -> None:
@@ -212,6 +334,7 @@ async def build_text_corpus(
     TEXT_EXTS = [".txt", ".md"]
     PMLIKE_EXT = [".pdf", ".xps", ".oxps", ".epub", ".mobi", ".fb2"]
     DOCX_EXT = [".docx"]
+    WORD_LEGACY_EXT = [".doc", ".wps"]
 
     # Validate and sanitize path to prevent path traversal
     try:
@@ -228,6 +351,7 @@ async def build_text_corpus(
         raise ToolError(err_msg)
 
     rows: List[Dict[str, Any]] = []
+    is_single_input = os.path.isfile(in_path)
 
     def process_one_file(fp: str) -> None:
         fp_path = Path(fp)
@@ -250,21 +374,34 @@ async def build_text_corpus(
 
         elif ext in DOCX_EXT:
             try:
-                from docx import Document
-            except ImportError:
-                err_msg = "docx not installed. Please `pip install python-docx`."
-                app.logger.error(err_msg)
-                raise ToolError(err_msg)
-            try:
-                doc = Document(fp)
-                full_text = [para.text for para in doc.paragraphs]
-                for table in doc.tables:
-                    for row in table.rows:
-                        row_text = [cell.text for cell in row.cells]
-                        full_text.append(" | ".join(row_text))
-                content = "\n".join(full_text)
+                content = _read_via_office_convert(fp)
+                if content is None:
+                    content = _read_docx_text(fp)
+                if content is None:
+                    err_msg = f"Unable to parse .docx file: {fp}. Unsupported file format."
+                    if is_single_input:
+                        app.logger.error(err_msg)
+                        raise ToolError(err_msg)
+                    app.logger.warning(err_msg)
+                    content = ""
+            except ToolError:
+                raise
             except Exception as e:
                 app.logger.warning(f"Docx read failed: {fp} | {e}")
+
+        elif ext in WORD_LEGACY_EXT:
+            content = _read_via_office_convert(fp)
+            if content is None:
+                err_msg = (
+                    "Legacy Word format requires LibreOffice/soffice conversion. "
+                    f"Please install LibreOffice or convert to .docx first: {fp}. "
+                    "Unsupported file format."
+                )
+                if is_single_input:
+                    app.logger.error(err_msg)
+                    raise ToolError(err_msg)
+                app.logger.warning(err_msg)
+                return
 
         elif ext in PMLIKE_EXT:
             try:
@@ -294,8 +431,11 @@ async def build_text_corpus(
                     except Exception:
                         pass
         else:
-            warn_msg = f"Unsupported file type, skip: {fp}"
-            app.logger.warning(warn_msg)
+            err_msg = f"Unsupported file type: {fp}. Unsupported file format."
+            if is_single_input:
+                app.logger.error(err_msg)
+                raise ToolError(err_msg)
+            app.logger.warning(err_msg)
             return
 
         if content.strip():
