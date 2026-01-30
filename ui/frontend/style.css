@@ -3135,6 +3135,38 @@ textarea.parameter-input {
   animation: spin 1s linear infinite;
 }
 
+.spinner.hidden {
+  display: none;
+}
+
+/* Progress Ring */
+.progress-ring-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-ring-wrapper.hidden {
+  display: none;
+}
+
+.progress-ring__circle {
+  stroke-dasharray: 56.548; /* 2 * PI * 9 */
+  stroke-dashoffset: 56.548;
+  transition: stroke-dashoffset 0.3s ease-out;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+  stroke-linecap: round;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  min-width: 36px;
+  text-align: left;
+}
+
 /* 6. Dialog Modal (Milvus configuration popup) */
 .apple-modal {
   border: none;

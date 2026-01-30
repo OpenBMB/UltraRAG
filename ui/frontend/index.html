@@ -705,7 +705,14 @@
           <div class="modal-body bg-light p-4 overflow-hidden d-flex flex-column">
 
             <div id="task-status-bar" class="status-bar hidden mb-3 mx-auto shadow-sm">
-              <span class="spinner"></span>
+              <span class="spinner" id="task-spinner"></span>
+              <div class="progress-ring-wrapper hidden" id="task-progress-wrapper">
+                <svg class="progress-ring" width="24" height="24">
+                  <circle class="progress-ring__circle-bg" stroke="#dbeafe" stroke-width="3" fill="transparent" r="9" cx="12" cy="12"/>
+                  <circle class="progress-ring__circle" id="task-progress-circle" stroke="#1d4ed8" stroke-width="3" fill="transparent" r="9" cx="12" cy="12"/>
+                </svg>
+                <span class="progress-text" id="task-progress-text">0%</span>
+              </div>
               <span id="task-msg">Processing...</span>
             </div>
 

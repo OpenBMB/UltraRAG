@@ -2519,6 +2519,7 @@ def run_kb_pipeline_tool(
     embedding_params: Optional[
         Dict[str, Any]
     ] = None,  # [New] Embedding configuration (for milvus_index)
+    progress_callback: Optional[Any] = None,  # Progress callback: (progress: int, message: str) -> None
 ) -> Dict[str, Any]:
     """Run knowledge base pipeline tool.
 
@@ -2530,6 +2531,7 @@ def run_kb_pipeline_tool(
         index_mode: Index mode ("append" or "overwrite")
         chunk_params: Optional chunking parameters
         embedding_params: Optional embedding parameters
+        progress_callback: Optional callback function for progress updates
 
     Returns:
         Dictionary with execution result
@@ -2537,6 +2539,14 @@ def run_kb_pipeline_tool(
     Raises:
         PipelineManagerError: If pipeline or parameters not found
     """
+    
+    def _report_progress(progress: int, message: str = "") -> None:
+        """Report progress if callback is available."""
+        if progress_callback:
+            try:
+                progress_callback(progress, message)
+            except Exception as e:
+                LOGGER.warning(f"Progress callback failed: {e}")
 
     pipeline_cfg = load_pipeline(pipeline_name)
     if not pipeline_cfg:
@@ -2701,20 +2711,50 @@ def run_kb_pipeline_tool(
     funcs = _ensure_client_funcs()
     config_file = str(_find_pipeline_file(pipeline_name))
     param_file = str(_resolve_parameter_path(pipeline_name))
+    
+    _report_progress(10, "Loading configuration...")
 
     async def _async_task():
+        _report_progress(15, "Loading pipeline context...")
         context = funcs["load_ctx"](config_file, param_file)
 
+        _report_progress(20, "Creating MCP client...")
         client = funcs["create_client"](context["mcp_cfg"])
 
+        _report_progress(25, "Connecting to server...")
         async with client:
-            return await funcs["exec_pipe"](
+            _report_progress(30, "Executing pipeline...")
+            
+            # Create a progress wrapper for streaming updates
+            last_progress = [30]  # Use list to allow modification in closure
+            
+            async def stream_callback(event_data: Any) -> None:
+                """Callback that updates progress based on streaming events."""
+                if isinstance(event_data, dict):
+                    event_type = event_data.get("type", "")
+                    if event_type == "step_start":
+                        step_name = event_data.get("name", "")
+                        # Increment progress for each step
+                        if last_progress[0] < 85:
+                            last_progress[0] += 5
+                            _report_progress(last_progress[0], f"Processing: {step_name}...")
+                    elif event_type == "token":
+                        # For token events, slowly increment
+                        if last_progress[0] < 90:
+                            last_progress[0] += 0.5
+                            _report_progress(int(last_progress[0]), "Processing...")
+            
+            result = await funcs["exec_pipe"](
                 client,
                 context,
                 is_demo=True,
                 return_all=True,
                 override_params=override_params,
+                stream_callback=stream_callback,
             )
+            
+            _report_progress(95, "Finalizing...")
+            return result
 
     try:
         loop = asyncio.new_event_loop()
@@ -2724,6 +2764,7 @@ def run_kb_pipeline_tool(
         finally:
             loop.close()
 
+        _report_progress(100, "Completed")
         return {"status": "success", "result": _extract_result(raw_result)}
 
     except Exception as e:

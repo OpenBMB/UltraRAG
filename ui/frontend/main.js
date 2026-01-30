@@ -361,6 +361,10 @@ const els = {
     // Status bar
     taskStatusBar: document.getElementById("task-status-bar"),
     taskMsg: document.getElementById("task-msg"),
+    taskSpinner: document.getElementById("task-spinner"),
+    taskProgressWrapper: document.getElementById("task-progress-wrapper"),
+    taskProgressCircle: document.getElementById("task-progress-circle"),
+    taskProgressText: document.getElementById("task-progress-text"),
     // Database configuration elements
     dbConnectionStatus: document.getElementById("db-connection-status"),
     dbConnectionText: document.getElementById("db-connection-text"),
@@ -1620,23 +1624,54 @@ async function runKBTask(pipelineName, filePath, extraParams = {}) {
     }
 }
 
-// Polling logic
+// Progress ring helper
+function setProgress(percent) {
+    if (!els.taskProgressCircle || !els.taskProgressText) return;
+    const radius = 9;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percent / 100) * circumference;
+    els.taskProgressCircle.style.strokeDashoffset = offset;
+    els.taskProgressText.textContent = Math.round(percent) + '%';
+}
+
+// Polling logic with simulated progress
 function pollTaskStatus(taskId) {
+    let progress = 0;
+    let pollCount = 0;
+    
+    // Show progress ring, hide spinner
+    if (els.taskSpinner) els.taskSpinner.classList.add('hidden');
+    if (els.taskProgressWrapper) els.taskProgressWrapper.classList.remove('hidden');
+    setProgress(0);
+    
     const interval = setInterval(async () => {
         try {
+            pollCount++;
+            
+            // Simulated progress: fast at start, slow down as it approaches 95%
+            // Uses logarithmic curve for natural feel
+            if (progress < 95) {
+                const increment = Math.max(0.5, (95 - progress) * 0.08);
+                progress = Math.min(95, progress + increment);
+                setProgress(progress);
+            }
+            
             const res = await fetch(`/api/kb/status/${taskId}`);
             const task = await res.json();
 
             if (task.status === 'success') {
                 clearInterval(interval);
-                updateKBStatus(false);
-                // 1. Refresh KB management interface list
-                refreshKBFiles();
+                setProgress(100);
+                setTimeout(() => {
+                    updateKBStatus(false);
+                    // 1. Refresh KB management interface list
+                    refreshKBFiles();
 
-                // 2. Also refresh Chat interface dropdown menu
-                // So that after indexing is complete, it can be selected immediately in the chat box
-                renderChatCollectionOptions();
-                console.log('Task Result:', task.result);
+                    // 2. Also refresh Chat interface dropdown menu
+                    // So that after indexing is complete, it can be selected immediately in the chat box
+                    renderChatCollectionOptions();
+                    console.log('Task Result:', task.result);
+                }, 400);
             } else if (task.status === 'failed') {
                 clearInterval(interval);
                 updateKBStatus(false);
@@ -1646,13 +1681,13 @@ function pollTaskStatus(taskId) {
                 );
             } else {
                 // still running...
-                console.log('Task running...');
+                console.log('Task running, progress:', Math.round(progress) + '%');
             }
         } catch (e) {
             clearInterval(interval);
             updateKBStatus(false);
         }
-    }, 1500); // Poll every 1.5 seconds
+    }, 800); // Poll every 800ms for smoother progress
 }
 
 // UI utility: show/hide status bar
@@ -1661,8 +1696,15 @@ function updateKBStatus(show, msg = '') {
     if (show) {
         els.taskStatusBar.classList.remove('hidden');
         els.taskMsg.textContent = msg;
+        // Reset to spinner mode when starting
+        if (els.taskSpinner) els.taskSpinner.classList.remove('hidden');
+        if (els.taskProgressWrapper) els.taskProgressWrapper.classList.add('hidden');
     } else {
         els.taskStatusBar.classList.add('hidden');
+        // Reset progress state
+        if (els.taskProgressWrapper) els.taskProgressWrapper.classList.add('hidden');
+        if (els.taskSpinner) els.taskSpinner.classList.remove('hidden');
+        setProgress(0);
     }
 }
 
