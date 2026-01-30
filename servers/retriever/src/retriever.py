@@ -74,6 +74,110 @@ class Retriever:
         """
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
+    async def _openai_embed_texts(
+        self,
+        texts: List[str],
+        *,
+        batch_size: int,
+        concurrency: int,
+        desc: str,
+        unit: str = "item",
+        allow_fallback_zero: bool = False,
+        log_prefix: str = "[openai]",
+    ) -> List[List[float]]:
+        """Embed texts with OpenAI using controlled concurrency."""
+        if not texts:
+            return []
+
+        try:
+            batch_size = max(1, int(batch_size or 1))
+        except (TypeError, ValueError):
+            batch_size = 1
+
+        try:
+            concurrency = max(1, int(concurrency or 1))
+        except (TypeError, ValueError):
+            concurrency = 1
+
+        batches: List[tuple[int, List[str]]] = []
+        for start in range(0, len(texts), batch_size):
+            batches.append((start, texts[start : start + batch_size]))
+
+        results: List[Optional[List[float]]] = [None] * len(texts)
+        sem = asyncio.Semaphore(concurrency)
+        pbar_lock = asyncio.Lock()
+        cached_dim: Optional[int] = None
+
+        async def _call_batch(batch: List[str]) -> List[List[float]]:
+            resp = await self.model.embeddings.create(
+                model=self.model_name,
+                input=batch,
+            )
+            if len(resp.data) != len(batch):
+                raise RuntimeError(
+                    f"{log_prefix} Embedding result size mismatch: "
+                    f"{len(resp.data)} vs {len(batch)}"
+                )
+            return [d.embedding for d in resp.data]
+
+        async def _process_batch(start: int, batch: List[str]) -> None:
+            nonlocal cached_dim
+            async with sem:
+                try:
+                    embeddings = await _call_batch(batch)
+                except Exception as exc:
+                    if not allow_fallback_zero:
+                        raise
+
+                    if len(batch) > 1:
+                        app.logger.warning(
+                            f"{log_prefix} Batch failed, fallback to per-item. "
+                            f"Error: {str(exc)[:100]}..."
+                        )
+                        embeddings = []
+                        for text in batch:
+                            try:
+                                vec = (await _call_batch([text]))[0]
+                                embeddings.append(vec)
+                                if cached_dim is None:
+                                    cached_dim = len(vec)
+                            except Exception as inner_exc:
+                                if cached_dim is None:
+                                    raise inner_exc
+                                app.logger.warning(
+                                    f"{log_prefix} Item failed. Filling with ZERO vector. "
+                                    f"Error: {str(inner_exc)[:100]}..."
+                                )
+                                embeddings.append([0.0] * cached_dim)
+                    else:
+                        if cached_dim is None:
+                            raise
+                        app.logger.warning(
+                            f"{log_prefix} Item failed. Filling with ZERO vector. "
+                            f"Error: {str(exc)[:100]}..."
+                        )
+                        embeddings = [[0.0] * cached_dim]
+
+                if embeddings and cached_dim is None:
+                    cached_dim = len(embeddings[0])
+
+                results[start : start + len(batch)] = embeddings
+
+            async with pbar_lock:
+                pbar.update(len(batch))
+
+        with tqdm(total=len(texts), desc=desc, unit=unit) as pbar:
+            tasks = [
+                asyncio.create_task(_process_batch(start, batch))
+                for start, batch in batches
+            ]
+            await asyncio.gather(*tasks)
+
+        if any(r is None for r in results):
+            raise RuntimeError("Embedding generation failed: missing results")
+
+        return results  # type: ignore[return-value]
+
     async def retriever_init(
         self,
         model_name_or_path: str,
@@ -225,6 +329,15 @@ class Retriever:
             try:
                 self.model = AsyncOpenAI(base_url=base_url, api_key=api_key)
                 self.model_name = model_name
+                raw_concurrency = self.cfg.get("concurrency", 1)
+                try:
+                    self.openai_concurrency = max(1, int(raw_concurrency or 1))
+                except (TypeError, ValueError):
+                    self.openai_concurrency = 1
+                    app.logger.warning(
+                        "[openai] Invalid concurrency=%s, fallback to 1",
+                        raw_concurrency,
+                    )
                 info_msg = (
                     f"[openai] OpenAI client initialized "
                     f"(model='{model_name}', base='{base_url}')"
@@ -533,20 +646,13 @@ class Retriever:
                 app.logger.error(err_msg)
                 raise ValueError(err_msg)
 
-            embeddings: list = []
-            with tqdm(
-                total=len(self.contents),
+            embeddings = await self._openai_embed_texts(
+                self.contents,
+                batch_size=self.batch_size,
+                concurrency=getattr(self, "openai_concurrency", 1),
                 desc="[openai] Embedding:",
                 unit="item",
-            ) as pbar:
-                for start in range(0, len(self.contents), self.batch_size):
-                    chunk = self.contents[start : start + self.batch_size]
-                    resp = await self.model.embeddings.create(
-                        model=self.model_name,
-                        input=chunk,
-                    )
-                    embeddings.extend([d.embedding for d in resp.data])
-                    pbar.update(len(chunk))
+            )
         else:
             err_msg = f"Unsupported backend: {self.backend}"
             app.logger.error(err_msg)
@@ -672,33 +778,15 @@ class Retriever:
                 return
 
             app.logger.info(f"[Demo] Embedding {len(texts)} chunks...")
-            all_embeddings = []
-
-            cached_dim = None
-
-            for text in tqdm(texts, desc="[Demo] Processing"):
-                try:
-                    resp = await self.model.embeddings.create(
-                        model=self.model_name, input=[text]
-                    )
-
-                    vec = resp.data[0].embedding
-                    all_embeddings.append(vec)
-
-                    if cached_dim is None:
-                        cached_dim = len(vec)
-
-                except Exception as e:
-                    if cached_dim is not None:
-                        app.logger.warning(
-                            f"[Demo] Item failed. Filling with ZERO vector. Error: {str(e)[:100]}..."
-                        )
-                        all_embeddings.append([0.0] * cached_dim)
-                    else:
-                        app.logger.error(
-                            f"[Demo] CRITICAL: First item failed! Cannot determine embedding dimension. Error: {e}"
-                        )
-                        raise e
+            all_embeddings = await self._openai_embed_texts(
+                texts,
+                batch_size=self.batch_size,
+                concurrency=getattr(self, "openai_concurrency", 1),
+                desc="[Demo] Embedding:",
+                unit="item",
+                allow_fallback_zero=True,
+                log_prefix="[Demo]",
+            )
 
             embeddings_np = np.array(all_embeddings, dtype=np.float32)
 
@@ -847,17 +935,13 @@ class Retriever:
                 query_embedding = await asyncio.to_thread(_encode_single)
 
         elif self.backend == "openai":
-            query_embedding = []
-            for i in tqdm(
-                range(0, len(queries), self.batch_size),
+            query_embedding = await self._openai_embed_texts(
+                queries,
+                batch_size=self.batch_size,
+                concurrency=getattr(self, "openai_concurrency", 1),
                 desc="[openai] Embedding:",
-                unit="batch",
-            ):
-                chunk = queries[i : i + self.batch_size]
-                resp = await self.model.embeddings.create(
-                    model=self.model_name, input=chunk
-                )
-                query_embedding.extend([d.embedding for d in resp.data])
+                unit="item",
+            )
 
         else:
             error_msg = f"Unsupported backend: {self.backend}"

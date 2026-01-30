@@ -25,6 +25,7 @@ backend_configs:
     model_name: text-embedding-3-small
     base_url: "https://api.openai.com/v1"
     api_key: "abc"
+    concurrency: 8
   bm25:
     lang: en
     save_path: index/bm25

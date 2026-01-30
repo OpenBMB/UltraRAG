@@ -13,6 +13,7 @@ retriever:
       api_key: abc
       base_url: https://api.openai.com/v1
       model_name: text-embedding-3-small
+      concurrency: 8
     sentence_transformers:
       sentence_transformers_encode:
         encode_chunk_size: 256
