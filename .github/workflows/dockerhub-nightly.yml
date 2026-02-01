@@ -2,14 +2,11 @@ name: DockerHub Nightly Build
 
 on:
   schedule:
-    # GitHub Actions uses UTC; 02:00 China Standard Time is 18:00 UTC.
     - cron: "0 0 * * *"
   workflow_dispatch:
 
 env:
-  # If your DockerHub repo name is not "ultrarag", change it here.
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/ultrarag
-  # Use a fixed tag to overwrite existing images.
   IMAGE_TAG: v0.3.0
 
 jobs:
