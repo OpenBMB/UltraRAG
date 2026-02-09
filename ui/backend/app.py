@@ -31,6 +31,14 @@ LLMS_DOC_PATH = BASE_DIR.parent.parent / "docs" / "llms.txt"
 LLMS_DOC_CACHE = None
 
 
+def _read_ui_env_default(name: str, fallback: str = "") -> str:
+    """Read UI default value from environment and normalize whitespace."""
+    value = os.getenv(name, fallback)
+    if value is None:
+        return fallback
+    return str(value).strip()
+
+
 def load_llms_doc() -> str:
     """Load docs/llms.txt once and cache it for system prompt usage."""
     global LLMS_DOC_CACHE
@@ -170,6 +178,40 @@ def create_app(admin_mode: bool = False) -> Flask:
             JSON response with admin_mode flag
         """
         return jsonify({"admin_mode": app.config.get("ADMIN_MODE", False)})
+
+    @app.route("/api/defaults/ai", methods=["GET"])
+    def get_ai_defaults() -> Response:
+        """Return UI default AI/Embedding settings from environment variables."""
+        ai_provider = _read_ui_env_default("ULTRARAG_UI_DEFAULT_AI_PROVIDER", "openai")
+        if ai_provider not in {"openai", "custom", "azure", "anthropic"}:
+            ai_provider = "openai"
+
+        payload = {
+            "ai": {
+                "provider": ai_provider,
+                "baseUrl": _read_ui_env_default(
+                    "ULTRARAG_UI_DEFAULT_AI_BASE_URL", "https://api.openai.com/v1"
+                ),
+                "apiKey": _read_ui_env_default("ULTRARAG_UI_DEFAULT_AI_API_KEY", ""),
+                "model": _read_ui_env_default(
+                    "ULTRARAG_UI_DEFAULT_AI_MODEL", "gpt-5-mini"
+                ),
+            },
+            "embedding": {
+                "api_key": _read_ui_env_default(
+                    "ULTRARAG_UI_DEFAULT_EMB_API_KEY", ""
+                ),
+                "base_url": _read_ui_env_default(
+                    "ULTRARAG_UI_DEFAULT_EMB_BASE_URL",
+                    "https://api.openai.com/v1",
+                ),
+                "model_name": _read_ui_env_default(
+                    "ULTRARAG_UI_DEFAULT_EMB_MODEL_NAME",
+                    "text-embedding-3-small",
+                ),
+            },
+        }
+        return jsonify(payload)
 
     @app.route("/api/templates", methods=["GET"])
     def list_templates() -> Response:
