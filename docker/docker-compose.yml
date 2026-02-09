@@ -1,0 +1,144 @@
+services:
+  ultrarag-ui:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: ultrarag-ui
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    command:
+      - ultrarag
+      - show
+      - ui
+      - --admin
+      - --port
+      - "5050"
+      - --host
+      - 0.0.0.0
+    ports:
+      - "${UI_PORT:-5050}:5050"
+    volumes:
+      - ../data:/ultrarag/data
+      - ../output:/ultrarag/output
+      - ../logs:/ultrarag/logs
+      - ./config/kb_config.json:/ultrarag/data/knowledge_base/kb_config.json
+    depends_on:
+      - milvus-standalone
+      - vllm-llm
+      - vllm-emb
+    networks:
+      - ultrarag-net
+
+  etcd:
+    container_name: ultrarag-etcd
+    image: quay.io/coreos/etcd:v3.5.12
+    restart: unless-stopped
+    command: >
+      etcd
+      --advertise-client-urls=http://etcd:2379
+      --listen-client-urls=http://0.0.0.0:2379
+      --data-dir=/etcd
+    volumes:
+      - ./volumes/etcd:/etcd
+    networks:
+      - ultrarag-net
+
+  minio:
+    container_name: ultrarag-minio
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-minioadmin}"
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ./volumes/minio:/minio_data
+    networks:
+      - ultrarag-net
+
+  milvus-standalone:
+    container_name: ultrarag-milvus
+    image: milvusdb/milvus:v2.5.4
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+    ports:
+      - "${MILVUS_PORT:-19530}:19530"
+      - "${MILVUS_METRICS_PORT:-9091}:9091"
+    volumes:
+      - ./volumes/milvus:/var/lib/milvus
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - ultrarag-net
+
+  vllm-llm:
+    container_name: ultrarag-vllm-llm
+    image: vllm/vllm-openai:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    gpus: all
+    ipc: host
+    ports:
+      - "${LLM_API_PORT:-8000}:8000"
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --model
+      - "${LLM_MODEL_PATH}"
+      - --served-model-name
+      - "${LLM_MODEL_NAME}"
+      - --dtype
+      - "${LLM_DTYPE:-auto}"
+      - --max-model-len
+      - "${LLM_MAX_MODEL_LEN:-32768}"
+      - --gpu-memory-utilization
+      - "${LLM_GPU_MEMORY_UTILIZATION:-0.9}"
+      - --trust-remote-code
+    networks:
+      - ultrarag-net
+
+  vllm-emb:
+    container_name: ultrarag-vllm-emb
+    image: vllm/vllm-openai:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    gpus: all
+    ipc: host
+    ports:
+      - "${EMB_API_PORT:-8001}:8000"
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --task
+      - embed
+      - --model
+      - "${EMB_MODEL_PATH}"
+      - --served-model-name
+      - "${EMB_MODEL_NAME}"
+      - --dtype
+      - "${EMB_DTYPE:-auto}"
+      - --gpu-memory-utilization
+      - "${EMB_GPU_MEMORY_UTILIZATION:-0.8}"
+      - --trust-remote-code
+    networks:
+      - ultrarag-net
+
+networks:
+  ultrarag-net:
+    name: ultrarag-net
