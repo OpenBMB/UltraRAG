@@ -33,3 +33,5 @@ servers/*/server.yaml
 
 # Python package metadata
 src/*.egg-info/
+
+docker/volumes/

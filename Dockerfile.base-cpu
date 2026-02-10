@@ -19,7 +19,7 @@ RUN apt-get update && \
 WORKDIR /ultrarag
 COPY . .
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --extra evaluation
 
 EXPOSE 5050
 
