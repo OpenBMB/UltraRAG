@@ -11,43 +11,44 @@ Less Code, Lower Barrier, Faster Deployment
 </h3>
 
 <p align="center">
-| 
-<a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><b>Documentation</b></a> 
-| 
-<a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><b>Dataset</b></a> 
-| 
-<a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><b>Paper Daily</b></a> 
-| 
-<a href="./docs/README_zh.md"><b>简体中文</b></a>
-|
-<b>English</b>
-|
+<a href="https://trendshift.io/repositories/18747" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18747" alt="OpenBMB%2FUltraRAG | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+</p>
+
+<p align="center">
+  <a href="https://ultrarag.github.io/"><img src="https://img.shields.io/badge/Homepage-4285F4?style=for-the-badge&logoColor=white" alt="Homepage"/></a>&nbsp;
+  <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><img src="https://img.shields.io/badge/Documentation-2ea44f?style=for-the-badge&logo=bookstack&logoColor=white" alt="Documentation"/></a>&nbsp;
+  <a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><img src="https://img.shields.io/badge/Dataset-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Dataset"/></a>&nbsp;
+  <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><img src="https://img.shields.io/badge/Paper_Daily-7C4DFF?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper Daily"/></a>
+</p>
+
+<p align="center">
+  <a href="./docs/README_zh.md"><b>简体中文</b></a> &nbsp;|&nbsp; <b>English</b>
 </p>
 
 ---
 
-*Latest News* 🔥
 
-- [2026.01.23] 🎉 UltraRAG 3.0 Released: Say no to "black box" development—make every line of reasoning logic clearly visible 👉|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/ultrarag3_0.md)|
-- [2026.01.20] 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced 👉 |[🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)|
+**Latest News** 🔥
+
+- **[2026.01.23]** 🎉 UltraRAG 3.0 Released: Say no to "black box" development—make every line of reasoning logic clearly visible 👉 [📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/ultrarag3_0.md)
+- **[2026.01.20]** 🎉 AgentCPM-Report Model Released! DeepResearch is finally localized: 8B on-device writing agent AgentCPM-Report is open-sourced 👉 [🤗 Model](https://huggingface.co/openbmb/AgentCPM-Report)
 
 <details>
-<summary>Previous News</summary>
+<summary><b>Previous News</b></summary>
+<br>
 
-- [2025.11.11] 🎉 UltraRAG 2.1 Released: Enhanced knowledge ingestion & multimodal support, with a more complete unified evaluation system!
-- [2025.09.23] New daily RAG paper digest, updated every day 👉 |[📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)|
-- [2025.09.09] Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM)|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)|
-- [2025.09.01] Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 |[📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710)|[📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)|
-- [2025.08.28] 🎉 UltraRAG 2.0 Released! UltraRAG 2.0 is fully upgraded: build a high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation! We have preserved the UltraRAG v2 code, which can be viewed at [v2](https://github.com/OpenBMB/UltraRAG/tree/v2).
-- [2025.01.23] UltraRAG Released! Enabling large models to better comprehend and utilize knowledge bases. The UltraRAG 1.0 code is still available at [v1](https://github.com/OpenBMB/UltraRAG/tree/v1).
+- **[2025.11.11]** 🎉 UltraRAG 2.1 Released: Enhanced knowledge ingestion & multimodal support, with a more complete unified evaluation system!
+- **[2025.09.23]** New daily RAG paper digest, updated every day 👉 [📖 Papers](https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily)
+- **[2025.09.09]** Released a Lightweight DeepResearch Pipeline local setup tutorial 👉 [📺 bilibili](https://www.bilibili.com/video/BV1p8JfziEwM) · [📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/01_build_light_deepresearch.md)
+- **[2025.09.01]** Released a step-by-step UltraRAG installation and full RAG walkthrough video 👉 [📺 bilibili](https://www.bilibili.com/video/BV1B9apz4E7K/?share_source=copy_web&vd_source=7035ae721e76c8149fb74ea7a2432710) · [📖 Blog](https://github.com/OpenBMB/UltraRAG/blob/page/project/blog/en/00_Installing_and_Running_RAG.md)
+- **[2025.08.28]** 🎉 UltraRAG 2.0 Released! UltraRAG 2.0 is fully upgraded: build a high-performance RAG with just a few dozen lines of code, empowering researchers to focus on ideas and innovation! We have preserved the UltraRAG v2 code, which can be viewed at [v2](https://github.com/OpenBMB/UltraRAG/tree/v2).
+- **[2025.01.23]** UltraRAG Released! Enabling large models to better comprehend and utilize knowledge bases. The UltraRAG 1.0 code is still available at [v1](https://github.com/OpenBMB/UltraRAG/tree/v1).
 
 </details>
 
 ---
 
-## About UltraRAG
-
-<a href="https://trendshift.io/repositories/18747" target="_blank"><img src="https://trendshift.io/api/badge/repositories/18747" alt="OpenBMB%2FUltraRAG | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+## 💡 About UltraRAG
 
 UltraRAG is the first lightweight RAG development framework based on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/docs/getting-started/intro) architecture design, jointly launched by [THUNLP](https://nlp.csai.tsinghua.edu.cn/) at Tsinghua University, [NEUIR](https://neuir.github.io) at Northeastern University, [OpenBMB](https://www.openbmb.cn/home), and [AI9stars](https://github.com/AI9Stars).
 
@@ -55,11 +56,11 @@ Designed for research exploration and industrial prototyping, UltraRAG standardi
 
 <p align="center">
   <picture>
-    <img alt="UltraRAG" src="./docs/architecture.png" width=90%>
+    <img alt="UltraRAG Architecture" src="./docs/architecture.png" width=90%>
   </picture>
 </p>
 
-### UltraRAG UI
+### 🖥️ UltraRAG UI
 
 UltraRAG UI transcends the boundaries of traditional chat interfaces, evolving into a visual RAG Integrated Development Environment (IDE) that combines orchestration, debugging, and demonstration.
 
@@ -75,22 +76,44 @@ The system features a powerful built-in Pipeline Builder that supports bidirecti
 https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
 
 
-### Key Highlights
+### ✨ Key Highlights
 
-- 🚀 **Low-Code Orchestration of Complex Workflows**  
-  - **Inference Orchestration**: Natively supports control structures such as sequential, loop, and conditional branches. Developers only need to write YAML configuration files to implement complex iterative RAG logic in dozens of lines of code.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-- ⚡ **Modular Extension and Reproduction**
-	- **Atomic Servers**: Based on the MCP architecture, functions are decoupled into independent Servers. New features only need to be registered as function-level Tools to seamlessly integrate into workflows, achieving extremely high reusability.
+**🚀 Low-Code Orchestration of Complex Workflows**
 
-- 📊 **Unified Evaluation and Benchmark Comparison**  
-  - **Research Efficiency**: Built-in standardized evaluation workflows, ready-to-use mainstream research benchmarks. Through unified metric management and baseline integration, significantly improves experiment reproducibility and comparison efficiency.  
-	
-- ✨ **Rapid Interactive Prototype Generation**  
-  - **One-Click Delivery**: Say goodbye to tedious UI development. With just one command, Pipeline logic can be instantly converted into an interactive conversational Web UI, shortening the distance from algorithm to demonstration.  
+**Inference Orchestration**: Natively supports control structures such as sequential, loop, and conditional branches. Developers only need to write YAML configuration files to implement complex iterative RAG logic in dozens of lines of code.
 
+</td>
+<td width="50%" valign="top">
 
-## Installation
+**⚡ Modular Extension and Reproduction**
+
+**Atomic Servers**: Based on the MCP architecture, functions are decoupled into independent Servers. New features only need to be registered as function-level Tools to seamlessly integrate into workflows, achieving extremely high reusability.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**📊 Unified Evaluation and Benchmark Comparison**
+
+**Research Efficiency**: Built-in standardized evaluation workflows, ready-to-use mainstream research benchmarks. Through unified metric management and baseline integration, significantly improves experiment reproducibility and comparison efficiency.
+
+</td>
+<td width="50%" valign="top">
+
+**🎯 Rapid Interactive Prototype Generation**
+
+**One-Click Delivery**: Say goodbye to tedious UI development. With just one command, Pipeline logic can be instantly converted into an interactive conversational Web UI, shortening the distance from algorithm to demonstration.
+
+</td>
+</tr>
+</table>
+
+## 📦 Installation
 
 We provide two installation methods: local source code installation (recommended using `uv` for package management) and Docker container deployment
 
@@ -212,24 +235,24 @@ Hello, UltraRAG v3!
 ```
 
 
-## Quick Start
+## 🚀 Quick Start
 
 We provide complete tutorial examples from beginner to advanced. Whether you are conducting academic research or building industrial applications, you can find guidance here. Welcome to visit the [Documentation](https://ultrarag.openbmb.cn/pages/en/getting_started/introduction) for more details.
 
-### Research Experiments
+### 🔬 Research Experiments
 Designed for researchers, providing data, experimental workflows, and visualization analysis tools.
 - [Getting Started](https://ultrarag.openbmb.cn/pages/en/getting_started/quick_start): Learn how to quickly run standard RAG experimental workflows based on UltraRAG.
 - [Evaluation Data](https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset): Download the most commonly used public evaluation datasets in the RAG field and large-scale retrieval corpora, directly for research benchmark testing.
 - [Case Analysis](https://ultrarag.openbmb.cn/pages/en/develop_guide/case_study): Provides a visual Case Study interface to deeply track each intermediate output of the workflow, assisting in analysis and error attribution.
 - [Code Integration](https://ultrarag.openbmb.cn/pages/en/develop_guide/code_integration): Learn how to directly call UltraRAG components in Python code to achieve more flexible customized development.
 
-### Demo Systems
+### 🛠️ Demo Systems
 Designed for developers and end users, providing complete UI interaction and complex application cases.
 - [Quick Start](https://ultrarag.openbmb.cn/pages/en/ui/start): Learn how to start UltraRAG UI and familiarize yourself with various advanced configurations in administrator mode.
 - [Deployment Guide](https://ultrarag.openbmb.cn/pages/en/ui/prepare): Detailed production environment deployment tutorials, covering the setup of Retriever, Generation models (LLM), and Milvus vector database.
 - [Deep Research](https://ultrarag.openbmb.cn/pages/en/demo/deepresearch): Flagship case, deploy a Deep Research Pipeline. Combined with the AgentCPM-Report model, it can automatically perform multi-step retrieval and integration to generate tens of thousands of words of survey reports.
 
-## Contributing
+## 🤝 Contributing
 
 Thanks to the following contributors for their code submissions and testing. We also welcome new members to join us in collectively building a comprehensive RAG ecosystem!
 
@@ -239,7 +262,7 @@ You can contribute by following the standard process: **Fork this repository →
   <img src="https://contrib.rocks/image?repo=OpenBMB/UltraRAG&nocache=true" />
 </a>
 
-## Support Us
+## ⭐ Support Us
 
 If you find this repository helpful for your research, please consider giving us a ⭐ to show your support.
 
@@ -251,7 +274,7 @@ If you find this repository helpful for your research, please consider giving us
  </picture>
 </a>
 
-## Contact Us
+## 💬 Contact Us
 
 - For technical issues and feature requests, please use [GitHub Issues](https://github.com/OpenBMB/UltraRAG/issues).
 - For questions about usage, feedback, or any discussions related to RAG technologies, you are welcome to join our [WeChat group](https://github.com/OpenBMB/UltraRAG/blob/main/docs/wechat_qr.png), [Feishu group](https://github.com/OpenBMB/UltraRAG/blob/main/docs/feishu_qr.png), and [Discord](https://discord.gg/yRFFjjJnnS) to exchange ideas with us.
@@ -269,7 +292,7 @@ If you find this repository helpful for your research, please consider giving us
     </td>
     <td align="center">
       <a href="https://discord.gg/yRFFjjJnnS">
-        <img src="https://img.shields.io/badge/Discord-5865F2?logo=discord&logoColor=white" alt="Join Discord"/>
+        <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join Discord"/>
       </a><br/>
       <b>Discord</b>
   </td>
