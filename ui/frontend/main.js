@@ -7239,13 +7239,39 @@ window.loadTaskToChat = async function (taskId, target = 'current') {
             }
         }
 
+        // If currently generating, ask the user to confirm interruption first
+        if (state.chat.running) {
+            const confirmed = await showConfirm(
+                t("chat_interrupt_message"),
+                {
+                    title: t("chat_interrupt_title"),
+                    type: "warning",
+                    confirmText: t("chat_interrupt_confirm"),
+                    danger: true
+                }
+            );
+            if (!confirmed) {
+                return; // User cancelled — do not interrupt, do not load
+            }
+            // User confirmed: abort the running generation
+            if (state.chat.controller) {
+                state.chat.controller.abort();
+                state.chat.controller = null;
+            }
+            setChatRunning(false);
+        }
+
         if (target === 'new') {
             if (state.chat.history.length > 0) {
                 saveCurrentSession(true);
             }
-            createNewChatSession();
+            // Directly create new session without going through createNewChatSession()
+            // to avoid its redundant running check and interrupt dialog
+            state.chat.currentSessionId = generateChatId();
+            state.chat.history = [];
         } else if (!state.chat.currentSessionId) {
-            createNewChatSession();
+            state.chat.currentSessionId = generateChatId();
+            state.chat.history = [];
         }
 
         const createdAt = task.created_at ? new Date(task.created_at * 1000).toISOString() : new Date().toISOString();
