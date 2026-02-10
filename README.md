@@ -15,10 +15,10 @@ Less Code, Lower Barrier, Faster Deployment
 </p>
 
 <p align="center">
-  <a href="https://ultrarag.github.io/"><img src="https://img.shields.io/badge/Homepage-4285F4?style=for-the-badge&logoColor=white" alt="Homepage"/></a>&nbsp;
-  <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><img src="https://img.shields.io/badge/Documentation-2ea44f?style=for-the-badge&logo=bookstack&logoColor=white" alt="Documentation"/></a>&nbsp;
-  <a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><img src="https://img.shields.io/badge/Dataset-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="Dataset"/></a>&nbsp;
-  <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><img src="https://img.shields.io/badge/Paper_Daily-7C4DFF?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper Daily"/></a>
+  <a href="https://ultrarag.github.io/"><img src="https://img.shields.io/badge/Homepage-6ABED8?style=for-the-badge&logoColor=white" alt="Homepage"/></a>&nbsp;
+  <a href="https://ultrarag.openbmb.cn/pages/en/getting_started/introduction"><img src="https://img.shields.io/badge/Documentation-66B89E?style=for-the-badge&logo=bookstack&logoColor=white" alt="Documentation"/></a>&nbsp;
+  <a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><img src="https://img.shields.io/badge/Dataset-DE8EA6?style=for-the-badge&logo=databricks&logoColor=white" alt="Dataset"/></a>&nbsp;
+  <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><img src="https://img.shields.io/badge/Paper_Daily-A48BC8?style=for-the-badge&logo=arxiv&logoColor=white" alt="Paper Daily"/></a>
 </p>
 
 <p align="center">

@@ -15,10 +15,10 @@
 </p>
 
 <p align="center">
-  <a href="https://ultrarag.github.io/"><img src="https://img.shields.io/badge/主页-4285F4?style=for-the-badge&logoColor=white" alt="主页"/></a>&nbsp;
-  <a href="https://ultrarag.openbmb.cn"><img src="https://img.shields.io/badge/教程文档-2ea44f?style=for-the-badge&logo=bookstack&logoColor=white" alt="教程文档"/></a>&nbsp;
-  <a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><img src="https://img.shields.io/badge/数据集-FF6D00?style=for-the-badge&logo=databricks&logoColor=white" alt="数据集"/></a>&nbsp;
-  <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><img src="https://img.shields.io/badge/每日论文-7C4DFF?style=for-the-badge&logo=arxiv&logoColor=white" alt="每日论文"/></a>
+  <a href="https://ultrarag.github.io/"><img src="https://img.shields.io/badge/主页-6ABED8?style=for-the-badge&logoColor=white" alt="主页"/></a>&nbsp;
+  <a href="https://ultrarag.openbmb.cn"><img src="https://img.shields.io/badge/教程文档-66B89E?style=for-the-badge&logo=bookstack&logoColor=white" alt="教程文档"/></a>&nbsp;
+  <a href="https://modelscope.cn/datasets/UltraRAG/UltraRAG_Benchmark"><img src="https://img.shields.io/badge/数据集-DE8EA6?style=for-the-badge&logo=databricks&logoColor=white" alt="数据集"/></a>&nbsp;
+  <a href="https://github.com/OpenBMB/UltraRAG/tree/rag-paper-daily/rag-paper-daily"><img src="https://img.shields.io/badge/每日论文-A48BC8?style=for-the-badge&logo=arxiv&logoColor=white" alt="每日论文"/></a>
 </p>
 
 <p align="center">
