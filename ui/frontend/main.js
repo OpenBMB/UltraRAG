@@ -3183,6 +3183,43 @@ function appendChatMessage(role, text, meta = {}) {
     saveCurrentSession();
 }
 
+// Renumber citations: remap absolute doc IDs to sequential 1-based IDs by order of first appearance.
+// Duplicate citations keep the same new number. Also updates sources' displayId accordingly.
+// Uncited sources are assigned IDs continuing after the last cited one to avoid collisions.
+function renumberCitations(text, sources) {
+    if (!text) return { text, sources: sources || [], idMap: {} };
+    const regex = /\[(\d+)\]/g;
+    const idMap = {};
+    let counter = 1, match;
+    // First pass: build originalId -> newId mapping by order of appearance in text
+    while ((match = regex.exec(text)) !== null) {
+        const origId = parseInt(match[1], 10);
+        if (!(origId in idMap)) idMap[origId] = counter++;
+    }
+    // If no citations found, skip replacement
+    if (counter === 1) return { text, sources: sources || [], idMap };
+    // Second pass: replace citation numbers in text
+    const newText = text.replace(/\[(\d+)\]/g, (m, p1) => {
+        const origId = parseInt(p1, 10);
+        return origId in idMap ? `[${idMap[origId]}]` : m;
+    });
+    // Update ALL sources' displayId:
+    // - Cited sources get their mapped IDs (1, 2, 3, ...)
+    // - Uncited sources get sequential IDs starting after the last cited one
+    //   to avoid displayId collisions with remapped cited sources
+    const newSources = (sources || []).map(src => {
+        const origId = src.displayId || src.id;
+        if (origId in idMap) {
+            return { ...src, displayId: idMap[origId] };
+        } else {
+            const newId = counter++;
+            idMap[origId] = newId;
+            return { ...src, displayId: newId };
+        }
+    });
+    return { text: newText, sources: newSources, idMap };
+}
+
 function formatCitationHtml(html, messageIdx = null) {
     if (!html) return "";
     // Add onclick="scrollToReference(1, messageIdx)"
@@ -3249,8 +3286,12 @@ function renderChatHistory() {
         const content = document.createElement("div");
         content.className = "msg-content";
 
+        // Renumber citations once for assistant messages (reused for rendering, copy, and sources)
+        let renumbered = null;
         if (entry.role === "assistant") {
-            let htmlContent = renderMarkdown(entry.text || "", { unwrapLanguages: MARKDOWN_LANGS });
+            renumbered = renumberCitations(entry.text || "", entry.meta?.sources);
+
+            let htmlContent = renderMarkdown(renumbered.text, { unwrapLanguages: MARKDOWN_LANGS });
             content.innerHTML = formatCitationHtml(htmlContent, index);
             renderLatex(content);
             applyCodeHighlight(content);
@@ -3273,22 +3314,22 @@ function renderChatHistory() {
             renderStepsFromHistory(bubble, entry.meta.steps, entry.meta.interrupted);
         }
 
-        // Copy original text button (placed before citations)
+        // Copy button uses renumbered text for assistant
         if (entry.role === "assistant") {
-            ensureChatCopyRow(bubble, entry.text || "");
+            ensureChatCopyRow(bubble, renumbered.text);
         }
 
-        // Render citation cards at bottom
-        if (entry.meta && entry.meta.sources) {
-            // Calculate which citations are used
+        // Render citation cards at bottom with renumbered sources
+        if (entry.role === "assistant" && entry.meta && entry.meta.sources && renumbered) {
+            // Calculate which citations are used (from renumbered text)
             const usedIds = new Set();
             const regex = /\[(\d+)\]/g;
             let match;
-            while ((match = regex.exec(entry.text || "")) !== null) {
+            while ((match = regex.exec(renumbered.text)) !== null) {
                 usedIds.add(parseInt(match[1], 10));
             }
 
-            renderSources(bubble, entry.meta.sources, usedIds);
+            renderSources(bubble, renumbered.sources, usedIds);
         }
 
         // Debug information (Hint) disabled, no longer showing Dataset/Memory paths
@@ -3709,7 +3750,7 @@ window.scrollToReference = function (refId, messageIdx = null) {
         // 4. Open right sidebar to show details
         if (target._sourceData) {
             const src = target._sourceData;
-            showSourceDetail(`Reference [${src.id}]`, src.content);
+            showSourceDetail(`Reference [${src.displayId || src.id}]`, src.content);
         }
     }
 };
@@ -4255,27 +4296,31 @@ async function handleChatSubmit(event) {
                         else if (data.type === "final") {
                             const final = data.data;
                             let finalText = currentText || final.answer || "";
-                            let html = renderMarkdown(finalText, { unwrapLanguages: MARKDOWN_LANGS });
+
+                            // Renumber citations: remap absolute IDs to sequential 1-based IDs
+                            const renumbered = renumberCitations(finalText, allSources);
+
+                            let html = renderMarkdown(renumbered.text, { unwrapLanguages: MARKDOWN_LANGS });
                             html = formatCitationHtml(html, entryIndex);
                             contentDiv.innerHTML = html;
                             renderLatex(contentDiv);
                             applyCodeHighlight(contentDiv);
                             applyTableEnhancements(contentDiv);
 
-                            // Calculate which citations are used
+                            // Calculate which citations are used (from renumbered text)
                             const usedIds = new Set();
                             const regex = /\[(\d+)\]/g;
                             let match;
-                            while ((match = regex.exec(finalText)) !== null) {
+                            while ((match = regex.exec(renumbered.text)) !== null) {
                                 usedIds.add(parseInt(match[1], 10));
                             }
 
-                            // Copy original text button (before citations)
-                            ensureChatCopyRow(bubble, finalText);
+                            // Copy button uses renumbered text
+                            ensureChatCopyRow(bubble, renumbered.text);
 
-                            // Render reference cards (used ones on top, unused ones collapsed)
+                            // Render reference cards with renumbered sources
                             if (pendingRenderSources && pendingRenderSources.length > 0) {
-                                renderSources(bubble, pendingRenderSources, usedIds);
+                                renderSources(bubble, renumbered.sources, usedIds);
                             }
 
                             if (shouldAutoScroll) {
