@@ -91,6 +91,105 @@ def launch_ui(
         ) from exc
 
 
+def launch_case_study(
+    config_path: Optional[str] = None,
+    host: str = "127.0.0.1",
+    port: int = 8080,
+) -> None:
+    """Launch Case Study Viewer service.
+
+    Args:
+        config_path: Path to a specific data file (.json / .jsonl).
+                     If not provided, scans the output/ folder for memory_*.json files.
+        host: Server host address (default: "127.0.0.1")
+        port: Server port (default: 8080)
+
+    Raises:
+        RuntimeError: If case study module cannot be loaded or no data files found
+    """
+    import glob as glob_mod
+
+    project_root = Path(__file__).resolve().parents[2]
+    script_dir = str(project_root / "script")
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+
+    try:
+        from case_study import (
+            app as case_app,
+            STATE,
+            load_cases,
+            _expand_cases_if_needed,
+            _collect_image_dirs,
+        )
+    except Exception as exc:
+        raise RuntimeError(
+            "Failed to load the Case Study module. "
+            "Please ensure the `script/case_study.py` file exists and is importable."
+        ) from exc
+
+    import uvicorn
+    from fastapi.middleware.cors import CORSMiddleware
+
+    # Determine data files
+    if config_path:
+        abs_path = os.path.abspath(config_path)
+        if not os.path.exists(abs_path):
+            raise RuntimeError(f"Data file not found: {abs_path}")
+        data_files = [abs_path]
+    else:
+        output_dir = os.path.join(os.getcwd(), "output")
+        if not os.path.isdir(output_dir):
+            raise RuntimeError(
+                f"Output directory not found: {output_dir}. "
+                "Please provide --config_path or ensure the output/ folder exists."
+            )
+        pattern = os.path.join(output_dir, "memory_*.json")
+        data_files = sorted(
+            glob_mod.glob(pattern), key=os.path.getmtime, reverse=True
+        )
+        if not data_files:
+            raise RuntimeError(
+                f"No memory_*.json files found in {output_dir}. "
+                "Please provide --config_path or run a pipeline first to generate output."
+            )
+
+    STATE.data_files = data_files
+    STATE.data_path = data_files[0]
+    STATE.title = "Case Study Viewer"
+
+    try:
+        STATE.cases = _expand_cases_if_needed(load_cases(STATE.data_path))
+    except Exception as e:
+        raise RuntimeError(f"Failed to load case data: {e}") from e
+
+    STATE.static_roots = _collect_image_dirs(STATE.cases)
+
+    case_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    case_logger = logging.getLogger("UltraRAG-CaseStudy")
+    case_logger.info(
+        "Case Study Viewer started: http://%s:%d/ (%d files, %d cases from %s)",
+        host,
+        port,
+        len(data_files),
+        len(STATE.cases),
+        STATE.data_path,
+    )
+
+    try:
+        uvicorn.run(case_app, host=host, port=port)
+    except OSError as exc:
+        raise RuntimeError(
+            f"Failed to start Case Study Viewer (host={host}, port={port}): {exc}"
+        ) from exc
+
+
 class Configuration:
     """Configuration manager for loading environment variables and YAML files."""
 
@@ -1915,6 +2014,18 @@ def main() -> None:
         action="store_true",
         help="Launch full admin UI with pipeline builder (default: chat-only mode)",
     )
+
+    p_show_case = show_sub.add_parser("case", help="Launch Case Study Viewer")
+    p_show_case.add_argument(
+        "--config_path",
+        type=str,
+        default=None,
+        help="Path to a data file (.json / .jsonl). "
+        "If not provided, scans the output/ folder for memory_*.json files.",
+    )
+    p_show_case.add_argument("--host", default="127.0.0.1")
+    p_show_case.add_argument("--port", type=int, default=8080)
+
     p_show.add_argument(
         "--log_level",
         type=str,
@@ -1936,6 +2047,12 @@ def main() -> None:
     elif args.cmd == "show":
         if args.show_target == "ui":
             launch_ui(host=args.host, port=args.port, admin_mode=args.admin)
+        elif args.show_target == "case":
+            launch_case_study(
+                config_path=args.config_path,
+                host=args.host,
+                port=args.port,
+            )
         else:
             parser.print_help()
             sys.exit(1)

@@ -17,6 +17,7 @@ app = FastAPI(title="Case Study Viewer Service")
 
 class State:
     data_path: str = ""
+    data_files: List[str] = []
     title: str = "Case Study Viewer"
     cases: List[List[dict]] = []
     static_roots: List[str] = []
@@ -183,131 +184,103 @@ def escape_html(s: str) -> str:
 
 CSS = r"""
 :root {
-  --bg: #0b1020;
-  --card: #131b33;
-  --muted: #99a3c7;
-  --text: #e8ecff;
-  --accent: #7aa2ff;
-  --accent-2: #61d5c7;
-  --border: #273056;
-  --shadow: rgba(0,0,0,0.35);
+  --bg-0: #f7f7f8; --bg-1: #ffffff; --bg-2: #efefef; --bg-3: #e5e5e5;
+  --text-0: #1a1a1a; --text-1: #374151; --text-2: #6b7280;
+  --border: #e3e3e3; --border-h: #d1d1d1;
+  --accent: #2563eb; --accent-d: rgba(37,99,235,.08);
+  --green: #059669; --green-d: rgba(5,150,105,.08);
+  --r: 8px;
 }
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  height: 100%;
-  background: linear-gradient(180deg, #0a0f1f, #0e1330);
-  color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-}
-.container {
-  max-width: 1200px;
-  margin: 24px auto 80px auto;
-  padding: 0 16px;
-}
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  backdrop-filter: blur(8px);
-  background: rgba(10,15,31,0.6);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 16px;
-  display: flex; align-items: center; gap: 12px;
-}
-.title { font-size: 18px; font-weight: 700; letter-spacing: .3px; }
-.counter { color: var(--muted); font-size: 14px; margin-left: auto; }
-.btn {
-  appearance: none; border: 1px solid var(--border);
-  background: linear-gradient(180deg, #162145, #121a36);
-  color: var(--text); padding: 6px 12px; border-radius: 12px;
-  box-shadow: 0 8px 24px var(--shadow); cursor: pointer; font-weight: 600;
-  transition: transform .06s ease, border-color .2s ease;
-}
-.btn:hover { transform: translateY(-1px); border-color: var(--accent); }
-.btn:active { transform: translateY(0); }
-.grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-.card {
-  background: linear-gradient(180deg, #121938, #101630);
-  border: 1px solid var(--border);
-  border-radius: 16px; padding: 14px 14px;
-  box-shadow: 0 12px 40px var(--shadow);
-}
-.badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: linear-gradient(180deg, #182255, #142047);
-  border: 1px solid var(--border);
-  color: var(--accent-2);
-  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
-  letter-spacing: .3px;
-}
-.step-head {
-  display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer; user-select: none;
-}
-.step-name { font-size: 16px; font-weight: 800; }
-.step-meta { color: var(--muted); font-size: 12px; }
-.chev { transition: transform .2s ease; opacity: .8; }
-.chev.open { transform: rotate(90deg); }
-.content { margin-top: 10px; display: none; }
-.content.open { display: block; }
-pre {
-  margin: 0; padding: 12px; border-radius: 12px;
-  background: #0c1125; border: 1px solid var(--border);
-  overflow: auto; font-size: 13px; line-height: 1.55;
-  white-space: pre-wrap; word-wrap: break-word;
-}
-.row { display: grid; grid-template-columns: 180px 1fr; gap: 10px; align-items: start; }
-.key { color: var(--muted); font-weight: 700; padding-top: 6px; }
-.copy {
-  margin-left: 8px; font-size: 11px; padding: 2px 8px;
-  border-radius: 999px; border: 1px solid var(--border);
-  background: #0f1630; color: var(--muted); cursor: pointer;
-}
-.pill {
-  display: inline-block; padding: 2px 8px; font-size: 12px; border-radius: 999px;
-  background: #0d1532; border: 1px solid var(--border); color: var(--accent);
-  margin-left: 8px;
-}
-.muted { color: var(--muted); }
-.small { font-size: 12px; }
-.divider { height: 1px; background: var(--border); margin: 10px 0; opacity: .6; }
-.footer { color: var(--muted); text-align: center; padding: 24px 8px; }
-img.zoomable { cursor: zoom-in; }
-.lightbox {
-  position: fixed;
-  inset: 0;
-  background: rgba(3,5,12,0.88);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  z-index: 999;
-}
-.lightbox.open { display: flex; }
-.lightbox img {
-  max-width: min(92vw, 1200px);
-  max-height: 90vh;
-  width: auto;
-  height: auto;
-  border-radius: 18px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
-  object-fit: contain;
-}
-.lightbox-close {
-  position: absolute;
-  top: 24px; right: 24px;
-  background: rgba(12,17,37,0.9);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 18px;
-  cursor: pointer;
-  letter-spacing: 0.6px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-}
-.lightbox-close:hover { border-color: var(--accent); }
-body.lightbox-open { overflow: hidden; }
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{min-height:100%;background:var(--bg-0);color:var(--text-0);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans',Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.topbar{position:sticky;top:0;z-index:50;
+  background:rgba(255,255,255,.88);backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--border);padding:0 24px}
+.topbar-row{display:flex;align-items:center;gap:10px;height:48px}
+.topbar-title{font-size:15px;font-weight:700;color:var(--text-0);
+  display:flex;align-items:center;gap:8px}
+.topbar-icon{width:20px;height:20px;border-radius:5px;
+  background:linear-gradient(135deg,#58a6ff,#3fb950)}
+.topbar-badge{margin-left:auto;font-size:12px;font-weight:500;color:var(--text-2);
+  background:var(--bg-2);border:1px solid var(--border);padding:2px 10px;border-radius:999px}
+.topbar-sep{width:1px;height:20px;background:var(--border)}
+.btn{appearance:none;border:1px solid var(--border);background:var(--bg-2);color:var(--text-1);
+  padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .12s;white-space:nowrap;line-height:20px}
+.btn:hover:not(:disabled){background:var(--bg-3);border-color:var(--border-h);color:var(--text-0)}
+.btn:active:not(:disabled){background:var(--bg-1)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-group{display:inline-flex}
+.btn-group .btn{border-radius:0;margin-left:-1px}
+.btn-group .btn:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.btn-group .btn:last-child{border-radius:0 6px 6px 0}
+select.file-select{background:var(--bg-2);border:1px solid var(--border);color:var(--text-0);
+  padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;
+  max-width:320px;line-height:20px;transition:border-color .12s}
+select.file-select:hover{border-color:var(--border-h)}
+select.file-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-d)}
+select.file-select option{background:#fff;color:var(--text-0)}
+.container{max-width:960px;margin:0 auto;padding:20px 20px 80px}
+.overview{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:12px}
+.overview-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.overview-label{font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:.4px}
+.overview-count{font-size:12px;color:var(--text-2)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.flow-chip{font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;
+  background:var(--accent-d);color:var(--accent);border:1px solid rgba(56,139,253,.15)}
+.flow-arr{color:var(--text-2);font-size:10px;padding:0 2px}
+.step-card{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r);
+  margin-bottom:8px;overflow:hidden;transition:border-color .12s}
+.step-card:hover{border-color:var(--border-h)}
+.step-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;user-select:none}
+.step-num{width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;flex-shrink:0;background:var(--accent-d);color:var(--accent);
+  font-size:12px;font-weight:700}
+.step-info{flex:1;min-width:0}
+.step-title{font-size:13px;font-weight:600;color:var(--text-0);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step-sub{font-size:11px;color:var(--text-2);margin-top:1px}
+.step-chev{color:var(--text-2);font-size:10px;transition:transform .2s ease;flex-shrink:0}
+.step-chev.open{transform:rotate(90deg)}
+.step-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease}
+.step-body.open{grid-template-rows:1fr}
+.step-body-inner{overflow:hidden}
+.step-body.open .step-body-inner{padding:0 16px 14px;border-top:1px solid var(--border)}
+.mem-item{margin-top:12px}
+.mem-item:first-child{margin-top:10px}
+.mem-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.mem-key{font-size:12px;font-weight:600;color:var(--green);
+  font-family:'SF Mono','Cascadia Code',Consolas,monospace}
+.copy-btn{appearance:none;border:1px solid var(--border);background:transparent;color:var(--text-2);
+  padding:1px 8px;border-radius:4px;font-size:11px;cursor:pointer;transition:all .12s}
+.copy-btn:hover{border-color:var(--border-h);color:var(--text-0);background:var(--bg-3)}
+.mem-val{margin:0;padding:10px 12px;background:var(--bg-0);border:1px solid var(--border);
+  border-radius:6px;font-family:'SF Mono','Cascadia Code',Consolas,monospace;
+  font-size:12px;line-height:1.6;color:var(--text-0);
+  white-space:pre-wrap;word-wrap:break-word;overflow:auto;max-height:420px}
+img.zoomable{cursor:zoom-in;border-radius:6px;display:block}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.img-wrap{background:var(--bg-0);border:1px solid var(--border);border-radius:6px;padding:4px;overflow:hidden}
+.img-wrap img{width:100%;height:120px;object-fit:cover;border-radius:4px;display:block}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.5);
+  display:none;align-items:center;justify-content:center;padding:40px;z-index:999}
+.lightbox.open{display:flex}
+.lightbox img{max-width:min(92vw,1200px);max-height:90vh;width:auto;height:auto;
+  border-radius:10px;box-shadow:0 24px 64px rgba(0,0,0,.25);object-fit:contain}
+.lightbox-close{position:absolute;top:20px;right:20px;
+  background:rgba(255,255,255,.92);border:1px solid var(--border);color:var(--text-0);
+  border-radius:6px;font-size:12px;font-weight:600;padding:4px 14px;cursor:pointer}
+.lightbox-close:hover{border-color:var(--accent)}
+body.lightbox-open{overflow:hidden}
+.footer{text-align:center;padding:20px;font-size:12px;color:var(--text-2)}
+.footer a{color:var(--accent);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+.empty{text-align:center;padding:60px 20px;color:var(--text-2)}
 """
 
 INDEX_HTML = r"""<!doctype html>
@@ -320,12 +293,17 @@ INDEX_HTML = r"""<!doctype html>
 </head>
 <body>
   <div class="topbar">
-    <div class="title">{title}</div>
-    <div style="display:flex;gap:8px;margin-left:12px;">
-      <button id="prev" class="btn">← 上一条</button>
-      <button id="next" class="btn">下一条 →</button>
+    <div class="topbar-row">
+      <div class="topbar-title"><div class="topbar-icon"></div>{title}</div>
+      <select id="file-select" class="file-select" title="选择数据文件"></select>
+      <div class="topbar-sep"></div>
+      <div class="btn-group">
+        <button id="prev" class="btn">← 上一条</button>
+        <button id="next" class="btn">下一条 →</button>
+      </div>
+      <button id="toggle-all" class="btn">全部展开</button>
+      <div class="topbar-badge" id="counter">Case 1 / 1</div>
     </div>
-    <div id="counter" class="counter">Case 1 / 1</div>
   </div>
 
   <div class="container">
@@ -337,12 +315,12 @@ INDEX_HTML = r"""<!doctype html>
     <button id="lightbox-close" class="lightbox-close" type="button">关闭 ✕</button>
   </div>
 
-  <div class="footer small">
-    Tips：点击步骤标题可折叠/展开；支持键盘 ← → 切换；URL 支持 #case-<index> 直达；<a href="/api/reload" style="color:#7aa2ff;text-decoration:none;">/api/reload</a> 可热加载最新数据。
+  <div class="footer">
+    键盘 ← → 切换 Case &#183; 点击步骤展开/收起 &#183; 顶部切换数据文件 &#183; <a href="/api/reload">/api/reload</a> 热加载
   </div>
 
 <script>
-const state = { idx: 0, cases: [] };
+const state = { idx: 0, cases: [], files: [], currentFile: '' };
 let lightboxEl = null;
 let lightboxImgEl = null;
 let lightboxCloseBtn = null;
@@ -407,6 +385,46 @@ async function fetchCases() {
   state.cases = data.cases || [];
 }
 
+async function fetchFiles() {
+  try {
+    const res = await fetch('/api/files');
+    if (!res.ok) return;
+    const data = await res.json();
+    state.files = data.files || [];
+    state.currentFile = data.current || '';
+    const sel = $('#file-select');
+    if (!sel) return;
+    sel.innerHTML = '';
+    state.files.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.path;
+      opt.textContent = f.name;
+      if (f.path === state.currentFile) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if (state.files.length <= 1) sel.style.display = 'none';
+    else sel.style.display = '';
+  } catch (e) {
+    console.warn('fetchFiles error:', e);
+  }
+}
+
+async function switchFile(filePath) {
+  const sel = $('#file-select');
+  if (sel) sel.disabled = true;
+  try {
+    const res = await fetch('/api/switch?file=' + encodeURIComponent(filePath));
+    if (!res.ok) { alert('切换文件失败'); return; }
+    state.currentFile = filePath;
+    await fetchCases();
+    state.idx = 0;
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } finally {
+    if (sel) sel.disabled = false;
+  }
+}
+
 function parseHash() {
   if (location.hash.startsWith("#case-")) {
     const n = parseInt(location.hash.replace("#case-", ""), 10);
@@ -419,13 +437,13 @@ function setHash() {
 }
 
 function render() {
-  const container = $("#cases");
-  let idx = state.idx;
-  const casesCount = Array.isArray(state.cases) ? state.cases.length : 0;
+  var container = $("#cases");
+  var idx = state.idx;
+  var casesCount = Array.isArray(state.cases) ? state.cases.length : 0;
 
   if (casesCount === 0) {
-    $("#counter").textContent = `Case 0 / 0`;
-    container.innerHTML = '<div class="card"><div class="muted small">没有加载到任何 case（/api/cases 返回为空）。</div></div>';
+    $("#counter").textContent = "Case 0 / 0";
+    container.innerHTML = '<div class="empty">没有加载到任何 case</div>';
     $("#prev").disabled = true;
     $("#next").disabled = true;
     return;
@@ -434,226 +452,138 @@ function render() {
   if (idx < 0) idx = 0;
   if (idx > casesCount - 1) idx = casesCount - 1;
   state.idx = idx;
+  $("#counter").textContent = "Case " + (idx + 1) + " / " + casesCount;
 
-  $("#counter").textContent = `Case ${idx+1} / ${casesCount}`;
+  var steps = state.cases[idx] || [];
+  var frag = document.createDocumentFragment();
 
-  const steps = state.cases[idx] || [];
-  const caseBox = document.createElement("div");
+  /* ---- Overview card ---- */
+  var ov = document.createElement("div"); ov.className = "overview";
+  var names = steps.map(function(s){ return (s && s.step) ? s.step : "unknown"; });
+  ov.innerHTML = '<div class="overview-head"><span class="overview-label">Pipeline</span>' +
+    '<span class="overview-count">' + steps.length + ' steps</span></div>' +
+    '<div class="flow">' +
+    names.map(function(n){ return '<span class="flow-chip">' + escapeHtml(n) + '</span>'; })
+         .join('<span class="flow-arr">\u2192</span>') + '</div>';
+  frag.appendChild(ov);
 
-  const stepNames = steps.map(s => (s && s.step) ? s.step : "unknown");
-  const summaryCard = document.createElement("div");
-  summaryCard.className = "card";
-  summaryCard.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div class="step-name">步骤概览</div>
-      <div class="muted small">共 ${steps.length} 步</div>
-    </div>
-    <div class="divider"></div>
-    <div class="muted small">${stepNames.map(n => `<span class="pill">${escapeHtml(n)}</span>`).join(" ") || "—"}</div>
-  `;
-  caseBox.appendChild(summaryCard);
+  /* ---- Helpers ---- */
+  function isImagePath(p) {
+    if (typeof p !== "string") return false;
+    var s = p.toLowerCase();
+    return s.endsWith(".png")||s.endsWith(".jpg")||s.endsWith(".jpeg")||
+           s.endsWith(".gif")||s.endsWith(".webp")||s.endsWith(".bmp")||s.endsWith(".svg");
+  }
+  function collectImagePaths(v) {
+    var out = [];
+    (function w(x){ if(x==null)return; if(Array.isArray(x)){x.forEach(w);}
+      else if(typeof x==="object"){Object.values(x).forEach(w);}
+      else if(typeof x==="string"&&isImagePath(x)){out.push(x);} })(v);
+    return out;
+  }
+  function isImagesOnly(v) {
+    var ok=true;
+    (function w(x){ if(!ok)return; if(x==null)return; if(Array.isArray(x)){x.forEach(w);}
+      else if(typeof x==="object"){Object.values(x).forEach(w);}
+      else if(typeof x==="string"){if(!isImagePath(x))ok=false;} else{ok=false;} })(v);
+    return ok;
+  }
 
-  steps.forEach((st, i) => {
-    const card = document.createElement("div");
-    card.className = "card";
+  /* ---- Step cards ---- */
+  steps.forEach(function(st, i) {
+    var card = document.createElement("div"); card.className = "step-card";
+    var stepName = String((st && st.step) != null ? st.step : "unknown");
+    var memory = (st && st.memory) != null ? st.memory : {};
+    var memKeys = Object.keys(memory);
+    var isOpen = i < 2;
 
-    const stepName = String((st && st.step) != null ? st.step : "unknown");
-    const memory = (st && st.memory) != null ? st.memory : {};
+    var hdr = document.createElement("div"); hdr.className = "step-header";
+    hdr.innerHTML = '<div class="step-num">' + (i+1) + '</div>' +
+      '<div class="step-info"><div class="step-title">' + escapeHtml(stepName) + '</div>' +
+      '<div class="step-sub">' + memKeys.length + ' memory fields</div></div>' +
+      '<div class="step-chev' + (isOpen ? ' open' : '') + '">\u25B6</div>';
 
-    const head = document.createElement("div");
-    head.className = "step-head";
-    head.innerHTML = `
-      <div>
-        <div class="step-name">${escapeHtml(stepName)}</div>
-        <div class="step-meta">Step ${i+1}</div>
-      </div>
-      <div class="chev ${i < 2 ? "open": ""}">▶</div>
-    `;
+    var body = document.createElement("div");
+    body.className = "step-body" + (isOpen ? " open" : "");
+    var inner = document.createElement("div"); inner.className = "step-body-inner";
 
-    const content = document.createElement("div");
-    content.className = "content " + (i < 2 ? "open" : "");
-
-    const memoryKeys = Object.keys(memory);
-    if (memoryKeys.length === 0) {
-      content.innerHTML = `<div class="muted small">No memory</div>`;
+    if (memKeys.length === 0) {
+      inner.innerHTML = '<div class="mem-item" style="color:var(--text-2);font-size:12px">No memory</div>';
     } else {
-      const wrap = document.createElement("div");
-      wrap.className = "grid";
-      memoryKeys.forEach(function(k){
+      memKeys.forEach(function(k) {
         var val = memory[k];
-        var dataKey = k;  // 当前 case 内唯一 key
+        var item = document.createElement("div"); item.className = "mem-item";
+        var mh = document.createElement("div"); mh.className = "mem-head";
+        var ks = document.createElement("span"); ks.className = "mem-key"; ks.textContent = k;
+        var cb = document.createElement("button"); cb.className = "copy-btn"; cb.textContent = "\u590D\u5236";
+        mh.appendChild(ks); mh.appendChild(cb); item.appendChild(mh);
 
-        const row = document.createElement("div");
-        row.className = "row";
+        var copyText = "";
+        var imgs = collectImagePaths(val);
+        var imagesOnly = isImagesOnly(val);
 
-        // 左侧 key
-        const keyDiv = document.createElement("div");
-        keyDiv.className = "key";
-        keyDiv.textContent = k;
-
-        // 右侧容器
-        const right = document.createElement("div");
-
-        const headBar = document.createElement("div");
-        headBar.style = "display:flex;align-items:center;justify-content:space-between;";
-        const badge = document.createElement("div");
-        badge.className = "badge";
-        badge.textContent = "JSON";
-        const copyBtn = document.createElement("button");
-        copyBtn.className = "copy";
-        copyBtn.setAttribute("data-key", dataKey);
-        copyBtn.textContent = "复制";
-        headBar.appendChild(badge);
-        headBar.appendChild(copyBtn);
-
-        // 内容区域：根据类型决定如何渲染（文本 / 图片 / JSON）
-        function isImagePath(p) {
-          if (typeof p !== "string") return false;
-          const s = p.toLowerCase();
-          return s.endsWith(".png") || s.endsWith(".jpg") || s.endsWith(".jpeg") ||
-                 s.endsWith(".gif") || s.endsWith(".webp") || s.endsWith(".bmp") ||
-                 s.endsWith(".svg");
-        }
-        // 递归收集任意层结构里的图片路径
-        function collectImagePaths(anyVal) {
-          const out = [];
-          (function walk(x) {
-            if (x == null) return;
-            if (Array.isArray(x)) {
-              x.forEach(walk);
-            } else if (typeof x === "object") {
-              Object.values(x).forEach(walk);
-            } else if (typeof x === "string" && isImagePath(x)) {
-              out.push(x);
-            }
-          })(anyVal);
-          return out;
-        }
-        // 判断是否“仅由图片路径组成”的结构（允许对象/数组嵌套，只要叶子都是图片路径）
-        function isImagesOnly(anyVal) {
-          let only = true;
-          (function walk(x) {
-            if (!only) return;
-            if (x == null) return;
-            if (Array.isArray(x)) {
-              x.forEach(walk);
-            } else if (typeof x === "object") {
-              Object.values(x).forEach(walk);
-            } else if (typeof x === "string") {
-              if (!isImagePath(x)) only = false;
-            } else {
-              only = false;
-            }
-          })(anyVal);
-          return only;
-        }
-  
-        right.appendChild(headBar);
-  
-        let copyText = "";
-        const imgs = collectImagePaths(val);
-        const imagesOnly = isImagesOnly(val);
-  
         if (typeof val === "string" && isImagePath(val)) {
-          // 单张图片
           copyText = val;
-          const img = document.createElement("img");
-          const imgSrc = "/file?path=" + encodeURIComponent(val);
-          img.src = imgSrc;
-          img.dataset.fullSrc = imgSrc;
-          img.alt = k;
-          img.style = "max-width:100%; border-radius:12px; display:block;";
-          img.loading = "lazy";
-          attachImageZoom(img, k);
-          right.appendChild(img);
+          var img = document.createElement("img");
+          var imgSrc = "/file?path=" + encodeURIComponent(val);
+          img.src = imgSrc; img.dataset.fullSrc = imgSrc; img.alt = k;
+          img.style = "max-width:100%;border-radius:6px;display:block;margin-top:4px";
+          img.loading = "lazy"; attachImageZoom(img, k); item.appendChild(img);
         } else if (imagesOnly && imgs.length > 0) {
-          // 图片集合（允许任意层嵌套）
           copyText = imgs.join("\n");
-          const grid = document.createElement("div");
-          grid.style = "display:grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap:10px;";
-          imgs.forEach(function(p){
-            const wrapImg = document.createElement("div");
-            wrapImg.style = "background:#0c1125; border:1px solid var(--border); border-radius:12px; padding:6px;";
-            const img = document.createElement("img");
-            const imgSrc = "/file?path=" + encodeURIComponent(p);
-            img.src = imgSrc;
-            img.dataset.fullSrc = imgSrc;
-            img.alt = k;
-            img.style = "width:100%; height:140px; object-fit:cover; border-radius:8px; display:block;";
-            img.loading = "lazy";
-            attachImageZoom(img, k);
-            wrapImg.appendChild(img);
-            grid.appendChild(wrapImg);
+          var grid = document.createElement("div"); grid.className = "img-grid";
+          imgs.forEach(function(p) {
+            var w = document.createElement("div"); w.className = "img-wrap";
+            var img = document.createElement("img");
+            var imgSrc = "/file?path=" + encodeURIComponent(p);
+            img.src = imgSrc; img.dataset.fullSrc = imgSrc; img.alt = k; img.loading = "lazy";
+            attachImageZoom(img, k); w.appendChild(img); grid.appendChild(w);
           });
-          right.appendChild(grid);
+          item.appendChild(grid);
         } else {
-          // 文本 / 其他 JSON
-          const pre = document.createElement("pre");
-          pre.className = "pre-json";
-          pre.setAttribute("data-key", dataKey);
-  
-          let prettyText;
-          if (typeof val === "string") {
-            prettyText = val;
-          } else if (Array.isArray(val) && val.every(function(x){ return typeof x === "string"; })) {
-            prettyText = val.join("\n");
-          } else {
-            try {
-              prettyText = JSON.stringify(val, null, 2);
-            } catch (e) {
-              prettyText = String(val);
-            }
-          }
-          copyText = prettyText;
-          pre.textContent = prettyText;
-          right.appendChild(pre);
+          var pre = document.createElement("pre"); pre.className = "mem-val";
+          var pt;
+          if (typeof val === "string") { pt = val; }
+          else if (Array.isArray(val) && val.every(function(x){ return typeof x === "string"; })) { pt = val.join("\n"); }
+          else { try { pt = JSON.stringify(val, null, 2); } catch(e) { pt = String(val); } }
+          copyText = pt; pre.textContent = pt; item.appendChild(pre);
         }
-  
-        // 覆盖复制逻辑，针对图片时复制原始路径文本
-        copyBtn.addEventListener("click", () => {
-          navigator.clipboard.writeText(copyText || "").then(() => {
-            copyBtn.textContent = "已复制";
-            setTimeout(() => { copyBtn.textContent = "复制"; }, 1200);
+
+        cb.addEventListener("click", function() {
+          navigator.clipboard.writeText(copyText || "").then(function() {
+            cb.textContent = "\u5DF2\u590D\u5236";
+            setTimeout(function(){ cb.textContent = "\u590D\u5236"; }, 1200);
           });
         });
-        row.appendChild(keyDiv);
-        row.appendChild(right);
-
-        wrap.appendChild(row);
+        inner.appendChild(item);
       });
-      content.appendChild(wrap);
     }
 
-    head.addEventListener("click", () => {
-      content.classList.toggle("open");
-      const chev = head.querySelector(".chev");
-      chev.classList.toggle("open");
+    body.appendChild(inner);
+    hdr.addEventListener("click", function() {
+      body.classList.toggle("open");
+      hdr.querySelector(".step-chev").classList.toggle("open");
     });
-
-    card.appendChild(head);
-    card.appendChild(content);
-    caseBox.appendChild(card);
+    card.appendChild(hdr); card.appendChild(body); frag.appendChild(card);
   });
 
   container.innerHTML = "";
-  container.appendChild(caseBox);
-
-  // 复制
-  $all(".copy", caseBox).forEach(btn => {
-    btn.addEventListener("click", () => {
-      const key = btn.getAttribute("data-key");
-      const pre = caseBox.querySelector('.pre-json[data-key="' + CSS.escape(key) + '"]');
-      if (!pre) return;
-      navigator.clipboard.writeText(pre.textContent || "").then(() => {
-        btn.textContent = "已复制";
-        setTimeout(() => { btn.textContent = "复制"; }, 1200);
-      });
-    });
-  });
-
+  container.appendChild(frag);
   setHash();
   $("#prev").disabled = (state.idx === 0);
   $("#next").disabled = (state.idx >= casesCount - 1);
+}
+
+function toggleAll() {
+  var container = $("#cases");
+  if (!container) return;
+  var bodies = $all(".step-body", container);
+  var chevs = $all(".step-chev", container);
+  var btn = $("#toggle-all");
+  var allOpen = bodies.length > 0 && bodies.every(function(c){ return c.classList.contains("open"); });
+  bodies.forEach(function(c){ if (allOpen) c.classList.remove("open"); else c.classList.add("open"); });
+  chevs.forEach(function(c){ if (allOpen) c.classList.remove("open"); else c.classList.add("open"); });
+  if (btn) btn.textContent = allOpen ? "\u5168\u90E8\u5C55\u5F00" : "\u5168\u90E8\u6536\u8D77";
 }
 
 function goto(delta) {
@@ -670,6 +600,7 @@ function goto(delta) {
 
 async function main() {
   setupLightbox();
+  await fetchFiles();
   await fetchCases();
   parseHash();
   if (!Array.isArray(state.cases)) state.cases = [];
@@ -682,6 +613,9 @@ async function main() {
   }
   $("#prev").addEventListener("click", () => goto(-1));
   $("#next").addEventListener("click", () => goto(1));
+  var fileSel = $("#file-select");
+  if (fileSel) fileSel.addEventListener("change", (e) => switchFile(e.target.value));
+  $("#toggle-all").addEventListener("click", toggleAll);
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") goto(-1);
     if (e.key === "ArrowRight") goto(1);
@@ -719,6 +653,35 @@ def api_reload():
         if auto_roots:
             STATE.static_roots = auto_roots
         return JSONResponse({"ok": True, "count": len(STATE.cases), "msg": "reloaded"})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@app.get("/api/files")
+def api_files():
+    """Return the list of available data files."""
+    files_info = []
+    for f in STATE.data_files:
+        files_info.append({"path": f, "name": os.path.basename(f)})
+    return JSONResponse({"files": files_info, "current": STATE.data_path})
+
+
+@app.get("/api/switch")
+def api_switch(file: str):
+    """Switch to a different data file and reload cases."""
+    real_file = os.path.realpath(file)
+    allowed = {os.path.realpath(f) for f in STATE.data_files}
+    if real_file not in allowed:
+        return JSONResponse(
+            {"ok": False, "error": "File not in allowed list"}, status_code=403
+        )
+    try:
+        STATE.data_path = file
+        STATE.cases = _expand_cases_if_needed(load_cases(file))
+        auto_roots = _collect_image_dirs(STATE.cases)
+        if auto_roots:
+            STATE.static_roots = auto_roots
+        return JSONResponse({"ok": True, "count": len(STATE.cases), "file": file})
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -768,6 +731,7 @@ def parse_args():
 def main():
     args = parse_args()
     STATE.data_path = args.data
+    STATE.data_files = [args.data]
     STATE.title = args.title
     try:
         STATE.cases = _expand_cases_if_needed(load_cases(STATE.data_path))
