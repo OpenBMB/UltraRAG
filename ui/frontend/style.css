@@ -1422,10 +1422,12 @@ textarea.parameter-input {
 .chat-copy-row {
   display: flex;
   justify-content: flex-start;
+  gap: 8px;
   margin: 6px 0 10px;
 }
 
-.chat-copy-btn {
+.chat-copy-btn,
+.chat-download-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1439,11 +1441,13 @@ textarea.parameter-input {
   transition: opacity 0.2s, background 0.2s, color 0.2s;
 }
 
-.chat-bubble.assistant:hover .chat-copy-btn {
+.chat-bubble.assistant:hover .chat-copy-btn,
+.chat-bubble.assistant:hover .chat-download-btn {
   opacity: 1;
 }
 
-.chat-copy-btn:hover {
+.chat-copy-btn:hover,
+.chat-download-btn:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #334155;
 }
@@ -1453,7 +1457,13 @@ textarea.parameter-input {
   opacity: 1;
 }
 
-.chat-copy-btn svg {
+.chat-download-btn.downloaded {
+  color: #2563eb;
+  opacity: 1;
+}
+
+.chat-copy-btn svg,
+.chat-download-btn svg {
   width: 14px;
   height: 14px;
 }

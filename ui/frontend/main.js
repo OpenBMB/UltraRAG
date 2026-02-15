@@ -2164,8 +2164,8 @@ function fallbackCopy(text, onDone) {
     document.body.removeChild(textarea);
 }
 
-// Chat text copy button (placed after body text, before citations)
-function ensureChatCopyRow(bubble, rawText) {
+// Chat text actions row (copy/download, placed after body text, before citations)
+function ensureChatCopyRow(bubble, rawText, sources = [], questionText = '') {
     if (!bubble) return;
     let row = bubble.querySelector('.chat-copy-row');
     const refContainer = bubble.querySelector('.reference-container');
@@ -2174,22 +2174,39 @@ function ensureChatCopyRow(bubble, rawText) {
         row = document.createElement('div');
         row.className = 'chat-copy-row';
 
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chat-copy-btn';
-        btn.title = 'Copy Text';
-        btn.innerHTML = `
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'chat-copy-btn';
+        copyBtn.title = 'Copy Text';
+        copyBtn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
       </svg>
     `;
-        btn.addEventListener('click', (e) => {
+        copyBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            copyChatOriginalText(btn);
+            copyChatOriginalText(copyBtn);
         });
 
-        row.appendChild(btn);
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.className = 'chat-download-btn';
+        downloadBtn.title = 'Download Markdown';
+        downloadBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    `;
+        downloadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadChatMessage(downloadBtn);
+        });
+
+        row.appendChild(copyBtn);
+        row.appendChild(downloadBtn);
         if (refContainer) {
             bubble.insertBefore(row, refContainer);
         } else {
@@ -2197,8 +2214,24 @@ function ensureChatCopyRow(bubble, rawText) {
         }
     }
 
-    const btn = row.querySelector('.chat-copy-btn');
-    if (btn) btn.dataset.rawText = rawText || '';
+    const safeText = rawText || '';
+    const safeSources = Array.isArray(sources) ? sources : [];
+    const sourcesJson = JSON.stringify(safeSources);
+    const safeQuestion = typeof questionText === 'string' ? questionText : '';
+
+    const copyBtn = row.querySelector('.chat-copy-btn');
+    if (copyBtn) {
+        copyBtn.dataset.rawText = safeText;
+        copyBtn.dataset.sources = sourcesJson;
+        copyBtn.dataset.question = safeQuestion;
+    }
+
+    const downloadBtn = row.querySelector('.chat-download-btn');
+    if (downloadBtn) {
+        downloadBtn.dataset.rawText = safeText;
+        downloadBtn.dataset.sources = sourcesJson;
+        downloadBtn.dataset.question = safeQuestion;
+    }
 }
 
 function copyChatOriginalText(btn) {
@@ -2213,6 +2246,145 @@ function copyChatOriginalText(btn) {
     } else {
         fallbackCopy(text, done);
     }
+}
+
+function parseChatSources(serializedSources) {
+    if (!serializedSources) return [];
+    try {
+        const parsed = JSON.parse(serializedSources);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        console.warn('Failed to parse chat sources for download:', e);
+        return [];
+    }
+}
+
+function getDownloadTimestamp() {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+function buildDownloadFileName(questionText) {
+    const baseTitle = normalizeExportTitle(questionText);
+    const safeTitle = baseTitle
+        .replace(/[\\/:*?"<>|]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^\.+|\.+$/g, '')
+        .slice(0, 80);
+    const finalTitle = safeTitle || 'chat-export';
+    return `${finalTitle}-${getDownloadTimestamp()}.md`;
+}
+
+function normalizeExportTitle(questionText) {
+    const normalized = typeof questionText === 'string'
+        ? questionText.replace(/\s+/g, ' ').trim().replace(/^#+\s*/, '')
+        : '';
+    return normalized || 'Chat Export';
+}
+
+function buildDownloadMarkdown(text, sources = [], questionText = '') {
+    const answerText = typeof text === 'string' ? text : '';
+    const exportTitle = normalizeExportTitle(questionText);
+    const usedIds = [];
+    answerText.replace(/\[(\d+)\]/g, (match, p1) => {
+        const refId = parseInt(p1, 10);
+        if (Number.isInteger(refId) && !usedIds.includes(refId)) {
+            usedIds.push(refId);
+        }
+        return match;
+    });
+
+    const sourceMap = new Map();
+    (Array.isArray(sources) ? sources : []).forEach((src) => {
+        const refId = parseInt(src?.displayId || src?.id, 10);
+        if (!Number.isInteger(refId) || sourceMap.has(refId)) return;
+        sourceMap.set(refId, {
+            id: refId,
+            title: typeof src?.title === 'string' ? src.title.trim() : '',
+            content: typeof src?.content === 'string' ? src.content : ''
+        });
+    });
+
+    const orderedRefIds = usedIds.length > 0
+        ? usedIds
+        : Array.from(sourceMap.keys()).sort((a, b) => a - b);
+
+    const answerWithLinks = answerText.replace(
+        /\[(\d+)\]/g,
+        (match, p1) => `<a href="#ref-${p1}">[${p1}]</a>`
+    );
+
+    const lines = [];
+    lines.push(`# ${exportTitle}`);
+    lines.push('');
+    lines.push(`<a id="answer"></a>`);
+    lines.push('## Answer');
+    lines.push('');
+    lines.push(answerWithLinks || '(empty)');
+    lines.push('');
+
+    if (orderedRefIds.length > 0) {
+        lines.push('## References');
+        lines.push('');
+
+        orderedRefIds.forEach((refId) => {
+            const source = sourceMap.get(refId);
+            const title = source?.title ? source.title.replace(/\s+/g, ' ').trim() : `Reference ${refId}`;
+            const content = source?.content ? source.content.trim() : '';
+
+            lines.push(`<a id="ref-${refId}"></a>`);
+            lines.push(`### [${refId}] ${title}`);
+            lines.push('');
+            if (content) {
+                const fence = content.includes('```') ? '````' : '```';
+                lines.push(`${fence}text`);
+                lines.push(content);
+                lines.push(fence);
+            } else {
+                lines.push('_Reference content unavailable._');
+            }
+            lines.push('');
+            lines.push('[Back to answer](#answer)');
+            lines.push('');
+        });
+    }
+
+    return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function downloadChatMessage(btn) {
+    const text = btn?.dataset?.rawText || '';
+    if (!text) return;
+    const sources = parseChatSources(btn?.dataset?.sources);
+    const questionText = btn?.dataset?.question || '';
+    const markdown = buildDownloadMarkdown(text, sources, questionText);
+
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = buildDownloadFileName(questionText);
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+
+    btn.classList.add('downloaded');
+    setTimeout(() => btn.classList.remove('downloaded'), 2000);
+}
+
+function findPreviousUserQuestion(history, assistantIndex) {
+    if (!Array.isArray(history) || !Number.isInteger(assistantIndex)) return '';
+    for (let i = assistantIndex - 1; i >= 0; i--) {
+        const entry = history[i];
+        if (entry?.role !== 'user') continue;
+        const text = typeof entry?.text === 'string' ? entry.text.trim() : '';
+        if (text) return text;
+    }
+    return '';
 }
 
 // Mount copyCodeBlock to window for onclick calls
@@ -3316,7 +3488,8 @@ function renderChatHistory() {
 
         // Copy button uses renumbered text for assistant
         if (entry.role === "assistant") {
-            ensureChatCopyRow(bubble, renumbered.text);
+            const questionText = findPreviousUserQuestion(state.chat.history, index);
+            ensureChatCopyRow(bubble, renumbered.text, renumbered.sources, questionText);
         }
 
         // Render citation cards at bottom with renumbered sources
@@ -4316,7 +4489,7 @@ async function handleChatSubmit(event) {
                             }
 
                             // Copy button uses renumbered text
-                            ensureChatCopyRow(bubble, renumbered.text);
+                            ensureChatCopyRow(bubble, renumbered.text, renumbered.sources, question);
 
                             // Render reference cards with renumbered sources
                             if (pendingRenderSources && pendingRenderSources.length > 0) {
