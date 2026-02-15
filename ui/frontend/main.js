@@ -3945,6 +3945,10 @@ function renderSources(bubble, sources, usedIds = null) {
     // Separate used and unused
     const usedSources = [];
     const unusedSources = [];
+    const getSourceOrderId = (src) => {
+        const value = parseInt(src?.displayId || src?.id, 10);
+        return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
+    };
 
     // Deduplicate: keep only first by ID
     const seenIds = new Set();
@@ -3962,6 +3966,10 @@ function renderSources(bubble, sources, usedIds = null) {
             usedSources.push(src);
         }
     });
+
+    // Keep both sections sorted by numeric citation ID (1, 2, 3, ...)
+    usedSources.sort((a, b) => getSourceOrderId(a) - getSourceOrderId(b));
+    unusedSources.sort((a, b) => getSourceOrderId(a) - getSourceOrderId(b));
 
     // Helper function to create citation item
     const createRefItem = (src) => {
