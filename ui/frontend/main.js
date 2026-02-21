@@ -1093,6 +1093,18 @@ window.saveDbConfig = async function () {
 
 const CHUNK_CONFIG_STORAGE_KEY = "ultrarag_chunk_config";
 const INDEX_CONFIG_STORAGE_KEY = "ultrarag_index_config";
+const AI_SETTINGS_STORAGE_KEY = "ultrarag_ai_settings";
+const DEFAULT_INDEX_CONFIG = {
+    api_key: "",
+    base_url: "https://api.openai.com/v1",
+    model_name: "text-embedding-3-small"
+};
+const DEFAULT_AI_SETTINGS = {
+    provider: "openai",
+    baseUrl: "https://api.openai.com/v1",
+    apiKey: "",
+    model: "gpt-5-mini"
+};
 
 // Load Chunk configuration from localStorage
 function loadChunkConfigFromStorage() {
@@ -1192,12 +1204,9 @@ window.saveChunkConfig = function () {
 // --- Index (Embedding) Configuration Logic ---
 // ==========================================
 
+const storedIndexConfig = loadIndexConfigFromStorage();
 // 1. Define default configuration state (try to restore from localStorage)
-let indexConfigState = loadIndexConfigFromStorage() || {
-    api_key: "",
-    base_url: "https://api.openai.com/v1",
-    model_name: "text-embedding-3-small"
-};
+let indexConfigState = { ...DEFAULT_INDEX_CONFIG, ...(storedIndexConfig || {}) };
 
 // 2. Open configuration modal (echo current state)
 window.openIndexConfigModal = function () {
@@ -8666,14 +8675,48 @@ const aiState = {
     lastUserMessage: null,
     lastContextSnapshot: null,
     settings: {
-        provider: 'openai',
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: '',
-        model: 'gpt-5-mini'
+        ...DEFAULT_AI_SETTINGS
     },
     messages: [],
     conversationHistory: []
 };
+
+let cachedUiDefaults = null;
+let uiDefaultsLoaded = false;
+
+async function fetchUIDefaults() {
+    if (uiDefaultsLoaded) return cachedUiDefaults;
+    try {
+        const resp = await fetch('/api/defaults/ai');
+        if (!resp.ok) {
+            uiDefaultsLoaded = true;
+            return null;
+        }
+        const payload = await resp.json();
+        cachedUiDefaults = (payload && typeof payload === 'object') ? payload : null;
+    } catch (e) {
+        console.warn('Failed to load UI defaults:', e);
+        cachedUiDefaults = null;
+    }
+    uiDefaultsLoaded = true;
+    return cachedUiDefaults;
+}
+
+function applyEnvDefaultsToIndex(indexDefaults) {
+    if (!indexDefaults || typeof indexDefaults !== 'object') return;
+
+    // Respect existing localStorage settings; only fill missing values.
+    const hasSavedIndex = !!storedIndexConfig;
+    if (!hasSavedIndex || !indexConfigState.api_key) {
+        indexConfigState.api_key = indexDefaults.api_key || indexConfigState.api_key;
+    }
+    if (!hasSavedIndex || !indexConfigState.base_url) {
+        indexConfigState.base_url = indexDefaults.base_url || indexConfigState.base_url;
+    }
+    if (!hasSavedIndex || !indexConfigState.model_name) {
+        indexConfigState.model_name = indexDefaults.model_name || indexConfigState.model_name;
+    }
+}
 
 const AI_WELCOME_HTML = `
     <div class="ai-welcome">
@@ -8714,7 +8757,7 @@ const AI_WELCOME_HTML = `
     </div>
 `;
 
-function initAIAssistant() {
+async function initAIAssistant() {
     const trigger = document.getElementById('ai-assistant-trigger');
     const panel = document.getElementById('ai-assistant-panel');
     const sidebarBtn = document.getElementById('navbar-ai-btn');
@@ -8729,6 +8772,19 @@ function initAIAssistant() {
     const connectionStatus = document.getElementById('ai-connection-status');
 
     if (!panel || (!trigger && !sidebarBtn)) return;
+
+    const uiDefaults = await fetchUIDefaults();
+    if (uiDefaults && typeof uiDefaults === 'object') {
+        const aiDefaults = uiDefaults.ai || {};
+        aiState.settings = {
+            ...aiState.settings,
+            provider: aiDefaults.provider || aiState.settings.provider,
+            baseUrl: aiDefaults.baseUrl || aiState.settings.baseUrl,
+            apiKey: aiDefaults.apiKey || aiState.settings.apiKey,
+            model: aiDefaults.model || aiState.settings.model
+        };
+        applyEnvDefaultsToIndex(uiDefaults.embedding || {});
+    }
 
     loadAISettings();
     updateAIConnectionStatus();
@@ -8957,15 +9013,17 @@ function initAISettingsPanel() {
 
 function loadAISettings() {
     try {
-        const saved = localStorage.getItem('ultrarag_ai_settings');
+        const saved = localStorage.getItem(AI_SETTINGS_STORAGE_KEY);
         if (saved) {
             const parsed = JSON.parse(saved);
             aiState.settings = { ...aiState.settings, ...parsed };
             updateAIConnectionStatus();
+            return true;
         }
     } catch (e) {
         console.error('Failed to load AI settings:', e);
     }
+    return false;
 }
 
 function saveAISettings(options = {}) {
@@ -8984,7 +9042,7 @@ function saveAISettings(options = {}) {
     };
 
     try {
-        localStorage.setItem('ultrarag_ai_settings', JSON.stringify(aiState.settings));
+        localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiState.settings));
 
         if (statusEl && !silent) {
             statusEl.textContent = t('builder_ai_settings_saved_success');
