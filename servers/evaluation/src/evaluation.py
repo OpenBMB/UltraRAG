@@ -7,7 +7,14 @@ from collections import Counter
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
-from rouge_score import rouge_scorer
+try:
+    from rouge_score import rouge_scorer
+except ModuleNotFoundError as exc:
+    raise ModuleNotFoundError(
+        "Missing optional dependency 'rouge-score' for the evaluation server. "
+        "Install it with `uv sync --extra evaluation` or "
+        "`pip install \"ultrarag[evaluation]\"`."
+    ) from exc
 from tabulate import tabulate
 
 from ultrarag.server import UltraRAG_MCP_Server
