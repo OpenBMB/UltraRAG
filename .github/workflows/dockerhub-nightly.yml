@@ -10,7 +10,40 @@ env:
   IMAGE_TAG: v0.3.0
 
 jobs:
+  check-recent-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.commit-check.outputs.should_build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check commits in last 24 hours
+        id: commit-check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger detected, continue building."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          latest_commit_ts="$(git log -1 --format=%ct)"
+          now_ts="$(date +%s)"
+          age_seconds="$((now_ts - latest_commit_ts))"
+
+          if [ "$age_seconds" -le 86400 ]; then
+            echo "Recent commit detected in last 24h, continue building."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No new commit in last 24h, skip docker build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-push:
+    needs: check-recent-commits
+    if: needs.check-recent-commits.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
