@@ -13,6 +13,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
 import yaml
 from dotenv import load_dotenv
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from ultrarag.cli import log_server_banner
 from ultrarag.mcp_exceptions import (
@@ -26,6 +27,12 @@ log_level = ""
 logger = None
 PipelineStep = Union[str, Dict[str, Any]]
 node_status = False
+SERVER_OPTIONAL_EXTRAS = {
+    "retriever": "retriever",
+    "generation": "generation",
+    "evaluation": "evaluation",
+    "corpus": "corpus",
+}
 
 
 class MockContent:
@@ -1054,6 +1061,29 @@ async def build(config_path: str) -> None:
 
     async def build_steps(steps: List[PipelineStep]):
         nonlocal already_built, parameter_all, server_all
+
+        async def call_build_tool(srv_name: str, full_tool: str) -> None:
+            try:
+                await client.call_tool(
+                    full_tool, {"parameter_file": parameter_path[srv_name]}
+                )
+            except ToolError as exc:
+                extra_name = SERVER_OPTIONAL_EXTRAS.get(srv_name)
+                msg = str(exc)
+                if (
+                    "Server session was closed unexpectedly" in msg
+                    and extra_name is not None
+                ):
+                    raise RuntimeError(
+                        "[UltraRAG Error] Failed to start server "
+                        f"'{srv_name}' while building pipeline. "
+                        "This usually means optional dependencies are missing. "
+                        "Install them and retry: "
+                        f"`uv sync --extra {extra_name}` "
+                        f"(or `pip install \"ultrarag[{extra_name}]\"`)."
+                    ) from exc
+                raise
+
         for step in steps:
             if isinstance(step, str):
                 srv_name, tool_name = step.split(".")
@@ -1064,9 +1094,7 @@ async def build(config_path: str) -> None:
                     server_all[srv_name] = {
                         "prompts" if srv_name == "prompt" else "tools": {}
                     }
-                    await client.call_tool(
-                        full_tool, {"parameter_file": parameter_path[srv_name]}
-                    )
+                    await call_build_tool(srv_name, full_tool)
                     logger.info(f"server.yaml for {srv_name} has been built already")
                 param = loader.load_parameter_config(parameter_path[srv_name])
                 serv = loader.load_parameter_config(
@@ -1117,9 +1145,7 @@ async def build(config_path: str) -> None:
                         server_all[srv_name] = {
                             "prompts" if srv_name == "prompt" else "tools": {}
                         }
-                        await client.call_tool(
-                            full_tool, {"parameter_file": parameter_path[srv_name]}
-                        )
+                        await call_build_tool(srv_name, full_tool)
                         logger.info(
                             f"server.yaml for {srv_name} has been built already"
                         )
