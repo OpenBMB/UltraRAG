@@ -470,6 +470,17 @@
             </span>
             <span class="btn-text" data-i18n="knowledge_base">Knowledge Base</span>
           </button>
+
+          <button type="button" id="memory-btn" class="btn-nav">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                stroke="currentColor" width="20" height="20">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 3.75a3 3 0 00-3 3v.75a3 3 0 01-3 3 3 3 0 013 3V15a3 3 0 003 3m6-14.25a3 3 0 013 3v.75a3 3 0 003 3 3 3 0 00-3 3V15a3 3 0 01-3 3M9 18a3 3 0 003 3 3 3 0 003-3M9 3.75a3 3 0 013-3 3 3 0 013 3M12 6v12" />
+              </svg>
+            </span>
+            <span class="btn-text" data-i18n="memory">Memroy</span>
+          </button>
         </div>
 
         <div class="sidebar-list">
@@ -684,6 +695,31 @@
         <div class="kb-wrapper p-4 bg-light">
           <div id="bookshelf-grid" class="bookshelf-grid">
           </div>
+        </div>
+      </div>
+
+      <div class="memory-main d-none" id="memory-main-view">
+        <header
+          class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
+          <h3 class="m-0 fs-5 fw-bold text-dark" data-i18n="memory">Memroy</h3>
+
+          <div class="d-flex align-items-center gap-2">
+            <span id="memory-status" class="badge rounded-pill bg-light text-dark border" data-i18n="status_ready">Ready</span>
+            <button type="button" class="btn btn-dark btn-sm px-3 d-flex align-items-center gap-2" id="memory-save-btn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span data-i18n="common_save">Save</span>
+            </button>
+          </div>
+        </header>
+
+        <div class="memory-wrapper p-4 bg-light">
+          <textarea id="memory-editor" class="memory-editor" spellcheck="false"
+            data-i18n-placeholder="memory_editor_placeholder" placeholder="# MEMORY"></textarea>
         </div>
       </div>
 

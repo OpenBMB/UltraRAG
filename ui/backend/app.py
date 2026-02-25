@@ -21,6 +21,7 @@ from flask import (
     send_from_directory,
     stream_with_context,
 )
+from werkzeug.exceptions import HTTPException
 
 from . import pipeline_manager as pm
 
@@ -35,6 +36,11 @@ LLMS_DOC_CACHE = None
 DOCX_MIME_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
+MEMORY_ROOT = BASE_DIR.parent.parent / "data" / "user_memory"
+DEFAULT_MEMORY_USER = "default"
+MEMORY_FILENAME = "MEMORY.md"
+MEMORY_DEFAULT_CONTENT = "# MEMORY\ni am jack. i like LLMs.\n"
+MEMORY_USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
 def load_llms_doc() -> str:
@@ -54,6 +60,23 @@ def load_llms_doc() -> str:
         LLMS_DOC_CACHE = ""
 
     return LLMS_DOC_CACHE
+
+
+def _normalize_memory_user_id(raw_user_id: Optional[str]) -> str:
+    user_id = str(raw_user_id or DEFAULT_MEMORY_USER).strip() or DEFAULT_MEMORY_USER
+    if not MEMORY_USER_ID_PATTERN.fullmatch(user_id):
+        raise ValueError("Invalid user_id format")
+    return user_id
+
+
+def _ensure_memory_file(user_id: str) -> Path:
+    user_dir = MEMORY_ROOT / user_id
+    project_dir = user_dir / "project"
+    project_dir.mkdir(parents=True, exist_ok=True)
+    memory_path = user_dir / MEMORY_FILENAME
+    if not memory_path.exists():
+        memory_path.write_text(MEMORY_DEFAULT_CONTENT, encoding="utf-8")
+    return memory_path
 
 
 def _normalize_export_title(question_text: str) -> str:
@@ -362,6 +385,16 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             JSON error response with 500 status
         """
+        if isinstance(err, HTTPException):
+            return (
+                jsonify(
+                    {
+                        "error": err.name,
+                        "details": err.description,
+                    }
+                ),
+                err.code or 500,
+            )
         LOGGER.error(f"System error: {err}", exc_info=True)
         return jsonify({"error": "Internal Server Error", "details": str(err)}), 500
 
@@ -392,6 +425,61 @@ def create_app(admin_mode: bool = False) -> Flask:
     def config_page() -> Response:
         """Redirect legacy /config route to /settings."""
         return redirect("/settings")
+
+    @app.route("/api/memory", methods=["GET", "PUT"])
+    @app.route("/api/memory/<string:user_id>", methods=["GET", "PUT"])
+    def memory_file(user_id: str = DEFAULT_MEMORY_USER) -> Response:
+        """Read or update per-user MEMORY.md content."""
+        try:
+            normalized_user = _normalize_memory_user_id(user_id)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        memory_path = _ensure_memory_file(normalized_user)
+        relative_path = str(memory_path.relative_to(BASE_DIR.parent.parent))
+
+        if request.method == "GET":
+            try:
+                content = memory_path.read_text(encoding="utf-8")
+            except Exception as e:
+                LOGGER.error(
+                    "Failed to read memory file for user %s: %s",
+                    normalized_user,
+                    e,
+                    exc_info=True,
+                )
+                return jsonify({"error": str(e)}), 500
+            return jsonify(
+                {
+                    "user_id": normalized_user,
+                    "path": relative_path,
+                    "content": content,
+                }
+            )
+
+        payload = request.get_json(force=True) or {}
+        content = payload.get("content", "")
+        if not isinstance(content, str):
+            return jsonify({"error": "content must be a string"}), 400
+
+        try:
+            memory_path.write_text(content, encoding="utf-8")
+        except Exception as e:
+            LOGGER.error(
+                "Failed to save memory file for user %s: %s",
+                normalized_user,
+                e,
+                exc_info=True,
+            )
+            return jsonify({"error": str(e)}), 500
+
+        return jsonify(
+            {
+                "status": "saved",
+                "user_id": normalized_user,
+                "path": relative_path,
+            }
+        )
 
     @app.route("/api/config/mode", methods=["GET"])
     def get_app_mode() -> Response:

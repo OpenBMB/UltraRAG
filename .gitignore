@@ -21,6 +21,7 @@ test/
 corpora/
 data/chat_sessions/
 data/knowledge_base/
+data/user_memory/
 # Environment variables and secrets
 .env
 

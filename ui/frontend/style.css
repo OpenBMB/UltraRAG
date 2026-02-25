@@ -2744,6 +2744,42 @@ textarea.parameter-input {
   background-color: #fcfcfc;
 }
 
+.memory-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fcfcfc;
+}
+
+.memory-wrapper {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.memory-editor {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.memory-editor:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
 .kb-wrapper {
   flex: 1;
   display: flex;
@@ -4385,6 +4421,59 @@ textarea.parameter-input {
   background: transparent;
 }
 
+#memory-main-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#memory-main-view .view-header {
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+#memory-main-view .memory-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  scroll-behavior: smooth;
+  padding-bottom: 32px;
+}
+
+#memory-main-view .memory-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+#memory-main-view .memory-wrapper::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+#memory-main-view .memory-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#memory-status[data-state="loading"],
+#memory-status[data-state="saving"] {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+
+#memory-status[data-state="success"] {
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #a7f3d0 !important;
+}
+
+#memory-status[data-state="error"] {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+}
+
 /* =========================================
    Unified Sidebar - Full Reset & Pixel Perfect
    ========================================= */
@@ -4760,6 +4849,15 @@ textarea.parameter-input {
 
 .btn-nav:hover .icon {
   color: #0d0d0d;
+}
+
+.btn-nav.active {
+  background: #e0e7ff;
+  color: var(--accent-blue);
+}
+
+.btn-nav.active .icon {
+  color: var(--accent-blue);
 }
 
 .btn-sidebar-toggle {

@@ -241,6 +241,7 @@ const state = {
     },
 };
 
+const DEFAULT_MEMORY_USER_ID = "default";
 const WORKSPACE_PANE_WIDTH_KEY = 'ultrarag_workspace_pane_width';
 const DEFAULT_WORKSPACE_PANE_WIDTH = 320;
 const MIN_WORKSPACE_PANE_WIDTH = 240;
@@ -324,8 +325,13 @@ const els = {
     // [New] View containers
     chatMainView: document.getElementById("chat-main-view"),
     kbMainView: document.getElementById("kb-main-view"),
+    memoryMainView: document.getElementById("memory-main-view"),
     // [New] Buttons
     kbBtn: document.getElementById("kb-btn"),
+    memoryBtn: document.getElementById("memory-btn"),
+    memoryEditor: document.getElementById("memory-editor"),
+    memorySaveBtn: document.getElementById("memory-save-btn"),
+    memoryStatus: document.getElementById("memory-status"),
 
     chatSidebar: document.querySelector(".chat-sidebar"),
     chatSidebarToggleBtn: document.getElementById("sidebar-toggle-btn"),
@@ -2917,21 +2923,35 @@ function openKBView() {
     doOpenKBView();
 }
 
+function showChatSubview(view) {
+    if (!els.chatMainView || !els.kbMainView) return;
+
+    const showChat = view === "chat";
+    const showKB = view === "kb";
+    const showMemory = view === "memory";
+
+    els.chatMainView.classList.toggle("d-none", !showChat);
+    els.kbMainView.classList.toggle("d-none", !showKB);
+    if (els.memoryMainView) {
+        els.memoryMainView.classList.toggle("d-none", !showMemory);
+    }
+
+    if (els.kbBtn) els.kbBtn.classList.toggle("active", showKB);
+    if (els.memoryBtn) els.memoryBtn.classList.toggle("active", showMemory);
+}
+
+function clearChatSessionHighlight() {
+    const items = document.querySelectorAll(".chat-session-item");
+    items.forEach(el => el.classList.remove("active"));
+}
+
 // Actually execute opening KB view
 function doOpenKBView() {
     // Refresh data
     refreshKBFiles();
 
-    // Hide chat, show knowledge base
-    els.chatMainView.classList.add("d-none");
-    els.kbMainView.classList.remove("d-none");
-
-    // Update button state
-    if (els.kbBtn) els.kbBtn.classList.add("active");
-
-    // Remove highlight from all Session list items
-    const items = document.querySelectorAll(".chat-session-item");
-    items.forEach(el => el.classList.remove("active"));
+    showChatSubview("kb");
+    clearChatSessionHighlight();
 }
 
 // Interrupt generation and open KB
@@ -2945,18 +2965,90 @@ function interruptAndOpenKB() {
     doOpenKBView();
 }
 
+function openMemoryView() {
+    if (!els.chatMainView || !els.memoryMainView) return;
+
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndOpenMemory();
+        });
+        return;
+    }
+
+    void doOpenMemoryView();
+}
+
+async function doOpenMemoryView() {
+    showChatSubview("memory");
+    clearChatSessionHighlight();
+    await loadMemoryContent();
+}
+
+function interruptAndOpenMemory() {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+    setChatRunning(false);
+    saveCurrentSession(true);
+    void doOpenMemoryView();
+}
+
 // Switch back to chat view (reset)
 function backToChatView() {
     if (!els.chatMainView || !els.kbMainView) return;
 
-    els.kbMainView.classList.add("d-none");
-    els.chatMainView.classList.remove("d-none");
-
-    if (els.kbBtn) els.kbBtn.classList.remove("active");
+    showChatSubview("chat");
 
     // Re-render sidebar to restore current session highlight state
     renderChatCollectionOptions();
     renderChatSidebar();
+}
+
+function setMemoryStatus(text, stateKey = "ready") {
+    if (!els.memoryStatus) return;
+    els.memoryStatus.textContent = text;
+    els.memoryStatus.dataset.state = stateKey;
+}
+
+async function loadMemoryContent() {
+    if (!els.memoryEditor) return;
+
+    setMemoryStatus(t("memory_loading"), "loading");
+    try {
+        const data = await fetchJSON(`/api/memory/${encodeURIComponent(DEFAULT_MEMORY_USER_ID)}`);
+        els.memoryEditor.value = typeof data.content === "string" ? data.content : "";
+        setMemoryStatus(t("memory_loaded"), "ready");
+    } catch (e) {
+        console.error("Failed to load memory:", e);
+        setMemoryStatus(t("memory_load_failed"), "error");
+        const detail = e && e.message ? e.message : t("common_unknown_error");
+        showModal(formatTemplate(t("memory_load_failed_message"), { error: detail }), {
+            title: t("memory_load_failed_title"),
+            type: "error"
+        });
+    }
+}
+
+async function saveMemoryContent() {
+    if (!els.memoryEditor) return;
+
+    setMemoryStatus(t("memory_saving"), "saving");
+    try {
+        await fetchJSON(`/api/memory/${encodeURIComponent(DEFAULT_MEMORY_USER_ID)}`, {
+            method: "PUT",
+            body: JSON.stringify({ content: els.memoryEditor.value || "" })
+        });
+        setMemoryStatus(t("memory_saved"), "success");
+    } catch (e) {
+        console.error("Failed to save memory:", e);
+        setMemoryStatus(t("memory_save_failed"), "error");
+        const detail = e && e.message ? e.message : t("common_unknown_error");
+        showModal(formatTemplate(t("memory_save_failed_message"), { error: detail }), {
+            title: t("memory_save_failed_title"),
+            type: "error"
+        });
+    }
 }
 
 // Render Pipeline list to dropdown menu
@@ -6409,6 +6501,12 @@ function bindEvents() {
     if (els.kbBtn) {
         els.kbBtn.onclick = openKBView;
     }
+    if (els.memoryBtn) {
+        els.memoryBtn.onclick = openMemoryView;
+    }
+    if (els.memorySaveBtn) {
+        els.memorySaveBtn.onclick = saveMemoryContent;
+    }
 
     if (els.builderLogo) {
         els.builderLogo.onclick = (e) => { e.preventDefault(); setMode(Modes.BUILDER); };
@@ -6485,6 +6583,14 @@ function bindEvents() {
             this.style.height = (this.scrollHeight) + 'px';
         });
     }
+    if (els.memoryEditor) {
+        els.memoryEditor.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveMemoryContent();
+            }
+        });
+    }
 
     if (els.chatNewBtn) els.chatNewBtn.onclick = createNewChatSession;
     if (els.clearAllChats) els.clearAllChats.onclick = deleteAllChatSessions;
@@ -6508,8 +6614,6 @@ function bindEvents() {
     }
     document.addEventListener('click', hideChatSessionContextMenu);
     document.addEventListener('scroll', hideChatSessionContextMenu, true);
-
-    if (els.kbBtn) els.kbBtn.onclick = openKBView;
 
     document.getElementById("step-editor-save").onclick = () => {
         if (!state.editingPath) return;
