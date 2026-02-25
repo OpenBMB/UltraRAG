@@ -5769,6 +5769,134 @@ textarea.parameter-input {
   transform: translateY(-1px);
 }
 
+/* Export format chooser: larger option buttons and clearer hierarchy */
+.unified-modal--export-choice {
+  width: 500px;
+}
+
+.unified-modal--export-choice .unified-modal-content {
+  padding: 30px 30px 24px;
+}
+
+.unified-modal--export-choice .unified-modal-title {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.unified-modal--export-choice .unified-modal-message {
+  margin: 0 0 18px;
+  font-size: 0.98rem;
+  color: #6b7280;
+  max-height: none;
+  overflow: visible;
+}
+
+.unified-modal-actions--export-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn {
+  min-width: 0;
+  padding: 0;
+  border-radius: 14px;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option {
+  min-height: 78px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: none;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option:hover {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  box-shadow: none;
+  transform: none;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-primary,
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-secondary {
+  background: #f3f4f6;
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-primary .choice-main,
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-primary .choice-ext,
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-secondary .choice-main,
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-secondary .choice-ext {
+  color: #111827;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-primary:hover,
+.unified-modal-actions--export-choice .unified-modal-btn-option.unified-modal-btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+  transform: none;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option .choice-main {
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-option .choice-ext {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-cancel {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.unified-modal-actions--export-choice .unified-modal-btn-cancel:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+@media (max-width: 520px) {
+  .unified-modal--export-choice {
+    width: 92vw;
+  }
+
+  .unified-modal-actions--export-choice {
+    grid-template-columns: 1fr;
+  }
+
+  .unified-modal-actions--export-choice .unified-modal-btn-cancel {
+    grid-column: auto;
+  }
+}
+
 /* =========================================
    Canvas-Style Full Screen Layout
    ========================================= */

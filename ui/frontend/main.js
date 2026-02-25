@@ -445,6 +445,9 @@ function showModal(message, options = {}) {
             return;
         }
 
+        modal.classList.remove("unified-modal--export-choice");
+        actionsEl.className = "unified-modal-actions";
+
         // Set icon based on type
         iconEl.className = `unified-modal-icon ${type}`;
         const icons = {
@@ -515,6 +518,9 @@ function showConfirm(message, options = {}) {
             resolve(window.confirm(message));
             return;
         }
+
+        modal.classList.remove("unified-modal--export-choice");
+        actionsEl.className = "unified-modal-actions";
 
         // Set icon based on type
         iconEl.className = `unified-modal-icon ${type}`;
@@ -589,7 +595,8 @@ function showChoice(message, options = {}) {
         primaryValue = "primary",
         secondaryValue = "secondary",
         dangerPrimary = false,
-        dangerSecondary = false
+        dangerSecondary = false,
+        variant = ""
     } = options;
 
     return new Promise((resolve) => {
@@ -605,6 +612,10 @@ function showChoice(message, options = {}) {
             return;
         }
 
+        const isExportChoice = variant === "export-format";
+        modal.classList.toggle("unified-modal--export-choice", isExportChoice);
+        actionsEl.className = `unified-modal-actions${isExportChoice ? " unified-modal-actions--export-choice" : ""}`;
+
         // Set icon based on type (reuse confirm icon if unknown)
         iconEl.className = `unified-modal-icon ${type}`;
         const icons = {
@@ -619,11 +630,28 @@ function showChoice(message, options = {}) {
 
         const primaryClass = dangerPrimary ? "unified-modal-btn-danger" : "unified-modal-btn-primary";
         const secondaryClass = dangerSecondary ? "unified-modal-btn-danger" : "unified-modal-btn-secondary";
-        actionsEl.innerHTML = `
+        const renderChoiceOptionLabel = (label) => {
+            const text = String(label || "").trim();
+            const match = text.match(/^(.*?)(\s*\([^()]+\))$/);
+            if (!match) {
+                return `<span class="choice-main">${escapeHtml(text)}</span>`;
+            }
+            return `<span class="choice-main">${escapeHtml(match[1].trim())}</span><span class="choice-ext">${escapeHtml(match[2].trim())}</span>`;
+        };
+
+        if (isExportChoice) {
+            actionsEl.innerHTML = `
+      <button class="btn unified-modal-btn ${secondaryClass} unified-modal-btn-option" id="unified-modal-secondary">${renderChoiceOptionLabel(secondaryText)}</button>
+      <button class="btn unified-modal-btn ${primaryClass} unified-modal-btn-option" id="unified-modal-primary">${renderChoiceOptionLabel(primaryText)}</button>
+      <button class="btn unified-modal-btn unified-modal-btn-secondary unified-modal-btn-cancel" id="unified-modal-cancel">${escapeHtml(cancelText)}</button>
+    `;
+        } else {
+            actionsEl.innerHTML = `
       <button class="btn unified-modal-btn unified-modal-btn-secondary" id="unified-modal-cancel">${escapeHtml(cancelText)}</button>
       <button class="btn unified-modal-btn ${secondaryClass}" id="unified-modal-secondary">${escapeHtml(secondaryText)}</button>
       <button class="btn unified-modal-btn ${primaryClass}" id="unified-modal-primary">${escapeHtml(primaryText)}</button>
     `;
+        }
 
         const cancelBtn = document.getElementById("unified-modal-cancel");
         const secondaryBtn = document.getElementById("unified-modal-secondary");
@@ -633,6 +661,8 @@ function showChoice(message, options = {}) {
         const closeWith = (result) => {
             if (resolved) return;
             resolved = true;
+            modal.classList.remove("unified-modal--export-choice");
+            actionsEl.className = "unified-modal-actions";
             modal.close();
             resolve(result);
         };
@@ -2192,7 +2222,7 @@ function ensureChatCopyRow(bubble, rawText, sources = [], questionText = '') {
         const downloadBtn = document.createElement('button');
         downloadBtn.type = 'button';
         downloadBtn.className = 'chat-download-btn';
-        downloadBtn.title = 'Download Markdown';
+        downloadBtn.title = t("chat_export_button_title");
         downloadBtn.innerHTML = `
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -2265,7 +2295,7 @@ function getDownloadTimestamp() {
     return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-function buildDownloadFileName(questionText) {
+function buildDownloadFileName(questionText, extension = 'md') {
     const baseTitle = normalizeExportTitle(questionText);
     const safeTitle = baseTitle
         .replace(/[\\/:*?"<>|]/g, '')
@@ -2274,7 +2304,8 @@ function buildDownloadFileName(questionText) {
         .replace(/^\.+|\.+$/g, '')
         .slice(0, 80);
     const finalTitle = safeTitle || 'chat-export';
-    return `${finalTitle}-${getDownloadTimestamp()}.md`;
+    const ext = String(extension || 'md').replace(/^\.+/, '') || 'md';
+    return `${finalTitle}-${getDownloadTimestamp()}.${ext}`;
 }
 
 function normalizeExportTitle(questionText) {
@@ -2354,26 +2385,83 @@ function buildDownloadMarkdown(text, sources = [], questionText = '') {
     return `${lines.join('\n').trimEnd()}\n`;
 }
 
-function downloadChatMessage(btn) {
-    const text = btn?.dataset?.rawText || '';
-    if (!text) return;
-    const sources = parseChatSources(btn?.dataset?.sources);
-    const questionText = btn?.dataset?.question || '';
-    const markdown = buildDownloadMarkdown(text, sources, questionText);
-
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+function triggerDownloadBlob(blob, filename) {
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    link.download = buildDownloadFileName(questionText);
+    link.download = filename;
 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+}
 
+function markDownloadSuccess(btn) {
     btn.classList.add('downloaded');
     setTimeout(() => btn.classList.remove('downloaded'), 2000);
+}
+
+async function downloadChatMessageDocx(text, sources, questionText, btn) {
+    try {
+        const response = await fetch('/api/chat/export/docx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text,
+                sources,
+                question: questionText
+            })
+        });
+
+        if (!response.ok) {
+            let errorMessage = `${response.status}`;
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const errorPayload = await response.json().catch(() => null);
+                if (errorPayload?.error) errorMessage = errorPayload.error;
+            }
+            throw new Error(errorMessage);
+        }
+
+        const blob = await response.blob();
+        triggerDownloadBlob(blob, buildDownloadFileName(questionText, 'docx'));
+        markDownloadSuccess(btn);
+    } catch (e) {
+        const message = e?.message || t("common_unknown_error");
+        showModal(formatTemplate(t("chat_export_docx_failed_message"), { error: message }), {
+            title: t("chat_export_docx_failed_title"),
+            type: "error"
+        });
+    }
+}
+
+async function downloadChatMessage(btn) {
+    const text = btn?.dataset?.rawText || '';
+    if (!text) return;
+    const sources = parseChatSources(btn?.dataset?.sources);
+    const questionText = btn?.dataset?.question || '';
+    const selectedFormat = await showChoice(t("chat_export_format_message"), {
+        title: t("chat_export_format_title"),
+        type: "confirm",
+        primaryText: t("chat_export_format_markdown"),
+        secondaryText: t("chat_export_format_docx"),
+        primaryValue: "markdown",
+        secondaryValue: "docx",
+        cancelText: t("common_cancel"),
+        variant: "export-format"
+    });
+
+    if (!selectedFormat) return;
+    if (selectedFormat === "docx") {
+        await downloadChatMessageDocx(text, sources, questionText, btn);
+        return;
+    }
+
+    const markdown = buildDownloadMarkdown(text, sources, questionText);
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    triggerDownloadBlob(blob, buildDownloadFileName(questionText, 'md'));
+    markDownloadSuccess(btn);
 }
 
 function findPreviousUserQuestion(history, assistantIndex) {

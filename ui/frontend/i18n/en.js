@@ -204,6 +204,13 @@ window.I18N_LOCALES.en = {
   chat_show_thinking: "Show Thinking",
   chat_cited_references: "Cited References",
   chat_other_retrieved: "Other Retrieved",
+  chat_export_button_title: "Export",
+  chat_export_format_title: "Export Chat",
+  chat_export_format_message: "Choose an export format:",
+  chat_export_format_markdown: "Markdown (.md)",
+  chat_export_format_docx: "Word Document (.docx)",
+  chat_export_docx_failed_title: "Export Failed",
+  chat_export_docx_failed_message: "Failed to export DOCX: {error}",
 
   builder_editor_reset_message: "This will reset the editor content to match the current canvas state. Any manual edits in the editor will be lost.",
   builder_editor_reset_title: "Reset Editor",

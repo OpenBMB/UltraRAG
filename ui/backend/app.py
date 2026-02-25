@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import json
+import io
 import logging
 import os
+import re
 import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+from urllib.parse import quote
 
 from flask import (
     Flask,
@@ -29,6 +32,9 @@ EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
 KB_TASKS = {}
 LLMS_DOC_PATH = BASE_DIR.parent.parent / "docs" / "llms.txt"
 LLMS_DOC_CACHE = None
+DOCX_MIME_TYPE = (
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
 
 
 def load_llms_doc() -> str:
@@ -48,6 +54,231 @@ def load_llms_doc() -> str:
         LLMS_DOC_CACHE = ""
 
     return LLMS_DOC_CACHE
+
+
+def _normalize_export_title(question_text: str) -> str:
+    normalized = re.sub(r"\s+", " ", str(question_text or "")).strip()
+    normalized = re.sub(r"^#+\s*", "", normalized)
+    return normalized or "Chat Export"
+
+
+def _sanitize_export_filename(title: str) -> str:
+    safe = re.sub(r'[\\/:*?"<>|]', "", title)
+    safe = re.sub(r"\s+", "-", safe)
+    safe = re.sub(r"-+", "-", safe).strip(".-")
+    return (safe[:80] or "chat-export").strip() or "chat-export"
+
+
+def _ascii_fallback_filename(filename: str, default_basename: str = "chat-export") -> str:
+    safe = str(filename or "").replace("\r", "").replace("\n", "")
+    basename, ext = os.path.splitext(safe)
+    ascii_basename = basename.encode("ascii", "ignore").decode("ascii")
+    ascii_basename = re.sub(r"[^A-Za-z0-9._-]+", "-", ascii_basename)
+    ascii_basename = re.sub(r"-+", "-", ascii_basename).strip("-.")
+    if not ascii_basename:
+        ascii_basename = default_basename
+    ascii_ext = ext if re.fullmatch(r"\.[A-Za-z0-9]+", ext or "") else ".docx"
+    return f"{ascii_basename}{ascii_ext}"
+
+
+def _build_content_disposition(filename: str) -> str:
+    safe = str(filename or "").replace("\r", "").replace("\n", "")
+    ascii_filename = _ascii_fallback_filename(safe)
+    utf8_filename = quote(safe, safe="")
+    return (
+        f"attachment; filename=\"{ascii_filename}\"; "
+        f"filename*=UTF-8''{utf8_filename}"
+    )
+
+
+def _build_source_map(sources: Any) -> Dict[int, Dict[str, str]]:
+    source_map: Dict[int, Dict[str, str]] = {}
+    if not isinstance(sources, list):
+        return source_map
+
+    for src in sources:
+        if not isinstance(src, dict):
+            continue
+        raw_ref_id = src.get("displayId") or src.get("id")
+        try:
+            ref_id = int(raw_ref_id)
+        except (TypeError, ValueError):
+            continue
+        if ref_id in source_map:
+            continue
+        source_map[ref_id] = {
+            "title": str(src.get("title") or "").strip(),
+            "content": str(src.get("content") or ""),
+        }
+    return source_map
+
+
+def _ordered_reference_ids(answer_text: str, source_map: Dict[int, Dict[str, str]]) -> list[int]:
+    used_ids: list[int] = []
+    for ref_text in re.findall(r"\[(\d+)\]", str(answer_text or "")):
+        ref_id = int(ref_text)
+        if ref_id not in used_ids:
+            used_ids.append(ref_id)
+    return used_ids if used_ids else sorted(source_map.keys())
+
+
+def _set_run_fonts(
+    run: Any,
+    *,
+    size_pt: Optional[float] = None,
+    bold: Optional[bool] = None,
+    mono: bool = False,
+) -> None:
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.shared import Pt
+
+    latin_font = "Consolas" if mono else "Calibri"
+    east_asia_font = "等线" if mono else "Microsoft YaHei"
+    run.font.name = latin_font
+
+    r_pr = run._element.get_or_add_rPr()
+    r_fonts = r_pr.find(qn("w:rFonts"))
+    if r_fonts is None:
+        r_fonts = OxmlElement("w:rFonts")
+        r_pr.append(r_fonts)
+    r_fonts.set(qn("w:ascii"), latin_font)
+    r_fonts.set(qn("w:hAnsi"), latin_font)
+    r_fonts.set(qn("w:eastAsia"), east_asia_font)
+
+    if size_pt is not None:
+        run.font.size = Pt(size_pt)
+    if bold is not None:
+        run.bold = bold
+
+
+def _strip_markdown_links(text: str) -> str:
+    cleaned = re.sub(r"<a[^>]*>(.*?)</a>", r"\1", text, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", cleaned)
+    return cleaned
+
+
+def _append_markdown_to_docx(document: Any, markdown_text: str) -> None:
+    if not str(markdown_text or "").strip():
+        return
+
+    heading_size_rules = {
+        1: 20,
+        2: 16,
+        3: 14,
+        4: 13,
+        5: 12,
+        6: 11,
+    }
+    in_code_block = False
+
+    for raw_line in str(markdown_text).splitlines():
+        line = raw_line.rstrip("\r")
+        stripped = line.strip()
+
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            continue
+
+        if re.match(r'^<a\s+id="[^"]+"\s*></a>$', stripped):
+            continue
+
+        if in_code_block:
+            para = document.add_paragraph()
+            run = para.add_run(line)
+            _set_run_fonts(run, size_pt=10.5, mono=True)
+            continue
+
+        if not stripped:
+            document.add_paragraph("")
+            continue
+
+        heading_match = re.match(r"^(#{1,6})\s+(.*)$", stripped)
+        if heading_match:
+            level = len(heading_match.group(1))
+            heading_text = _strip_markdown_links(heading_match.group(2).strip())
+            para = document.add_paragraph()
+            run = para.add_run(heading_text)
+            _set_run_fonts(run, size_pt=heading_size_rules.get(level, 11), bold=True)
+            continue
+
+        bullet_match = re.match(r"^[-*]\s+(.*)$", stripped)
+        if bullet_match:
+            para = document.add_paragraph(style="List Bullet")
+            run = para.add_run(_strip_markdown_links(bullet_match.group(1).strip()))
+            _set_run_fonts(run, size_pt=11)
+            continue
+
+        ordered_match = re.match(r"^\d+\.\s+(.*)$", stripped)
+        if ordered_match:
+            para = document.add_paragraph(style="List Number")
+            run = para.add_run(_strip_markdown_links(ordered_match.group(1).strip()))
+            _set_run_fonts(run, size_pt=11)
+            continue
+
+        para = document.add_paragraph()
+        run = para.add_run(_strip_markdown_links(line))
+        _set_run_fonts(run, size_pt=11)
+
+
+def _build_chat_export_docx(
+    question_text: str,
+    answer_text: str,
+    sources: Any,
+) -> tuple[bytes, str]:
+    try:
+        from docx import Document
+    except Exception as e:
+        raise RuntimeError("python-docx is required for DOCX export.") from e
+
+    export_title = _normalize_export_title(question_text)
+    answer = str(answer_text or "")
+    source_map = _build_source_map(sources)
+    ordered_ref_ids = _ordered_reference_ids(answer, source_map)
+
+    document = Document()
+
+    title_para = document.add_paragraph()
+    title_run = title_para.add_run(export_title)
+    _set_run_fonts(title_run, size_pt=20, bold=True)
+
+    document.add_paragraph("")
+
+    answer_heading = document.add_paragraph()
+    answer_heading_run = answer_heading.add_run("Answer")
+    _set_run_fonts(answer_heading_run, size_pt=16, bold=True)
+
+    _append_markdown_to_docx(document, answer if answer.strip() else "(empty)")
+
+    if ordered_ref_ids:
+        document.add_paragraph("")
+        ref_heading = document.add_paragraph()
+        ref_heading_run = ref_heading.add_run("References")
+        _set_run_fonts(ref_heading_run, size_pt=16, bold=True)
+
+        for ref_id in ordered_ref_ids:
+            source = source_map.get(ref_id, {})
+            title = source.get("title") or f"Reference {ref_id}"
+            content = str(source.get("content") or "").strip()
+
+            item_heading = document.add_paragraph()
+            item_heading_run = item_heading.add_run(f"[{ref_id}] {title}")
+            _set_run_fonts(item_heading_run, size_pt=14, bold=True)
+
+            if content:
+                _append_markdown_to_docx(document, content)
+            else:
+                para = document.add_paragraph()
+                run = para.add_run("Reference content unavailable.")
+                _set_run_fonts(run, size_pt=11)
+
+    buffer = io.BytesIO()
+    document.save(buffer)
+    filename = (
+        f"{_sanitize_export_filename(export_title)}-"
+        f"{datetime.now().strftime('%Y%m%d-%H%M%S')}.docx"
+    )
+    return buffer.getvalue(), filename
 
 
 def _run_kb_background(
@@ -504,6 +735,33 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "is_first_turn": session.is_first_turn(),
                 "message_count": len(history),
             }
+        )
+
+    @app.route("/api/chat/export/docx", methods=["POST"])
+    def export_chat_docx() -> Response:
+        """Export chat content to a DOCX file."""
+        payload = request.get_json(force=True) or {}
+        answer_text = payload.get("text", "")
+        if not isinstance(answer_text, str) or not answer_text.strip():
+            return jsonify({"error": "text is required"}), 400
+
+        question_text = payload.get("question", "")
+        sources = payload.get("sources", [])
+        if not isinstance(sources, list):
+            sources = []
+
+        try:
+            docx_bytes, filename = _build_chat_export_docx(
+                question_text, answer_text, sources
+            )
+        except Exception as e:
+            LOGGER.error("DOCX export failed: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+        return Response(
+            docx_bytes,
+            mimetype=DOCX_MIME_TYPE,
+            headers={"Content-Disposition": _build_content_disposition(filename)},
         )
 
     # ===== Background Chat Task API =====

@@ -204,6 +204,13 @@ window.I18N_LOCALES.zh = {
   chat_show_thinking: "显示思考",
   chat_cited_references: "引用来源",
   chat_other_retrieved: "其他检索",
+  chat_export_button_title: "导出",
+  chat_export_format_title: "导出对话",
+  chat_export_format_message: "请选择导出格式：",
+  chat_export_format_markdown: "Markdown (.md)",
+  chat_export_format_docx: "Word 文档 (.docx)",
+  chat_export_docx_failed_title: "导出失败",
+  chat_export_docx_failed_message: "导出 DOCX 失败：{error}",
 
   builder_editor_reset_message: "此操作会将编辑器内容重置为当前画布状态，所有手动编辑将丢失。",
   builder_editor_reset_title: "重置编辑器",
