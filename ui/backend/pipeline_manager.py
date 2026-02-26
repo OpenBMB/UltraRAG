@@ -1168,6 +1168,13 @@ def chat_multiturn_stream(
                 }
             )
 
+            _auto_save_memory_chat_turn(
+                session,
+                question,
+                full_content,
+                dynamic_params,
+            )
+
             # Update conversation history
             session.add_to_history("user", question)
             session.add_to_history("assistant", full_content)
@@ -1298,6 +1305,167 @@ def _find_memory_answer(name: str, before: set[str]):
     except Exception:
         pass
     return None, target
+
+
+def _resolve_memory_server_alias_from_session(
+    session: Optional[DemoSession],
+) -> Optional[str]:
+    if not session:
+        return None
+
+    context = getattr(session, "_context", None)
+    if not isinstance(context, dict):
+        return None
+
+    server_cfg = context.get("server_cfg", {})
+    if not isinstance(server_cfg, dict):
+        return None
+
+    for alias, cfg in server_cfg.items():
+        if not isinstance(cfg, dict):
+            continue
+        path = str(cfg.get("path", "")).replace("\\", "/").rstrip("/")
+        if path and "servers/memory/" in path and path.endswith("/memory.py"):
+            return alias
+    return None
+
+
+def _resolve_memory_server_alias(pipeline_name: Optional[str]) -> Optional[str]:
+    if not pipeline_name:
+        return None
+    try:
+        pipeline_cfg = load_pipeline(pipeline_name)
+    except Exception:
+        return None
+
+    servers = pipeline_cfg.get("servers", {})
+    if not isinstance(servers, dict):
+        return None
+
+    for alias, server_path in servers.items():
+        if not isinstance(server_path, str):
+            continue
+        normalized = server_path.replace("\\", "/").rstrip("/")
+        if normalized == "servers/memory" or normalized.endswith("/memory"):
+            return alias
+    return None
+
+
+def _resolve_memory_user_id(
+    pipeline_name: Optional[str],
+    memory_alias: str,
+    dynamic_params: Optional[Dict[str, Any]] = None,
+) -> str:
+    user_id = "default"
+    if pipeline_name:
+        try:
+            params = load_parameters(pipeline_name)
+            memory_params = params.get(memory_alias, {})
+            if isinstance(memory_params, dict) and "user_id" in memory_params:
+                candidate = str(memory_params.get("user_id", "")).strip()
+                if candidate:
+                    user_id = candidate
+        except Exception as exc:
+            LOGGER.debug("Failed to resolve memory user_id from params: %s", exc)
+
+    if dynamic_params:
+        memory_override = dynamic_params.get(memory_alias)
+        if isinstance(memory_override, dict) and "user_id" in memory_override:
+            candidate = str(memory_override.get("user_id", "")).strip()
+            if candidate:
+                user_id = candidate
+
+    return user_id
+
+
+def _normalize_memory_user_id(user_id: Optional[str]) -> str:
+    normalized = str(user_id or "default").strip() or "default"
+    if not re.fullmatch(r"[A-Za-z0-9_-]+$", normalized):
+        return "default"
+    return normalized
+
+
+def _write_memory_locally(user_id: str, question: str, answer: str) -> None:
+    normalized_user_id = _normalize_memory_user_id(user_id)
+    user_dir = PROJECT_ROOT / "data" / "user_memory" / normalized_user_id
+    project_dir = user_dir / "project"
+    memory_file = user_dir / "MEMORY.md"
+
+    project_dir.mkdir(parents=True, exist_ok=True)
+    if not memory_file.exists():
+        memory_file.write_text("# MEMORY\ni am jack. i like LLMs.\n", encoding="utf-8")
+
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M:%S")
+    daily_file = project_dir / f"{date_str}.md"
+    entry = (
+        f"\n## {date_str} {time_str}\n"
+        f"- user: {str(question).strip()}\n"
+        f"- assistant: {str(answer).strip()}\n"
+    )
+
+    if not daily_file.exists():
+        daily_file.write_text(f"# Project Memory {date_str}\n{entry}", encoding="utf-8")
+    else:
+        with daily_file.open("a", encoding="utf-8") as f:
+            f.write(entry)
+
+
+def _auto_save_memory_chat_turn(
+    session: Optional[DemoSession],
+    question: str,
+    answer: str,
+    dynamic_params: Optional[Dict[str, Any]] = None,
+) -> None:
+    if not session or not question or not answer:
+        return
+
+    pipeline_name = getattr(session, "_pipeline_name", None)
+    memory_alias = _resolve_memory_server_alias_from_session(
+        session
+    ) or _resolve_memory_server_alias(pipeline_name)
+    if not memory_alias:
+        return
+
+    user_id = _resolve_memory_user_id(pipeline_name, memory_alias, dynamic_params)
+    payload = {"user_id": user_id, "q_ls": [question], "ans_ls": [answer]}
+
+    context = getattr(session, "_context", None)
+    server_cfg = context.get("server_cfg", {}) if isinstance(context, dict) else {}
+    is_multi_server = isinstance(server_cfg, dict) and len(server_cfg.keys()) > 1
+    save_tool_name = f"{memory_alias}_save_memory" if is_multi_server else "save_memory"
+
+    client_obj = getattr(session, "_client", None)
+    loop_obj = getattr(session, "_loop", None)
+    if getattr(session, "_active", False) and client_obj and loop_obj:
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                client_obj.call_tool(save_tool_name, payload),
+                loop_obj,
+            )
+            future.result(timeout=15)
+            LOGGER.info(
+                "Auto-saved memory via MCP tool=%s input=q_ls pipeline=%s user_id=%s",
+                save_tool_name,
+                pipeline_name,
+                user_id,
+            )
+            return
+        except Exception as exc:
+            LOGGER.warning(
+                "Auto memory save via MCP failed, fallback to local write: %s", exc
+            )
+
+    try:
+        _write_memory_locally(user_id, question, answer)
+        LOGGER.info(
+            "Auto-saved memory via local writer for pipeline=%s user_id=%s",
+            pipeline_name,
+            user_id,
+        )
+    except Exception as exc:
+        LOGGER.warning("Auto memory save failed in multiturn chat: %s", exc)
 
 
 def _as_project_relative(path: Path) -> str:

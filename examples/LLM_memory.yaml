@@ -1,0 +1,16 @@
+# LLM Memory Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  prompt: servers/prompt
+  generation: servers/generation
+  memory: servers/memory
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- memory.get_memory
+- prompt.qa_memory
+- generation.generation_init
+- generation.generate

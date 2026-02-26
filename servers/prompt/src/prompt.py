@@ -113,6 +113,25 @@ def qa_boxed(q_ls: List[str], template: Union[str, Path]) -> List[PromptMessage]
         ret.append(p)
     return ret
 
+@app.prompt(output="q_ls,mm_content,template->prompt_ls")
+def qa_memory(q_ls: List[str], mm_content: str, template: Union[str, Path]) -> List[PromptMessage]:
+    """Generate prompts for QA boxed format.
+
+    Args:
+        q_ls: List of questions
+        mm_content: Memory content
+        template: Path to Jinja2 template file
+
+    Returns:
+        List of PromptMessage objects
+    """
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q in q_ls:
+        p = _safe_render(template, question=q, mm_content=mm_content)
+        ret.append(p)
+    return ret
+
 
 @app.prompt(output="q_ls,choices_ls,template->prompt_ls")
 def qa_boxed_multiple_choice(
