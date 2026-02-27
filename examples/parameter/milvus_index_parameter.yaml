@@ -16,8 +16,8 @@ retriever:
         psg_task: null
         q_task: null
     openai:
-      model_name: text-embedding-3-small
-      base_url: https://api.openai.com/v1
+      model_name: qwen-embedding
+      base_url: http://localhost:65504/v1
       api_key: abc
       concurrency: 8
     bm25:
@@ -27,7 +27,7 @@ retriever:
   corpus_path: data/corpus_example.jsonl
   gpu_ids: '1'
   is_multimodal: false
-  backend: sentence_transformers
+  backend: openai
   index_backend: faiss
   index_backend_configs:
     faiss:

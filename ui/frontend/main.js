@@ -3903,6 +3903,7 @@ function pipelineRequiresKnowledgeBase() {
         "retriever.retriever_embed",
         "retriever.retriever_index",
         "retriever.bm25_index",
+        "retriever.retriever_project_memory_search",
         "retriever.retriever_websearch",
         "retriever.retriever_batch_websearch",
     ]);
