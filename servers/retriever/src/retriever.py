@@ -1028,7 +1028,8 @@ class Retriever:
             Dictionary with 'project_memory_content' containing retrieved passages
         """
 
-        collection_name = f"user_{current_user_id}"
+        normalized_user_id = str(current_user_id or "default").strip() or "default"
+        collection_name = f"user_{normalized_user_id}"
 
         result = await self.retriever_search(
             query_list=query_list,

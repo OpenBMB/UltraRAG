@@ -19,10 +19,12 @@ from flask import (
     redirect,
     request,
     send_from_directory,
+    session,
     stream_with_context,
 )
 from werkzeug.exceptions import HTTPException
 
+from . import auth as auth_backend
 from . import pipeline_manager as pm
 
 LOGGER = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ DEFAULT_MEMORY_USER = "default"
 MEMORY_FILENAME = "MEMORY.md"
 MEMORY_DEFAULT_CONTENT = "# MEMORY\ni am jack. i like LLMs.\n"
 MEMORY_USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+AUTH_DB_PATH = BASE_DIR.parent.parent / "data" / "users.sqlite3"
 
 
 def load_llms_doc() -> str:
@@ -396,6 +399,59 @@ def create_app(admin_mode: bool = False) -> Flask:
     """
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
     app.config["ADMIN_MODE"] = admin_mode
+    app.config["SECRET_KEY"] = os.getenv(
+        "ULTRARAG_SESSION_SECRET", "ultrarag-dev-session-secret"
+    )
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = (
+        os.getenv("ULTRARAG_SESSION_COOKIE_SECURE", "false").lower()
+        in {"1", "true", "yes", "on"}
+    )
+
+    user_store = auth_backend.SQLiteUserStore(AUTH_DB_PATH)
+    user_store.init_db()
+
+    def _get_authenticated_user_id() -> Optional[str]:
+        raw_value = session.get("auth_user_id")
+        if raw_value is None:
+            return None
+        candidate = str(raw_value).strip()
+        if not candidate or not MEMORY_USER_ID_PATTERN.fullmatch(candidate):
+            session.pop("auth_user_id", None)
+            return None
+        return candidate
+
+    def get_current_user_id() -> str:
+        return _get_authenticated_user_id() or DEFAULT_MEMORY_USER
+
+    def get_current_user_info() -> Dict[str, Any]:
+        logged_user = _get_authenticated_user_id()
+        if logged_user:
+            return {
+                "logged_in": True,
+                "user_id": logged_user,
+                "username": logged_user,
+            }
+        return {
+            "logged_in": False,
+            "user_id": DEFAULT_MEMORY_USER,
+            "username": None,
+        }
+
+    def _validate_user_access(raw_user_id: Any):
+        if raw_user_id is None:
+            return True, None
+        candidate_text = str(raw_user_id).strip()
+        if not candidate_text:
+            return True, None
+        try:
+            candidate = _normalize_memory_user_id(candidate_text)
+        except ValueError as e:
+            return False, (jsonify({"error": str(e)}), 400)
+        if candidate != get_current_user_id():
+            return False, (jsonify({"error": "forbidden user_id"}), 403)
+        return True, None
 
     @app.errorhandler(pm.PipelineManagerError)
     def handle_pipeline_error(
@@ -463,14 +519,91 @@ def create_app(admin_mode: bool = False) -> Flask:
         """Redirect legacy /config route to /settings."""
         return redirect("/settings")
 
+    @app.route("/api/auth/register", methods=["POST"])
+    def auth_register() -> Response:
+        payload = request.get_json(force=True) or {}
+        username = payload.get("username", "")
+        password = payload.get("password", "")
+        try:
+            user = user_store.create_user(username, password)
+        except auth_backend.UserAlreadyExistsError as e:
+            return jsonify({"error": str(e)}), 409
+        except auth_backend.AuthValidationError as e:
+            return jsonify({"error": str(e)}), 400
+
+        session["auth_user_id"] = user["username"]
+        session.permanent = True
+        return (
+            jsonify(
+                {
+                    "status": "registered",
+                    "logged_in": True,
+                    "user_id": user["username"],
+                    "username": user["username"],
+                }
+            ),
+            201,
+        )
+
+    @app.route("/api/auth/login", methods=["POST"])
+    def auth_login() -> Response:
+        payload = request.get_json(force=True) or {}
+        username = payload.get("username", "")
+        password = payload.get("password", "")
+
+        try:
+            user = user_store.verify_credentials(username, password)
+        except auth_backend.AuthValidationError as e:
+            return jsonify({"error": str(e)}), 400
+
+        if not user:
+            return jsonify({"error": "invalid username or password"}), 401
+
+        session["auth_user_id"] = user["username"]
+        session.permanent = True
+        return jsonify(
+            {
+                "status": "logged_in",
+                "logged_in": True,
+                "user_id": user["username"],
+                "username": user["username"],
+            }
+        )
+
+    @app.route("/api/auth/logout", methods=["POST"])
+    def auth_logout() -> Response:
+        session.pop("auth_user_id", None)
+        session.modified = True
+        return jsonify(
+            {
+                "status": "logged_out",
+                "logged_in": False,
+                "user_id": DEFAULT_MEMORY_USER,
+                "username": None,
+            }
+        )
+
+    @app.route("/api/auth/me", methods=["GET"])
+    def auth_me() -> Response:
+        return jsonify(get_current_user_info())
+
     @app.route("/api/memory", methods=["GET", "PUT"])
     @app.route("/api/memory/<string:user_id>", methods=["GET", "PUT"])
     def memory_file(user_id: str = DEFAULT_MEMORY_USER) -> Response:
         """Read or update per-user MEMORY.md content."""
-        try:
-            normalized_user = _normalize_memory_user_id(user_id)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
+        current_user = get_current_user_id()
+        view_args = request.view_args or {}
+        explicit_user_id = view_args.get("user_id") if "user_id" in view_args else None
+
+        if explicit_user_id is None:
+            normalized_user = current_user
+        else:
+            try:
+                normalized_user = _normalize_memory_user_id(explicit_user_id)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+            if normalized_user != current_user:
+                return jsonify({"error": "forbidden user_id"}), 403
 
         memory_path = _ensure_memory_file(normalized_user)
         relative_path = str(memory_path.relative_to(BASE_DIR.parent.parent))
@@ -702,6 +835,12 @@ def create_app(admin_mode: bool = False) -> Flask:
         dynamic_params = payload.get("dynamic_params", {})
         if not isinstance(dynamic_params, dict):
             dynamic_params = {}
+        current_user_id = get_current_user_id()
+        memory_params = dynamic_params.get("memory", {})
+        if not isinstance(memory_params, dict):
+            memory_params = {}
+        memory_params["user_id"] = current_user_id
+        dynamic_params["memory"] = memory_params
 
         # New: Frontend-provided conversation history (previous conversations in browser session)
         # Compatible with two field names: conversation_history or history
@@ -926,7 +1065,12 @@ def create_app(admin_mode: bool = False) -> Flask:
         dynamic_params = payload.get("dynamic_params", {})
         if not isinstance(dynamic_params, dict):
             dynamic_params = {}
-        user_id = payload.get("user_id", "") or request.headers.get("X-User-ID", "")
+        current_user_id = get_current_user_id()
+        memory_params = dynamic_params.get("memory", {})
+        if not isinstance(memory_params, dict):
+            memory_params = {}
+        memory_params["user_id"] = current_user_id
+        dynamic_params["memory"] = memory_params
 
         if not question:
             return jsonify({"error": "question is required"}), 400
@@ -979,7 +1123,7 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         try:
             task_id = pm.run_background_chat(
-                name, question, session_id, dynamic_params, user_id=user_id
+                name, question, session_id, dynamic_params, user_id=current_user_id
             )
             return (
                 jsonify(
@@ -1003,9 +1147,7 @@ def create_app(admin_mode: bool = False) -> Flask:
             JSON response with list of tasks
         """
         limit = request.args.get("limit", 20, type=int)
-        user_id = request.args.get("user_id", "") or request.headers.get(
-            "X-User-ID", ""
-        )
+        user_id = get_current_user_id()
         LOGGER.info(f"Listing background tasks for user_id: '{user_id}'")
         tasks = pm.list_background_tasks(limit, user_id=user_id)
         LOGGER.info(f"Found {len(tasks)} tasks for user_id: '{user_id}'")
@@ -1021,9 +1163,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             JSON response with task information
         """
-        user_id = request.args.get("user_id", "") or request.headers.get(
-            "X-User-ID", ""
-        )
+        user_id = get_current_user_id()
         task = pm.get_background_task(task_id, user_id=user_id)
         if not task:
             return jsonify({"error": "Task not found"}), 404
@@ -1039,9 +1179,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             JSON response with deletion status
         """
-        user_id = request.args.get("user_id", "") or request.headers.get(
-            "X-User-ID", ""
-        )
+        user_id = get_current_user_id()
         success = pm.delete_background_task(task_id, user_id=user_id)
         if success:
             return jsonify({"status": "deleted", "task_id": task_id})
@@ -1054,8 +1192,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             JSON response with clear status and count
         """
-        payload = request.get_json(force=True) if request.is_json else {}
-        user_id = payload.get("user_id", "") or request.headers.get("X-User-ID", "")
+        user_id = get_current_user_id()
         count = pm.clear_completed_background_tasks(user_id=user_id)
         return jsonify({"status": "cleared", "count": count})
 
@@ -1194,14 +1331,12 @@ def create_app(admin_mode: bool = False) -> Flask:
     def sync_memory_to_kb() -> Response:
         """Sync current user's project memory into per-user KB collection."""
         payload = request.get_json(force=True) or {}
-        raw_user_id = payload.get("user_id", DEFAULT_MEMORY_USER)
         index_mode = str(payload.get("index_mode", "append") or "append").strip()
         force_full = bool(payload.get("force_full", False))
-
-        try:
-            user_id = _normalize_memory_user_id(raw_user_id)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
+        is_allowed, rejection = _validate_user_access(payload.get("user_id"))
+        if not is_allowed and rejection is not None:
+            return rejection
+        user_id = get_current_user_id()
 
         if index_mode not in {"append", "overwrite"}:
             return jsonify({"error": "index_mode must be 'append' or 'overwrite'"}), 400

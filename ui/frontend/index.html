@@ -531,6 +531,20 @@
                 <div class="item-text" data-i18n="builder">Builder</div>
               </button>
 
+              <button type="button" class="settings-item" id="settings-account">
+                <span class="item-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <div class="item-text">
+                  <span data-i18n="auth_account">Account</span>
+                  <span class="settings-item-tag" id="settings-account-tag">default</span>
+                </div>
+              </button>
+
               <div class="settings-item settings-item-has-submenu" id="settings-language">
                 <div class="settings-item-main">
                   <span class="item-icon">
@@ -1132,6 +1146,52 @@
       <p class="unified-modal-message" id="unified-modal-message"></p>
       <div class="unified-modal-actions" id="unified-modal-actions">
         <button class="btn unified-modal-btn unified-modal-btn-primary" id="unified-modal-ok" data-i18n="common_ok">OK</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="auth-modal" class="auth-modal">
+    <div class="auth-modal-content">
+      <div class="auth-modal-header">
+        <h3 data-i18n="auth_dialog_title">Account</h3>
+        <button type="button" class="auth-modal-close" id="auth-close-btn" data-i18n-title="common_close" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="auth-current-user" id="auth-current-user"></div>
+      <div class="auth-modal-status" id="auth-modal-status"></div>
+
+      <div class="auth-modal-grid">
+        <form id="auth-login-form" class="auth-form">
+          <h4 data-i18n="auth_login_title">Login</h4>
+          <label for="auth-login-username" data-i18n="auth_username_label">Username</label>
+          <input id="auth-login-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
+
+          <label for="auth-login-password" data-i18n="auth_password_label">Password</label>
+          <input id="auth-login-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 8 characters" />
+
+          <button type="submit" class="btn auth-btn-primary" data-i18n="auth_login_action">Login</button>
+        </form>
+
+        <form id="auth-register-form" class="auth-form">
+          <h4 data-i18n="auth_register_title">Register</h4>
+          <label for="auth-register-username" data-i18n="auth_username_label">Username</label>
+          <input id="auth-register-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
+
+          <label for="auth-register-password" data-i18n="auth_password_label">Password</label>
+          <input id="auth-register-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 8 characters" />
+
+          <button type="submit" class="btn auth-btn-secondary" data-i18n="auth_register_action">Register</button>
+        </form>
+      </div>
+
+      <div class="auth-modal-actions">
+        <button type="button" class="btn auth-btn-logout" id="auth-logout-btn" data-i18n="auth_logout_action">Logout</button>
       </div>
     </div>
   </dialog>

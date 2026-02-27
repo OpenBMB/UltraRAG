@@ -340,6 +340,27 @@ class MilvusIndexBackend(BaseIndexBackend):
         if query_embeddings.ndim != 2:
             raise ValueError("[milvus] query embeddings must be 2-D.")
 
+        # New user memory collections may not exist on first retrieval.
+        # Auto-create an empty per-user collection to avoid failing the first query.
+        if isinstance(target_collection, str) and target_collection.startswith("user_"):
+            try:
+                if not client.has_collection(target_collection):
+                    dim = int(query_embeddings.shape[1])
+                    self.logger.info(
+                        "[milvus] Collection '%s' not found; creating empty collection.",
+                        target_collection,
+                    )
+                    self._ensure_collection(
+                        dim=dim,
+                        overwrite=False,
+                        collection_name=target_collection,
+                    )
+                    return [[] for _ in range(query_embeddings.shape[0])]
+            except Exception as exc:
+                raise RuntimeError(
+                    f"[milvus] Failed to auto-create '{target_collection}': {exc}"
+                ) from exc
+
         output_fields = [self.text_field]
 
         try:

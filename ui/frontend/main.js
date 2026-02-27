@@ -183,6 +183,10 @@ function updateI18nTexts() {
         const count = el.dataset.count || 0;
         el.textContent = `${t("chat_other_retrieved")} (${count})`;
     });
+
+    if (typeof renderAuthStateUI === "function") {
+        renderAuthStateUI();
+    }
 }
 
 function resolveInitialLanguage() {
@@ -220,6 +224,13 @@ const state = {
     simplifiedParams: true,
 
     uiLanguage: resolveInitialLanguage(),
+    auth: {
+        loaded: false,
+        loadingPromise: null,
+        loggedIn: false,
+        userId: "default",
+        username: null,
+    },
 
     // [Modified] Chat state management
     chat: {
@@ -320,7 +331,20 @@ const els = {
     settingsMenuTrigger: document.getElementById("settings-menu-trigger"),
     settingsDropdown: document.getElementById("settings-dropdown"),
     settingsBuilder: document.getElementById("settings-builder"),
+    settingsAccount: document.getElementById("settings-account"),
+    settingsAccountTag: document.getElementById("settings-account-tag"),
     settingsLanguageLabel: document.getElementById("settings-language-label"),
+    authModal: document.getElementById("auth-modal"),
+    authCloseBtn: document.getElementById("auth-close-btn"),
+    authCurrentUser: document.getElementById("auth-current-user"),
+    authModalStatus: document.getElementById("auth-modal-status"),
+    authLoginForm: document.getElementById("auth-login-form"),
+    authLoginUsername: document.getElementById("auth-login-username"),
+    authLoginPassword: document.getElementById("auth-login-password"),
+    authRegisterForm: document.getElementById("auth-register-form"),
+    authRegisterUsername: document.getElementById("auth-register-username"),
+    authRegisterPassword: document.getElementById("auth-register-password"),
+    authLogoutBtn: document.getElementById("auth-logout-btn"),
 
     // [New] View containers
     chatMainView: document.getElementById("chat-main-view"),
@@ -3014,6 +3038,7 @@ function openMemoryView() {
 }
 
 async function doOpenMemoryView() {
+    await refreshAuthState();
     showChatSubview("memory");
     clearChatSessionHighlight();
     await Promise.allSettled([loadMemoryContent(), refreshMemoryKbCards()]);
@@ -3183,9 +3208,7 @@ async function syncMemoryToKB() {
     }
     setMemoryStatus(t("memory_sync_submitting"), "loading");
     try {
-        const userId = getMemoryUserId();
         const payload = {
-            user_id: userId,
             index_mode: "append",
         };
         const result = await fetchJSON("/api/kb/sync-memory", {
@@ -6742,6 +6765,7 @@ function bindEvents() {
     }
 
     setupSettingsMenu();
+    bindAuthDialogEvents();
 
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
@@ -7079,6 +7103,9 @@ async function bootstrap() {
         state.adminMode = true;
     }
 
+    await refreshAuthState({ force: true });
+    renderAuthStateUI();
+
     // Decide initial view based on mode and URL
     let initialMode;
     if (state.adminMode) {
@@ -7306,6 +7333,14 @@ function setupSettingsMenu() {
         };
     }
 
+    if (els.settingsAccount) {
+        els.settingsAccount.onclick = async (e) => {
+            e?.stopPropagation();
+            closeMenu();
+            await openAuthDialog();
+        };
+    }
+
     // Ensure chat pipeline dropdown closes after selection
     const chatPipelineDropdown = document.getElementById("chatPipelineDropdown");
     const chatPipelineMenu = document.getElementById("chat-pipeline-menu");
@@ -7327,22 +7362,274 @@ function setupSettingsMenu() {
 
 // ===== Background Task Management =====
 
-// User ID management for isolating background tasks per user
+// User/auth state management
 const USER_ID_STORAGE_KEY = 'ultrarag_user_id';
 const LEGACY_AUTO_USER_ID_PATTERN = /^user_\d{10,}_[a-z0-9]+$/i;
 
-function getUserId() {
-    let userId = localStorage.getItem(USER_ID_STORAGE_KEY);
-    if (userId) {
-        userId = String(userId).trim();
+function normalizeUserId(rawUserId) {
+    const userId = String(rawUserId || "").trim();
+    if (!userId) return DEFAULT_MEMORY_USER_ID;
+    if (LEGACY_AUTO_USER_ID_PATTERN.test(userId)) return DEFAULT_MEMORY_USER_ID;
+    if (!/^[A-Za-z0-9_-]+$/.test(userId)) return DEFAULT_MEMORY_USER_ID;
+    return userId;
+}
+
+function cacheUserId(userId) {
+    try {
+        localStorage.setItem(USER_ID_STORAGE_KEY, normalizeUserId(userId));
+    } catch (e) {
+        console.warn("Failed to persist user id:", e);
+    }
+}
+
+function parseApiErrorMessage(error) {
+    const raw = String(error?.message || "").trim();
+    if (!raw) return t("common_unknown_error");
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && parsed.error) {
+            return String(parsed.error);
+        }
+    } catch (_) {
+        // ignore parse error and fallback to raw text
+    }
+    return raw;
+}
+
+function renderAuthStateUI() {
+    const userId = getUserId();
+    const loggedIn = Boolean(state.auth?.loggedIn);
+
+    if (els.settingsAccountTag) {
+        els.settingsAccountTag.textContent = userId;
+        els.settingsAccountTag.title = userId;
     }
 
-    // Migrate legacy auto-generated IDs to stable default user when no user system exists.
-    if (!userId || LEGACY_AUTO_USER_ID_PATTERN.test(userId)) {
-        userId = DEFAULT_MEMORY_USER_ID;
-        localStorage.setItem(USER_ID_STORAGE_KEY, userId);
+    if (els.authCurrentUser) {
+        els.authCurrentUser.textContent = loggedIn
+            ? formatTemplate(t("auth_logged_in_as"), { user: userId })
+            : t("auth_guest_mode");
     }
+
+    if (els.authLogoutBtn) {
+        els.authLogoutBtn.disabled = !loggedIn;
+    }
+}
+
+function setAuthModalStatus(message, stateKey = "info") {
+    if (!els.authModalStatus) return;
+    els.authModalStatus.textContent = String(message || "");
+    if (message) {
+        els.authModalStatus.dataset.state = stateKey;
+    } else {
+        delete els.authModalStatus.dataset.state;
+    }
+}
+
+function applyAuthPayload(payload) {
+    const loggedIn = Boolean(payload && payload.logged_in === true);
+    const normalized = normalizeUserId(payload?.user_id);
+    const nextUserId = loggedIn ? normalized : DEFAULT_MEMORY_USER_ID;
+
+    state.auth.loggedIn = loggedIn && nextUserId !== DEFAULT_MEMORY_USER_ID;
+    state.auth.userId = nextUserId;
+    state.auth.username = state.auth.loggedIn
+        ? String(payload?.username || nextUserId)
+        : null;
+    state.auth.loaded = true;
+
+    cacheUserId(nextUserId);
+    renderAuthStateUI();
+}
+
+async function refreshAuthState({ force = false } = {}) {
+    if (!force && state.auth.loaded) {
+        return state.auth;
+    }
+    if (state.auth.loadingPromise) {
+        return state.auth.loadingPromise;
+    }
+
+    state.auth.loadingPromise = (async () => {
+        try {
+            const payload = await fetchJSON("/api/auth/me");
+            applyAuthPayload(payload);
+        } catch (e) {
+            console.warn("Failed to fetch auth state:", e);
+            const cachedUser = normalizeUserId(localStorage.getItem(USER_ID_STORAGE_KEY));
+            applyAuthPayload({
+                logged_in: false,
+                user_id: cachedUser,
+                username: null,
+            });
+        }
+        return state.auth;
+    })();
+
+    try {
+        return await state.auth.loadingPromise;
+    } finally {
+        state.auth.loadingPromise = null;
+    }
+}
+
+function getUserId() {
+    const fromState = normalizeUserId(state.auth?.userId);
+    if (fromState) return fromState;
+
+    const cached = normalizeUserId(localStorage.getItem(USER_ID_STORAGE_KEY));
+    const userId = cached || DEFAULT_MEMORY_USER_ID;
+    cacheUserId(userId);
     return userId;
+}
+
+async function refreshAuthDependentViews() {
+    try {
+        backgroundTaskState.tasks = [];
+        backgroundTaskState.cachedTasks = [];
+        backgroundTaskState.notifiedTasks = new Set();
+        localStorage.setItem(BG_TASKS_STORAGE_KEY, JSON.stringify([]));
+    } catch (e) {
+        console.warn("Failed to clear background task cache:", e);
+    }
+
+    const tasks = [
+        refreshKBFiles(),
+        renderChatCollectionOptions(),
+        window.refreshBackgroundTasks ? window.refreshBackgroundTasks() : Promise.resolve(),
+    ];
+    if (els.memoryMainView && !els.memoryMainView.classList.contains("d-none")) {
+        tasks.push(loadMemoryContent());
+    }
+    tasks.push(refreshMemoryKbCards());
+    await Promise.allSettled(tasks);
+}
+
+async function openAuthDialog() {
+    await refreshAuthState({ force: true });
+    renderAuthStateUI();
+    setAuthModalStatus("");
+
+    if (els.authLoginPassword) els.authLoginPassword.value = "";
+    if (els.authRegisterPassword) els.authRegisterPassword.value = "";
+
+    if (els.authModal?.showModal) {
+        els.authModal.showModal();
+    }
+}
+
+function closeAuthDialog() {
+    if (els.authModal?.open) {
+        els.authModal.close();
+    }
+}
+
+async function onAuthLoginSubmit(event) {
+    event.preventDefault();
+    const username = String(els.authLoginUsername?.value || "").trim();
+    const password = String(els.authLoginPassword?.value || "");
+
+    if (!username || !password) {
+        setAuthModalStatus(t("auth_form_required"), "error");
+        return;
+    }
+
+    setAuthModalStatus(t("auth_logging_in"), "info");
+    try {
+        await fetchJSON("/api/auth/login", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+        });
+        await refreshAuthState({ force: true });
+        await refreshAuthDependentViews();
+        setAuthModalStatus(
+            formatTemplate(t("auth_login_success"), { user: getUserId() }),
+            "success"
+        );
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    } finally {
+        if (els.authLoginPassword) {
+            els.authLoginPassword.value = "";
+        }
+    }
+}
+
+async function onAuthRegisterSubmit(event) {
+    event.preventDefault();
+    const username = String(els.authRegisterUsername?.value || "").trim();
+    const password = String(els.authRegisterPassword?.value || "");
+
+    if (!username || !password) {
+        setAuthModalStatus(t("auth_form_required"), "error");
+        return;
+    }
+
+    setAuthModalStatus(t("auth_registering"), "info");
+    try {
+        await fetchJSON("/api/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ username, password }),
+        });
+        await refreshAuthState({ force: true });
+        await refreshAuthDependentViews();
+        setAuthModalStatus(
+            formatTemplate(t("auth_register_success"), { user: getUserId() }),
+            "success"
+        );
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    } finally {
+        if (els.authRegisterPassword) {
+            els.authRegisterPassword.value = "";
+        }
+    }
+}
+
+async function onAuthLogoutClick() {
+    if (!state.auth.loggedIn) return;
+
+    const confirmed = await showConfirm(t("auth_logout_confirm"), {
+        title: t("auth_dialog_title"),
+        type: "warning",
+        confirmText: t("auth_logout_action"),
+        cancelText: t("common_cancel"),
+    });
+    if (!confirmed) return;
+
+    setAuthModalStatus(t("auth_logging_out"), "info");
+    try {
+        await fetchJSON("/api/auth/logout", { method: "POST" });
+        await refreshAuthState({ force: true });
+        await refreshAuthDependentViews();
+        setAuthModalStatus(t("auth_logout_success"), "success");
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    }
+}
+
+function bindAuthDialogEvents() {
+    if (els.authCloseBtn) {
+        els.authCloseBtn.addEventListener("click", closeAuthDialog);
+    }
+
+    if (els.authModal) {
+        els.authModal.addEventListener("click", (event) => {
+            if (event.target === els.authModal) {
+                closeAuthDialog();
+            }
+        });
+    }
+
+    if (els.authLoginForm) {
+        els.authLoginForm.addEventListener("submit", onAuthLoginSubmit);
+    }
+    if (els.authRegisterForm) {
+        els.authRegisterForm.addEventListener("submit", onAuthRegisterSubmit);
+    }
+    if (els.authLogoutBtn) {
+        els.authLogoutBtn.addEventListener("click", onAuthLogoutClick);
+    }
 }
 
 // Background task state
@@ -7535,8 +7822,7 @@ window.toggleBackgroundPanel = function () {
 // Refresh background tasks list
 window.refreshBackgroundTasks = async function () {
     try {
-        const userId = getUserId();
-        const serverTasks = await fetchJSON(`/api/background-tasks?limit=20&user_id=${encodeURIComponent(userId)}`);
+        const serverTasks = await fetchJSON('/api/background-tasks?limit=20');
 
         // Merge with cached tasks (for tasks that may have been lost on server restart)
         backgroundTaskState.tasks = mergeBackgroundTasks(serverTasks);
@@ -7707,9 +7993,8 @@ window.showBackgroundTaskDetail = async function (taskId) {
     try {
         // Try to get from server first, fallback to cache
         let task;
-        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
         } catch (e) {
             // Server may not have this task (e.g., after restart), try cache
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId);
@@ -7782,8 +8067,7 @@ window.showBackgroundTaskDetail = async function (taskId) {
         // If task is still running, refresh periodically
         if (task.status === 'running') {
             const refreshInterval = setInterval(async () => {
-                const userId = getUserId();
-                const updated = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
+                const updated = await fetchJSON(`/api/background-tasks/${taskId}`);
                 if (updated.status !== 'running') {
                     clearInterval(refreshInterval);
                     showBackgroundTaskDetail(taskId);
@@ -7805,9 +8089,8 @@ window.copyTaskResult = async function (taskId) {
     try {
         // Try server first, fallback to cache
         let task;
-        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
         } catch (e) {
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
                 backgroundTaskState.tasks.find(t => t.task_id === taskId);
@@ -7833,9 +8116,8 @@ window.loadTaskToChat = async function (taskId, target = 'current') {
     try {
         // Try server first, fallback to cache
         let task;
-        const userId = getUserId();
         try {
-            task = await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`);
+            task = await fetchJSON(`/api/background-tasks/${taskId}`);
         } catch (e) {
             task = backgroundTaskState.cachedTasks.find(t => t.task_id === taskId) ||
                 backgroundTaskState.tasks.find(t => t.task_id === taskId);
@@ -7948,9 +8230,8 @@ window.deleteBackgroundTask = async function (taskId) {
 
     try {
         // Try to delete from server (may fail if task is only in cache)
-        const userId = getUserId();
         try {
-            await fetchJSON(`/api/background-tasks/${taskId}?user_id=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+            await fetchJSON(`/api/background-tasks/${taskId}`, { method: 'DELETE' });
         } catch (e) {
             // Ignore server error, may be a cached-only task
         }
@@ -7986,11 +8267,10 @@ window.clearCompletedTasks = async function () {
 
         // Try to clear from server
         let serverCount = 0;
-        const userId = getUserId();
         try {
             const result = await fetchJSON('/api/background-tasks/clear-completed', {
                 method: 'POST',
-                body: JSON.stringify({ user_id: userId })
+                body: JSON.stringify({})
             });
             serverCount = result.count || 0;
         } catch (e) {
@@ -8042,8 +8322,7 @@ async function sendToBackground(question) {
                 body: JSON.stringify({
                     question,
                     session_id: state.chat.engineSessionId,
-                    dynamic_params: dynamicParams,
-                    user_id: userId
+                    dynamic_params: dynamicParams
                 })
             }
         );
