@@ -1,23 +1,23 @@
 retriever:
-  parameter: servers/retriever/parameter.yaml
-  path: servers/retriever/src/retriever.py
   tools:
-    retriever_index:
-      input:
-        collection_name: $collection_name
-        corpus_path: $corpus_path
-        embedding_path: $embedding_path
-        overwrite: $overwrite
     retriever_init:
       input:
-        backend: $backend
+        model_name_or_path: $model_name_or_path
         backend_configs: $backend_configs
         batch_size: $batch_size
-        collection_name: $collection_name
         corpus_path: $corpus_path
         gpu_ids: $gpu_ids
+        is_multimodal: $is_multimodal
+        backend: $backend
         index_backend: $index_backend
         index_backend_configs: $index_backend_configs
         is_demo: $is_demo
-        is_multimodal: $is_multimodal
-        model_name_or_path: $model_name_or_path
+        collection_name: $collection_name
+    retriever_index:
+      input:
+        embedding_path: $embedding_path
+        overwrite: $overwrite
+        collection_name: $collection_name
+        corpus_path: $corpus_path
+  parameter: servers/retriever/parameter.yaml
+  path: servers/retriever/src/retriever.py

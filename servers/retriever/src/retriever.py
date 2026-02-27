@@ -42,6 +42,10 @@ class Retriever:
             output="batch_query_list,top_k,query_instruction,collection_name->ret_psg_ls",
         )
         mcp_inst.tool(
+            self.retriever_project_memory_search,
+            output="q_ls,top_k,query_instruction,current_user_id->project_memory_content",
+        )
+        mcp_inst.tool(
             self.bm25_index,
             output="overwrite->None",
         )
@@ -1005,6 +1009,39 @@ class Retriever:
 
         return {"ret_psg_ls": ret_psg_ls}
 
+    async def retriever_project_memory_search(
+        self,
+        query_list: List[str],
+        top_k: int = 5,
+        query_instruction: str = "",
+        current_user_id: str = "",
+    ) -> Dict[str, List[List[str]]]:
+        """Search for passages for project memory.
+
+        Args:
+            query_list: List of query strings
+            top_k: Number of top passages to return per query
+            query_instruction: Optional instruction to prepend to queries
+            current_user_id: User identifier
+
+        Returns:
+            Dictionary with 'project_memory_content' containing retrieved passages
+        """
+
+        collection_name = f"user_{current_user_id}"
+
+        result = await self.retriever_search(
+            query_list=query_list,
+            top_k=top_k,
+            query_instruction=query_instruction,
+            collection_name=collection_name,
+        )
+
+        ret_psg = result.get("ret_psg", [])
+        return {"project_memory_content": ret_psg}
+    
+    
+    
     async def retriever_deploy_search(
         self,
         retriever_url: str,

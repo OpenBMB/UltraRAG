@@ -330,6 +330,7 @@ const els = {
     kbBtn: document.getElementById("kb-btn"),
     memoryBtn: document.getElementById("memory-btn"),
     memoryEditor: document.getElementById("memory-editor"),
+    memorySyncBtn: document.getElementById("memory-sync-btn"),
     memorySaveBtn: document.getElementById("memory-save-btn"),
     memoryStatus: document.getElementById("memory-status"),
 
@@ -3011,12 +3012,21 @@ function setMemoryStatus(text, stateKey = "ready") {
     els.memoryStatus.dataset.state = stateKey;
 }
 
+function getMemoryUserId() {
+    try {
+        return getUserId();
+    } catch (e) {
+        return DEFAULT_MEMORY_USER_ID;
+    }
+}
+
 async function loadMemoryContent() {
     if (!els.memoryEditor) return;
 
     setMemoryStatus(t("memory_loading"), "loading");
     try {
-        const data = await fetchJSON(`/api/memory/${encodeURIComponent(DEFAULT_MEMORY_USER_ID)}`);
+        const userId = getMemoryUserId();
+        const data = await fetchJSON(`/api/memory/${encodeURIComponent(userId)}`);
         els.memoryEditor.value = typeof data.content === "string" ? data.content : "";
         setMemoryStatus(t("memory_loaded"), "ready");
     } catch (e) {
@@ -3035,7 +3045,8 @@ async function saveMemoryContent() {
 
     setMemoryStatus(t("memory_saving"), "saving");
     try {
-        await fetchJSON(`/api/memory/${encodeURIComponent(DEFAULT_MEMORY_USER_ID)}`, {
+        const userId = getMemoryUserId();
+        await fetchJSON(`/api/memory/${encodeURIComponent(userId)}`, {
             method: "PUT",
             body: JSON.stringify({ content: els.memoryEditor.value || "" })
         });
@@ -3048,6 +3059,67 @@ async function saveMemoryContent() {
             title: t("memory_save_failed_title"),
             type: "error"
         });
+    }
+}
+
+async function pollMemorySyncTask(taskId, collectionName) {
+    const startedAt = Date.now();
+    while (true) {
+        if (Date.now() - startedAt > 5 * 60 * 1000) {
+            throw new Error(t("memory_sync_timeout"));
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const task = await fetchJSON(`/api/kb/status/${encodeURIComponent(taskId)}`);
+        if (task.status === "success") {
+            await Promise.allSettled([refreshKBFiles(), renderChatCollectionOptions()]);
+            const name = collectionName || task.result?.collection_name || "";
+            setMemoryStatus(t("memory_sync_success"), "success");
+            if (name) {
+                showModal(
+                    formatTemplate(t("memory_sync_success_message"), { collection: name }),
+                    { title: t("memory_sync_success_title"), type: "success" }
+                );
+            }
+            return task;
+        }
+        if (task.status === "failed") {
+            throw new Error(task.error || t("memory_sync_failed"));
+        }
+        setMemoryStatus(t("memory_sync_running"), "loading");
+    }
+}
+
+async function syncMemoryToKB() {
+    if (els.memorySyncBtn) {
+        els.memorySyncBtn.disabled = true;
+    }
+    setMemoryStatus(t("memory_sync_submitting"), "loading");
+    try {
+        const userId = getMemoryUserId();
+        const payload = {
+            user_id: userId,
+            index_mode: "append",
+        };
+        const result = await fetchJSON("/api/kb/sync-memory", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+        setMemoryStatus(t("memory_sync_running"), "loading");
+        await pollMemorySyncTask(result.task_id, result.collection_name);
+    } catch (e) {
+        console.error("Failed to sync memory to KB:", e);
+        setMemoryStatus(t("memory_sync_failed"), "error");
+        showModal(
+            formatTemplate(t("memory_sync_failed_message"), {
+                error: e && e.message ? e.message : t("common_unknown_error"),
+            }),
+            { title: t("memory_sync_failed_title"), type: "error" }
+        );
+    } finally {
+        if (els.memorySyncBtn) {
+            els.memorySyncBtn.disabled = false;
+        }
     }
 }
 
@@ -3838,6 +3910,29 @@ function pipelineRequiresKnowledgeBase() {
     return retrieverTools.some(name => !kbFreeRetrieverTools.has(name));
 }
 
+function pipelineUsesAutoMemoryCollection() {
+    const config = state.pipelineConfig || {};
+    const servers = config.servers || {};
+    const hasMemoryServer = Object.values(servers).some((serverPath) => {
+        if (typeof serverPath !== "string") return false;
+        const normalized = serverPath.replace(/\\/g, "/").replace(/\/+$/, "");
+        return normalized === "servers/memory" || normalized.endsWith("/memory");
+    });
+    if (!hasMemoryServer) return false;
+
+    const steps = Array.isArray(config.pipeline)
+        ? config.pipeline
+        : (Array.isArray(state.steps) ? state.steps : []);
+    const toolNames = collectToolNamesFromSteps(steps, new Set());
+    return [...toolNames].some((name) => {
+        if (typeof name !== "string") return false;
+        const dotIdx = name.indexOf(".");
+        if (dotIdx < 0) return false;
+        const toolName = name.slice(dotIdx + 1).toLowerCase();
+        return toolName === "retriever_search" || toolName === "retriever_batch_search";
+    });
+}
+
 /**
  * Check if this is the first turn of chat (user hasn't sent a message yet, or only one just sent)
  * Note: When calling this function, user message may not have been added to history yet
@@ -3862,6 +3957,11 @@ function validateKnowledgeBaseSelection() {
     // 2. Check if pipeline requires knowledge base
     if (!pipelineRequiresKnowledgeBase()) {
         // Pipeline doesn't need knowledge base selection
+        return true;
+    }
+
+    if (pipelineUsesAutoMemoryCollection()) {
+        // Memory retrieval pipelines auto-bind per-user collection.
         return true;
     }
 
@@ -4527,6 +4627,8 @@ async function handleChatSubmit(event) {
         const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : "";
 
         const dynamicParams = {};
+        const userId = getUserId();
+        dynamicParams["memory"] = { user_id: userId };
         if (selectedCollection) {
             dynamicParams["collection_name"] = selectedCollection;
         }
@@ -6507,6 +6609,9 @@ function bindEvents() {
     if (els.memorySaveBtn) {
         els.memorySaveBtn.onclick = saveMemoryContent;
     }
+    if (els.memorySyncBtn) {
+        els.memorySyncBtn.onclick = syncMemoryToKB;
+    }
 
     if (els.builderLogo) {
         els.builderLogo.onclick = (e) => { e.preventDefault(); setMode(Modes.BUILDER); };
@@ -7136,12 +7241,17 @@ function setupSettingsMenu() {
 
 // User ID management for isolating background tasks per user
 const USER_ID_STORAGE_KEY = 'ultrarag_user_id';
+const LEGACY_AUTO_USER_ID_PATTERN = /^user_\d{10,}_[a-z0-9]+$/i;
 
 function getUserId() {
     let userId = localStorage.getItem(USER_ID_STORAGE_KEY);
-    if (!userId) {
-        // Generate a unique user ID
-        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    if (userId) {
+        userId = String(userId).trim();
+    }
+
+    // Migrate legacy auto-generated IDs to stable default user when no user system exists.
+    if (!userId || LEGACY_AUTO_USER_ID_PATTERN.test(userId)) {
+        userId = DEFAULT_MEMORY_USER_ID;
         localStorage.setItem(USER_ID_STORAGE_KEY, userId);
     }
     return userId;
@@ -7830,12 +7940,13 @@ async function sendToBackground(question) {
 
     const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : '';
     const dynamicParams = {};
+    const userId = getUserId();
+    dynamicParams["memory"] = { user_id: userId };
     if (selectedCollection) {
         dynamicParams['collection_name'] = selectedCollection;
     }
 
     try {
-        const userId = getUserId();
         const response = await fetchJSON(
             `/api/pipelines/${encodeURIComponent(state.selectedPipeline)}/chat/background`,
             {

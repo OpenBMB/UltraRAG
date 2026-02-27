@@ -35,21 +35,24 @@ def _ensure_user_memory_paths(user_id: str) -> tuple[Path, Path]:
     return memory_file, project_dir
 
 
-@app.tool(output="user_id->mm_content")
-def get_memory(user_id: str = "default") -> Dict[str, str]:
-    """Read user memory from MEMORY.md.
+@app.tool(output="user_id->global_memory_content,current_user_id")
+def get_global_memory(user_id: str = "default") -> Dict[str, str]:
+    """Read global memory from MEMORY.md.
 
     Args:
         user_id: User identifier. Defaults to "default".
 
     Returns:
-        Dictionary containing memory content.
+        Dictionary containing global memory content.
     """
     normalized_user_id = _normalize_user_id(user_id)
     memory_file, _ = _ensure_user_memory_paths(normalized_user_id)
     profile_content = memory_file.read_text(encoding="utf-8")
 
-    return {"mm_content": profile_content}
+    return {
+        "global_memory_content": profile_content,
+        "current_user_id": normalized_user_id
+    }
 
 
 @app.tool(output="user_id,q_ls,ans_ls->None")

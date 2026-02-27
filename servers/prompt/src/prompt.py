@@ -113,22 +113,27 @@ def qa_boxed(q_ls: List[str], template: Union[str, Path]) -> List[PromptMessage]
         ret.append(p)
     return ret
 
-@app.prompt(output="q_ls,mm_content,template->prompt_ls")
-def qa_memory(q_ls: List[str], mm_content: str, template: Union[str, Path]) -> List[PromptMessage]:
-    """Generate prompts for QA boxed format.
 
-    Args:
-        q_ls: List of questions
-        mm_content: Memory content
-        template: Path to Jinja2 template file
 
-    Returns:
-        List of PromptMessage objects
-    """
+
+@app.prompt(output="q_ls,global_memory_content,project_memory_content,template->prompt_ls")
+def qa_with_memory(
+    q_ls: List[str],
+    global_memory_content: str,
+    project_memory_content: List[Union[str, Any]],
+    template: Union[str, Path],
+) -> List[PromptMessage]:
+    """Generate prompts with both global memory and retrieved project memory."""
     template: Template = load_prompt_template(template)
     ret = []
-    for q in q_ls:
-        p = _safe_render(template, question=q, mm_content=mm_content)
+    for q, psg in zip(q_ls, project_memory_content):
+        project_memory_text = "\n".join(psg)
+        p = _safe_render(
+            template,
+            question=q,
+            global_memory=global_memory_content,
+            project_memory=project_memory_text,
+        )
         ret.append(p)
     return ret
 

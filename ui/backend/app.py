@@ -348,6 +348,43 @@ def _run_kb_background(
         KB_TASKS[task_id]["error"] = str(e)
 
 
+def _run_memory_sync_background(
+    task_id: str,
+    user_id: str,
+    index_mode: str = "append",
+    force_full: bool = False,
+) -> None:
+    """Run user project-memory sync task in background thread."""
+
+    def _progress(progress: int, message: str = "") -> None:
+        KB_TASKS[task_id]["progress"] = int(progress)
+        if message:
+            KB_TASKS[task_id]["message"] = message
+
+    LOGGER.info(
+        "Task %s started: sync-memory user=%s mode=%s force_full=%s",
+        task_id,
+        user_id,
+        index_mode,
+        force_full,
+    )
+    try:
+        result = pm.sync_user_memory_to_kb(
+            user_id=user_id,
+            mode=index_mode,
+            force_full=force_full,
+            progress_callback=_progress,
+        )
+        KB_TASKS[task_id]["status"] = "success"
+        KB_TASKS[task_id]["result"] = result
+        KB_TASKS[task_id]["completed_at"] = datetime.now().isoformat()
+        LOGGER.info("Task %s completed successfully.", task_id)
+    except Exception as e:
+        LOGGER.error("Task %s failed: %s", task_id, e, exc_info=True)
+        KB_TASKS[task_id]["status"] = "failed"
+        KB_TASKS[task_id]["error"] = str(e)
+
+
 def create_app(admin_mode: bool = False) -> Flask:
     """Create and configure Flask application.
 
@@ -663,6 +700,8 @@ def create_app(admin_mode: bool = False) -> Flask:
         question = payload.get("question", "")
         session_id = payload.get("session_id")
         dynamic_params = payload.get("dynamic_params", {})
+        if not isinstance(dynamic_params, dict):
+            dynamic_params = {}
 
         # New: Frontend-provided conversation history (previous conversations in browser session)
         # Compatible with two field names: conversation_history or history
@@ -684,6 +723,16 @@ def create_app(admin_mode: bool = False) -> Flask:
         force_full_pipeline = payload.get("force_full_pipeline", False)
 
         selected_collection = dynamic_params.get("collection_name")
+        memory_retrieval_ctx = pm.resolve_memory_collection_for_pipeline(
+            name, dynamic_params
+        )
+        if memory_retrieval_ctx:
+            memory_params = dynamic_params.get("memory", {})
+            if not isinstance(memory_params, dict):
+                memory_params = {}
+            memory_params["user_id"] = memory_retrieval_ctx["user_id"]
+            dynamic_params["memory"] = memory_params
+            selected_collection = memory_retrieval_ctx["collection_name"]
 
         try:
             kb_config = pm.load_kb_config()
@@ -697,6 +746,13 @@ def create_app(admin_mode: bool = False) -> Flask:
             if selected_collection:
                 retriever_params["collection_name"] = selected_collection
                 LOGGER.debug(f"Chat using collection override: {selected_collection}")
+
+            if memory_retrieval_ctx:
+                LOGGER.debug(
+                    "Chat memory retrieval enabled: user_id=%s collection=%s",
+                    memory_retrieval_ctx["user_id"],
+                    memory_retrieval_ctx["collection_name"],
+                )
 
             dynamic_params["retriever"] = retriever_params
 
@@ -868,6 +924,8 @@ def create_app(admin_mode: bool = False) -> Flask:
         question = payload.get("question", "")
         session_id = payload.get("session_id")
         dynamic_params = payload.get("dynamic_params", {})
+        if not isinstance(dynamic_params, dict):
+            dynamic_params = {}
         user_id = payload.get("user_id", "") or request.headers.get("X-User-ID", "")
 
         if not question:
@@ -882,6 +940,16 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         # Handle collection_name
         selected_collection = dynamic_params.get("collection_name")
+        memory_retrieval_ctx = pm.resolve_memory_collection_for_pipeline(
+            name, dynamic_params
+        )
+        if memory_retrieval_ctx:
+            memory_params = dynamic_params.get("memory", {})
+            if not isinstance(memory_params, dict):
+                memory_params = {}
+            memory_params["user_id"] = memory_retrieval_ctx["user_id"]
+            dynamic_params["memory"] = memory_params
+            selected_collection = memory_retrieval_ctx["collection_name"]
         try:
             kb_config = pm.load_kb_config()
             milvus_global_config = kb_config.get("milvus", {})
@@ -893,6 +961,13 @@ def create_app(admin_mode: bool = False) -> Flask:
 
             if selected_collection:
                 retriever_params["collection_name"] = selected_collection
+
+            if memory_retrieval_ctx:
+                LOGGER.debug(
+                    "Background memory retrieval enabled: user_id=%s collection=%s",
+                    memory_retrieval_ctx["user_id"],
+                    memory_retrieval_ctx["collection_name"],
+                )
 
             dynamic_params["retriever"] = retriever_params
 
@@ -1114,6 +1189,53 @@ def create_app(admin_mode: bool = False) -> Flask:
         except Exception as e:
             LOGGER.error(f"Failed to clear staging area: {e}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/kb/sync-memory", methods=["POST"])
+    def sync_memory_to_kb() -> Response:
+        """Sync current user's project memory into per-user KB collection."""
+        payload = request.get_json(force=True) or {}
+        raw_user_id = payload.get("user_id", DEFAULT_MEMORY_USER)
+        index_mode = str(payload.get("index_mode", "append") or "append").strip()
+        force_full = bool(payload.get("force_full", False))
+
+        try:
+            user_id = _normalize_memory_user_id(raw_user_id)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        if index_mode not in {"append", "overwrite"}:
+            return jsonify({"error": "index_mode must be 'append' or 'overwrite'"}), 400
+
+        task_id = str(uuid.uuid4())
+        KB_TASKS[task_id] = {
+            "status": "running",
+            "pipeline": "sync_memory",
+            "user_id": user_id,
+            "collection_name": pm.get_memory_collection_name(user_id),
+            "created_at": datetime.now().isoformat(),
+            "progress": 0,
+            "message": "Memory sync started",
+        }
+
+        thread = threading.Thread(
+            target=_run_memory_sync_background,
+            args=(task_id, user_id, index_mode, force_full),
+            daemon=True,
+        )
+        thread.start()
+
+        return (
+            jsonify(
+                {
+                    "status": "submitted",
+                    "task_id": task_id,
+                    "user_id": user_id,
+                    "collection_name": pm.get_memory_collection_name(user_id),
+                    "message": "Memory sync task started in background",
+                }
+            ),
+            202,
+        )
 
     @app.route("/api/kb/run", methods=["POST"])
     def run_kb_task() -> Response:

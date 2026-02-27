@@ -89,6 +89,7 @@ SERVERS_DIR = PROJECT_ROOT / "servers"
 PIPELINES_DIR = PROJECT_ROOT / "examples"
 CHAT_DATASET_DIR = PROJECT_ROOT / "data" / "chat_sessions"
 OUTPUT_DIR = PROJECT_ROOT / "output"
+USER_MEMORY_ROOT = PROJECT_ROOT / "data" / "user_memory"
 
 KB_ROOT = PROJECT_ROOT / "data" / "knowledge_base"
 KB_RAW_DIR = KB_ROOT / "raw"
@@ -96,6 +97,7 @@ KB_CORPUS_DIR = KB_ROOT / "corpus"
 KB_CHUNKS_DIR = KB_ROOT / "chunks"
 KB_INDEX_DIR = KB_ROOT / "index"
 KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
+MEMORY_SYNC_WORKDIR = KB_ROOT / "_memory_sync"
 MAX_COLLECTION_NAME_LEN = 255
 
 # Default session keep-alive duration, can be overridden via environment variable;
@@ -238,10 +240,12 @@ def _extract_display_name_from_desc(desc: str, fallback: str) -> str:
 for d in [
     CHAT_DATASET_DIR,
     OUTPUT_DIR,
+    USER_MEMORY_ROOT,
     KB_RAW_DIR,
     KB_CORPUS_DIR,
     KB_CHUNKS_DIR,
     KB_INDEX_DIR,
+    MEMORY_SYNC_WORKDIR,
 ]:
     d.mkdir(parents=True, exist_ok=True)
 
@@ -964,6 +968,9 @@ def chat_demo_stream(
             session.add_to_history("assistant", answer)
             session.mark_first_turn_done()
 
+            # Trigger async memory->KB sync for pipelines that include memory server.
+            trigger_memory_sync_for_pipeline(session._pipeline_name, dynamic_params)
+
             # Initialize multi-turn conversation client (for subsequent turns)
             try:
                 session.init_multiturn_client()
@@ -1307,6 +1314,392 @@ def _find_memory_answer(name: str, before: set[str]):
     return None, target
 
 
+_MEMORY_SYNC_LOCKS: Dict[str, threading.Lock] = {}
+_MEMORY_SYNC_LOCKS_GUARD = threading.Lock()
+
+
+def _get_memory_sync_lock(user_id: str) -> threading.Lock:
+    with _MEMORY_SYNC_LOCKS_GUARD:
+        if user_id not in _MEMORY_SYNC_LOCKS:
+            _MEMORY_SYNC_LOCKS[user_id] = threading.Lock()
+        return _MEMORY_SYNC_LOCKS[user_id]
+
+
+def get_memory_collection_name(user_id: Optional[str]) -> str:
+    normalized_user_id = _normalize_memory_user_id(user_id)
+    collection_name = _normalize_collection_name(f"user_{normalized_user_id}")
+    if collection_name:
+        return collection_name
+    return f"user_{normalized_user_id}".replace("-", "_")
+
+
+def pipeline_uses_memory_retrieval(pipeline_name: Optional[str]) -> bool:
+    if not pipeline_name:
+        return False
+    try:
+        pipeline_cfg = load_pipeline(pipeline_name)
+    except Exception:
+        return False
+
+    servers = pipeline_cfg.get("servers", {})
+    if not isinstance(servers, dict):
+        return False
+
+    memory_aliases: set[str] = set()
+    retriever_aliases: set[str] = set()
+    for alias, server_path in servers.items():
+        if not isinstance(server_path, str):
+            continue
+        normalized = server_path.replace("\\", "/").rstrip("/")
+        if normalized == "servers/memory" or normalized.endswith("/memory"):
+            memory_aliases.add(alias)
+        if normalized == "servers/retriever" or normalized.endswith("/retriever"):
+            retriever_aliases.add(alias)
+
+    if not memory_aliases or not retriever_aliases:
+        return False
+
+    retrieval_tools = {
+        "retriever_search",
+        "retriever_batch_search",
+        "retriever_websearch",
+        "retriever_deploy_search",
+        "bm25_search",
+    }
+
+    def _scan_steps(steps: Any) -> bool:
+        if isinstance(steps, list):
+            return any(_scan_steps(item) for item in steps)
+        if isinstance(steps, str):
+            if "." not in steps:
+                return False
+            server_name, tool_name = steps.split(".", 1)
+            return server_name in retriever_aliases and tool_name in retrieval_tools
+        if isinstance(steps, dict):
+            if "loop" in steps:
+                return _scan_steps(steps.get("loop", {}).get("steps", []))
+            if "branch" in steps:
+                branch_cfg = steps.get("branch", {})
+                if _scan_steps(branch_cfg.get("router", [])):
+                    return True
+                for branch_steps in branch_cfg.get("branches", {}).values():
+                    if _scan_steps(branch_steps):
+                        return True
+                return False
+            if len(steps) == 1:
+                step_name = next(iter(steps.keys()))
+                if isinstance(step_name, str) and "." in step_name:
+                    server_name, tool_name = step_name.split(".", 1)
+                    return (
+                        server_name in retriever_aliases and tool_name in retrieval_tools
+                    )
+            return False
+        return False
+
+    return _scan_steps(pipeline_cfg.get("pipeline", []))
+
+
+def _memory_sync_state_path(user_id: str) -> Path:
+    return USER_MEMORY_ROOT / user_id / ".project_sync_state.json"
+
+
+def _load_memory_sync_state(user_id: str) -> Dict[str, Any]:
+    state_path = _memory_sync_state_path(user_id)
+    if not state_path.exists():
+        return {"files": {}}
+    try:
+        data = json.loads(state_path.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            return data
+    except Exception as exc:
+        LOGGER.warning("Failed to load memory sync state for %s: %s", user_id, exc)
+    return {"files": {}}
+
+
+def _save_memory_sync_state(user_id: str, state: Dict[str, Any]) -> None:
+    state_path = _memory_sync_state_path(user_id)
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(state, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _list_project_memory_files(user_id: str) -> List[Path]:
+    project_dir = USER_MEMORY_ROOT / user_id / "project"
+    if not project_dir.exists():
+        return []
+    return sorted(
+        [p for p in project_dir.glob("*.md") if p.is_file()],
+        key=lambda p: p.name,
+    )
+
+
+def _snapshot_project_memory_files(user_id: str, files: List[Path]) -> Dict[str, Any]:
+    user_root = USER_MEMORY_ROOT / user_id
+    file_state: Dict[str, Any] = {}
+    for path in files:
+        rel_path = str(path.relative_to(user_root))
+        stat = path.stat()
+        file_state[rel_path] = {
+            "size": int(stat.st_size),
+            "mtime": int(stat.st_mtime),
+        }
+    return file_state
+
+
+_MEMORY_TURN_HEADER_PATTERN = re.compile(
+    r"(?m)^##\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})\s*$"
+)
+
+
+def _parse_project_memory_turn_chunks(
+    markdown_text: str,
+    source_rel_path: str,
+) -> List[Dict[str, str]]:
+    """Split project memory markdown into per-turn chunks based on timestamp headings."""
+    text = str(markdown_text or "")
+    matches = list(_MEMORY_TURN_HEADER_PATTERN.finditer(text))
+    chunks: List[Dict[str, str]] = []
+    if not matches:
+        return chunks
+
+    for idx, match in enumerate(matches):
+        turn_time = match.group(1).strip()
+        start = match.start()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        block = text[start:end].strip()
+        if not block:
+            continue
+
+        chunk_id = hashlib.sha256(
+            f"{source_rel_path}|{turn_time}|{block}".encode("utf-8")
+        ).hexdigest()
+        chunks.append(
+            {
+                "chunk_id": chunk_id,
+                "turn_time": turn_time,
+                "source_file": source_rel_path,
+                "contents": block,
+            }
+        )
+    return chunks
+
+
+def _dedupe_turn_chunks(chunks: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    seen: set[str] = set()
+    deduped: List[Dict[str, str]] = []
+    for chunk in chunks:
+        chunk_id = str(chunk.get("chunk_id", ""))
+        if not chunk_id or chunk_id in seen:
+            continue
+        seen.add(chunk_id)
+        deduped.append(chunk)
+    return deduped
+
+
+def _write_turn_chunks_jsonl(
+    output_path: Path,
+    chunks: List[Dict[str, str]],
+    user_id: str,
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        for idx, chunk in enumerate(chunks):
+            payload = {
+                "id": chunk.get("chunk_id"),
+                "contents": chunk.get("contents", ""),
+                "source_file": chunk.get("source_file", ""),
+                "turn_time": chunk.get("turn_time", ""),
+                "chunk_type": "project_memory_turn",
+                "chunk_order": idx,
+                "user_id": user_id,
+            }
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+
+def sync_user_memory_to_kb(
+    user_id: Optional[str],
+    mode: str = "append",
+    progress_callback: Optional[Any] = None,
+    force_full: bool = False,
+) -> Dict[str, Any]:
+    """Sync a user's project memory markdown files into per-user KB collection."""
+
+    def _report_progress(progress: int, message: str = "") -> None:
+        if progress_callback:
+            try:
+                progress_callback(progress, message)
+            except Exception as exc:
+                LOGGER.warning("Memory sync progress callback failed: %s", exc)
+
+    normalized_user_id = _normalize_memory_user_id(user_id)
+    lock = _get_memory_sync_lock(normalized_user_id)
+    if not lock.acquire(blocking=False):
+        return {
+            "status": "running",
+            "user_id": normalized_user_id,
+            "collection_name": get_memory_collection_name(normalized_user_id),
+            "message": "Sync already in progress",
+        }
+
+    run_dir: Optional[Path] = None
+    try:
+        _report_progress(5, "Preparing memory sync context...")
+        memory_files = _list_project_memory_files(normalized_user_id)
+        if not memory_files:
+            return {
+                "status": "skipped",
+                "user_id": normalized_user_id,
+                "collection_name": get_memory_collection_name(normalized_user_id),
+                "message": "No project memory files found",
+            }
+
+        now_ts = int(time.time() * 1000)
+        run_dir = (
+            MEMORY_SYNC_WORKDIR
+            / normalized_user_id
+            / f"run_{now_ts}_{uuid.uuid4().hex[:8]}"
+        )
+        source_dir = run_dir / "source"
+        for d in [source_dir]:
+            d.mkdir(parents=True, exist_ok=True)
+
+        state = _load_memory_sync_state(normalized_user_id)
+        raw_previous_files = state.get("files", {}) if isinstance(state, dict) else {}
+        previous_files = raw_previous_files if isinstance(raw_previous_files, dict) else {}
+        user_root = USER_MEMORY_ROOT / normalized_user_id
+
+        full_rebuild = bool(force_full or mode == "overwrite")
+        turn_chunks: List[Dict[str, str]] = []
+        current_rel_paths: set[str] = set()
+
+        _report_progress(12, "Scanning project memory turns...")
+        for file_path in memory_files:
+            rel_path = str(file_path.relative_to(user_root))
+            current_rel_paths.add(rel_path)
+            cur_size = int(file_path.stat().st_size)
+            prev_size = int(previous_files.get(rel_path, {}).get("size", 0) or 0)
+
+            if prev_size > cur_size:
+                full_rebuild = True
+                break
+
+            if cur_size == prev_size:
+                continue
+
+            with file_path.open("rb") as f:
+                f.seek(max(prev_size, 0))
+                raw_delta = f.read()
+
+            delta_text = raw_delta.decode("utf-8", errors="ignore")
+            if not delta_text.strip():
+                continue
+
+            delta_chunks = _parse_project_memory_turn_chunks(delta_text, rel_path)
+            if delta_text.strip() and not delta_chunks:
+                # Delta does not align with turn boundaries; fallback to a full rebuild.
+                full_rebuild = True
+                break
+            turn_chunks.extend(delta_chunks)
+
+        if not full_rebuild:
+            removed_paths = set(previous_files.keys()) - current_rel_paths
+            if removed_paths:
+                full_rebuild = True
+
+        if full_rebuild:
+            _report_progress(18, "Building full turn-level snapshot for reindex...")
+            turn_chunks = []
+            for file_path in memory_files:
+                rel_path = str(file_path.relative_to(user_root))
+                try:
+                    content = file_path.read_text(encoding="utf-8")
+                except Exception:
+                    content = file_path.read_text(encoding="utf-8", errors="ignore")
+                if not content.strip():
+                    continue
+                turn_chunks.extend(_parse_project_memory_turn_chunks(content, rel_path))
+
+            if not turn_chunks:
+                return {
+                    "status": "skipped",
+                    "user_id": normalized_user_id,
+                    "collection_name": get_memory_collection_name(normalized_user_id),
+                    "message": "No project memory turns to index",
+                }
+
+        turn_chunks = _dedupe_turn_chunks(turn_chunks)
+        if not turn_chunks:
+            _save_memory_sync_state(
+                normalized_user_id,
+                {
+                    "updated_at": datetime.now().isoformat(),
+                    "files": _snapshot_project_memory_files(
+                        normalized_user_id, memory_files
+                    ),
+                    "collection_name": get_memory_collection_name(normalized_user_id),
+                },
+            )
+            return {
+                "status": "skipped",
+                "user_id": normalized_user_id,
+                "collection_name": get_memory_collection_name(normalized_user_id),
+                "message": "No new project memory turns",
+            }
+
+        collection_name = get_memory_collection_name(normalized_user_id)
+        run_mode = "overwrite" if full_rebuild else "append"
+        chunk_file = source_dir / f"memory_turn_chunks_{now_ts}.jsonl"
+        _write_turn_chunks_jsonl(chunk_file, turn_chunks, normalized_user_id)
+        _report_progress(45, f"Prepared {len(turn_chunks)} turn chunks")
+
+        # Use examples/milvus_index.yaml pipeline for indexing.
+        run_kb_pipeline_tool(
+            pipeline_name="milvus_index",
+            target_file_path=str(chunk_file),
+            output_dir="",
+            collection_name=collection_name,
+            index_mode=run_mode,
+        )
+        _report_progress(85, "Indexed turn chunks to Milvus")
+
+        _save_memory_sync_state(
+            normalized_user_id,
+            {
+                "updated_at": datetime.now().isoformat(),
+                "files": _snapshot_project_memory_files(normalized_user_id, memory_files),
+                "collection_name": collection_name,
+            },
+        )
+        _report_progress(100, "Memory sync completed")
+        return {
+            "status": "success",
+            "user_id": normalized_user_id,
+            "collection_name": collection_name,
+            "full_rebuild": full_rebuild,
+            "indexed_chunks": len(turn_chunks),
+            "index_mode": run_mode,
+        }
+    finally:
+        if run_dir and run_dir.exists():
+            shutil.rmtree(run_dir, ignore_errors=True)
+        lock.release()
+
+
+def _trigger_memory_sync_async(user_id: str) -> None:
+    normalized_user_id = _normalize_memory_user_id(user_id)
+
+    def _run() -> None:
+        try:
+            result = sync_user_memory_to_kb(normalized_user_id, mode="append")
+            LOGGER.info("Auto memory sync result for %s: %s", normalized_user_id, result)
+        except Exception as exc:
+            LOGGER.warning("Auto memory sync failed for %s: %s", normalized_user_id, exc)
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def _resolve_memory_server_alias_from_session(
     session: Optional[DemoSession],
 ) -> Optional[str]:
@@ -1374,8 +1767,45 @@ def _resolve_memory_user_id(
             candidate = str(memory_override.get("user_id", "")).strip()
             if candidate:
                 user_id = candidate
+        common_memory_override = dynamic_params.get("memory")
+        if isinstance(common_memory_override, dict) and "user_id" in common_memory_override:
+            candidate = str(common_memory_override.get("user_id", "")).strip()
+            if candidate:
+                user_id = candidate
 
     return user_id
+
+
+def resolve_memory_collection_for_pipeline(
+    pipeline_name: Optional[str],
+    dynamic_params: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, str]]:
+    if not pipeline_uses_memory_retrieval(pipeline_name):
+        return None
+
+    memory_alias = _resolve_memory_server_alias(pipeline_name)
+    if not memory_alias:
+        return None
+
+    user_id = _resolve_memory_user_id(pipeline_name, memory_alias, dynamic_params)
+    return {
+        "user_id": user_id,
+        "collection_name": get_memory_collection_name(user_id),
+    }
+
+
+def trigger_memory_sync_for_pipeline(
+    pipeline_name: Optional[str],
+    dynamic_params: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, str]]:
+    if not pipeline_name:
+        return None
+    memory_alias = _resolve_memory_server_alias(pipeline_name)
+    if not memory_alias:
+        return None
+    user_id = _resolve_memory_user_id(pipeline_name, memory_alias, dynamic_params)
+    _trigger_memory_sync_async(user_id)
+    return {"user_id": user_id}
 
 
 def _normalize_memory_user_id(user_id: Optional[str]) -> str:
@@ -1451,6 +1881,7 @@ def _auto_save_memory_chat_turn(
                 pipeline_name,
                 user_id,
             )
+            _trigger_memory_sync_async(user_id)
             return
         except Exception as exc:
             LOGGER.warning(
@@ -1464,6 +1895,7 @@ def _auto_save_memory_chat_turn(
             pipeline_name,
             user_id,
         )
+        _trigger_memory_sync_async(user_id)
     except Exception as exc:
         LOGGER.warning("Auto memory save failed in multiturn chat: %s", exc)
 
@@ -2100,6 +2532,9 @@ def run_background_chat(
             mem_ans, mem_file = _find_memory_answer(name, before_memory)
 
             answer = final_ans or mem_ans or "No answer generated"
+
+            # Trigger async memory->KB sync for memory-enabled pipelines.
+            trigger_memory_sync_for_pipeline(bg_session._pipeline_name, dynamic_params)
 
             # Update task to completed status
             BACKGROUND_TASK_MANAGER.update_task(
