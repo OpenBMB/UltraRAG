@@ -330,6 +330,7 @@ const els = {
     kbBtn: document.getElementById("kb-btn"),
     memoryBtn: document.getElementById("memory-btn"),
     memoryEditor: document.getElementById("memory-editor"),
+    memoryKbCards: document.getElementById("memory-kb-cards"),
     memorySyncBtn: document.getElementById("memory-sync-btn"),
     memorySaveBtn: document.getElementById("memory-save-btn"),
     memoryStatus: document.getElementById("memory-status"),
@@ -813,21 +814,54 @@ function refreshKBModalViews(data) {
     renderKBList(document.getElementById('list-chunks'), data.chunks, 'milvus_index', t("kb_action_index"));
 }
 
+function isInternalMemoryCollection(name) {
+    const normalized = String(name || "").trim().toLowerCase();
+    if (!normalized) return false;
+    return /^user_[a-z0-9_-]+(?:_memory)?$/.test(normalized);
+}
+
+function filterVisibleKbCollections(collections) {
+    if (!Array.isArray(collections)) return [];
+    return collections.filter(c => !isInternalMemoryCollection(c && c.name));
+}
+
+function getCurrentUserMemoryCollectionNameSet() {
+    const rawUserId = String(getMemoryUserId() || DEFAULT_MEMORY_USER_ID).trim();
+    const normalizedUserId = rawUserId.replace(/[^A-Za-z0-9_-]/g, "_") || DEFAULT_MEMORY_USER_ID;
+    return new Set([
+        `user_${normalizedUserId}`.toLowerCase(),
+        `user_${normalizedUserId}_memory`.toLowerCase(), // Legacy compatibility
+    ]);
+}
+
+function filterCurrentUserMemoryCollections(collections) {
+    if (!Array.isArray(collections)) return [];
+    const candidateNames = getCurrentUserMemoryCollectionNameSet();
+    return collections.filter(c => candidateNames.has(String(c && c.name || "").toLowerCase()));
+}
+
 // Refresh file list (main function)
 async function refreshKBFiles() {
     try {
         const data = await fetchJSON('/api/kb/files');
+        const allCollections = Array.isArray(data.index) ? data.index : [];
+        const visibleCollections = filterVisibleKbCollections(allCollections);
 
         // 1. Refresh modal views
         refreshKBModalViews(data);
 
         // 2. Refresh main page bookshelf
-        renderCollectionList(null, data.index);
+        renderCollectionList(null, visibleCollections);
 
         // 2.5 Refresh index collection cache for dropdown usage
-        indexCollectionsCache = data.index || [];
+        indexCollectionsCache = visibleCollections;
         if (els.idxMode && els.idxMode.value !== "new") {
             renderIndexCollectionSelect(indexCollectionsCache, els.idxCollectionSelect ? els.idxCollectionSelect.value : "");
+        }
+
+        // 2.6 If memory page is visible, update current user's memory KB cards
+        if (els.memoryMainView && !els.memoryMainView.classList.contains("d-none")) {
+            renderMemoryKbCards(allCollections);
         }
 
         // 3. Update status
@@ -1350,7 +1384,7 @@ async function loadIndexCollections(options = {}) {
     }
     try {
         const data = await fetchJSON('/api/kb/files');
-        indexCollectionsCache = data.index || [];
+        indexCollectionsCache = filterVisibleKbCollections(data.index || []);
         return indexCollectionsCache;
     } catch (e) {
         console.warn("Failed to load collections for index modal", e);
@@ -2872,7 +2906,7 @@ async function renderChatCollectionOptions() {
     try {
         // Reuse backend list API
         const data = await fetchJSON('/api/kb/files');
-        let collections = data.index || []; // data.index contains collection list
+        let collections = filterVisibleKbCollections(data.index || []); // Hide internal memory collections
 
         // Sort by display name to keep chat dropdown ordered
         const getLabel = c => (c.display_name || c.name || "").toLowerCase();
@@ -2982,7 +3016,7 @@ function openMemoryView() {
 async function doOpenMemoryView() {
     showChatSubview("memory");
     clearChatSessionHighlight();
-    await loadMemoryContent();
+    await Promise.allSettled([loadMemoryContent(), refreshMemoryKbCards()]);
 }
 
 function interruptAndOpenMemory() {
@@ -3017,6 +3051,59 @@ function getMemoryUserId() {
         return getUserId();
     } catch (e) {
         return DEFAULT_MEMORY_USER_ID;
+    }
+}
+
+function renderMemoryKbCards(collections) {
+    if (!els.memoryKbCards) return;
+    const memoryCollections = filterCurrentUserMemoryCollections(collections);
+    const userId = getMemoryUserId();
+    const expectedCollection = `user_${String(userId || DEFAULT_MEMORY_USER_ID).replace(/[^A-Za-z0-9_-]/g, "_")}`;
+
+    if (!memoryCollections.length) {
+        els.memoryKbCards.innerHTML = `
+            <div class="memory-kb-empty">
+                <div class="memory-kb-empty-title">${t("memory_working_kb_empty_title")}</div>
+                <div class="memory-kb-empty-desc">${formatTemplate(t("memory_working_kb_empty_desc"), { collection: expectedCollection })}</div>
+            </div>
+        `;
+        return;
+    }
+
+    const cards = memoryCollections
+        .slice()
+        .sort((a, b) => (a.display_name || a.name || "").localeCompare((b.display_name || b.name || ""), "en", { sensitivity: "base" }))
+        .map((c) => {
+            const label = c.display_name || c.name || "Untitled";
+            const vectors = c.count !== undefined ? `${c.count} ${t("kb_vectors")}` : t("kb_ready");
+            return `
+                <div class="memory-kb-card">
+                    <div class="memory-kb-card-title" title="${escapeHtmlForDropdown(label)}">${escapeHtmlForDropdown(label)}</div>
+                    <div class="memory-kb-card-meta">
+                        <span>${vectors}</span>
+                        <code>${escapeHtmlForDropdown(c.name || "")}</code>
+                    </div>
+                </div>
+            `;
+        })
+        .join("");
+
+    els.memoryKbCards.innerHTML = cards;
+}
+
+async function refreshMemoryKbCards() {
+    if (!els.memoryKbCards) return;
+    try {
+        const data = await fetchJSON('/api/kb/files');
+        renderMemoryKbCards(data.index || []);
+    } catch (e) {
+        console.warn("Failed to refresh memory kb cards:", e);
+        els.memoryKbCards.innerHTML = `
+            <div class="memory-kb-empty">
+                <div class="memory-kb-empty-title">${t("status_error")}</div>
+                <div class="memory-kb-empty-desc">${escapeHtmlForDropdown(e && e.message ? e.message : t("common_unknown_error"))}</div>
+            </div>
+        `;
     }
 }
 
@@ -3072,7 +3159,7 @@ async function pollMemorySyncTask(taskId, collectionName) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
         const task = await fetchJSON(`/api/kb/status/${encodeURIComponent(taskId)}`);
         if (task.status === "success") {
-            await Promise.allSettled([refreshKBFiles(), renderChatCollectionOptions()]);
+            await Promise.allSettled([refreshKBFiles(), renderChatCollectionOptions(), refreshMemoryKbCards()]);
             const name = collectionName || task.result?.collection_name || "";
             setMemoryStatus(t("memory_sync_success"), "success");
             if (name) {

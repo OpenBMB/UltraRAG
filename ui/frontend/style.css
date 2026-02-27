@@ -2756,14 +2756,68 @@ textarea.parameter-input {
 .memory-wrapper {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+.memory-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memory-panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memory-panel-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.memory-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.memory-panel-global {
+  min-height: 480px;
+}
+
+.memory-panel-global .memory-editor {
+  flex: 1;
+  min-height: 360px;
+}
+
+.memory-panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.memory-panel-subtitle {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #64748b;
 }
 
 .memory-editor {
-  flex: 1;
-  min-height: 0;
-  resize: none;
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 14px 16px;
@@ -2778,6 +2832,68 @@ textarea.parameter-input {
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.memory-kb-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.memory-kb-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memory-kb-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memory-kb-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.memory-kb-card-meta code {
+  font-size: 0.72rem;
+  color: #334155;
+  background: #e2e8f0;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.memory-kb-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.memory-kb-empty-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.memory-kb-empty-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.5;
 }
 
 .kb-wrapper {

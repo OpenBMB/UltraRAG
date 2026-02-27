@@ -174,6 +174,11 @@ window.I18N_LOCALES.zh = {
   memory_sync_failed_title: "同步失败",
   memory_sync_failed_message: "同步记忆失败：{error}",
   memory_sync_timeout: "同步超时，请稍后重试",
+  memory_global_title: "全局记忆（Global Memory）",
+  memory_working_kb_title: "工作记忆知识库",
+  memory_working_kb_hint: "当前用户工作记忆对应的内部知识库卡片。",
+  memory_working_kb_empty_title: "尚未生成工作记忆库",
+  memory_working_kb_empty_desc: "当前用户还没有工作记忆索引，点击“同步到KB”后会创建：{collection}",
   memory_editor_placeholder: "# MEMORY\n\n在这里编辑长期记忆内容。",
 
   common_new: "新建",

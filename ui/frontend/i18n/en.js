@@ -174,6 +174,11 @@ window.I18N_LOCALES.en = {
   memory_sync_failed_title: "Sync Failed",
   memory_sync_failed_message: "Failed to sync memory: {error}",
   memory_sync_timeout: "Sync timed out. Please try again later.",
+  memory_global_title: "Global Memory",
+  memory_working_kb_title: "Working Memory Knowledge Base",
+  memory_working_kb_hint: "Internal working-memory collection cards for current user.",
+  memory_working_kb_empty_title: "No working-memory collection yet",
+  memory_working_kb_empty_desc: "No indexed working memory for this user. Click \"Sync to KB\" to create: {collection}",
   memory_editor_placeholder: "# MEMORY\n\nWrite persistent notes here.",
 
   common_new: "New",
