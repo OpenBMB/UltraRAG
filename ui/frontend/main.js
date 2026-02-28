@@ -3993,6 +3993,22 @@ function collectToolNamesFromSteps(steps, set = new Set()) {
 }
 
 /**
+ * Whether pipeline contains retriever search tools that must bind to chat-selected KB.
+ */
+function hasKbBoundRetrieverSearchTools(toolNames) {
+    const retrieverTools = [...toolNames]
+        .map(name => String(name || "").toLowerCase())
+        .filter(name => name.startsWith("retriever."));
+    if (!retrieverTools.length) return false;
+
+    const kbBoundSearchTools = new Set([
+        "retriever.retriever_search",
+        "retriever.retriever_batch_search",
+    ]);
+    return retrieverTools.some(name => kbBoundSearchTools.has(name));
+}
+
+/**
  * Check if current pipeline requires knowledge base selection
  * Only enforce when retriever search tools are present (exclude websearch tools)
  */
@@ -4007,6 +4023,11 @@ function pipelineRequiresKnowledgeBase() {
         .map(name => name.toLowerCase())
         .filter(name => name.startsWith("retriever."));
     if (!retrieverTools.length) return false;
+
+    // If explicit retriever search tools are present, KB selection is mandatory.
+    if (hasKbBoundRetrieverSearchTools(toolNames)) {
+        return true;
+    }
 
     const kbFreeRetrieverTools = new Set([
         "retriever.retriever_init",
@@ -4035,12 +4056,15 @@ function pipelineUsesAutoMemoryCollection() {
         ? config.pipeline
         : (Array.isArray(state.steps) ? state.steps : []);
     const toolNames = collectToolNamesFromSteps(steps, new Set());
+    if (hasKbBoundRetrieverSearchTools(toolNames)) {
+        return false;
+    }
     return [...toolNames].some((name) => {
         if (typeof name !== "string") return false;
         const dotIdx = name.indexOf(".");
         if (dotIdx < 0) return false;
         const toolName = name.slice(dotIdx + 1).toLowerCase();
-        return toolName === "retriever_search" || toolName === "retriever_batch_search";
+        return toolName === "retriever_project_memory_search";
     });
 }
 

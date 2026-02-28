@@ -1,4 +1,4 @@
-# RAG Demo for UltraRAG UI
+# RAG Memory Demo for UltraRAG UI
 
 # MCP Server
 servers:
@@ -7,13 +7,16 @@ servers:
   prompt: servers/prompt
   generation: servers/generation
   custom: servers/custom
+  memory: servers/memory
 
 # MCP Client Pipeline
 pipeline:
 - benchmark.get_data
+- memory.get_global_memory
 - retriever.retriever_init
-- generation.generation_init
+- retriever.retriever_project_memory_search
 - retriever.retriever_search
+- generation.generation_init
 - custom.assign_citation_ids
-- prompt.qa_rag_boxed
+- prompt.qa_rag_with_memory
 - generation.generate

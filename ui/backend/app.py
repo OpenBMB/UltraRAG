@@ -871,7 +871,6 @@ def create_app(admin_mode: bool = False) -> Flask:
                 memory_params = {}
             memory_params["user_id"] = memory_retrieval_ctx["user_id"]
             dynamic_params["memory"] = memory_params
-            selected_collection = memory_retrieval_ctx["collection_name"]
 
         try:
             kb_config = pm.load_kb_config()
@@ -1093,7 +1092,6 @@ def create_app(admin_mode: bool = False) -> Flask:
                 memory_params = {}
             memory_params["user_id"] = memory_retrieval_ctx["user_id"]
             dynamic_params["memory"] = memory_params
-            selected_collection = memory_retrieval_ctx["collection_name"]
         try:
             kb_config = pm.load_kb_config()
             milvus_global_config = kb_config.get("milvus", {})

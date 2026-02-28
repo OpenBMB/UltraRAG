@@ -186,6 +186,31 @@ def qa_rag_boxed(
         ret.append(p)
     return ret
 
+@app.prompt(output="q_ls,global_memory_content,project_memory_content,ret_psg,template->prompt_ls")
+def qa_rag_with_memory(
+    q_ls: List[str],
+    global_memory_content: str,
+    project_memory_content: List[Union[str, Any]],
+    ret_psg: List[Union[str, Any]],
+    template: Union[str, Path],
+) -> List[PromptMessage]:
+    """Generate prompts with both global memory, retrieved project memory and retrieved passages."""
+    template: Template = load_prompt_template(template)
+    ret = []
+    for q, mpsg, psg in zip(q_ls, project_memory_content, ret_psg):
+        project_memory_text = "\n".join(mpsg)
+        passage_text = "\n".join(psg)
+        p = _safe_render(
+            template,
+            question=q,
+            global_memory=global_memory_content,
+            project_memory=project_memory_text,
+            documents=passage_text,
+        )
+        ret.append(p)
+    return ret
+
+
 
 @app.prompt(output="q_ls,choices_ls,ret_psg,template->prompt_ls")
 def qa_rag_boxed_multiple_choice(
