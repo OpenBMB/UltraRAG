@@ -2029,7 +2029,7 @@ function renderCodeBlock(code, lang) {
     const blockId = 'code-' + Math.random().toString(36).substr(2, 9);
 
     return `<div class="code-block-wrapper">
-    <button class="code-block-copy" data-code-id="${blockId}" onclick="copyCodeBlock(this)" title="Copy code">
+    <button class="code-block-copy" data-code-id="${blockId}" title="Copy code">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
       <span class="copy-text">Copy</span>
     </button>
@@ -2509,7 +2509,7 @@ function renderMarkdown(text, { allowCodeBlock = true, unwrapLanguages = [] } = 
         const rawHtml = window.marked.parse(protectedText, { breaks: true, gfm: true, renderer: renderer });
         let sanitized = window.DOMPurify ? DOMPurify.sanitize(rawHtml, {
             ADD_TAGS: ['button', 'svg', 'path', 'rect', 'line', 'polyline', 'circle', 'polygon'],
-            ADD_ATTR: ['onclick', 'data-code-id', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'x', 'y', 'width', 'height', 'rx', 'ry', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2', 'points']
+            ADD_ATTR: ['data-code-id', 'data-ref-id', 'data-msg-idx', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'd', 'x', 'y', 'width', 'height', 'rx', 'ry', 'cx', 'cy', 'r', 'x1', 'y1', 'x2', 'y2', 'points']
         }) : rawHtml;
 
         // Restore original LaTeX (with $$ delimiters intact)
@@ -3482,12 +3482,9 @@ function renumberCitations(text, sources) {
 
 function formatCitationHtml(html, messageIdx = null) {
     if (!html) return "";
-    // Add onclick="scrollToReference(1, messageIdx)"
-    // Note: scrollToReference function must be mounted to window or defined in global scope
-    // messageIdx is used to locate specific message bubble, avoiding confusion with multiple message citations
     return html.replace(
         /\[(\d+)\]/g,
-        (match, p1) => `<span class="citation-link" onclick="scrollToReference(${p1}, ${messageIdx})">[${p1}]</span>`
+        (match, p1) => `<span class="citation-link" data-ref-id="${p1}" data-msg-idx="${messageIdx || ''}">[${p1}]</span>`
     );
 }
 
@@ -10128,3 +10125,26 @@ async function applyParameterModification(action) {
 
     return true;
 }
+
+// --- Global Event Delegation ---
+document.addEventListener('click', function(e) {
+    // 1. Handle Copy Code Button
+    const copyBtn = e.target.closest('.code-block-copy');
+    if (copyBtn) {
+        if (typeof copyCodeBlock === 'function') {
+            copyCodeBlock(copyBtn);
+        }
+        return;
+    }
+
+    // 2. Handle Citation Link
+    const citationLink = e.target.closest('.citation-link');
+    if (citationLink) {
+        const refId = citationLink.dataset.refId;
+        const msgIdx = citationLink.dataset.msgIdx;
+        if (refId && typeof window.scrollToReference === 'function') {
+            window.scrollToReference(parseInt(refId), msgIdx ? (msgIdx === '' ? null : parseInt(msgIdx)) : null);
+        }
+        return;
+    }
+});
