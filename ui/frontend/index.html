@@ -509,18 +509,27 @@
         <div class="sidebar-footer">
           <div class="settings-menu" id="settings-menu">
             <button type="button" class="settings-trigger btn-nav" id="settings-menu-trigger">
-              <span class="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                  stroke="currentColor" width="20" height="20">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.332.183-.582.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.217.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.583-.495.645-.869l.214-1.281z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </span>
-              <span class="btn-text" data-i18n="settings">Settings</span>
+              <span class="settings-user-avatar" id="settings-user-avatar">D</span>
+              <span class="btn-text settings-user-label" id="settings-user-label">default</span>
             </button>
 
             <div class="settings-dropdown" id="settings-dropdown">
+              <button type="button" class="settings-item settings-user-entry" id="settings-user-entry">
+                <span class="item-icon">
+                  <svg class="settings-user-entry-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <div class="item-text">
+                  <span id="settings-user-entry-text">default</span>
+                </div>
+              </button>
+
+              <div class="settings-divider" role="separator"></div>
+
               <button type="button" class="settings-item" id="settings-builder">
                 <span class="item-icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -529,20 +538,6 @@
                   </svg>
                 </span>
                 <div class="item-text" data-i18n="builder">Builder</div>
-              </button>
-
-              <button type="button" class="settings-item" id="settings-account">
-                <span class="item-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21a8 8 0 0 0-16 0"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                </span>
-                <div class="item-text">
-                  <span data-i18n="auth_account">Account</span>
-                  <span class="settings-item-tag" id="settings-account-tag">default</span>
-                </div>
               </button>
 
               <div class="settings-item settings-item-has-submenu" id="settings-language">
@@ -572,6 +567,20 @@
                   </button>
                 </div>
               </div>
+
+              <div class="settings-divider" role="separator"></div>
+
+              <button type="button" class="settings-item" id="settings-logout">
+                <span class="item-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                </span>
+                <div class="item-text" data-i18n="auth_logout_action">Logout</div>
+              </button>
             </div>
           </div>
         </div>
@@ -1167,27 +1176,60 @@
       <div class="auth-modal-status" id="auth-modal-status"></div>
 
       <div class="auth-modal-grid">
-        <form id="auth-login-form" class="auth-form">
-          <h4 data-i18n="auth_login_title">Login</h4>
-          <label for="auth-login-username" data-i18n="auth_username_label">Username</label>
-          <input id="auth-login-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
+        <div class="auth-view is-active" id="auth-login-view">
+          <form id="auth-login-form" class="auth-form">
+            <h4 data-i18n="auth_login_title">Login</h4>
+            <div class="auth-admin-hint">
+              <div class="auth-admin-hint-title" data-i18n="auth_admin_default_credentials">管理员默认账号：admin / 12345678</div>
+              <div class="auth-admin-hint-text" data-i18n="auth_admin_change_password_tip">首次登录后请立即修改密码。</div>
+            </div>
+            <label for="auth-login-username" data-i18n="auth_username_label">Username</label>
+            <input id="auth-login-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
 
-          <label for="auth-login-password" data-i18n="auth_password_label">Password</label>
-          <input id="auth-login-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 8 characters" />
+            <label for="auth-login-password" data-i18n="auth_password_label">Password</label>
+            <input id="auth-login-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
 
-          <button type="submit" class="btn auth-btn-primary" data-i18n="auth_login_action">Login</button>
-        </form>
+            <div class="auth-form-actions">
+              <button type="submit" class="btn auth-btn-primary" data-i18n="auth_login_action">Login</button>
+              <button type="button" class="btn auth-btn-link" id="auth-switch-to-register" data-i18n="auth_new_user_register">新用户注册</button>
+            </div>
+          </form>
+        </div>
 
-        <form id="auth-register-form" class="auth-form">
-          <h4 data-i18n="auth_register_title">Register</h4>
-          <label for="auth-register-username" data-i18n="auth_username_label">Username</label>
-          <input id="auth-register-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
+        <div class="auth-view" id="auth-register-view">
+          <form id="auth-register-form" class="auth-form">
+            <h4 data-i18n="auth_register_title">Register</h4>
+            <label for="auth-register-username" data-i18n="auth_username_label">Username</label>
+            <input id="auth-register-username" type="text" autocomplete="username" data-i18n-placeholder="auth_username_placeholder" placeholder="e.g. alice_01" />
 
-          <label for="auth-register-password" data-i18n="auth_password_label">Password</label>
-          <input id="auth-register-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 8 characters" />
+            <label for="auth-register-password" data-i18n="auth_password_label">Password</label>
+            <input id="auth-register-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
 
-          <button type="submit" class="btn auth-btn-secondary" data-i18n="auth_register_action">Register</button>
-        </form>
+            <div class="auth-form-actions">
+              <button type="submit" class="btn auth-btn-secondary" data-i18n="auth_register_action">Register</button>
+              <button type="button" class="btn auth-btn-link" id="auth-switch-to-login" data-i18n="auth_back_to_login">返回登录</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="auth-view" id="auth-change-password-view">
+          <form id="auth-change-password-form" class="auth-form">
+            <h4 data-i18n="auth_change_password_title">修改密码</h4>
+            <label for="auth-current-password" data-i18n="auth_current_password_label">原密码</label>
+            <input id="auth-current-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+            <label for="auth-new-password" data-i18n="auth_new_password_label">新密码</label>
+            <input id="auth-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+            <label for="auth-confirm-new-password" data-i18n="auth_confirm_new_password_label">重复新密码</label>
+            <input id="auth-confirm-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+            <div class="auth-form-actions">
+              <button type="submit" class="btn auth-btn-primary" data-i18n="auth_change_password_action">修改密码</button>
+              <button type="button" class="btn auth-btn-link" id="auth-change-password-cancel" data-i18n="common_cancel">取消</button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div class="auth-modal-actions">

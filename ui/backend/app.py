@@ -7,6 +7,7 @@ import os
 import re
 import threading
 import uuid
+from functools import wraps
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -436,15 +437,29 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "logged_in": True,
                 "user_id": logged_user,
                 "username": logged_user,
+                "is_admin": user_store.is_admin_username(logged_user),
             }
         return {
             "logged_in": False,
             "user_id": DEFAULT_MEMORY_USER,
             "username": None,
+            "is_admin": False,
         }
 
     def _is_logged_in_user() -> bool:
         return _get_authenticated_user_id() is not None
+
+    def _is_admin_user() -> bool:
+        return user_store.is_admin_username(_get_authenticated_user_id())
+
+    def require_admin_user(handler):
+        @wraps(handler)
+        def _wrapped(*args, **kwargs):
+            if not _is_admin_user():
+                return jsonify({"error": "admin required"}), 403
+            return handler(*args, **kwargs)
+
+        return _wrapped
 
     def _validate_user_access(raw_user_id: Any):
         if raw_user_id is None:
@@ -547,6 +562,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                     "logged_in": True,
                     "user_id": user["username"],
                     "username": user["username"],
+                    "is_admin": user_store.is_admin_username(user["username"]),
                 }
             ),
             201,
@@ -574,8 +590,34 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "logged_in": True,
                 "user_id": user["username"],
                 "username": user["username"],
+                "is_admin": user_store.is_admin_username(user["username"]),
             }
         )
+
+    @app.route("/api/auth/change-password", methods=["POST"])
+    def auth_change_password() -> Response:
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+
+        payload = request.get_json(force=True) or {}
+        current_password = payload.get("current_password", "")
+        new_password = payload.get("new_password", "")
+        current_user = _get_authenticated_user_id()
+        if not current_user:
+            return jsonify({"error": "login required"}), 401
+
+        try:
+            user_store.update_password(
+                current_user,
+                current_password,
+                new_password,
+            )
+        except auth_backend.InvalidCredentialsError as e:
+            return jsonify({"error": str(e)}), 401
+        except auth_backend.AuthValidationError as e:
+            return jsonify({"error": str(e)}), 400
+
+        return jsonify({"status": "password_changed"})
 
     @app.route("/api/auth/logout", methods=["POST"])
     def auth_logout() -> Response:
@@ -587,6 +629,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "logged_in": False,
                 "user_id": DEFAULT_MEMORY_USER,
                 "username": None,
+                "is_admin": False,
             }
         )
 
@@ -840,6 +883,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         return jsonify(pm.list_pipelines())
 
     @app.route("/api/pipelines", methods=["POST"])
+    @require_admin_user
     def save_pipeline() -> Response:
         """Save a new pipeline.
 
@@ -850,6 +894,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         return jsonify(pm.save_pipeline(payload))
 
     @app.route("/api/pipelines/<string:name>/yaml", methods=["PUT"])
+    @require_admin_user
     def save_pipeline_yaml(name: str) -> Response:
         """Save YAML text directly to file.
 
@@ -863,6 +908,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         return jsonify(pm.save_pipeline_yaml(name, yaml_content))
 
     @app.route("/api/pipelines/parse", methods=["POST"])
+    @require_admin_user
     def parse_pipeline_yaml() -> Response:
         """Parse arbitrary YAML text and return structured data.
 
@@ -884,11 +930,13 @@ def create_app(admin_mode: bool = False) -> Flask:
         return jsonify(pm.load_pipeline(name))
 
     @app.route("/api/pipelines/<string:name>", methods=["DELETE"])
+    @require_admin_user
     def delete_pipeline(name: str):
         pm.delete_pipeline(name)
         return jsonify({"status": "deleted"})
 
     @app.route("/api/pipelines/<string:name>/rename", methods=["POST"])
+    @require_admin_user
     def rename_pipeline(name: str):
         """Rename a pipeline"""
         payload = request.get_json(force=True)
@@ -904,12 +952,14 @@ def create_app(admin_mode: bool = False) -> Flask:
         return jsonify(pm.load_parameters(name))
 
     @app.route("/api/pipelines/<string:name>/parameters", methods=["PUT"])
+    @require_admin_user
     def save_parameters(name: str):
         payload = request.get_json(force=True)
         pm.save_parameters(name, payload)
         return jsonify({"status": "saved"})
 
     @app.route("/api/pipelines/<string:name>/build", methods=["POST"])
+    @require_admin_user
     def build_pipeline(name: str):
         return jsonify(pm.build(name))
 

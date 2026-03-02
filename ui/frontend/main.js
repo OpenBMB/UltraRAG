@@ -230,6 +230,7 @@ const state = {
         loggedIn: false,
         userId: "default",
         username: null,
+        isAdmin: false,
     },
 
     // [Modified] Chat state management
@@ -330,20 +331,33 @@ const els = {
     settingsMenu: document.getElementById("settings-menu"),
     settingsMenuTrigger: document.getElementById("settings-menu-trigger"),
     settingsDropdown: document.getElementById("settings-dropdown"),
+    settingsUserAvatar: document.getElementById("settings-user-avatar"),
+    settingsUserLabel: document.getElementById("settings-user-label"),
+    settingsUserEntry: document.getElementById("settings-user-entry"),
+    settingsUserEntryText: document.getElementById("settings-user-entry-text"),
     settingsBuilder: document.getElementById("settings-builder"),
-    settingsAccount: document.getElementById("settings-account"),
-    settingsAccountTag: document.getElementById("settings-account-tag"),
+    settingsLogout: document.getElementById("settings-logout"),
     settingsLanguageLabel: document.getElementById("settings-language-label"),
     authModal: document.getElementById("auth-modal"),
     authCloseBtn: document.getElementById("auth-close-btn"),
     authCurrentUser: document.getElementById("auth-current-user"),
     authModalStatus: document.getElementById("auth-modal-status"),
+    authLoginView: document.getElementById("auth-login-view"),
     authLoginForm: document.getElementById("auth-login-form"),
     authLoginUsername: document.getElementById("auth-login-username"),
     authLoginPassword: document.getElementById("auth-login-password"),
+    authSwitchToRegister: document.getElementById("auth-switch-to-register"),
+    authRegisterView: document.getElementById("auth-register-view"),
     authRegisterForm: document.getElementById("auth-register-form"),
     authRegisterUsername: document.getElementById("auth-register-username"),
     authRegisterPassword: document.getElementById("auth-register-password"),
+    authSwitchToLogin: document.getElementById("auth-switch-to-login"),
+    authChangePasswordView: document.getElementById("auth-change-password-view"),
+    authChangePasswordForm: document.getElementById("auth-change-password-form"),
+    authCurrentPassword: document.getElementById("auth-current-password"),
+    authNewPassword: document.getElementById("auth-new-password"),
+    authConfirmNewPassword: document.getElementById("auth-confirm-new-password"),
+    authChangePasswordCancel: document.getElementById("auth-change-password-cancel"),
     authLogoutBtn: document.getElementById("auth-logout-btn"),
 
     // [New] View containers
@@ -442,6 +456,10 @@ const Modes = {
     PARAMETERS: "parameters",
     CHAT: "chat",
 };
+
+function hasBuilderAccess() {
+    return Boolean(state.adminMode) && Boolean(state.auth?.isAdmin);
+}
 
 // ==========================================
 // --- Unified Modal System ---
@@ -4980,7 +4998,9 @@ async function handleChatSubmit(event) {
     state.chat.controller = new AbortController();
 
     try {
-        if (!state.parametersReady) await persistParameterData({ silent: true });
+        if (!state.parametersReady && hasBuilderAccess()) {
+            await persistParameterData({ silent: true });
+        }
 
         const selectedCollection = els.chatCollectionSelect ? els.chatCollectionSelect.value : "";
 
@@ -5942,6 +5962,9 @@ function updateUrlForView(mode, replace = false) {
 }
 
 function setMode(mode) {
+    if (mode === Modes.BUILDER && !hasBuilderAccess()) {
+        mode = Modes.CHAT;
+    }
     state.mode = mode;
     if (els.pipelineForm) els.pipelineForm.classList.toggle("d-none", mode !== Modes.BUILDER);
     if (els.parameterPanel) els.parameterPanel.classList.toggle("d-none", mode !== Modes.PARAMETERS);
@@ -7356,7 +7379,7 @@ async function bootstrap() {
 
     // Decide initial view based on mode and URL
     let initialMode;
-    if (state.adminMode) {
+    if (hasBuilderAccess()) {
         initialMode = initialModeFromUrl || Modes.CHAT;
     } else {
         initialMode = Modes.CHAT;
@@ -7365,7 +7388,7 @@ async function bootstrap() {
     setMode(initialMode);
     applyUILanguage(state.uiLanguage);
 
-    if (!state.adminMode && initialMode === Modes.CHAT) {
+    if (!hasBuilderAccess() && initialMode === Modes.CHAT) {
         // Chat-only mode: directly enter Chat view
         applyChatOnlyMode();
     }
@@ -7537,6 +7560,10 @@ function setupSettingsMenu() {
     if (els.settingsBuilder) {
         els.settingsBuilder.onclick = async (e) => {
             e?.stopPropagation();
+            if (!hasBuilderAccess()) {
+                closeMenu();
+                return;
+            }
             if (state.chat.running) {
                 showInterruptConfirmDialog(async () => {
                     if (state.chat.controller) {
@@ -7553,11 +7580,27 @@ function setupSettingsMenu() {
         };
     }
 
-    if (els.settingsAccount) {
-        els.settingsAccount.onclick = async (e) => {
+    if (els.settingsUserEntry) {
+        els.settingsUserEntry.onclick = async (e) => {
             e?.stopPropagation();
+            if (state.auth?.loggedIn) {
+                closeMenu();
+                await openAuthDialog({ mode: "change-password" });
+                return;
+            }
             closeMenu();
-            await openAuthDialog();
+            await openAuthDialog({ mode: "login" });
+        };
+    }
+
+    if (els.settingsLogout) {
+        els.settingsLogout.onclick = async (e) => {
+            e?.stopPropagation();
+            if (!state.auth?.loggedIn) {
+                return;
+            }
+            closeMenu();
+            await onAuthLogoutClick();
         };
     }
 
@@ -7616,13 +7659,52 @@ function parseApiErrorMessage(error) {
     return raw;
 }
 
+function getUserAvatarInitial(userId) {
+    const text = String(userId || DEFAULT_MEMORY_USER_ID).trim();
+    const first = text.charAt(0);
+    return first ? first.toUpperCase() : "D";
+}
+
 function renderAuthStateUI() {
     const userId = getUserId();
     const loggedIn = Boolean(state.auth?.loggedIn);
+    const avatarInitial = getUserAvatarInitial(userId);
 
-    if (els.settingsAccountTag) {
-        els.settingsAccountTag.textContent = userId;
-        els.settingsAccountTag.title = userId;
+    if (els.settingsUserAvatar) {
+        els.settingsUserAvatar.textContent = avatarInitial;
+        els.settingsUserAvatar.title = userId;
+    }
+
+    if (els.settingsUserLabel) {
+        els.settingsUserLabel.textContent = userId;
+        els.settingsUserLabel.title = userId;
+    }
+
+    if (els.settingsUserEntryText) {
+        const entryText = loggedIn ? userId : t("auth_login_action");
+        els.settingsUserEntryText.textContent = entryText;
+        els.settingsUserEntryText.title = entryText;
+    }
+
+    if (els.settingsUserEntry) {
+        els.settingsUserEntry.classList.remove("is-readonly");
+        els.settingsUserEntry.setAttribute("aria-disabled", "false");
+    }
+
+    if (els.settingsLogout) {
+        const isDisabled = !loggedIn;
+        els.settingsLogout.disabled = isDisabled;
+        els.settingsLogout.classList.toggle("is-disabled", isDisabled);
+        els.settingsLogout.setAttribute("aria-disabled", isDisabled ? "true" : "false");
+    }
+
+    if (els.settingsBuilder) {
+        els.settingsBuilder.style.display = hasBuilderAccess() ? "" : "none";
+    }
+
+    if (!hasBuilderAccess() && state.mode === Modes.BUILDER) {
+        setMode(Modes.CHAT);
+        updateUrlForView(Modes.CHAT, true);
     }
 
     if (els.authCurrentUser) {
@@ -7646,6 +7728,27 @@ function setAuthModalStatus(message, stateKey = "info") {
     }
 }
 
+function setAuthDialogMode(mode = "login") {
+    let targetMode = "login";
+    if (mode === "register") {
+        targetMode = "register";
+    } else if (mode === "change-password") {
+        targetMode = "change-password";
+    }
+    if (els.authLoginView) {
+        els.authLoginView.classList.toggle("is-active", targetMode === "login");
+    }
+    if (els.authRegisterView) {
+        els.authRegisterView.classList.toggle("is-active", targetMode === "register");
+    }
+    if (els.authChangePasswordView) {
+        els.authChangePasswordView.classList.toggle(
+            "is-active",
+            targetMode === "change-password"
+        );
+    }
+}
+
 function applyAuthPayload(payload) {
     const loggedIn = Boolean(payload && payload.logged_in === true);
     const normalized = normalizeUserId(payload?.user_id);
@@ -7656,6 +7759,7 @@ function applyAuthPayload(payload) {
     state.auth.username = state.auth.loggedIn
         ? String(payload?.username || nextUserId)
         : null;
+    state.auth.isAdmin = state.auth.loggedIn && payload?.is_admin === true;
     state.auth.loaded = true;
 
     cacheUserId(nextUserId);
@@ -7734,13 +7838,23 @@ async function refreshAuthDependentViews() {
     }
 }
 
-async function openAuthDialog() {
+async function openAuthDialog({ mode = "login" } = {}) {
     await refreshAuthState({ force: true });
     renderAuthStateUI();
     setAuthModalStatus("");
+    const resolvedMode =
+        mode === "change-password" && state.auth?.loggedIn
+            ? "change-password"
+            : mode === "register"
+                ? "register"
+                : "login";
+    setAuthDialogMode(resolvedMode);
 
     if (els.authLoginPassword) els.authLoginPassword.value = "";
     if (els.authRegisterPassword) els.authRegisterPassword.value = "";
+    if (els.authCurrentPassword) els.authCurrentPassword.value = "";
+    if (els.authNewPassword) els.authNewPassword.value = "";
+    if (els.authConfirmNewPassword) els.authConfirmNewPassword.value = "";
 
     if (els.authModal?.showModal) {
         els.authModal.showModal();
@@ -7775,6 +7889,7 @@ async function onAuthLoginSubmit(event) {
             formatTemplate(t("auth_login_success"), { user: getUserId() }),
             "success"
         );
+        closeAuthDialog();
     } catch (e) {
         setAuthModalStatus(parseApiErrorMessage(e), "error");
     } finally {
@@ -7806,12 +7921,58 @@ async function onAuthRegisterSubmit(event) {
             formatTemplate(t("auth_register_success"), { user: getUserId() }),
             "success"
         );
+        closeAuthDialog();
     } catch (e) {
         setAuthModalStatus(parseApiErrorMessage(e), "error");
     } finally {
         if (els.authRegisterPassword) {
             els.authRegisterPassword.value = "";
         }
+    }
+}
+
+async function onAuthChangePasswordSubmit(event) {
+    event.preventDefault();
+    if (!state.auth?.loggedIn) {
+        setAuthModalStatus(t("auth_change_password_login_required"), "error");
+        setAuthDialogMode("login");
+        return;
+    }
+
+    const currentPassword = String(els.authCurrentPassword?.value || "");
+    const newPassword = String(els.authNewPassword?.value || "");
+    const confirmPassword = String(els.authConfirmNewPassword?.value || "");
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        setAuthModalStatus(t("auth_form_required"), "error");
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        setAuthModalStatus(t("auth_new_password_mismatch"), "error");
+        return;
+    }
+    if (newPassword === currentPassword) {
+        setAuthModalStatus(t("auth_new_password_same_as_current"), "error");
+        return;
+    }
+
+    setAuthModalStatus(t("auth_change_passwording"), "info");
+    try {
+        await fetchJSON("/api/auth/change-password", {
+            method: "POST",
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword,
+            }),
+        });
+        setAuthModalStatus(t("auth_change_password_success"), "success");
+        closeAuthDialog();
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    } finally {
+        if (els.authCurrentPassword) els.authCurrentPassword.value = "";
+        if (els.authNewPassword) els.authNewPassword.value = "";
+        if (els.authConfirmNewPassword) els.authConfirmNewPassword.value = "";
     }
 }
 
@@ -7853,8 +8014,29 @@ function bindAuthDialogEvents() {
     if (els.authLoginForm) {
         els.authLoginForm.addEventListener("submit", onAuthLoginSubmit);
     }
+    if (els.authSwitchToRegister) {
+        els.authSwitchToRegister.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAuthDialogMode("register");
+        });
+    }
     if (els.authRegisterForm) {
         els.authRegisterForm.addEventListener("submit", onAuthRegisterSubmit);
+    }
+    if (els.authSwitchToLogin) {
+        els.authSwitchToLogin.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAuthDialogMode("login");
+        });
+    }
+    if (els.authChangePasswordForm) {
+        els.authChangePasswordForm.addEventListener("submit", onAuthChangePasswordSubmit);
+    }
+    if (els.authChangePasswordCancel) {
+        els.authChangePasswordCancel.addEventListener("click", () => {
+            setAuthModalStatus("");
+            closeAuthDialog();
+        });
     }
     if (els.authLogoutBtn) {
         els.authLogoutBtn.addEventListener("click", onAuthLogoutClick);

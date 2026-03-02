@@ -9,8 +9,10 @@ from typing import Any, Dict, Optional
 from werkzeug.security import check_password_hash, generate_password_hash
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_]{2,31}$")
-MIN_PASSWORD_LENGTH = 8
+MIN_PASSWORD_LENGTH = 6
 RESERVED_USERNAMES = {"default"}
+ADMIN_USERNAME = "admin"
+ADMIN_DEFAULT_PASSWORD = "12345678"
 
 
 class AuthValidationError(ValueError):
@@ -19,6 +21,10 @@ class AuthValidationError(ValueError):
 
 class UserAlreadyExistsError(ValueError):
     """Raised when trying to create a duplicated username."""
+
+
+class InvalidCredentialsError(ValueError):
+    """Raised when credentials are invalid for a protected auth operation."""
 
 
 class SQLiteUserStore:
@@ -44,6 +50,7 @@ class SQLiteUserStore:
                 )
                 """
             )
+            self._ensure_default_admin_user(conn)
             conn.commit()
 
     def normalize_username(self, raw_username: Any) -> str:
@@ -114,10 +121,90 @@ class SQLiteUserStore:
             return None
         return self._row_to_dict(row)
 
+    def is_admin_username(self, raw_username: Any) -> bool:
+        return str(raw_username or "").strip() == ADMIN_USERNAME
+
+    def update_password(
+        self, raw_username: Any, raw_current_password: Any, raw_new_password: Any
+    ) -> Dict[str, Any]:
+        username = self.normalize_username(raw_username)
+        current_password = (
+            raw_current_password if isinstance(raw_current_password, str) else ""
+        )
+        if not current_password:
+            raise AuthValidationError("current password is required")
+        new_password = self.validate_password(raw_new_password)
+        if current_password == new_password:
+            raise AuthValidationError(
+                "new password must be different from current password"
+            )
+
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, username, password_hash, created_at
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+            if not row or not check_password_hash(
+                str(row["password_hash"]), current_password
+            ):
+                raise InvalidCredentialsError("invalid current password")
+
+            conn.execute(
+                """
+                UPDATE users
+                SET password_hash = ?
+                WHERE username = ?
+                """,
+                (generate_password_hash(new_password), username),
+            )
+            conn.commit()
+
+            refreshed = conn.execute(
+                """
+                SELECT id, username, password_hash, created_at
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+
+        if not refreshed:
+            raise InvalidCredentialsError("invalid current password")
+        return self._row_to_dict(refreshed)
+
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self._db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
         return conn
+
+    def _ensure_default_admin_user(self, conn: sqlite3.Connection) -> None:
+        existing = conn.execute(
+            """
+            SELECT 1
+            FROM users
+            WHERE username = ?
+            LIMIT 1
+            """,
+            (ADMIN_USERNAME,),
+        ).fetchone()
+        if existing:
+            return
+
+        conn.execute(
+            """
+            INSERT INTO users (username, password_hash, created_at)
+            VALUES (?, ?, ?)
+            """,
+            (
+                ADMIN_USERNAME,
+                generate_password_hash(ADMIN_DEFAULT_PASSWORD),
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:

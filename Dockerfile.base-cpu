@@ -23,4 +23,4 @@ RUN uv sync --frozen --no-dev
 
 EXPOSE 5050
 
-CMD ["ultrarag", "show", "ui", "--admin", "--port", "5050", "--host", "0.0.0.0"]
+CMD ["ultrarag", "show", "ui", "--port", "5050", "--host", "0.0.0.0"]

@@ -53,16 +53,12 @@ class MockResult:
         self.data = text_content
 
 
-def launch_ui(
-    host: str = "127.0.0.1", port: int = 5050, admin_mode: bool = False
-) -> None:
+def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
     """Launch UltraRAG UI server.
 
     Args:
         host: Server host address (default: "127.0.0.1")
         port: Server port (default: 5050)
-        admin_mode: Whether to run in admin mode (default: False)
-
     Raises:
         RuntimeError: If UI backend cannot be loaded or server fails to start
     """
@@ -78,10 +74,9 @@ def launch_ui(
             "Please ensure the `ui/backend` directory exists and is importable."
         ) from exc
 
-    app = create_app(admin_mode=admin_mode)
+    app = create_app(admin_mode=True)
     ui_logger = logging.getLogger("UltraRAG-UI")
-    mode_str = "Admin" if admin_mode else "Chat"
-    ui_logger.info("UltraRAG UI (%s mode) started: http://%s:%d", mode_str, host, port)
+    ui_logger.info("UltraRAG UI started: http://%s:%d", host, port)
 
     try:
         app.run(host=host, port=port, debug=False)
@@ -2165,11 +2160,6 @@ def main() -> None:
     p_show_ui = show_sub.add_parser("ui", help="Launch the UltraRAG web UI")
     p_show_ui.add_argument("--host", default="127.0.0.1")
     p_show_ui.add_argument("--port", type=int, default=5050)
-    p_show_ui.add_argument(
-        "--admin",
-        action="store_true",
-        help="Launch full admin UI with pipeline builder (default: chat-only mode)",
-    )
 
     p_show_case = show_sub.add_parser("case", help="Launch Case Study Viewer")
     p_show_case.add_argument(
@@ -2202,7 +2192,7 @@ def main() -> None:
         asyncio.run(run(args.config, args.param, is_demo=args.is_demo))
     elif args.cmd == "show":
         if args.show_target == "ui":
-            launch_ui(host=args.host, port=args.port, admin_mode=args.admin)
+            launch_ui(host=args.host, port=args.port)
         elif args.show_target == "case":
             launch_case_study(
                 config_path=args.config_path,

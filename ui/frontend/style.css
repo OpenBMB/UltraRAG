@@ -4744,10 +4744,53 @@ textarea.parameter-input {
   color: #0d0d0d;
 }
 
-.settings-trigger .icon {
-  color: #0d0d0d;
-  display: flex;
+.settings-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #9333ea);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.settings-user-avatar-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 0.66rem;
+}
+
+.settings-user-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-user-entry .item-text {
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.settings-user-entry-icon {
+  width: 18px;
+  height: 18px;
+  color: #334155;
+}
+
+.settings-user-entry.is-readonly {
+  cursor: default;
+}
+
+.settings-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 6px;
 }
 
 /* Dropdown Menu - appears above the button */
@@ -4801,6 +4844,16 @@ textarea.parameter-input {
 
 .settings-item:hover {
   background: #f5f5f5;
+}
+
+.settings-item.is-disabled,
+.settings-item.is-disabled:hover,
+.settings-item:disabled,
+.settings-item:disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: transparent;
 }
 
 .settings-item .item-icon {
@@ -6080,9 +6133,15 @@ textarea.parameter-input {
 }
 
 .auth-modal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  display: block;
+}
+
+.auth-view {
+  display: none;
+}
+
+.auth-view.is-active {
+  display: block;
 }
 
 .auth-form {
@@ -6093,12 +6152,34 @@ textarea.parameter-input {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-width: 460px;
+  margin: 0 auto;
 }
 
 .auth-form h4 {
   margin: 0 0 2px 0;
   font-size: 0.96rem;
   color: #111827;
+}
+
+.auth-admin-hint {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 2px;
+}
+
+.auth-admin-hint-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.auth-admin-hint-text {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: #b45309;
 }
 
 .auth-form label {
@@ -6122,11 +6203,26 @@ textarea.parameter-input {
 
 .auth-btn-primary,
 .auth-btn-secondary,
+.auth-btn-link,
 .auth-btn-logout {
   margin-top: 8px;
   border-radius: 9px;
   font-weight: 600;
   border: 1px solid transparent;
+}
+
+.auth-form-actions {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.auth-form-actions .auth-btn-primary,
+.auth-form-actions .auth-btn-secondary,
+.auth-form-actions .auth-btn-link {
+  margin-top: 0;
 }
 
 .auth-btn-primary {
@@ -6148,6 +6244,17 @@ textarea.parameter-input {
   background: #e0e7ff;
 }
 
+.auth-btn-link {
+  background: #fff;
+  color: #475569;
+  border-color: #d1d5db;
+}
+
+.auth-btn-link:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
 .auth-modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -6164,8 +6271,9 @@ textarea.parameter-input {
 }
 
 @media (max-width: 760px) {
-  .auth-modal-grid {
-    grid-template-columns: 1fr;
+  .auth-form-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

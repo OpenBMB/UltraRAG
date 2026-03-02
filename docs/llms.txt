@@ -236,14 +236,13 @@ ultrarag run <CONFIG> [--param <PARAM_FILE>] [--is_demo] [--log_level DEBUG|INFO
 **Purpose**: Start UI interface.
 
 ```bash
-ultrarag show ui [--host 127.0.0.1] [--port 5050] [--admin] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag show ui [--host 127.0.0.1] [--port 5050] [--log_level DEBUG|INFO|WARN|ERROR]
 ```
 
 | Parameter | Description |
 |---|---|
 | `--host` | Web service binding IP (default `127.0.0.1`) |
 | `--port` | Web service port (default `5050`) |
-| `--admin` | Start full administrator UI (including Pipeline Builder), default starts Chat mode only |
 | `--log_level` | Log level, default `INFO` |
 
 Access `http://<host>:<port>` after startup to use the UI.
@@ -7929,20 +7928,19 @@ ultrarag show ui [OPTIONS]
 
 - `--port <INTEGER>`: Specify service port, default is `5050`.
 - `--host <TEXT>`: Specify binding address, default is `127.0.0.1`.
-- `--admin`: Enable administrator mode. By default, the UI only displays the chat interface (Chat Only). After enabling this option, Pipeline Builder (visual orchestration), parameter configuration, and online Prompt editing functions will be unlocked. In addition, an AI assistant is built into the administrator interface to help you efficiently complete Pipeline configuration and debugging.
 
 ### Examples
 
-**Start Admin Mode with Full Functions:**
-
-```bash
-ultrarag show ui --admin
-```
-
-**Start Chat Only Interface (Suitable for End Users):**
+**Start UI Service:**
 
 ```bash
 ultrarag show ui
+```
+
+**Start UI on a custom host and port:**
+
+```bash
+ultrarag show ui --host 0.0.0.0 --port 5050
 ```
 
 After startup, access `http://127.0.0.1:5050` in your browser to enter the system.
@@ -8001,7 +7999,7 @@ Click the Settings button to customize the slicing strategy (Chunk) and Embeddin
 
 
 ## 3. Pipeline Builder
-If the `--admin` parameter is specified at startup, the sidebar will display the Settings entry. Click to enter the advanced configuration page.
+After startup, users with administrator privileges can see the Settings entry in the sidebar. Click to enter the advanced configuration page.
 
 ### Visual Pipeline Construction
 
