@@ -1750,6 +1750,22 @@ def create_app(admin_mode: bool = False) -> Flask:
             202,
         )
 
+    @app.route("/api/kb/clear-memory", methods=["POST"])
+    def clear_memory_vectors() -> Response:
+        """Clear vectors in current user's memory collection."""
+        payload = request.get_json(force=True) or {}
+        is_allowed, rejection = _validate_user_access(payload.get("user_id"))
+        if not is_allowed and rejection is not None:
+            return rejection
+
+        user_id = get_current_user_id()
+        try:
+            result = pm.clear_user_memory_collection_vectors(user_id)
+            return jsonify(result)
+        except Exception as e:
+            LOGGER.error("Failed to clear memory vectors for user=%s: %s", user_id, e)
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/kb/run", methods=["POST"])
     def run_kb_task() -> Response:
         """Run a knowledge base pipeline task.

@@ -1820,6 +1820,81 @@ def sync_user_memory_to_kb(
         lock.release()
 
 
+def _get_collection_row_count(client: Any, collection_name: str) -> int:
+    try:
+        stats = client.get_collection_stats(collection_name)
+        value = stats.get("row_count", 0)
+        return int(value or 0)
+    except Exception:
+        return 0
+
+
+def clear_user_memory_collection_vectors(user_id: Optional[str]) -> Dict[str, Any]:
+    normalized_user_id = _normalize_memory_user_id(user_id)
+    collection_name = get_memory_collection_name(normalized_user_id)
+    lock = _get_memory_sync_lock(normalized_user_id)
+    if not lock.acquire(blocking=False):
+        return {
+            "status": "running",
+            "user_id": normalized_user_id,
+            "collection_name": collection_name,
+            "message": "Memory sync is running. Please retry later.",
+        }
+
+    client = None
+    try:
+        client = _get_milvus_client()
+        before_count = 0
+        if client.has_collection(collection_name):
+            before_count = _get_collection_row_count(client, collection_name)
+            # Drop collection instead of row-by-row delete to avoid stale row_count.
+            client.drop_collection(collection_name)
+            LOGGER.info(
+                "Dropped memory collection for user %s: %s",
+                normalized_user_id,
+                collection_name,
+            )
+
+        # Also clear user working-memory project files so next sync starts clean.
+        # Keep global MEMORY.md untouched.
+        removed_files = 0
+        user_root = USER_MEMORY_ROOT / normalized_user_id
+        project_dir = user_root / "project"
+        if project_dir.exists():
+            for p in project_dir.glob("*.md"):
+                if p.is_file():
+                    p.unlink(missing_ok=True)
+                    removed_files += 1
+            shutil.rmtree(project_dir, ignore_errors=True)
+
+        sync_state_path = _memory_sync_state_path(normalized_user_id)
+        if sync_state_path.exists():
+            sync_state_path.unlink(missing_ok=True)
+
+        try:
+            if user_root.exists() and not any(user_root.iterdir()):
+                user_root.rmdir()
+        except Exception:
+            # Best effort cleanup, safe to ignore.
+            pass
+
+        return {
+            "status": "success",
+            "user_id": normalized_user_id,
+            "collection_name": collection_name,
+            "cleared_count": before_count,
+            "remaining_count": 0,
+            "removed_memory_files": removed_files,
+        }
+    finally:
+        if client is not None:
+            try:
+                client.close()
+            except Exception:
+                pass
+        lock.release()
+
+
 def _trigger_memory_sync_async(user_id: str) -> None:
     normalized_user_id = _normalize_memory_user_id(user_id)
 

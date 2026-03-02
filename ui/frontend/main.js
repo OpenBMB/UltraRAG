@@ -388,6 +388,7 @@ const els = {
     memoryEditor: document.getElementById("memory-editor"),
     memoryKbCards: document.getElementById("memory-kb-cards"),
     memorySyncBtn: document.getElementById("memory-sync-btn"),
+    memoryClearBtn: document.getElementById("memory-clear-btn"),
     memorySaveBtn: document.getElementById("memory-save-btn"),
     memoryStatus: document.getElementById("memory-status"),
 
@@ -3306,6 +3307,9 @@ async function syncMemoryToKB() {
     if (els.memorySyncBtn) {
         els.memorySyncBtn.disabled = true;
     }
+    if (els.memoryClearBtn) {
+        els.memoryClearBtn.disabled = true;
+    }
     setMemoryStatus(t("memory_sync_submitting"), "loading");
     try {
         const payload = {
@@ -3329,6 +3333,64 @@ async function syncMemoryToKB() {
     } finally {
         if (els.memorySyncBtn) {
             els.memorySyncBtn.disabled = false;
+        }
+        if (els.memoryClearBtn) {
+            els.memoryClearBtn.disabled = false;
+        }
+    }
+}
+
+async function clearMemoryVectors() {
+    const confirmed = await showConfirm(t("memory_clear_vectors_confirm_message"), {
+        title: t("memory_clear_vectors_confirm_title"),
+        type: "warning",
+        confirmText: t("memory_clear_vectors_action"),
+        cancelText: t("common_cancel"),
+    });
+    if (!confirmed) return;
+
+    if (els.memorySyncBtn) {
+        els.memorySyncBtn.disabled = true;
+    }
+    if (els.memoryClearBtn) {
+        els.memoryClearBtn.disabled = true;
+    }
+    setMemoryStatus(t("memory_clear_vectors_running"), "loading");
+    try {
+        const result = await fetchJSON("/api/kb/clear-memory", {
+            method: "POST",
+            body: JSON.stringify({}),
+        });
+        await Promise.allSettled([
+            refreshKBFiles(),
+            renderChatCollectionOptions(),
+            refreshMemoryKbCards(),
+        ]);
+
+        setMemoryStatus(t("memory_clear_vectors_success"), "success");
+        showModal(
+            formatTemplate(t("memory_clear_vectors_success_message"), {
+                collection: result?.collection_name || "",
+                count: Number(result?.cleared_count || 0),
+                files: Number(result?.removed_memory_files || 0),
+            }),
+            { title: t("memory_clear_vectors_success_title"), type: "success" }
+        );
+    } catch (e) {
+        console.error("Failed to clear memory vectors:", e);
+        setMemoryStatus(t("memory_clear_vectors_failed"), "error");
+        showModal(
+            formatTemplate(t("memory_clear_vectors_failed_message"), {
+                error: e && e.message ? e.message : t("common_unknown_error"),
+            }),
+            { title: t("memory_clear_vectors_failed_title"), type: "error" }
+        );
+    } finally {
+        if (els.memorySyncBtn) {
+            els.memorySyncBtn.disabled = false;
+        }
+        if (els.memoryClearBtn) {
+            els.memoryClearBtn.disabled = false;
         }
     }
 }
@@ -7075,6 +7137,9 @@ function bindEvents() {
     }
     if (els.memorySyncBtn) {
         els.memorySyncBtn.onclick = syncMemoryToKB;
+    }
+    if (els.memoryClearBtn) {
+        els.memoryClearBtn.onclick = clearMemoryVectors;
     }
 
     if (els.builderLogo) {
