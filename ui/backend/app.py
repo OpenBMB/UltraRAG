@@ -25,6 +25,7 @@ from flask import (
 from werkzeug.exceptions import HTTPException
 
 from . import auth as auth_backend
+from . import chat_store as chat_store_backend
 from . import pipeline_manager as pm
 
 LOGGER = logging.getLogger(__name__)
@@ -411,6 +412,9 @@ def create_app(admin_mode: bool = False) -> Flask:
 
     user_store = auth_backend.SQLiteUserStore(AUTH_DB_PATH)
     user_store.init_db()
+    chat_store = chat_store_backend.SQLiteChatStore(AUTH_DB_PATH)
+    chat_store.init_db()
+    app.config["CHAT_STORE"] = chat_store
 
     def _get_authenticated_user_id() -> Optional[str]:
         raw_value = session.get("auth_user_id")
@@ -438,6 +442,9 @@ def create_app(admin_mode: bool = False) -> Flask:
             "user_id": DEFAULT_MEMORY_USER,
             "username": None,
         }
+
+    def _is_logged_in_user() -> bool:
+        return _get_authenticated_user_id() is not None
 
     def _validate_user_access(raw_user_id: Any):
         if raw_user_id is None:
@@ -586,6 +593,122 @@ def create_app(admin_mode: bool = False) -> Flask:
     @app.route("/api/auth/me", methods=["GET"])
     def auth_me() -> Response:
         return jsonify(get_current_user_info())
+
+    @app.route("/api/chat/sessions", methods=["GET"])
+    def list_chat_sessions() -> Response:
+        """List persisted chat sessions for the current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify([])
+        current_user = get_current_user_id()
+        limit = request.args.get("limit", 200, type=int)
+        try:
+            sessions = chat_store.list_sessions(current_user, limit=limit)
+            return jsonify(sessions)
+        except Exception as e:
+            LOGGER.error("Failed to list chat sessions: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/chat/sessions", methods=["POST"])
+    def upsert_chat_session() -> Response:
+        """Create or update one chat session for the current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = get_current_user_id()
+        payload = request.get_json(force=True) or {}
+        if not isinstance(payload, dict):
+            return jsonify({"error": "invalid payload"}), 400
+        try:
+            saved = chat_store.upsert_session(current_user, payload)
+            return jsonify(saved)
+        except chat_store_backend.ChatStoreValidationError as e:
+            return jsonify({"error": str(e)}), 400
+        except chat_store_backend.ChatStorePermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except Exception as e:
+            LOGGER.error("Failed to upsert chat session: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/chat/sessions/<string:session_id>", methods=["GET"])
+    def get_chat_session(session_id: str) -> Response:
+        """Get one chat session and all messages for current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = get_current_user_id()
+        try:
+            session_data = chat_store.get_session(current_user, session_id)
+            if not session_data:
+                return jsonify({"error": "session not found"}), 404
+            return jsonify(session_data)
+        except chat_store_backend.ChatStoreValidationError as e:
+            return jsonify({"error": str(e)}), 400
+        except chat_store_backend.ChatStorePermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except Exception as e:
+            LOGGER.error("Failed to get chat session: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/chat/sessions/<string:session_id>", methods=["PUT"])
+    def update_chat_session(session_id: str) -> Response:
+        """Update one chat session metadata/content for current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = get_current_user_id()
+        payload = request.get_json(force=True) or {}
+        if not isinstance(payload, dict):
+            return jsonify({"error": "invalid payload"}), 400
+        try:
+            if "title" in payload and len(payload.keys()) == 1:
+                updated = chat_store.rename_session(
+                    current_user,
+                    session_id,
+                    str(payload.get("title", "")),
+                )
+            else:
+                merged_payload = dict(payload)
+                merged_payload["id"] = session_id
+                updated = chat_store.upsert_session(current_user, merged_payload)
+            return jsonify(updated)
+        except chat_store_backend.ChatStoreValidationError as e:
+            return jsonify({"error": str(e)}), 400
+        except chat_store_backend.ChatStorePermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except KeyError:
+            return jsonify({"error": "session not found"}), 404
+        except Exception as e:
+            LOGGER.error("Failed to update chat session: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/chat/sessions/<string:session_id>", methods=["DELETE"])
+    def delete_chat_session(session_id: str) -> Response:
+        """Delete one chat session for current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = get_current_user_id()
+        try:
+            deleted = chat_store.delete_session(current_user, session_id)
+            if not deleted:
+                return jsonify({"error": "session not found"}), 404
+            return jsonify({"status": "deleted", "session_id": session_id})
+        except chat_store_backend.ChatStoreValidationError as e:
+            return jsonify({"error": str(e)}), 400
+        except chat_store_backend.ChatStorePermissionError as e:
+            return jsonify({"error": str(e)}), 403
+        except Exception as e:
+            LOGGER.error("Failed to delete chat session: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/chat/sessions", methods=["DELETE"])
+    def clear_chat_sessions() -> Response:
+        """Clear all chat sessions for current logged-in user."""
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = get_current_user_id()
+        try:
+            count = chat_store.clear_sessions(current_user)
+            return jsonify({"status": "cleared", "count": count})
+        except Exception as e:
+            LOGGER.error("Failed to clear chat sessions: %s", e, exc_info=True)
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/memory", methods=["GET", "PUT"])
     @app.route("/api/memory/<string:user_id>", methods=["GET", "PUT"])
@@ -829,9 +952,12 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             Server-sent events stream response
         """
-        payload = request.get_json(force=True)
+        payload = request.get_json(force=True) or {}
+        if not isinstance(payload, dict):
+            payload = {}
         question = payload.get("question", "")
         session_id = payload.get("session_id")
+        chat_session_id = payload.get("chat_session_id")
         dynamic_params = payload.get("dynamic_params", {})
         if not isinstance(dynamic_params, dict):
             dynamic_params = {}
@@ -860,6 +986,123 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         # New: Allow frontend to force full pipeline execution
         force_full_pipeline = payload.get("force_full_pipeline", False)
+
+        def _normalize_chat_history_for_store(raw_messages: Any) -> list[dict[str, Any]]:
+            if not isinstance(raw_messages, list):
+                return []
+            normalized: list[dict[str, Any]] = []
+            for msg in raw_messages:
+                if not isinstance(msg, dict):
+                    continue
+                role = str(msg.get("role") or "").strip()
+                if role not in {"user", "assistant"}:
+                    continue
+                text = msg.get("text")
+                if text is None:
+                    text = msg.get("content", "")
+                text = str(text or "")
+                meta = msg.get("meta", {})
+                if not isinstance(meta, dict):
+                    meta = {}
+                timestamp = msg.get("timestamp")
+                if timestamp is None:
+                    timestamp = datetime.utcnow().isoformat()
+                normalized.append(
+                    {
+                        "role": role,
+                        "text": text,
+                        "meta": meta,
+                        "timestamp": str(timestamp),
+                    }
+                )
+            return normalized
+
+        def _derive_chat_title(messages: list[dict[str, Any]]) -> str:
+            for item in messages:
+                if item.get("role") == "user":
+                    text = str(item.get("text") or "").strip()
+                    if text:
+                        return text[:20] + ("..." if len(text) > 20 else "")
+            return "New Chat"
+
+        def _persist_chat_answer(assistant_answer: str) -> None:
+            if not _is_logged_in_user():
+                return
+            if not isinstance(chat_session_id, str) or not chat_session_id.strip():
+                return
+            answer = str(assistant_answer or "").strip()
+            if not answer:
+                return
+
+            messages = _normalize_chat_history_for_store(raw_history)
+            if (
+                not messages
+                or messages[-1].get("role") != "user"
+                or str(messages[-1].get("text") or "") != str(question or "")
+            ):
+                messages.append(
+                    {
+                        "role": "user",
+                        "text": str(question or ""),
+                        "meta": {},
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "text": answer,
+                    "meta": {},
+                    "timestamp": datetime.utcnow().isoformat(),
+                }
+            )
+
+            session_payload = {
+                "id": chat_session_id.strip(),
+                "title": _derive_chat_title(messages),
+                "pipeline": name,
+                "messages": messages,
+                "timestamp": int(datetime.utcnow().timestamp() * 1000),
+            }
+            try:
+                chat_store.upsert_session(current_user_id, session_payload)
+            except Exception as e:
+                LOGGER.warning(
+                    "Failed to persist chat session %s for user %s: %s",
+                    chat_session_id,
+                    current_user_id,
+                    e,
+                    exc_info=True,
+                )
+
+        def _stream_with_chat_persistence(base_stream):
+            final_answer: Optional[str] = None
+            for chunk in base_stream:
+                try:
+                    text_chunk = (
+                        chunk.decode("utf-8", errors="ignore")
+                        if isinstance(chunk, bytes)
+                        else str(chunk)
+                    )
+                    for line in text_chunk.splitlines():
+                        if not line.startswith("data:"):
+                            continue
+                        payload_text = line[5:].strip()
+                        if not payload_text:
+                            continue
+                        obj = json.loads(payload_text)
+                        if isinstance(obj, dict) and obj.get("type") == "final":
+                            data_obj = obj.get("data", {})
+                            if isinstance(data_obj, dict):
+                                answer = data_obj.get("answer")
+                                if answer is not None:
+                                    final_answer = str(answer)
+                except Exception:
+                    pass
+                yield chunk
+
+            if final_answer is not None:
+                _persist_chat_answer(final_answer)
 
         selected_collection = dynamic_params.get("collection_name")
         memory_retrieval_ctx = pm.resolve_memory_collection_for_pipeline(
@@ -923,8 +1166,9 @@ def create_app(admin_mode: bool = False) -> Flask:
                 f"Session {session_id}: First turn (history empty), "
                 f"running full pipeline '{name}'"
             )
+            base_stream = pm.chat_demo_stream(name, question, session_id, dynamic_params)
             return Response(
-                pm.chat_demo_stream(name, question, session_id, dynamic_params),
+                stream_with_context(_stream_with_chat_persistence(base_stream)),
                 mimetype="text/event-stream",
             )
         else:
@@ -933,10 +1177,11 @@ def create_app(admin_mode: bool = False) -> Flask:
                 f"Session {session_id}: Multi-turn chat mode with "
                 f"{len(conversation_history)} history messages"
             )
+            base_stream = pm.chat_multiturn_stream(
+                session_id, question, dynamic_params, conversation_history
+            )
             return Response(
-                pm.chat_multiturn_stream(
-                    session_id, question, dynamic_params, conversation_history
-                ),
+                stream_with_context(_stream_with_chat_persistence(base_stream)),
                 mimetype="text/event-stream",
             )
 

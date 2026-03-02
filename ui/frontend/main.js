@@ -3370,6 +3370,163 @@ function resetChatSession() {
 
 function generateChatId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 
+const CHAT_SESSIONS_STORAGE_KEY = "ultrarag_sessions";
+const CHAT_LAST_ACTIVE_ID_STORAGE_KEY = "ultrarag_last_active_id";
+
+function useServerChatStore() {
+    return Boolean(state.auth?.loggedIn);
+}
+
+function normalizeChatMessage(message) {
+    if (!message || typeof message !== "object") return null;
+    const role = String(message.role || "").trim();
+    if (!role) return null;
+    const text = String(message.text ?? message.content ?? "");
+    const meta = message.meta && typeof message.meta === "object" ? message.meta : {};
+    const timestamp = String(message.timestamp || new Date().toISOString());
+    return { role, text, meta, timestamp };
+}
+
+function normalizeChatSession(session) {
+    if (!session || typeof session !== "object") return null;
+    const id = String(session.id || "").trim();
+    if (!id) return null;
+    const title = String(session.title || "New Chat");
+    const pipeline = session.pipeline ? String(session.pipeline) : null;
+    const messages = Array.isArray(session.messages)
+        ? session.messages.map(normalizeChatMessage).filter(Boolean)
+        : [];
+    const tsRaw = session.timestamp;
+    const timestamp = Number.isFinite(Number(tsRaw)) ? Number(tsRaw) : Date.now();
+    return { id, title, pipeline, messages, timestamp };
+}
+
+function sortChatSessionsByTimestamp(sessions) {
+    const arr = Array.isArray(sessions) ? sessions.slice() : [];
+    arr.sort((a, b) => Number(b?.timestamp || 0) - Number(a?.timestamp || 0));
+    return arr;
+}
+
+function getStoredLastActiveSessionId() {
+    try {
+        const raw = localStorage.getItem(CHAT_LAST_ACTIVE_ID_STORAGE_KEY);
+        return raw ? String(raw) : null;
+    } catch (e) {
+        console.warn("Failed to read last active session id:", e);
+        return null;
+    }
+}
+
+function setStoredLastActiveSessionId(sessionId) {
+    if (!sessionId) return;
+    try {
+        localStorage.setItem(CHAT_LAST_ACTIVE_ID_STORAGE_KEY, String(sessionId));
+    } catch (e) {
+        console.warn("Failed to persist last active session id:", e);
+    }
+}
+
+function clearStoredLastActiveSessionId() {
+    try {
+        localStorage.removeItem(CHAT_LAST_ACTIVE_ID_STORAGE_KEY);
+    } catch (e) {
+        console.warn("Failed to clear last active session id:", e);
+    }
+}
+
+function persistLocalChatSessionsSnapshot() {
+    try {
+        localStorage.setItem(CHAT_SESSIONS_STORAGE_KEY, JSON.stringify(state.chat.sessions));
+    } catch (e) {
+        console.warn("Failed to persist local chat sessions:", e);
+    }
+}
+
+function loadLocalChatSessionsSnapshot() {
+    try {
+        const raw = localStorage.getItem(CHAT_SESSIONS_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map(normalizeChatSession).filter(Boolean);
+    } catch (e) {
+        console.warn("Failed to parse local chat sessions:", e);
+        return [];
+    }
+}
+
+async function listServerChatSessions() {
+    const data = await fetchJSON("/api/chat/sessions?limit=300");
+    if (!Array.isArray(data)) return [];
+    return data.map(normalizeChatSession).filter(Boolean);
+}
+
+async function upsertServerChatSession(chatSession) {
+    const normalized = normalizeChatSession(chatSession);
+    if (!normalized) return;
+    await fetchJSON("/api/chat/sessions", {
+        method: "POST",
+        body: JSON.stringify(normalized),
+    });
+}
+
+async function renameServerChatSession(sessionId, title) {
+    await fetchJSON(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: "PUT",
+        body: JSON.stringify({ title }),
+    });
+}
+
+async function deleteServerChatSession(sessionId) {
+    await fetchJSON(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, {
+        method: "DELETE",
+    });
+}
+
+async function clearServerChatSessions() {
+    await fetchJSON("/api/chat/sessions", { method: "DELETE" });
+}
+
+async function restoreChatSessionsFromStore({ restorePipeline = false } = {}) {
+    let sessions = [];
+    if (useServerChatStore()) {
+        try {
+            sessions = await listServerChatSessions();
+        } catch (e) {
+            console.warn("Failed to load server chat sessions:", e);
+            sessions = [];
+        }
+    } else {
+        sessions = loadLocalChatSessionsSnapshot();
+    }
+
+    state.chat.sessions = sortChatSessionsByTimestamp(sessions);
+
+    const lastId = getStoredLastActiveSessionId();
+    const preferredSession =
+        (lastId && state.chat.sessions.find((s) => s.id === lastId)) ||
+        state.chat.sessions[0] ||
+        null;
+
+    if (preferredSession) {
+        state.chat.currentSessionId = preferredSession.id;
+        state.chat.history = cloneDeep(preferredSession.messages || []);
+        setStoredLastActiveSessionId(preferredSession.id);
+        if (restorePipeline && state.adminMode && preferredSession.pipeline) {
+            loadPipeline(preferredSession.pipeline);
+        } else if (restorePipeline && state.adminMode) {
+            setHeroPipelineLabel(state.selectedPipeline || "");
+        }
+    } else {
+        state.chat.currentSessionId = null;
+        state.chat.history = [];
+        clearStoredLastActiveSessionId();
+        if (restorePipeline && state.adminMode) {
+            setHeroPipelineLabel(state.selectedPipeline || "");
+        }
+    }
+}
+
 function createNewChatSession() {
     // If generating, show confirmation dialog
     if (state.chat.running) {
@@ -3385,6 +3542,7 @@ function createNewChatSession() {
 
     state.chat.currentSessionId = generateChatId();
     state.chat.history = [];
+    setStoredLastActiveSessionId(state.chat.currentSessionId);
     renderChatHistory(); renderChatSidebar();
     updateChatIdleStatus();
     if (els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
@@ -3402,6 +3560,7 @@ function interruptAndCreateNewChat() {
 
     state.chat.currentSessionId = generateChatId();
     state.chat.history = [];
+    setStoredLastActiveSessionId(state.chat.currentSessionId);
     renderChatHistory(); renderChatSidebar();
     updateChatIdleStatus();
     if (els.chatInput && state.chat.engineSessionId) els.chatInput.focus();
@@ -3425,6 +3584,7 @@ function loadChatSession(sessionId) {
 
     state.chat.currentSessionId = session.id;
     state.chat.history = cloneDeep(session.messages || []); // Deep copy restore
+    setStoredLastActiveSessionId(session.id);
 
     // Optional: If you want to make it more advanced:
     // If this historical session belongs to another Pipeline (session.pipeline),
@@ -3458,6 +3618,7 @@ function interruptAndLoadSession(sessionId) {
 
     state.chat.currentSessionId = session.id;
     state.chat.history = cloneDeep(session.messages || []);
+    setStoredLastActiveSessionId(session.id);
 
     renderChatHistory();
     renderChatSidebar();
@@ -3501,6 +3662,8 @@ async function showInterruptConfirmDialog(onConfirm) {
 
 function saveCurrentSession(force = false) {
     if (!state.chat.currentSessionId) return;
+    const currentSessionId = state.chat.currentSessionId;
+    const isServerMode = useServerChatStore();
 
     // If no valid messages (including empty text "new" sessions), don't save to history
     const hasContent = state.chat.history.some(m => {
@@ -3510,20 +3673,27 @@ function saveCurrentSession(force = false) {
         return false;
     });
     if (!hasContent) {
-        state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
+        const existed = state.chat.sessions.some(s => s.id === currentSessionId);
+        state.chat.sessions = state.chat.sessions.filter(s => s.id !== currentSessionId);
         renderChatSidebar();
-        localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+        if (isServerMode) {
+            if (existed) {
+                void deleteServerChatSession(currentSessionId).catch((e) => {
+                    console.warn("Failed to delete empty server chat session:", e);
+                });
+            }
+        } else {
+            persistLocalChatSessionsSnapshot();
+        }
         return;
     }
 
-    let session = state.chat.sessions.find(s => s.id === state.chat.currentSessionId);
+    let session = state.chat.sessions.find(s => s.id === currentSessionId);
 
     // Only update timestamp / sorting when there's new content (or forced), avoid "click only" causing top placement
     const contentChanged = force || hasHistoryChanged(session, state.chat.history);
     if (!contentChanged) {
-        if (state.chat.currentSessionId) {
-            localStorage.setItem("ultrarag_last_active_id", state.chat.currentSessionId);
-        }
+        setStoredLastActiveSessionId(currentSessionId);
         return;
     }
 
@@ -3537,7 +3707,7 @@ function saveCurrentSession(force = false) {
     if (!session) {
         // Create new session object
         session = {
-            id: state.chat.currentSessionId,
+            id: currentSessionId,
             title: title,
             messages: cloneDeep(state.chat.history), // Deep copy to prevent reference issues
             pipeline: state.selectedPipeline,        // Record which Pipeline was used for chat
@@ -3547,7 +3717,7 @@ function saveCurrentSession(force = false) {
     } else {
         // Update existing session
         // Remove old position first, then insert at front (top)
-        state.chat.sessions = state.chat.sessions.filter(s => s.id !== state.chat.currentSessionId);
+        state.chat.sessions = state.chat.sessions.filter(s => s.id !== currentSessionId);
         session.messages = cloneDeep(state.chat.history);
         session.timestamp = Date.now();
 
@@ -3560,12 +3730,17 @@ function saveCurrentSession(force = false) {
 
     // Render sidebar and persist to LocalStorage
     renderChatSidebar();
-    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    if (isServerMode) {
+        const snapshot = cloneDeep(session);
+        void upsertServerChatSession(snapshot).catch((e) => {
+            console.warn("Failed to upsert server chat session:", e);
+        });
+    } else {
+        persistLocalChatSessionsSnapshot();
+    }
 
     // Record current active session ID for recovery after refresh
-    if (state.chat.currentSessionId) {
-        localStorage.setItem("ultrarag_last_active_id", state.chat.currentSessionId);
-    }
+    setStoredLastActiveSessionId(currentSessionId);
 }
 
 function renderChatSidebar() {
@@ -3655,8 +3830,24 @@ async function renameChatSession(sessionId) {
 
     if (!newTitle || newTitle.trim() === '' || newTitle.trim() === session.title) return;
 
-    session.title = newTitle.trim();
-    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    const oldTitle = session.title;
+    const trimmed = newTitle.trim();
+    session.title = trimmed;
+    if (useServerChatStore()) {
+        try {
+            await renameServerChatSession(sessionId, trimmed);
+        } catch (e) {
+            session.title = oldTitle;
+            showModal(parseApiErrorMessage(e), {
+                title: t("chat_error_title"),
+                type: "error",
+            });
+            renderChatSidebar();
+            return;
+        }
+    } else {
+        persistLocalChatSessionsSnapshot();
+    }
     renderChatSidebar();
 }
 
@@ -3672,12 +3863,26 @@ async function deleteChatSession(sessionId) {
 
     const wasCurrent = state.chat.currentSessionId === sessionId;
 
+    if (useServerChatStore()) {
+        try {
+            await deleteServerChatSession(sessionId);
+        } catch (e) {
+            showModal(parseApiErrorMessage(e), {
+                title: t("chat_error_title"),
+                type: "error",
+            });
+            return;
+        }
+    }
+
     state.chat.sessions = state.chat.sessions.filter(s => s.id !== sessionId);
-    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
+    if (!useServerChatStore()) {
+        persistLocalChatSessionsSnapshot();
+    }
 
     // If current session was deleted, clear last_active_id
     if (wasCurrent) {
-        localStorage.removeItem("ultrarag_last_active_id"); // Clear
+        clearStoredLastActiveSessionId(); // Clear
 
         if (state.chat.controller) {
             state.chat.controller.abort();
@@ -3704,9 +3909,23 @@ async function deleteAllChatSessions() {
     });
     if (!confirmed) return;
 
+    if (useServerChatStore()) {
+        try {
+            await clearServerChatSessions();
+        } catch (e) {
+            showModal(parseApiErrorMessage(e), {
+                title: t("chat_error_title"),
+                type: "error",
+            });
+            return;
+        }
+    }
+
     state.chat.sessions = [];
-    localStorage.setItem("ultrarag_sessions", JSON.stringify(state.chat.sessions));
-    localStorage.removeItem("ultrarag_last_active_id");
+    if (!useServerChatStore()) {
+        persistLocalChatSessionsSnapshot();
+    }
+    clearStoredLastActiveSessionId();
     createNewChatSession();
 }
 
@@ -4752,6 +4971,10 @@ async function handleChatSubmit(event) {
     if (els.chatInput) {
         els.chatInput.style.height = 'auto';
     }
+    if (!state.chat.currentSessionId) {
+        state.chat.currentSessionId = generateChatId();
+        setStoredLastActiveSessionId(state.chat.currentSessionId);
+    }
     appendChatMessage("user", question);
     setChatRunning(true);
     state.chat.controller = new AbortController();
@@ -4774,6 +4997,7 @@ async function handleChatSubmit(event) {
             history: state.chat.history,
             is_demo: true,
             session_id: state.chat.engineSessionId,
+            chat_session_id: state.chat.currentSessionId,
             dynamic_params: dynamicParams
         });
 
@@ -7176,38 +7400,10 @@ async function bootstrap() {
         els.chatSidebar.classList.add("collapsed");
     }
 
-    // 2. After data loading completes, restore historical sessions and selected state
-    const savedSessions = localStorage.getItem("ultrarag_sessions");
-    if (savedSessions) {
-        try {
-            state.chat.sessions = JSON.parse(savedSessions);
-            state.chat.sessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-            // Restore last active session
-            const lastId = localStorage.getItem("ultrarag_last_active_id");
-            if (lastId) {
-                const session = state.chat.sessions.find(s => s.id === lastId);
-                if (session) {
-                    state.chat.currentSessionId = session.id;
-                    state.chat.history = cloneDeep(session.messages || []);
-
-                    // Only auto-load Pipeline in Admin mode (Chat-only mode handled in initChatOnlyView)
-                    if (state.adminMode && session.pipeline) {
-                        // refreshPipelines has completed at this point, UI is safe
-                        loadPipeline(session.pipeline);
-                    } else if (state.adminMode) {
-                        // If no pipeline record, only set label
-                        setHeroPipelineLabel(state.selectedPipeline || "");
-                    }
-                    log(`Restored last session: ${session.title}`);
-                }
-            }
-        } catch (e) {
-            console.warn("Failed to load history:", e);
-            state.chat.sessions = [];
-        }
-    } else if (state.adminMode) {
-        setHeroPipelineLabel(state.selectedPipeline || "");
+    // 2. Restore historical sessions based on current auth mode
+    await restoreChatSessionsFromStore({ restorePipeline: true });
+    if (!state.chat.currentSessionId) {
+        createNewChatSession();
     }
 
     // In Chat-only mode, initialize Chat interface
@@ -7527,6 +7723,15 @@ async function refreshAuthDependentViews() {
     }
     tasks.push(refreshMemoryKbCards());
     await Promise.allSettled(tasks);
+
+    await restoreChatSessionsFromStore({ restorePipeline: false });
+    if (!state.chat.currentSessionId) {
+        createNewChatSession();
+    } else {
+        renderChatHistory();
+        renderChatSidebar();
+        updateChatIdleStatus();
+    }
 }
 
 async function openAuthDialog() {
@@ -8406,7 +8611,7 @@ async function initChatOnlyView() {
     renderChatHistory();
 
     // 5. If there are saved sessions with corresponding Pipeline, try to auto-load
-    const lastId = localStorage.getItem("ultrarag_last_active_id");
+    const lastId = getStoredLastActiveSessionId();
     if (lastId) {
         const session = state.chat.sessions.find(s => s.id === lastId);
         if (session && session.pipeline) {
