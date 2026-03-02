@@ -1212,29 +1212,93 @@
           </form>
         </div>
 
-        <div class="auth-view" id="auth-change-password-view">
-          <form id="auth-change-password-form" class="auth-form">
-            <h4 data-i18n="auth_change_password_title">修改密码</h4>
-            <label for="auth-current-password" data-i18n="auth_current_password_label">原密码</label>
-            <input id="auth-current-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
-
-            <label for="auth-new-password" data-i18n="auth_new_password_label">新密码</label>
-            <input id="auth-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
-
-            <label for="auth-confirm-new-password" data-i18n="auth_confirm_new_password_label">重复新密码</label>
-            <input id="auth-confirm-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
-
-            <div class="auth-form-actions">
-              <button type="submit" class="btn auth-btn-primary" data-i18n="auth_change_password_action">修改密码</button>
-              <button type="button" class="btn auth-btn-link" id="auth-change-password-cancel" data-i18n="common_cancel">取消</button>
+        <div class="auth-view" id="auth-account-view">
+          <!-- Sub-view: menu -->
+          <div class="auth-account-sub is-active" id="auth-account-menu">
+            <div class="auth-account-cards">
+              <button type="button" class="auth-account-card" id="auth-go-nickname">
+                <span class="auth-account-card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <span class="auth-account-card-label" data-i18n="auth_nickname_title">设置昵称</span>
+                <span class="auth-account-card-arrow">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
+              <button type="button" class="auth-account-card" id="auth-go-password">
+                <span class="auth-account-card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                </span>
+                <span class="auth-account-card-label" data-i18n="auth_change_password_title">修改密码</span>
+                <span class="auth-account-card-arrow">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
             </div>
-          </form>
+          </div>
+
+          <!-- Sub-view: nickname -->
+          <div class="auth-account-sub" id="auth-account-nickname">
+            <button type="button" class="auth-account-back" id="auth-nickname-back">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span data-i18n="auth_account_back">返回</span>
+            </button>
+            <form id="auth-nickname-form" class="auth-form">
+              <h4 data-i18n="auth_nickname_title">设置昵称</h4>
+              <label for="auth-nickname-input" data-i18n="auth_nickname_label">昵称</label>
+              <input id="auth-nickname-input" type="text" autocomplete="nickname" data-i18n-placeholder="auth_nickname_placeholder" placeholder="可输入中文或英文昵称" />
+              <div class="auth-form-text" data-i18n="auth_nickname_hint">留空可清除昵称。</div>
+              <div class="auth-form-actions">
+                <button type="submit" class="btn auth-btn-primary" data-i18n="auth_nickname_action">保存昵称</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Sub-view: change password -->
+          <div class="auth-account-sub" id="auth-account-password">
+            <button type="button" class="auth-account-back" id="auth-password-back">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span data-i18n="auth_account_back">返回</span>
+            </button>
+            <form id="auth-change-password-form" class="auth-form">
+              <h4 data-i18n="auth_change_password_title">修改密码</h4>
+              <label for="auth-current-password" data-i18n="auth_current_password_label">原密码</label>
+              <input id="auth-current-password" type="password" autocomplete="current-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+              <label for="auth-new-password" data-i18n="auth_new_password_label">新密码</label>
+              <input id="auth-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+              <label for="auth-confirm-new-password" data-i18n="auth_confirm_new_password_label">重复新密码</label>
+              <input id="auth-confirm-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="auth_password_placeholder" placeholder="At least 6 characters" />
+
+              <div class="auth-form-actions">
+                <button type="submit" class="btn auth-btn-primary" data-i18n="auth_change_password_action">修改密码</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
-      <div class="auth-modal-actions">
-        <button type="button" class="btn auth-btn-logout" id="auth-logout-btn" data-i18n="auth_logout_action">Logout</button>
-      </div>
     </div>
   </dialog>
 

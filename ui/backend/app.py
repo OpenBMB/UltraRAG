@@ -433,16 +433,19 @@ def create_app(admin_mode: bool = False) -> Flask:
     def get_current_user_info() -> Dict[str, Any]:
         logged_user = _get_authenticated_user_id()
         if logged_user:
+            user_profile = user_store.get_user(logged_user)
             return {
                 "logged_in": True,
                 "user_id": logged_user,
                 "username": logged_user,
+                "nickname": user_profile.get("nickname") if user_profile else None,
                 "is_admin": user_store.is_admin_username(logged_user),
             }
         return {
             "logged_in": False,
             "user_id": DEFAULT_MEMORY_USER,
             "username": None,
+            "nickname": None,
             "is_admin": False,
         }
 
@@ -562,6 +565,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                     "logged_in": True,
                     "user_id": user["username"],
                     "username": user["username"],
+                    "nickname": user.get("nickname"),
                     "is_admin": user_store.is_admin_username(user["username"]),
                 }
             ),
@@ -590,6 +594,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "logged_in": True,
                 "user_id": user["username"],
                 "username": user["username"],
+                "nickname": user.get("nickname"),
                 "is_admin": user_store.is_admin_username(user["username"]),
             }
         )
@@ -619,6 +624,24 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         return jsonify({"status": "password_changed"})
 
+    @app.route("/api/auth/nickname", methods=["POST"])
+    def auth_update_nickname() -> Response:
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+
+        payload = request.get_json(force=True) or {}
+        nickname = payload.get("nickname", "")
+        current_user = _get_authenticated_user_id()
+        if not current_user:
+            return jsonify({"error": "login required"}), 401
+
+        try:
+            user = user_store.update_nickname(current_user, nickname)
+        except auth_backend.AuthValidationError as e:
+            return jsonify({"error": str(e)}), 400
+
+        return jsonify({"status": "nickname_updated", "nickname": user.get("nickname")})
+
     @app.route("/api/auth/logout", methods=["POST"])
     def auth_logout() -> Response:
         session.pop("auth_user_id", None)
@@ -629,6 +652,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "logged_in": False,
                 "user_id": DEFAULT_MEMORY_USER,
                 "username": None,
+                "nickname": None,
                 "is_admin": False,
             }
         )

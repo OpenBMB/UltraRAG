@@ -46,10 +46,12 @@ class SQLiteUserStore:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,
                     password_hash TEXT NOT NULL,
+                    nickname TEXT,
                     created_at TEXT NOT NULL
                 )
                 """
             )
+            self._ensure_users_table_columns(conn)
             self._ensure_default_admin_user(conn)
             conn.commit()
 
@@ -71,6 +73,12 @@ class SQLiteUserStore:
             )
         return password
 
+    def normalize_nickname(self, raw_nickname: Any) -> Optional[str]:
+        nickname = str(raw_nickname or "").strip()
+        if not nickname:
+            return None
+        return nickname
+
     def create_user(self, raw_username: Any, raw_password: Any) -> Dict[str, Any]:
         username = self.normalize_username(raw_username)
         password = self.validate_password(raw_password)
@@ -81,10 +89,10 @@ class SQLiteUserStore:
             try:
                 cursor = conn.execute(
                     """
-                    INSERT INTO users (username, password_hash, created_at)
-                    VALUES (?, ?, ?)
+                    INSERT INTO users (username, password_hash, nickname, created_at)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (username, password_hash, created_at),
+                    (username, password_hash, None, created_at),
                 )
             except sqlite3.IntegrityError as exc:
                 raise UserAlreadyExistsError("username already exists") from exc
@@ -108,7 +116,7 @@ class SQLiteUserStore:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, username, password_hash, created_at
+                SELECT id, username, password_hash, nickname, created_at
                 FROM users
                 WHERE username = ?
                 """,
@@ -118,6 +126,21 @@ class SQLiteUserStore:
         if not row:
             return None
         if not check_password_hash(str(row["password_hash"]), password):
+            return None
+        return self._row_to_dict(row)
+
+    def get_user(self, raw_username: Any) -> Optional[Dict[str, Any]]:
+        username = self.normalize_username(raw_username)
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, username, password_hash, nickname, created_at
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+        if not row:
             return None
         return self._row_to_dict(row)
 
@@ -142,7 +165,7 @@ class SQLiteUserStore:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, username, password_hash, created_at
+                SELECT id, username, password_hash, nickname, created_at
                 FROM users
                 WHERE username = ?
                 """,
@@ -165,7 +188,7 @@ class SQLiteUserStore:
 
             refreshed = conn.execute(
                 """
-                SELECT id, username, password_hash, created_at
+                SELECT id, username, password_hash, nickname, created_at
                 FROM users
                 WHERE username = ?
                 """,
@@ -176,10 +199,45 @@ class SQLiteUserStore:
             raise InvalidCredentialsError("invalid current password")
         return self._row_to_dict(refreshed)
 
+    def update_nickname(self, raw_username: Any, raw_nickname: Any) -> Dict[str, Any]:
+        username = self.normalize_username(raw_username)
+        nickname = self.normalize_nickname(raw_nickname)
+
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE users
+                SET nickname = ?
+                WHERE username = ?
+                """,
+                (nickname, username),
+            )
+            conn.commit()
+            refreshed = conn.execute(
+                """
+                SELECT id, username, password_hash, nickname, created_at
+                FROM users
+                WHERE username = ?
+                """,
+                (username,),
+            ).fetchone()
+
+        if not refreshed:
+            raise AuthValidationError("user not found")
+        return self._row_to_dict(refreshed)
+
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self._db_path), timeout=10.0)
         conn.row_factory = sqlite3.Row
         return conn
+
+    def _ensure_users_table_columns(self, conn: sqlite3.Connection) -> None:
+        columns = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA table_info(users)").fetchall()
+        }
+        if "nickname" not in columns:
+            conn.execute("ALTER TABLE users ADD COLUMN nickname TEXT")
 
     def _ensure_default_admin_user(self, conn: sqlite3.Connection) -> None:
         existing = conn.execute(
@@ -196,21 +254,25 @@ class SQLiteUserStore:
 
         conn.execute(
             """
-            INSERT INTO users (username, password_hash, created_at)
-            VALUES (?, ?, ?)
+            INSERT INTO users (username, password_hash, nickname, created_at)
+            VALUES (?, ?, ?, ?)
             """,
             (
                 ADMIN_USERNAME,
                 generate_password_hash(ADMIN_DEFAULT_PASSWORD),
+                None,
                 datetime.now(timezone.utc).isoformat(),
             ),
         )
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
+        nickname = row["nickname"] if "nickname" in row.keys() else None
+        nickname_text = str(nickname).strip() if nickname is not None else ""
         return {
             "id": int(row["id"]),
             "username": str(row["username"]),
             "password_hash": str(row["password_hash"]),
+            "nickname": nickname_text or None,
             "created_at": str(row["created_at"]),
         }

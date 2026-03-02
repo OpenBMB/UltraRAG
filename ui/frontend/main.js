@@ -166,10 +166,7 @@ function updateI18nTexts() {
     }
 
     // Empty state greeting
-    const greeting = document.querySelector(".greeting-gradient");
-    if (greeting) {
-        greeting.textContent = t("greeting_explore");
-    }
+    renderEmptyStateGreeting();
 
     // Update chat history i18n texts (Show Thinking, Cited References, Other Retrieved)
     document.querySelectorAll(".process-header > span[data-i18n-key='chat_show_thinking']").forEach((el) => {
@@ -230,6 +227,7 @@ const state = {
         loggedIn: false,
         userId: "default",
         username: null,
+        nickname: null,
         isAdmin: false,
     },
 
@@ -352,13 +350,20 @@ const els = {
     authRegisterUsername: document.getElementById("auth-register-username"),
     authRegisterPassword: document.getElementById("auth-register-password"),
     authSwitchToLogin: document.getElementById("auth-switch-to-login"),
-    authChangePasswordView: document.getElementById("auth-change-password-view"),
+    authNicknameForm: document.getElementById("auth-nickname-form"),
+    authNicknameInput: document.getElementById("auth-nickname-input"),
+    authAccountView: document.getElementById("auth-account-view"),
+    authAccountMenu: document.getElementById("auth-account-menu"),
+    authAccountNickname: document.getElementById("auth-account-nickname"),
+    authAccountPassword: document.getElementById("auth-account-password"),
+    authGoNickname: document.getElementById("auth-go-nickname"),
+    authGoPassword: document.getElementById("auth-go-password"),
+    authNicknameBack: document.getElementById("auth-nickname-back"),
+    authPasswordBack: document.getElementById("auth-password-back"),
     authChangePasswordForm: document.getElementById("auth-change-password-form"),
     authCurrentPassword: document.getElementById("auth-current-password"),
     authNewPassword: document.getElementById("auth-new-password"),
     authConfirmNewPassword: document.getElementById("auth-confirm-new-password"),
-    authChangePasswordCancel: document.getElementById("auth-change-password-cancel"),
-    authLogoutBtn: document.getElementById("auth-logout-btn"),
 
     // [New] View containers
     chatMainView: document.getElementById("chat-main-view"),
@@ -459,6 +464,27 @@ const Modes = {
 
 function hasBuilderAccess() {
     return Boolean(state.adminMode) && Boolean(state.auth?.isAdmin);
+}
+
+function getDisplayNickname() {
+    const raw = state.auth?.nickname;
+    const nickname = String(raw || "").trim();
+    return nickname || "";
+}
+
+function buildGreetingHeadline() {
+    const nickname = getDisplayNickname();
+    if (nickname) {
+        return formatTemplate(t("greeting_full_with_nickname"), { nickname });
+    }
+    return t("greeting_full");
+}
+
+function renderEmptyStateGreeting() {
+    const greetingMain = document.querySelector(".greeting-gradient");
+    if (greetingMain) {
+        greetingMain.textContent = buildGreetingHeadline();
+    }
 }
 
 // ==========================================
@@ -4030,7 +4056,7 @@ function renderChatHistory() {
             <div class="empty-state-wrapper fade-in-up">
                 <div class="greeting-section">
                     <div class="greeting-text">
-                        <span class="greeting-gradient">${t("greeting_explore")}</span>
+                        <span class="greeting-gradient">${buildGreetingHeadline()}</span>
                     </div>
                 </div>
             </div>
@@ -7585,7 +7611,7 @@ function setupSettingsMenu() {
             e?.stopPropagation();
             if (state.auth?.loggedIn) {
                 closeMenu();
-                await openAuthDialog({ mode: "change-password" });
+                await openAuthDialog({ mode: "account" });
                 return;
             }
             closeMenu();
@@ -7713,9 +7739,7 @@ function renderAuthStateUI() {
             : t("auth_guest_mode");
     }
 
-    if (els.authLogoutBtn) {
-        els.authLogoutBtn.disabled = !loggedIn;
-    }
+    renderEmptyStateGreeting();
 }
 
 function setAuthModalStatus(message, stateKey = "info") {
@@ -7732,8 +7756,8 @@ function setAuthDialogMode(mode = "login") {
     let targetMode = "login";
     if (mode === "register") {
         targetMode = "register";
-    } else if (mode === "change-password") {
-        targetMode = "change-password";
+    } else if (mode === "account") {
+        targetMode = "account";
     }
     if (els.authLoginView) {
         els.authLoginView.classList.toggle("is-active", targetMode === "login");
@@ -7741,12 +7765,18 @@ function setAuthDialogMode(mode = "login") {
     if (els.authRegisterView) {
         els.authRegisterView.classList.toggle("is-active", targetMode === "register");
     }
-    if (els.authChangePasswordView) {
-        els.authChangePasswordView.classList.toggle(
-            "is-active",
-            targetMode === "change-password"
-        );
+    if (els.authAccountView) {
+        els.authAccountView.classList.toggle("is-active", targetMode === "account");
     }
+    if (targetMode === "account") {
+        setAccountSubView("menu");
+    }
+}
+
+function setAccountSubView(sub = "menu") {
+    const subs = { menu: els.authAccountMenu, nickname: els.authAccountNickname, password: els.authAccountPassword };
+    Object.values(subs).forEach((el) => { if (el) el.classList.remove("is-active"); });
+    if (subs[sub]) subs[sub].classList.add("is-active");
 }
 
 function applyAuthPayload(payload) {
@@ -7758,6 +7788,9 @@ function applyAuthPayload(payload) {
     state.auth.userId = nextUserId;
     state.auth.username = state.auth.loggedIn
         ? String(payload?.username || nextUserId)
+        : null;
+    state.auth.nickname = state.auth.loggedIn
+        ? String(payload?.nickname || "").trim() || null
         : null;
     state.auth.isAdmin = state.auth.loggedIn && payload?.is_admin === true;
     state.auth.loaded = true;
@@ -7843,8 +7876,8 @@ async function openAuthDialog({ mode = "login" } = {}) {
     renderAuthStateUI();
     setAuthModalStatus("");
     const resolvedMode =
-        mode === "change-password" && state.auth?.loggedIn
-            ? "change-password"
+        mode === "account" && state.auth?.loggedIn
+            ? "account"
             : mode === "register"
                 ? "register"
                 : "login";
@@ -7855,6 +7888,9 @@ async function openAuthDialog({ mode = "login" } = {}) {
     if (els.authCurrentPassword) els.authCurrentPassword.value = "";
     if (els.authNewPassword) els.authNewPassword.value = "";
     if (els.authConfirmNewPassword) els.authConfirmNewPassword.value = "";
+    if (els.authNicknameInput) {
+        els.authNicknameInput.value = String(state.auth?.nickname || "");
+    }
 
     if (els.authModal?.showModal) {
         els.authModal.showModal();
@@ -7928,6 +7964,28 @@ async function onAuthRegisterSubmit(event) {
         if (els.authRegisterPassword) {
             els.authRegisterPassword.value = "";
         }
+    }
+}
+
+async function onAuthNicknameSubmit(event) {
+    event.preventDefault();
+    if (!state.auth?.loggedIn) {
+        setAuthModalStatus(t("auth_change_password_login_required"), "error");
+        setAuthDialogMode("login");
+        return;
+    }
+
+    const nickname = String(els.authNicknameInput?.value || "").trim();
+    setAuthModalStatus(t("auth_nickname_saving"), "info");
+    try {
+        await fetchJSON("/api/auth/nickname", {
+            method: "POST",
+            body: JSON.stringify({ nickname }),
+        });
+        await refreshAuthState({ force: true });
+        setAuthModalStatus(t("auth_nickname_saved"), "success");
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
     }
 }
 
@@ -8029,17 +8087,38 @@ function bindAuthDialogEvents() {
             setAuthDialogMode("login");
         });
     }
+    if (els.authNicknameForm) {
+        els.authNicknameForm.addEventListener("submit", onAuthNicknameSubmit);
+    }
     if (els.authChangePasswordForm) {
         els.authChangePasswordForm.addEventListener("submit", onAuthChangePasswordSubmit);
     }
-    if (els.authChangePasswordCancel) {
-        els.authChangePasswordCancel.addEventListener("click", () => {
+    if (els.authGoNickname) {
+        els.authGoNickname.addEventListener("click", () => {
             setAuthModalStatus("");
-            closeAuthDialog();
+            if (els.authNicknameInput) {
+                els.authNicknameInput.value = String(state.auth?.nickname || "");
+            }
+            setAccountSubView("nickname");
         });
     }
-    if (els.authLogoutBtn) {
-        els.authLogoutBtn.addEventListener("click", onAuthLogoutClick);
+    if (els.authGoPassword) {
+        els.authGoPassword.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAccountSubView("password");
+        });
+    }
+    if (els.authNicknameBack) {
+        els.authNicknameBack.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAccountSubView("menu");
+        });
+    }
+    if (els.authPasswordBack) {
+        els.authPasswordBack.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAccountSubView("menu");
+        });
     }
 }
 

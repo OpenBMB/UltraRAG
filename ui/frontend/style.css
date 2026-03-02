@@ -3510,34 +3510,39 @@ textarea.parameter-input {
 /* 1. Welcome message container */
 .empty-state-wrapper {
   max-width: 800px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  align-items: center;
+  align-items: flex-start;
   padding-bottom: 1rem;
 }
 
 /* 2. Greeting area */
 .greeting-section {
-  text-align: center;
+  text-align: left;
   width: 100%;
   max-width: 800px;
   padding: 0 1rem;
 }
 
-/* Gradient text "Hello, UltraRAG" */
+/* Gradient text */
 .greeting-gradient {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 2.2rem;
+  font-weight: 600;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  letter-spacing: -0.02em;
-  display: inline-block;
+  letter-spacing: -0.01em;
+  display: block;
   margin-bottom: 0;
-  line-height: 1.3;
+  line-height: 1.25;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* 3. Suggestion chips container - below input box */
@@ -3629,8 +3634,8 @@ textarea.parameter-input {
 /* Mobile adaptation: reduce font size */
 @media (max-width: 768px) {
   .greeting-gradient {
-    font-size: 1.2rem;
-    white-space: normal;
+    font-size: 1.3rem;
+    white-space: nowrap;
   }
 
   .suggestion-chips-bottom {
@@ -6059,7 +6064,7 @@ textarea.parameter-input {
   border: none;
   border-radius: 16px;
   padding: 0;
-  width: 760px;
+  width: 520px;
   max-width: 94vw;
   background: #fff;
   box-shadow: 0 24px 70px -16px rgba(0, 0, 0, 0.32);
@@ -6156,6 +6161,92 @@ textarea.parameter-input {
   margin: 0 auto;
 }
 
+.auth-form-text {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* Account sub-view system */
+.auth-account-sub {
+  display: none;
+}
+
+.auth-account-sub.is-active {
+  display: block;
+}
+
+.auth-account-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.auth-account-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.auth-account-card:hover {
+  background: #f8fafc;
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+}
+
+.auth-account-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.auth-account-card-label {
+  flex: 1;
+}
+
+.auth-account-card-arrow {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.auth-account-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 2px;
+  border: none;
+  background: transparent;
+  color: #6366f1;
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  transition: background 0.15s;
+}
+
+.auth-account-back:hover {
+  background: #eef2ff;
+}
+
 .auth-form h4 {
   margin: 0 0 2px 0;
   font-size: 0.96rem;
@@ -6203,8 +6294,7 @@ textarea.parameter-input {
 
 .auth-btn-primary,
 .auth-btn-secondary,
-.auth-btn-link,
-.auth-btn-logout {
+.auth-btn-link {
   margin-top: 8px;
   border-radius: 9px;
   font-weight: 600;
@@ -6258,16 +6348,6 @@ textarea.parameter-input {
 .auth-modal-actions {
   display: flex;
   justify-content: flex-end;
-}
-
-.auth-btn-logout {
-  background: #fff1f2;
-  color: #be123c;
-  border-color: #fecdd3;
-}
-
-.auth-btn-logout:hover {
-  background: #ffe4e6;
 }
 
 @media (max-width: 760px) {
