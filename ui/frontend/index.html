@@ -540,6 +540,19 @@
                 <div class="item-text" data-i18n="builder">Builder</div>
               </button>
 
+              <button type="button" class="settings-item" id="settings-model">
+                <span class="item-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3h7v7H3z"></path>
+                    <path d="M14 3h7v7h-7z"></path>
+                    <path d="M14 14h7v7h-7z"></path>
+                    <path d="M3 14h7v7H3z"></path>
+                  </svg>
+                </span>
+                <div class="item-text" data-i18n="auth_model_settings_title">模型设置</div>
+              </button>
+
               <div class="settings-item settings-item-has-submenu" id="settings-language">
                 <div class="settings-item-main">
                   <span class="item-icon">
@@ -1248,6 +1261,24 @@
                   </svg>
                 </span>
               </button>
+              <button type="button" class="auth-account-card" id="auth-go-model">
+                <span class="auth-account-card-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3h7v7H3z"></path>
+                    <path d="M14 3h7v7h-7z"></path>
+                    <path d="M14 14h7v7h-7z"></path>
+                    <path d="M3 14h7v7H3z"></path>
+                  </svg>
+                </span>
+                <span class="auth-account-card-label" data-i18n="auth_model_settings_title">模型设置</span>
+                <span class="auth-account-card-arrow">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </span>
+              </button>
             </div>
           </div>
 
@@ -1293,6 +1324,45 @@
 
               <div class="auth-form-actions">
                 <button type="submit" class="btn auth-btn-primary" data-i18n="auth_change_password_action">修改密码</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Sub-view: model settings -->
+          <div class="auth-account-sub" id="auth-account-model">
+            <button type="button" class="auth-account-back" id="auth-model-back">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span data-i18n="auth_account_back">返回</span>
+            </button>
+            <form id="auth-model-settings-form" class="auth-form">
+              <h4 data-i18n="auth_model_settings_title">模型设置</h4>
+
+              <div class="auth-model-section">
+                <div class="auth-model-section-title" data-i18n="auth_model_retriever_group">检索器</div>
+                <label for="auth-model-retriever-api-key" data-i18n="auth_model_api_key_label">API Key</label>
+                <input id="auth-model-retriever-api-key" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+                <label for="auth-model-retriever-base-url" data-i18n="auth_model_base_url_label">Base URL</label>
+                <input id="auth-model-retriever-base-url" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+                <label for="auth-model-retriever-model-name" data-i18n="auth_model_name_label">Model Name</label>
+                <input id="auth-model-retriever-model-name" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+              </div>
+
+              <div class="auth-model-section">
+                <div class="auth-model-section-title" data-i18n="auth_model_generation_group">生成器</div>
+                <label for="auth-model-generation-api-key" data-i18n="auth_model_api_key_label">API Key</label>
+                <input id="auth-model-generation-api-key" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+                <label for="auth-model-generation-base-url" data-i18n="auth_model_base_url_label">Base URL</label>
+                <input id="auth-model-generation-base-url" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+                <label for="auth-model-generation-model-name" data-i18n="auth_model_name_label">Model Name</label>
+                <input id="auth-model-generation-model-name" type="text" autocomplete="off" data-i18n-placeholder="auth_model_optional_placeholder" placeholder="留空则复用默认配置" />
+              </div>
+
+              <div class="auth-form-actions">
+                <button type="submit" class="btn auth-btn-primary" data-i18n="auth_model_settings_save">保存模型设置</button>
+                <button type="button" class="btn auth-btn-link" id="auth-model-settings-clear" data-i18n="auth_model_settings_clear">清空参数</button>
               </div>
             </form>
           </div>

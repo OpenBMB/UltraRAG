@@ -6247,6 +6247,21 @@ textarea.parameter-input {
   background: #eef2ff;
 }
 
+.auth-model-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 4px;
+  background: #fafafa;
+}
+
+.auth-model-section-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
 .auth-form h4 {
   margin: 0 0 2px 0;
   font-size: 0.96rem;

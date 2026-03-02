@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 import logging
 import sys
@@ -283,6 +284,67 @@ def _ensure_client_funcs():
         raise PipelineManagerError(msg) from exc
 
 
+def _normalize_server_path(server_path: str) -> str:
+    return str(server_path or "").replace("\\", "/").rstrip("/")
+
+
+def _is_generation_server_path(server_path: str) -> bool:
+    normalized = _normalize_server_path(server_path)
+    return normalized.endswith("/generation") or normalized.endswith("/generation.py")
+
+
+def _is_retriever_server_path(server_path: str) -> bool:
+    normalized = _normalize_server_path(server_path)
+    return normalized.endswith("/retriever") or normalized.endswith("/retriever.py")
+
+
+def _server_role_from_path(server_path: Any) -> Optional[str]:
+    if not isinstance(server_path, str):
+        return None
+    if _is_generation_server_path(server_path):
+        return "generation"
+    if _is_retriever_server_path(server_path):
+        return "retriever"
+    return None
+
+
+def _resolve_generation_server_alias(pipeline_name: Optional[str]) -> str:
+    if not pipeline_name:
+        return "generation"
+    try:
+        pipeline_cfg = load_pipeline(pipeline_name)
+    except Exception:
+        return "generation"
+
+    servers = pipeline_cfg.get("servers")
+    if not isinstance(servers, dict):
+        return "generation"
+
+    for server_name, server_path in servers.items():
+        if _is_generation_server_path(str(server_path)):
+            return str(server_name)
+    return "generation"
+
+
+def _extract_non_empty_model_settings(raw_settings: Any) -> Dict[str, Dict[str, str]]:
+    result: Dict[str, Dict[str, str]] = {}
+    if not isinstance(raw_settings, dict):
+        return result
+
+    for role in ("retriever", "generation"):
+        role_payload = raw_settings.get(role)
+        if not isinstance(role_payload, dict):
+            continue
+        role_settings: Dict[str, str] = {}
+        for key in ("api_key", "base_url", "model_name"):
+            value = str(role_payload.get(key) or "").strip()
+            if value:
+                role_settings[key] = value
+        if role_settings:
+            result[role] = role_settings
+    return result
+
+
 # Session Management (Multi-Client Support)
 class DemoSession:
     def __init__(self, session_id: str):
@@ -452,6 +514,9 @@ class DemoSession:
         override_params: Dict[str, Any] = (
             dynamic_params.copy() if isinstance(dynamic_params, dict) else {}
         )
+        user_model_settings = _extract_non_empty_model_settings(
+            override_params.pop("_user_model_settings", None)
+        )
         pipeline_name = self._pipeline_name
         if not pipeline_name:
             return override_params
@@ -462,20 +527,19 @@ class DemoSession:
             LOGGER.debug("Failed to load pipeline for backend overrides: %s", exc)
             return override_params
 
+        try:
+            pipeline_params = load_parameters(pipeline_name)
+        except Exception as exc:  # pragma: no cover - best effort
+            LOGGER.debug("Failed to load parameters for backend overrides: %s", exc)
+            pipeline_params = {}
+
         servers = pipeline_cfg.get("servers")
         if not isinstance(servers, dict):
             return override_params
 
         for server_name, server_path in servers.items():
-            if not isinstance(server_path, str):
-                continue
-            is_generation = server_path == "servers/generation" or server_path.endswith(
-                "/generation"
-            )
-            is_retriever = server_path == "servers/retriever" or server_path.endswith(
-                "/retriever"
-            )
-            if not (is_generation or is_retriever):
+            role = _server_role_from_path(server_path)
+            if not role:
                 continue
 
             server_override = override_params.get(server_name)
@@ -483,6 +547,43 @@ class DemoSession:
                 server_override = {}
                 override_params[server_name] = server_override
             server_override["backend"] = "openai"
+
+            role_settings = user_model_settings.get(role)
+            if not role_settings:
+                continue
+
+            if not isinstance(pipeline_params, dict):
+                continue
+            server_params = pipeline_params.get(server_name)
+            if not isinstance(server_params, dict):
+                continue
+
+            backend_configs = server_params.get("backend_configs")
+            if not isinstance(backend_configs, dict):
+                continue
+            base_openai = backend_configs.get("openai")
+            if not isinstance(base_openai, dict):
+                continue
+
+            safe_override = {
+                key: value
+                for key, value in role_settings.items()
+                if key in base_openai and value
+            }
+            # Safety guard: only inject keys that already exist in current pipeline params.
+            if not safe_override:
+                continue
+
+            override_backend_configs = server_override.get("backend_configs")
+            if not isinstance(override_backend_configs, dict):
+                override_backend_configs = {}
+                server_override["backend_configs"] = override_backend_configs
+
+            override_openai = override_backend_configs.get("openai")
+            if not isinstance(override_openai, dict):
+                override_openai = {}
+                override_backend_configs["openai"] = override_openai
+            override_openai.update(safe_override)
 
         return override_params
 
@@ -512,8 +613,9 @@ class DemoSession:
 
         # Inject messages into generation parameters (as global variable)
         # We need to set messages before execute_pipeline
-        if "generation" not in override_params:
-            override_params["generation"] = {}
+        generation_alias = _resolve_generation_server_alias(self._pipeline_name)
+        if generation_alias not in override_params:
+            override_params[generation_alias] = {}
 
         self._current_future = asyncio.run_coroutine_threadsafe(
             funcs["exec_pipe"](
@@ -1081,18 +1183,49 @@ def chat_multiturn_stream(
             # Get generation configuration
             # First try to get from current pipeline parameters
             pipeline_name = session._pipeline_name
+            generation_alias = _resolve_generation_server_alias(pipeline_name)
             if pipeline_name:
                 try:
                     params = load_parameters(pipeline_name)
-                    gen_params = params.get("generation", {})
+                    raw_gen_params = params.get(generation_alias)
+                    if not isinstance(raw_gen_params, dict):
+                        raw_gen_params = params.get("generation", {})
+                    gen_params = (
+                        copy.deepcopy(raw_gen_params)
+                        if isinstance(raw_gen_params, dict)
+                        else {}
+                    )
                 except Exception:
                     gen_params = {}
             else:
                 gen_params = {}
 
             # If dynamic_params has generation config, override
-            if dynamic_params and "generation" in dynamic_params:
-                gen_params.update(dynamic_params["generation"])
+            if dynamic_params:
+                dynamic_generation = dynamic_params.get(generation_alias)
+                if not isinstance(dynamic_generation, dict):
+                    dynamic_generation = dynamic_params.get("generation")
+                if isinstance(dynamic_generation, dict):
+                    gen_params.update(dynamic_generation)
+
+                model_settings = _extract_non_empty_model_settings(
+                    dynamic_params.get("_user_model_settings")
+                )
+                generation_model_settings = model_settings.get("generation", {})
+                if generation_model_settings:
+                    backend_configs = gen_params.get("backend_configs")
+                    if isinstance(backend_configs, dict):
+                        openai_cfg = backend_configs.get("openai")
+                        if isinstance(openai_cfg, dict):
+                            safe_override = {
+                                key: value
+                                for key, value in generation_model_settings.items()
+                                if key in openai_cfg and value
+                            }
+                            # Safety guard: do nothing if current generation config has no target keys.
+                            if safe_override:
+                                gen_params["backend"] = "openai"
+                                openai_cfg.update(safe_override)
 
             # Get system_prompt
             system_prompt = gen_params.get("system_prompt", "")
@@ -1149,7 +1282,7 @@ def chat_multiturn_stream(
                         {
                             "type": "token",
                             "content": token,
-                            "step": "generation.multiturn_generate",
+                            "step": f"{generation_alias}.multiturn_generate",
                             "is_final": True,
                         }
                     )

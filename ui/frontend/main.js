@@ -228,6 +228,7 @@ const state = {
         userId: "default",
         username: null,
         nickname: null,
+        modelSettings: null,
         isAdmin: false,
     },
 
@@ -334,6 +335,7 @@ const els = {
     settingsUserEntry: document.getElementById("settings-user-entry"),
     settingsUserEntryText: document.getElementById("settings-user-entry-text"),
     settingsBuilder: document.getElementById("settings-builder"),
+    settingsModel: document.getElementById("settings-model"),
     settingsLogout: document.getElementById("settings-logout"),
     settingsLanguageLabel: document.getElementById("settings-language-label"),
     authModal: document.getElementById("auth-modal"),
@@ -356,10 +358,21 @@ const els = {
     authAccountMenu: document.getElementById("auth-account-menu"),
     authAccountNickname: document.getElementById("auth-account-nickname"),
     authAccountPassword: document.getElementById("auth-account-password"),
+    authAccountModel: document.getElementById("auth-account-model"),
     authGoNickname: document.getElementById("auth-go-nickname"),
     authGoPassword: document.getElementById("auth-go-password"),
+    authGoModel: document.getElementById("auth-go-model"),
     authNicknameBack: document.getElementById("auth-nickname-back"),
     authPasswordBack: document.getElementById("auth-password-back"),
+    authModelBack: document.getElementById("auth-model-back"),
+    authModelSettingsForm: document.getElementById("auth-model-settings-form"),
+    authModelSettingsClearBtn: document.getElementById("auth-model-settings-clear"),
+    authModelRetrieverApiKey: document.getElementById("auth-model-retriever-api-key"),
+    authModelRetrieverBaseUrl: document.getElementById("auth-model-retriever-base-url"),
+    authModelRetrieverModelName: document.getElementById("auth-model-retriever-model-name"),
+    authModelGenerationApiKey: document.getElementById("auth-model-generation-api-key"),
+    authModelGenerationBaseUrl: document.getElementById("auth-model-generation-base-url"),
+    authModelGenerationModelName: document.getElementById("auth-model-generation-model-name"),
     authChangePasswordForm: document.getElementById("auth-change-password-form"),
     authCurrentPassword: document.getElementById("auth-current-password"),
     authNewPassword: document.getElementById("auth-new-password"),
@@ -470,6 +483,49 @@ function getDisplayNickname() {
     const raw = state.auth?.nickname;
     const nickname = String(raw || "").trim();
     return nickname || "";
+}
+
+function normalizeModelSettings(rawSettings) {
+    const normalizeValue = (value) => {
+        const text = String(value || "").trim();
+        return text || null;
+    };
+    const retriever = rawSettings && typeof rawSettings === "object" ? rawSettings.retriever : null;
+    const generation = rawSettings && typeof rawSettings === "object" ? rawSettings.generation : null;
+    return {
+        retriever: {
+            api_key: normalizeValue(retriever && typeof retriever === "object" ? retriever.api_key : null),
+            base_url: normalizeValue(retriever && typeof retriever === "object" ? retriever.base_url : null),
+            model_name: normalizeValue(retriever && typeof retriever === "object" ? retriever.model_name : null),
+        },
+        generation: {
+            api_key: normalizeValue(generation && typeof generation === "object" ? generation.api_key : null),
+            base_url: normalizeValue(generation && typeof generation === "object" ? generation.base_url : null),
+            model_name: normalizeValue(generation && typeof generation === "object" ? generation.model_name : null),
+        },
+    };
+}
+
+function fillModelSettingsForm() {
+    const settings = normalizeModelSettings(state.auth?.modelSettings);
+    if (els.authModelRetrieverApiKey) {
+        els.authModelRetrieverApiKey.value = settings.retriever.api_key || "";
+    }
+    if (els.authModelRetrieverBaseUrl) {
+        els.authModelRetrieverBaseUrl.value = settings.retriever.base_url || "";
+    }
+    if (els.authModelRetrieverModelName) {
+        els.authModelRetrieverModelName.value = settings.retriever.model_name || "";
+    }
+    if (els.authModelGenerationApiKey) {
+        els.authModelGenerationApiKey.value = settings.generation.api_key || "";
+    }
+    if (els.authModelGenerationBaseUrl) {
+        els.authModelGenerationBaseUrl.value = settings.generation.base_url || "";
+    }
+    if (els.authModelGenerationModelName) {
+        els.authModelGenerationModelName.value = settings.generation.model_name || "";
+    }
 }
 
 function buildGreetingHeadline() {
@@ -7606,6 +7662,19 @@ function setupSettingsMenu() {
         };
     }
 
+    if (els.settingsModel) {
+        els.settingsModel.onclick = async (e) => {
+            e?.stopPropagation();
+            closeMenu();
+            if (!state.auth?.loggedIn) {
+                await openAuthDialog({ mode: "login" });
+                return;
+            }
+            await openAuthDialog({ mode: "account" });
+            setAccountSubView("model");
+        };
+    }
+
     if (els.settingsUserEntry) {
         els.settingsUserEntry.onclick = async (e) => {
             e?.stopPropagation();
@@ -7774,7 +7843,12 @@ function setAuthDialogMode(mode = "login") {
 }
 
 function setAccountSubView(sub = "menu") {
-    const subs = { menu: els.authAccountMenu, nickname: els.authAccountNickname, password: els.authAccountPassword };
+    const subs = {
+        menu: els.authAccountMenu,
+        nickname: els.authAccountNickname,
+        password: els.authAccountPassword,
+        model: els.authAccountModel,
+    };
     Object.values(subs).forEach((el) => { if (el) el.classList.remove("is-active"); });
     if (subs[sub]) subs[sub].classList.add("is-active");
 }
@@ -7791,6 +7865,9 @@ function applyAuthPayload(payload) {
         : null;
     state.auth.nickname = state.auth.loggedIn
         ? String(payload?.nickname || "").trim() || null
+        : null;
+    state.auth.modelSettings = state.auth.loggedIn
+        ? normalizeModelSettings(payload?.model_settings)
         : null;
     state.auth.isAdmin = state.auth.loggedIn && payload?.is_admin === true;
     state.auth.loaded = true;
@@ -7891,6 +7968,7 @@ async function openAuthDialog({ mode = "login" } = {}) {
     if (els.authNicknameInput) {
         els.authNicknameInput.value = String(state.auth?.nickname || "");
     }
+    fillModelSettingsForm();
 
     if (els.authModal?.showModal) {
         els.authModal.showModal();
@@ -7984,6 +8062,70 @@ async function onAuthNicknameSubmit(event) {
         });
         await refreshAuthState({ force: true });
         setAuthModalStatus(t("auth_nickname_saved"), "success");
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    }
+}
+
+async function onAuthModelSettingsSubmit(event) {
+    event.preventDefault();
+    if (!state.auth?.loggedIn) {
+        setAuthModalStatus(t("auth_model_settings_login_required"), "error");
+        setAuthDialogMode("login");
+        return;
+    }
+
+    const payload = {
+        retriever: {
+            api_key: String(els.authModelRetrieverApiKey?.value || "").trim(),
+            base_url: String(els.authModelRetrieverBaseUrl?.value || "").trim(),
+            model_name: String(els.authModelRetrieverModelName?.value || "").trim(),
+        },
+        generation: {
+            api_key: String(els.authModelGenerationApiKey?.value || "").trim(),
+            base_url: String(els.authModelGenerationBaseUrl?.value || "").trim(),
+            model_name: String(els.authModelGenerationModelName?.value || "").trim(),
+        },
+    };
+
+    setAuthModalStatus(t("auth_model_settings_saving"), "info");
+    try {
+        await fetchJSON("/api/auth/model-settings", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        });
+        await refreshAuthState({ force: true });
+        fillModelSettingsForm();
+        setAuthModalStatus(t("auth_model_settings_saved"), "success");
+    } catch (e) {
+        setAuthModalStatus(parseApiErrorMessage(e), "error");
+    }
+}
+
+async function onAuthModelSettingsClearClick() {
+    if (!state.auth?.loggedIn) {
+        setAuthModalStatus(t("auth_model_settings_login_required"), "error");
+        setAuthDialogMode("login");
+        return;
+    }
+
+    const confirmed = await showConfirm(t("auth_model_settings_clear_confirm"), {
+        title: t("auth_model_settings_title"),
+        type: "warning",
+        confirmText: t("auth_model_settings_clear"),
+        cancelText: t("common_cancel"),
+    });
+    if (!confirmed) return;
+
+    setAuthModalStatus(t("auth_model_settings_clearing"), "info");
+    try {
+        await fetchJSON("/api/auth/model-settings", {
+            method: "POST",
+            body: JSON.stringify({}),
+        });
+        await refreshAuthState({ force: true });
+        fillModelSettingsForm();
+        setAuthModalStatus(t("auth_model_settings_cleared"), "success");
     } catch (e) {
         setAuthModalStatus(parseApiErrorMessage(e), "error");
     }
@@ -8090,6 +8232,12 @@ function bindAuthDialogEvents() {
     if (els.authNicknameForm) {
         els.authNicknameForm.addEventListener("submit", onAuthNicknameSubmit);
     }
+    if (els.authModelSettingsForm) {
+        els.authModelSettingsForm.addEventListener("submit", onAuthModelSettingsSubmit);
+    }
+    if (els.authModelSettingsClearBtn) {
+        els.authModelSettingsClearBtn.addEventListener("click", onAuthModelSettingsClearClick);
+    }
     if (els.authChangePasswordForm) {
         els.authChangePasswordForm.addEventListener("submit", onAuthChangePasswordSubmit);
     }
@@ -8108,6 +8256,13 @@ function bindAuthDialogEvents() {
             setAccountSubView("password");
         });
     }
+    if (els.authGoModel) {
+        els.authGoModel.addEventListener("click", () => {
+            setAuthModalStatus("");
+            fillModelSettingsForm();
+            setAccountSubView("model");
+        });
+    }
     if (els.authNicknameBack) {
         els.authNicknameBack.addEventListener("click", () => {
             setAuthModalStatus("");
@@ -8116,6 +8271,12 @@ function bindAuthDialogEvents() {
     }
     if (els.authPasswordBack) {
         els.authPasswordBack.addEventListener("click", () => {
+            setAuthModalStatus("");
+            setAccountSubView("menu");
+        });
+    }
+    if (els.authModelBack) {
+        els.authModelBack.addEventListener("click", () => {
             setAuthModalStatus("");
             setAccountSubView("menu");
         });

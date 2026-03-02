@@ -13,6 +13,14 @@ MIN_PASSWORD_LENGTH = 6
 RESERVED_USERNAMES = {"default"}
 ADMIN_USERNAME = "admin"
 ADMIN_DEFAULT_PASSWORD = "12345678"
+MODEL_SETTING_COLUMNS = (
+    "retriever_api_key",
+    "retriever_base_url",
+    "retriever_model_name",
+    "generation_api_key",
+    "generation_base_url",
+    "generation_model_name",
+)
 
 
 class AuthValidationError(ValueError):
@@ -73,11 +81,86 @@ class SQLiteUserStore:
             )
         return password
 
+    def _normalize_optional_text(self, raw_value: Any) -> Optional[str]:
+        text = str(raw_value or "").strip()
+        return text or None
+
     def normalize_nickname(self, raw_nickname: Any) -> Optional[str]:
-        nickname = str(raw_nickname or "").strip()
-        if not nickname:
-            return None
-        return nickname
+        return self._normalize_optional_text(raw_nickname)
+
+    def normalize_model_settings(
+        self, raw_payload: Any
+    ) -> Dict[str, Optional[str]]:
+        payload = raw_payload if isinstance(raw_payload, dict) else {}
+        retriever_payload = payload.get("retriever")
+        generation_payload = payload.get("generation")
+
+        # Backward-compatible flat payload support.
+        if retriever_payload is None and generation_payload is None:
+            retriever_payload = {
+                "api_key": payload.get("retriever_api_key"),
+                "base_url": payload.get("retriever_base_url"),
+                "model_name": payload.get("retriever_model_name"),
+            }
+            generation_payload = {
+                "api_key": payload.get("generation_api_key"),
+                "base_url": payload.get("generation_base_url"),
+                "model_name": payload.get("generation_model_name"),
+            }
+
+        if retriever_payload is None:
+            retriever_payload = {}
+        if generation_payload is None:
+            generation_payload = {}
+
+        if not isinstance(retriever_payload, dict):
+            raise AuthValidationError("retriever model settings must be an object")
+        if not isinstance(generation_payload, dict):
+            raise AuthValidationError("generation model settings must be an object")
+
+        return {
+            "retriever_api_key": self._normalize_optional_text(
+                retriever_payload.get("api_key")
+            ),
+            "retriever_base_url": self._normalize_optional_text(
+                retriever_payload.get("base_url")
+            ),
+            "retriever_model_name": self._normalize_optional_text(
+                retriever_payload.get("model_name")
+            ),
+            "generation_api_key": self._normalize_optional_text(
+                generation_payload.get("api_key")
+            ),
+            "generation_base_url": self._normalize_optional_text(
+                generation_payload.get("base_url")
+            ),
+            "generation_model_name": self._normalize_optional_text(
+                generation_payload.get("model_name")
+            ),
+        }
+
+    def _fetch_user_row(
+        self, conn: sqlite3.Connection, username: str
+    ) -> Optional[sqlite3.Row]:
+        return conn.execute(
+            """
+            SELECT
+                id,
+                username,
+                password_hash,
+                nickname,
+                retriever_api_key,
+                retriever_base_url,
+                retriever_model_name,
+                generation_api_key,
+                generation_base_url,
+                generation_model_name,
+                created_at
+            FROM users
+            WHERE username = ?
+            """,
+            (username,),
+        ).fetchone()
 
     def create_user(self, raw_username: Any, raw_password: Any) -> Dict[str, Any]:
         username = self.normalize_username(raw_username)
@@ -98,12 +181,11 @@ class SQLiteUserStore:
                 raise UserAlreadyExistsError("username already exists") from exc
             conn.commit()
             user_id = int(cursor.lastrowid or 0)
+            refreshed = self._fetch_user_row(conn, username)
 
-        return {
-            "id": user_id,
-            "username": username,
-            "created_at": created_at,
-        }
+        if refreshed:
+            return self._row_to_dict(refreshed)
+        return {"id": user_id, "username": username, "created_at": created_at}
 
     def verify_credentials(
         self, raw_username: Any, raw_password: Any
@@ -114,14 +196,7 @@ class SQLiteUserStore:
             raise AuthValidationError("password is required")
 
         with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT id, username, password_hash, nickname, created_at
-                FROM users
-                WHERE username = ?
-                """,
-                (username,),
-            ).fetchone()
+            row = self._fetch_user_row(conn, username)
 
         if not row:
             return None
@@ -132,14 +207,7 @@ class SQLiteUserStore:
     def get_user(self, raw_username: Any) -> Optional[Dict[str, Any]]:
         username = self.normalize_username(raw_username)
         with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT id, username, password_hash, nickname, created_at
-                FROM users
-                WHERE username = ?
-                """,
-                (username,),
-            ).fetchone()
+            row = self._fetch_user_row(conn, username)
         if not row:
             return None
         return self._row_to_dict(row)
@@ -163,14 +231,7 @@ class SQLiteUserStore:
             )
 
         with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT id, username, password_hash, nickname, created_at
-                FROM users
-                WHERE username = ?
-                """,
-                (username,),
-            ).fetchone()
+            row = self._fetch_user_row(conn, username)
             if not row or not check_password_hash(
                 str(row["password_hash"]), current_password
             ):
@@ -186,14 +247,7 @@ class SQLiteUserStore:
             )
             conn.commit()
 
-            refreshed = conn.execute(
-                """
-                SELECT id, username, password_hash, nickname, created_at
-                FROM users
-                WHERE username = ?
-                """,
-                (username,),
-            ).fetchone()
+            refreshed = self._fetch_user_row(conn, username)
 
         if not refreshed:
             raise InvalidCredentialsError("invalid current password")
@@ -213,14 +267,43 @@ class SQLiteUserStore:
                 (nickname, username),
             )
             conn.commit()
-            refreshed = conn.execute(
+            refreshed = self._fetch_user_row(conn, username)
+
+        if not refreshed:
+            raise AuthValidationError("user not found")
+        return self._row_to_dict(refreshed)
+
+    def update_model_settings(
+        self, raw_username: Any, raw_payload: Any
+    ) -> Dict[str, Any]:
+        username = self.normalize_username(raw_username)
+        settings = self.normalize_model_settings(raw_payload)
+
+        with self._connect() as conn:
+            conn.execute(
                 """
-                SELECT id, username, password_hash, nickname, created_at
-                FROM users
+                UPDATE users
+                SET
+                    retriever_api_key = ?,
+                    retriever_base_url = ?,
+                    retriever_model_name = ?,
+                    generation_api_key = ?,
+                    generation_base_url = ?,
+                    generation_model_name = ?
                 WHERE username = ?
                 """,
-                (username,),
-            ).fetchone()
+                (
+                    settings["retriever_api_key"],
+                    settings["retriever_base_url"],
+                    settings["retriever_model_name"],
+                    settings["generation_api_key"],
+                    settings["generation_base_url"],
+                    settings["generation_model_name"],
+                    username,
+                ),
+            )
+            conn.commit()
+            refreshed = self._fetch_user_row(conn, username)
 
         if not refreshed:
             raise AuthValidationError("user not found")
@@ -238,6 +321,9 @@ class SQLiteUserStore:
         }
         if "nickname" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN nickname TEXT")
+        for column in MODEL_SETTING_COLUMNS:
+            if column not in columns:
+                conn.execute(f"ALTER TABLE users ADD COLUMN {column} TEXT")
 
     def _ensure_default_admin_user(self, conn: sqlite3.Connection) -> None:
         existing = conn.execute(
@@ -267,12 +353,30 @@ class SQLiteUserStore:
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
-        nickname = row["nickname"] if "nickname" in row.keys() else None
-        nickname_text = str(nickname).strip() if nickname is not None else ""
+        def _clean_optional(row_key: str) -> Optional[str]:
+            value = row[row_key] if row_key in row.keys() else None
+            if value is None:
+                return None
+            text = str(value).strip()
+            return text or None
+
+        nickname_text = _clean_optional("nickname")
         return {
             "id": int(row["id"]),
             "username": str(row["username"]),
             "password_hash": str(row["password_hash"]),
             "nickname": nickname_text or None,
+            "model_settings": {
+                "retriever": {
+                    "api_key": _clean_optional("retriever_api_key"),
+                    "base_url": _clean_optional("retriever_base_url"),
+                    "model_name": _clean_optional("retriever_model_name"),
+                },
+                "generation": {
+                    "api_key": _clean_optional("generation_api_key"),
+                    "base_url": _clean_optional("generation_base_url"),
+                    "model_name": _clean_optional("generation_model_name"),
+                },
+            },
             "created_at": str(row["created_at"]),
         }

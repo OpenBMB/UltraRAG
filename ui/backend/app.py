@@ -430,6 +430,32 @@ def create_app(admin_mode: bool = False) -> Flask:
     def get_current_user_id() -> str:
         return _get_authenticated_user_id() or DEFAULT_MEMORY_USER
 
+    def _build_effective_model_settings(raw_settings: Any) -> Dict[str, Dict[str, str]]:
+        effective: Dict[str, Dict[str, str]] = {}
+        if not isinstance(raw_settings, dict):
+            return effective
+        for role in ("retriever", "generation"):
+            role_payload = raw_settings.get(role)
+            if not isinstance(role_payload, dict):
+                continue
+            role_settings: Dict[str, str] = {}
+            for key in ("api_key", "base_url", "model_name"):
+                value = str(role_payload.get(key) or "").strip()
+                if value:
+                    role_settings[key] = value
+            if role_settings:
+                effective[role] = role_settings
+        return effective
+
+    def _get_authenticated_user_model_settings() -> Dict[str, Dict[str, str]]:
+        user_id = _get_authenticated_user_id()
+        if not user_id:
+            return {}
+        user_profile = user_store.get_user(user_id)
+        if not user_profile:
+            return {}
+        return _build_effective_model_settings(user_profile.get("model_settings"))
+
     def get_current_user_info() -> Dict[str, Any]:
         logged_user = _get_authenticated_user_id()
         if logged_user:
@@ -439,6 +465,9 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "user_id": logged_user,
                 "username": logged_user,
                 "nickname": user_profile.get("nickname") if user_profile else None,
+                "model_settings": (
+                    user_profile.get("model_settings") if user_profile else None
+                ),
                 "is_admin": user_store.is_admin_username(logged_user),
             }
         return {
@@ -446,6 +475,7 @@ def create_app(admin_mode: bool = False) -> Flask:
             "user_id": DEFAULT_MEMORY_USER,
             "username": None,
             "nickname": None,
+            "model_settings": None,
             "is_admin": False,
         }
 
@@ -566,6 +596,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                     "user_id": user["username"],
                     "username": user["username"],
                     "nickname": user.get("nickname"),
+                    "model_settings": user.get("model_settings"),
                     "is_admin": user_store.is_admin_username(user["username"]),
                 }
             ),
@@ -595,6 +626,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "user_id": user["username"],
                 "username": user["username"],
                 "nickname": user.get("nickname"),
+                "model_settings": user.get("model_settings"),
                 "is_admin": user_store.is_admin_username(user["username"]),
             }
         )
@@ -642,6 +674,28 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         return jsonify({"status": "nickname_updated", "nickname": user.get("nickname")})
 
+    @app.route("/api/auth/model-settings", methods=["POST"])
+    def auth_update_model_settings() -> Response:
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+
+        payload = request.get_json(force=True) or {}
+        current_user = _get_authenticated_user_id()
+        if not current_user:
+            return jsonify({"error": "login required"}), 401
+
+        try:
+            user = user_store.update_model_settings(current_user, payload)
+        except auth_backend.AuthValidationError as e:
+            return jsonify({"error": str(e)}), 400
+
+        return jsonify(
+            {
+                "status": "model_settings_updated",
+                "model_settings": user.get("model_settings"),
+            }
+        )
+
     @app.route("/api/auth/logout", methods=["POST"])
     def auth_logout() -> Response:
         session.pop("auth_user_id", None)
@@ -653,6 +707,7 @@ def create_app(admin_mode: bool = False) -> Flask:
                 "user_id": DEFAULT_MEMORY_USER,
                 "username": None,
                 "nickname": None,
+                "model_settings": None,
                 "is_admin": False,
             }
         )
@@ -1041,6 +1096,9 @@ def create_app(admin_mode: bool = False) -> Flask:
             memory_params = {}
         memory_params["user_id"] = current_user_id
         dynamic_params["memory"] = memory_params
+        user_model_settings = _get_authenticated_user_model_settings()
+        if user_model_settings:
+            dynamic_params["_user_model_settings"] = user_model_settings
 
         # New: Frontend-provided conversation history (previous conversations in browser session)
         # Compatible with two field names: conversation_history or history
@@ -1389,6 +1447,9 @@ def create_app(admin_mode: bool = False) -> Flask:
             memory_params = {}
         memory_params["user_id"] = current_user_id
         dynamic_params["memory"] = memory_params
+        user_model_settings = _get_authenticated_user_model_settings()
+        if user_model_settings:
+            dynamic_params["_user_model_settings"] = user_model_settings
 
         if not question:
             return jsonify({"error": "question is required"}), 400
