@@ -1183,7 +1183,7 @@
   <dialog id="auth-modal" class="auth-modal">
     <div class="auth-modal-content">
       <div class="auth-modal-header">
-        <h3 data-i18n="auth_dialog_title">Account</h3>
+        <h3 id="auth-modal-title" data-i18n="auth_dialog_title">Account</h3>
         <button type="button" class="auth-modal-close" id="auth-close-btn" data-i18n-title="common_close" title="Close">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1269,24 +1269,6 @@
                   </svg>
                 </span>
               </button>
-              <button type="button" class="auth-account-card" id="auth-go-model">
-                <span class="auth-account-card-icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 3h7v7H3z"></path>
-                    <path d="M14 3h7v7h-7z"></path>
-                    <path d="M14 14h7v7h-7z"></path>
-                    <path d="M3 14h7v7H3z"></path>
-                  </svg>
-                </span>
-                <span class="auth-account-card-label" data-i18n="auth_model_settings_title">模型设置</span>
-                <span class="auth-account-card-arrow">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </span>
-              </button>
             </div>
           </div>
 
@@ -1338,13 +1320,6 @@
 
           <!-- Sub-view: model settings -->
           <div class="auth-account-sub" id="auth-account-model">
-            <button type="button" class="auth-account-back" id="auth-model-back">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-              <span data-i18n="auth_account_back">返回</span>
-            </button>
             <form id="auth-model-settings-form" class="auth-form">
               <h4 data-i18n="auth_model_settings_title">模型设置</h4>
 

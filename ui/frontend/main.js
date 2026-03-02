@@ -184,6 +184,16 @@ function updateI18nTexts() {
     if (typeof renderAuthStateUI === "function") {
         renderAuthStateUI();
     }
+    const accountView = document.getElementById("auth-account-view");
+    const modelView = document.getElementById("auth-account-model");
+    if (
+        accountView &&
+        accountView.classList.contains("is-active") &&
+        modelView &&
+        modelView.classList.contains("is-active")
+    ) {
+        updateAuthDialogHeader("account", "model");
+    }
 }
 
 function resolveInitialLanguage() {
@@ -339,6 +349,7 @@ const els = {
     settingsLogout: document.getElementById("settings-logout"),
     settingsLanguageLabel: document.getElementById("settings-language-label"),
     authModal: document.getElementById("auth-modal"),
+    authModalTitle: document.getElementById("auth-modal-title"),
     authCloseBtn: document.getElementById("auth-close-btn"),
     authCurrentUser: document.getElementById("auth-current-user"),
     authModalStatus: document.getElementById("auth-modal-status"),
@@ -361,10 +372,8 @@ const els = {
     authAccountModel: document.getElementById("auth-account-model"),
     authGoNickname: document.getElementById("auth-go-nickname"),
     authGoPassword: document.getElementById("auth-go-password"),
-    authGoModel: document.getElementById("auth-go-model"),
     authNicknameBack: document.getElementById("auth-nickname-back"),
     authPasswordBack: document.getElementById("auth-password-back"),
-    authModelBack: document.getElementById("auth-model-back"),
     authModelSettingsForm: document.getElementById("auth-model-settings-form"),
     authModelSettingsClearBtn: document.getElementById("auth-model-settings-clear"),
     authModelRetrieverApiKey: document.getElementById("auth-model-retriever-api-key"),
@@ -7736,6 +7745,7 @@ function setupSettingsMenu() {
                 return;
             }
             await openAuthDialog({ mode: "account" });
+            fillModelSettingsForm();
             setAccountSubView("model");
         };
     }
@@ -7886,6 +7896,18 @@ function setAuthModalStatus(message, stateKey = "info") {
     }
 }
 
+function updateAuthDialogHeader(mode = "login", sub = "menu") {
+    const isModelView = mode === "account" && sub === "model";
+    if (els.authModalTitle) {
+        els.authModalTitle.textContent = isModelView
+            ? t("auth_model_settings_title")
+            : t("auth_dialog_title");
+    }
+    if (els.authCurrentUser) {
+        els.authCurrentUser.classList.toggle("d-none", isModelView);
+    }
+}
+
 function setAuthDialogMode(mode = "login") {
     let targetMode = "login";
     if (mode === "register") {
@@ -7904,6 +7926,8 @@ function setAuthDialogMode(mode = "login") {
     }
     if (targetMode === "account") {
         setAccountSubView("menu");
+    } else {
+        updateAuthDialogHeader(targetMode, "menu");
     }
 }
 
@@ -7916,6 +7940,7 @@ function setAccountSubView(sub = "menu") {
     };
     Object.values(subs).forEach((el) => { if (el) el.classList.remove("is-active"); });
     if (subs[sub]) subs[sub].classList.add("is-active");
+    updateAuthDialogHeader("account", sub);
 }
 
 function applyAuthPayload(payload) {
@@ -8321,13 +8346,6 @@ function bindAuthDialogEvents() {
             setAccountSubView("password");
         });
     }
-    if (els.authGoModel) {
-        els.authGoModel.addEventListener("click", () => {
-            setAuthModalStatus("");
-            fillModelSettingsForm();
-            setAccountSubView("model");
-        });
-    }
     if (els.authNicknameBack) {
         els.authNicknameBack.addEventListener("click", () => {
             setAuthModalStatus("");
@@ -8336,12 +8354,6 @@ function bindAuthDialogEvents() {
     }
     if (els.authPasswordBack) {
         els.authPasswordBack.addEventListener("click", () => {
-            setAuthModalStatus("");
-            setAccountSubView("menu");
-        });
-    }
-    if (els.authModelBack) {
-        els.authModelBack.addEventListener("click", () => {
             setAuthModalStatus("");
             setAccountSubView("menu");
         });
