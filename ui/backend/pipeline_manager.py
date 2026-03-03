@@ -3374,6 +3374,8 @@ def run_kb_pipeline_tool(
     target_file = Path(target_file_path)
     stem = target_file.stem
     override_params = {}
+    resolved_collection_name: Optional[str] = None
+    resolved_collection_display_name: Optional[str] = None
 
     # [New] Get source file's display_name to pass to output
     source_display_name = None
@@ -3481,6 +3483,9 @@ def run_kb_pipeline_tool(
                 requested_name, existing_display_name_values
             )
 
+        resolved_collection_name = safe_collection_name
+        resolved_collection_display_name = display_collection_name
+
         is_overwrite = index_mode == "overwrite"
 
         full_kb_cfg = load_kb_config()
@@ -3576,7 +3581,12 @@ def run_kb_pipeline_tool(
             loop.close()
 
         _report_progress(100, "Completed")
-        return {"status": "success", "result": _extract_result(raw_result)}
+        payload: Dict[str, Any] = {"status": "success", "result": _extract_result(raw_result)}
+        if resolved_collection_name:
+            payload["collection_name"] = resolved_collection_name
+        if resolved_collection_display_name:
+            payload["collection_display_name"] = resolved_collection_display_name
+        return payload
 
     except Exception as e:
         LOGGER.error(f"KB Task Failed: {e}")

@@ -184,6 +184,19 @@ function updateI18nTexts() {
     if (typeof renderAuthStateUI === "function") {
         renderAuthStateUI();
     }
+    if (els.kbVisibilityModal?.open && state.kbVisibility?.collectionName) {
+        if (els.kbVisibilityCollectionName) {
+            els.kbVisibilityCollectionName.textContent = formatTemplate(
+                t("kb_visibility_collection_hint"),
+                {
+                    name:
+                        state.kbVisibility.collectionDisplayName ||
+                        state.kbVisibility.collectionName,
+                }
+            );
+        }
+        _syncKbVisibilityDialogState();
+    }
     const accountView = document.getElementById("auth-account-view");
     const modelView = document.getElementById("auth-account-model");
     if (
@@ -259,6 +272,15 @@ const state = {
         engineStartPromise: null, // Promise for engine startup (used for serialization)
 
         demoLoading: false
+    },
+    kbVisibility: {
+        collectionName: "",
+        collectionDisplayName: "",
+        canManage: false,
+        ownerUserId: "",
+        visibility: "private",
+        visibleUsers: [],
+        shareableUsers: [],
     },
 };
 
@@ -456,6 +478,15 @@ const els = {
     idxCollectionLabel: document.getElementById("idx-collection-label"),
     idxCollectionSelect: document.getElementById("idx-collection-select"),
     idxMode: document.getElementById("idx-mode"),
+    kbVisibilityModal: document.getElementById("kb-visibility-modal"),
+    kbVisibilityCollectionName: document.getElementById("kb-visibility-collection-name"),
+    kbVisibilityMode: document.getElementById("kb-visibility-mode"),
+    kbVisibilityOwnerHint: document.getElementById("kb-visibility-owner-hint"),
+    kbVisibilityUsersWrap: document.getElementById("kb-visibility-users-wrap"),
+    kbVisibilityUsers: document.getElementById("kb-visibility-users"),
+    kbVisibilityUsersEmpty: document.getElementById("kb-visibility-users-empty"),
+    kbVisibilityReadonlyHint: document.getElementById("kb-visibility-readonly-hint"),
+    kbVisibilitySaveBtn: document.getElementById("kb-visibility-save-btn"),
     // [New] Refresh button
     refreshCollectionsBtn: document.getElementById("refresh-collections-btn"),
     // --- [End] Knowledge Base Elements ---
@@ -1221,9 +1252,294 @@ function renderCollectionList(container, collections) {
             </div>
         `;
 
+        card.addEventListener("click", () => {
+            openKbVisibilityDialog(c);
+        });
+
         grid.appendChild(card);
     });
 }
+
+function _normalizeVisibilityModeFromPayload(payload) {
+    const raw = String(payload?.visibility || "").trim().toLowerCase();
+    if (raw === "private" || raw === "public" || raw === "shared") {
+        return raw;
+    }
+    const isPublic = payload?.is_public === true || payload?.is_public === 1;
+    const users = Array.isArray(payload?.visible_users) ? payload.visible_users : [];
+    if (isPublic) return "public";
+    if (users.length > 0) return "shared";
+    return "private";
+}
+
+function _normalizeUserList(rawUsers) {
+    if (!Array.isArray(rawUsers)) return [];
+    const out = [];
+    const seen = new Set();
+    rawUsers.forEach((item) => {
+        const user = String(item || "").trim();
+        if (!user || seen.has(user)) return;
+        seen.add(user);
+        out.push(user);
+    });
+    return out;
+}
+
+function _renderKbVisibilityUsers() {
+    if (!els.kbVisibilityUsers) return;
+    els.kbVisibilityUsers.innerHTML = "";
+
+    const canManage = Boolean(state.kbVisibility?.canManage);
+    const selectedUsers = _normalizeUserList(state.kbVisibility?.visibleUsers);
+    const shareableUsers = _normalizeUserList(state.kbVisibility?.shareableUsers);
+    const allCandidates = Array.from(new Set([...shareableUsers, ...selectedUsers]))
+        .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+
+    if (els.kbVisibilityUsersEmpty) {
+        els.kbVisibilityUsersEmpty.classList.toggle("d-none", allCandidates.length > 0);
+    }
+    if (allCandidates.length === 0) return;
+
+    const selectedSet = new Set(selectedUsers);
+    const syncSelectedUsersToState = () => {
+        const orderedSelected = allCandidates.filter((user) => selectedSet.has(user));
+        state.kbVisibility.visibleUsers = orderedSelected;
+    };
+
+    allCandidates.forEach((user) => {
+        const row = document.createElement("div");
+        row.className = "kb-visibility-user-item";
+        row.setAttribute("role", "checkbox");
+        row.setAttribute("aria-label", user);
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = user;
+        checkbox.checked = selectedSet.has(user);
+        checkbox.disabled = !canManage;
+        checkbox.className = "form-check-input";
+
+        const name = document.createElement("span");
+        name.className = "kb-visibility-user-name";
+        name.textContent = user;
+
+        const syncRowState = () => {
+            row.classList.toggle("is-selected", checkbox.checked);
+            row.classList.toggle("is-disabled", !canManage);
+            row.setAttribute("aria-checked", checkbox.checked ? "true" : "false");
+        };
+
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+                selectedSet.add(user);
+            } else {
+                selectedSet.delete(user);
+            }
+            syncSelectedUsersToState();
+            syncRowState();
+        });
+        row.addEventListener("click", (event) => {
+            if (!canManage) return;
+            if (event.target === checkbox) return;
+            checkbox.checked = !checkbox.checked;
+            checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+
+        syncRowState();
+
+        row.appendChild(checkbox);
+        row.appendChild(name);
+        els.kbVisibilityUsers.appendChild(row);
+    });
+}
+
+function _syncKbVisibilityDialogState() {
+    const canManage = Boolean(state.kbVisibility?.canManage);
+    const mode = String(els.kbVisibilityMode?.value || state.kbVisibility?.visibility || "private");
+    const isShared = mode === "shared";
+
+    if (els.kbVisibilityUsersWrap) {
+        els.kbVisibilityUsersWrap.classList.toggle("d-none", !isShared);
+    }
+    if (els.kbVisibilityMode) {
+        els.kbVisibilityMode.disabled = !canManage;
+    }
+    if (els.kbVisibilitySaveBtn) {
+        els.kbVisibilitySaveBtn.disabled = !canManage;
+    }
+    if (els.kbVisibilityReadonlyHint) {
+        els.kbVisibilityReadonlyHint.classList.toggle("d-none", canManage);
+        if (canManage) {
+            els.kbVisibilityReadonlyHint.textContent = t("kb_visibility_readonly_hint");
+        } else {
+            const owner = String(state.kbVisibility?.ownerUserId || "").trim();
+            if (!state.auth?.loggedIn && owner) {
+                els.kbVisibilityReadonlyHint.textContent = formatTemplate(
+                    t("kb_visibility_readonly_login_hint"),
+                    { owner }
+                );
+            } else if (owner) {
+                els.kbVisibilityReadonlyHint.textContent = formatTemplate(
+                    t("kb_visibility_readonly_owner_hint"),
+                    { owner }
+                );
+            } else {
+                els.kbVisibilityReadonlyHint.textContent = t("kb_visibility_readonly_hint");
+            }
+        }
+    }
+    if (els.kbVisibilityOwnerHint) {
+        const owner = String(state.kbVisibility?.ownerUserId || "");
+        els.kbVisibilityOwnerHint.textContent = owner
+            ? formatTemplate(t("kb_visibility_owner_hint"), { owner })
+            : "";
+    }
+
+    _renderKbVisibilityUsers();
+}
+
+window.onKbVisibilityModeChange = function () {
+    if (!els.kbVisibilityMode) return;
+    state.kbVisibility.visibility = String(els.kbVisibilityMode.value || "private");
+    _syncKbVisibilityDialogState();
+};
+
+function _collectSelectedVisibilityUsers() {
+    if (!els.kbVisibilityUsers) return [];
+    const checked = Array.from(
+        els.kbVisibilityUsers.querySelectorAll("input[type='checkbox']:checked")
+    );
+    return _normalizeUserList(checked.map((input) => input.value));
+}
+
+function _applyKbVisibilityPayload(payload, options = {}) {
+    const collectionName = String(payload?.collection_name || options.collectionName || "").trim();
+    const displayName = String(options.collectionDisplayName || collectionName || "").trim();
+    const visibilityMode = _normalizeVisibilityModeFromPayload(payload);
+    const rawCanManage = payload?.can_manage;
+    const canManage =
+        rawCanManage === true ||
+        rawCanManage === 1 ||
+        String(rawCanManage).trim().toLowerCase() === "true";
+    const owner = String(payload?.owner_user_id || "");
+    const visibleUsers = _normalizeUserList(payload?.visible_users);
+    const shareableUsers = _normalizeUserList(options.shareableUsers);
+
+    state.kbVisibility.collectionName = collectionName;
+    state.kbVisibility.collectionDisplayName = displayName || collectionName;
+    state.kbVisibility.canManage = canManage;
+    state.kbVisibility.ownerUserId = owner;
+    state.kbVisibility.visibility = visibilityMode;
+    state.kbVisibility.visibleUsers = visibleUsers;
+    state.kbVisibility.shareableUsers = shareableUsers;
+
+    if (els.kbVisibilityCollectionName) {
+        els.kbVisibilityCollectionName.textContent = formatTemplate(
+            t("kb_visibility_collection_hint"),
+            { name: state.kbVisibility.collectionDisplayName || state.kbVisibility.collectionName }
+        );
+    }
+    if (els.kbVisibilityMode) {
+        els.kbVisibilityMode.value = visibilityMode;
+    }
+    _syncKbVisibilityDialogState();
+}
+
+async function openKbVisibilityDialog(collection) {
+    const collectionName = String(collection?.name || "").trim();
+    if (!collectionName) return;
+    if (isInternalMemoryCollection(collectionName)) return;
+
+    try {
+        const detail = await fetchJSON(`/api/kb/visibility/${encodeURIComponent(collectionName)}`);
+        const rawCanManage = detail?.can_manage;
+        const canManage =
+            rawCanManage === true ||
+            rawCanManage === 1 ||
+            String(rawCanManage).trim().toLowerCase() === "true";
+        let shareableUsers = [];
+        if (canManage) {
+            try {
+                const usersPayload = await fetchJSON("/api/kb/visibility/users");
+                shareableUsers = _normalizeUserList(usersPayload?.users);
+            } catch (e) {
+                console.warn("Failed to load shareable users:", e);
+            }
+        }
+
+        _applyKbVisibilityPayload(detail, {
+            collectionName,
+            collectionDisplayName: collection?.display_name || collectionName,
+            shareableUsers,
+        });
+
+        if (els.kbVisibilityModal?.showModal) {
+            els.kbVisibilityModal.showModal();
+        }
+    } catch (e) {
+        await showModal(parseApiErrorMessage(e), {
+            title: t("kb_visibility_load_failed_title"),
+            type: "error",
+        });
+    }
+}
+
+window.saveKbVisibility = async function () {
+    const collectionName = String(state.kbVisibility?.collectionName || "").trim();
+    if (!collectionName) return;
+    if (!state.kbVisibility?.canManage) {
+        await showModal(t("kb_visibility_readonly_hint"), {
+            title: t("kb_visibility_title"),
+            type: "warning",
+        });
+        return;
+    }
+
+    const visibilityMode = String(els.kbVisibilityMode?.value || "private").trim().toLowerCase();
+    const payload = {
+        visibility: visibilityMode,
+        visible_users:
+            visibilityMode === "shared" ? _collectSelectedVisibilityUsers() : [],
+    };
+
+    if (els.kbVisibilitySaveBtn) {
+        els.kbVisibilitySaveBtn.disabled = true;
+    }
+    try {
+        const updated = await fetchJSON(
+            `/api/kb/visibility/${encodeURIComponent(collectionName)}`,
+            {
+                method: "POST",
+                body: JSON.stringify(payload),
+            }
+        );
+
+        _applyKbVisibilityPayload(updated, {
+            collectionName,
+            collectionDisplayName:
+                state.kbVisibility.collectionDisplayName || collectionName,
+            shareableUsers: state.kbVisibility.shareableUsers,
+        });
+
+        if (els.kbVisibilityModal?.open) {
+            els.kbVisibilityModal.close();
+        }
+        await Promise.allSettled([refreshKBFiles(), renderChatCollectionOptions()]);
+        await showModal(t("kb_visibility_saved"), {
+            title: t("kb_visibility_title"),
+            type: "success",
+        });
+    } catch (e) {
+        await showModal(parseApiErrorMessage(e), {
+            title: t("kb_visibility_save_failed_title"),
+            type: "error",
+        });
+    } finally {
+        if (els.kbVisibilitySaveBtn) {
+            els.kbVisibilitySaveBtn.disabled = false;
+        }
+    }
+};
 
 // UI status update
 function updateDbStatusUI(status, config) {
@@ -1789,11 +2105,32 @@ window.deleteKBFile = async function (category, filename, displayName = "") {
         if (res.ok) {
             refreshKBFiles();
         } else {
-            const err = await res.json();
-            showModal(t("kb_delete_failed") + (err.error || res.statusText), { title: t("status_error"), type: "error" });
+            let err = {};
+            try {
+                err = await res.json();
+            } catch (_) {
+                err = {};
+            }
+
+            if (res.status === 403) {
+                await showModal(t("kb_delete_no_permission_message"), {
+                    title: t("kb_delete_no_permission_title"),
+                    type: "warning",
+                });
+                return;
+            }
+
+            await showModal(
+                t("kb_delete_failed") + (err.error || res.statusText || t("common_unknown_error")),
+                { title: t("status_error"), type: "error" }
+            );
         }
     } catch (e) {
         console.error(e);
+        await showModal(
+            t("kb_delete_failed") + (e?.message || t("common_unknown_error")),
+            { title: t("status_error"), type: "error" }
+        );
     }
 };
 
@@ -7189,6 +7526,11 @@ function bindEvents() {
             const mode = els.idxMode.value || "new";
             await syncIndexModeUI(mode, { forceFetch: true });
         });
+    }
+
+    if (els.kbVisibilityMode) {
+        els.kbVisibilityMode.addEventListener("change", window.onKbVisibilityModeChange);
+        els.kbVisibilityMode.addEventListener("input", window.onKbVisibilityModeChange);
     }
 
     setupSettingsMenu();

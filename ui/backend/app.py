@@ -10,7 +10,7 @@ import uuid
 from functools import wraps
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import quote
 
 from flask import (
@@ -27,6 +27,7 @@ from werkzeug.exceptions import HTTPException
 
 from . import auth as auth_backend
 from . import chat_store as chat_store_backend
+from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
 
 LOGGER = logging.getLogger(__name__)
@@ -72,6 +73,20 @@ def _normalize_memory_user_id(raw_user_id: Optional[str]) -> str:
     if not MEMORY_USER_ID_PATTERN.fullmatch(user_id):
         raise ValueError("Invalid user_id format")
     return user_id
+
+
+def _is_internal_memory_collection_name(raw_name: Any) -> bool:
+    normalized = str(raw_name or "").strip().lower()
+    if not normalized:
+        return False
+    return bool(re.fullmatch(r"user_[a-z0-9_-]+(?:_memory)?", normalized))
+
+
+def _current_user_memory_collection_names(user_id: str) -> Set[str]:
+    normalized_user = _normalize_memory_user_id(user_id)
+    primary = str(pm.get_memory_collection_name(normalized_user)).strip().lower()
+    legacy = f"user_{normalized_user.lower()}_memory"
+    return {primary, legacy}
 
 
 def _ensure_memory_file(user_id: str) -> Path:
@@ -318,6 +333,8 @@ def _run_kb_background(
     index_mode: str,
     chunk_params: Optional[Dict[str, Any]] = None,
     embedding_params: Optional[Dict[str, Any]] = None,
+    owner_user_id: Optional[str] = None,
+    visibility_store: Optional[kb_visibility_backend.SQLiteKbVisibilityStore] = None,
 ) -> None:
     """Run knowledge base pipeline in background thread.
 
@@ -330,6 +347,8 @@ def _run_kb_background(
         index_mode: Index mode ("append" or "overwrite")
         chunk_params: Optional chunking parameters
         embedding_params: Optional embedding parameters
+        owner_user_id: User id that started the task
+        visibility_store: Visibility mapping store
     """
     LOGGER.info(f"Task {task_id} started: {pipeline_name}")
     try:
@@ -342,6 +361,21 @@ def _run_kb_background(
             chunk_params=chunk_params,
             embedding_params=embedding_params,
         )
+
+        if (
+            pipeline_name == "milvus_index"
+            and index_mode == "new"
+            and visibility_store is not None
+            and owner_user_id
+        ):
+            final_collection_name = str(
+                result.get("collection_name") or collection_name or ""
+            ).strip()
+            if final_collection_name:
+                visibility_store.upsert_default_private(
+                    final_collection_name, owner_user_id
+                )
+
         KB_TASKS[task_id]["status"] = "success"
         KB_TASKS[task_id]["result"] = result
         KB_TASKS[task_id]["completed_at"] = datetime.now().isoformat()
@@ -404,6 +438,7 @@ def create_app(admin_mode: bool = False) -> Flask:
     app.config["SECRET_KEY"] = os.getenv(
         "ULTRARAG_SESSION_SECRET", "ultrarag-dev-session-secret"
     )
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_SECURE"] = (
@@ -415,7 +450,18 @@ def create_app(admin_mode: bool = False) -> Flask:
     user_store.init_db()
     chat_store = chat_store_backend.SQLiteChatStore(AUTH_DB_PATH)
     chat_store.init_db()
+    visibility_store = kb_visibility_backend.SQLiteKbVisibilityStore(AUTH_DB_PATH)
+    visibility_store.init_db()
     app.config["CHAT_STORE"] = chat_store
+    app.config["KB_VISIBILITY_STORE"] = visibility_store
+
+    @app.after_request
+    def _dev_no_cache(response):
+        path = request.path
+        if path.endswith((".js", ".css", ".html")) and "/vendor/" not in path:
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+        return response
 
     def _get_authenticated_user_id() -> Optional[str]:
         raw_value = session.get("auth_user_id")
@@ -429,6 +475,108 @@ def create_app(admin_mode: bool = False) -> Flask:
 
     def get_current_user_id() -> str:
         return _get_authenticated_user_id() or DEFAULT_MEMORY_USER
+
+    def _ensure_legacy_collection_visibility(collection_names: List[str]) -> None:
+        candidates: List[str] = []
+        seen = set()
+        for raw_name in collection_names:
+            name = str(raw_name or "").strip()
+            if not name:
+                continue
+            if _is_internal_memory_collection_name(name):
+                continue
+            if name in seen:
+                continue
+            seen.add(name)
+            candidates.append(name)
+        if not candidates:
+            return
+        try:
+            visibility_store.bootstrap_legacy_public(
+                candidates, owner_user_id=auth_backend.ADMIN_USERNAME
+            )
+        except Exception as exc:
+            LOGGER.warning("Failed to bootstrap legacy KB visibility mappings: %s", exc)
+
+    def _collection_exists(collection_name: str) -> bool:
+        try:
+            data = pm.list_kb_files()
+        except Exception as exc:
+            LOGGER.warning("Failed to list KB collections for existence check: %s", exc)
+            return False
+        for item in data.get("index", []):
+            name = str(item.get("name") or "").strip()
+            if name == collection_name:
+                return True
+        return False
+
+    def _filter_collections_by_acl(
+        collections: List[Dict[str, Any]], current_user_id: str
+    ) -> List[Dict[str, Any]]:
+        if not isinstance(collections, list):
+            return []
+
+        own_memory_names = _current_user_memory_collection_names(current_user_id)
+        normal_collections: List[Dict[str, Any]] = []
+        ordered_names: List[str] = []
+        internal_visible: Dict[str, Dict[str, Any]] = {}
+
+        for item in collections:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if not name:
+                continue
+            lowered = name.lower()
+            if _is_internal_memory_collection_name(name):
+                if lowered in own_memory_names:
+                    internal_visible[name] = dict(item)
+                continue
+            normal_collections.append(dict(item))
+            ordered_names.append(name)
+
+        _ensure_legacy_collection_visibility(ordered_names)
+        visible_normal = visibility_store.filter_viewable_collections(
+            normal_collections, current_user_id
+        )
+        visible_normal_map = {
+            str(item.get("name")): item
+            for item in visible_normal
+            if isinstance(item, dict) and item.get("name")
+        }
+
+        final_items: List[Dict[str, Any]] = []
+        seen = set()
+        for item in collections:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if not name or name in seen:
+                continue
+            if name in internal_visible:
+                final_items.append(internal_visible[name])
+                seen.add(name)
+                continue
+            visible_item = visible_normal_map.get(name)
+            if visible_item is not None:
+                final_items.append(visible_item)
+                seen.add(name)
+        return final_items
+
+    def _can_view_collection(collection_name: str, current_user_id: str) -> bool:
+        if _is_internal_memory_collection_name(collection_name):
+            return (
+                collection_name.lower()
+                in _current_user_memory_collection_names(current_user_id)
+            )
+        _ensure_legacy_collection_visibility([collection_name])
+        return visibility_store.can_view(collection_name, current_user_id)
+
+    def _can_manage_collection(collection_name: str, current_user_id: str) -> bool:
+        if _is_internal_memory_collection_name(collection_name):
+            return False
+        _ensure_legacy_collection_visibility([collection_name])
+        return visibility_store.can_manage(collection_name, current_user_id)
 
     def _build_effective_model_settings(raw_settings: Any) -> Dict[str, Dict[str, str]]:
         effective: Dict[str, Dict[str, str]] = {}
@@ -1236,7 +1384,15 @@ def create_app(admin_mode: bool = False) -> Flask:
             if final_answer is not None:
                 _persist_chat_answer(final_answer)
 
-        selected_collection = dynamic_params.get("collection_name")
+        selected_collection = str(dynamic_params.get("collection_name") or "").strip()
+        if selected_collection:
+            if not _collection_exists(selected_collection):
+                return jsonify({"error": "collection not found"}), 404
+            if not _can_view_collection(selected_collection, current_user_id):
+                return jsonify({"error": "forbidden collection"}), 403
+            dynamic_params["collection_name"] = selected_collection
+        else:
+            dynamic_params.pop("collection_name", None)
         memory_retrieval_ctx = pm.resolve_memory_collection_for_pipeline(
             name, dynamic_params
         )
@@ -1462,7 +1618,15 @@ def create_app(admin_mode: bool = False) -> Flask:
             )
 
         # Handle collection_name
-        selected_collection = dynamic_params.get("collection_name")
+        selected_collection = str(dynamic_params.get("collection_name") or "").strip()
+        if selected_collection:
+            if not _collection_exists(selected_collection):
+                return jsonify({"error": "collection not found"}), 404
+            if not _can_view_collection(selected_collection, current_user_id):
+                return jsonify({"error": "forbidden collection"}), 403
+            dynamic_params["collection_name"] = selected_collection
+        else:
+            dynamic_params.pop("collection_name", None)
         memory_retrieval_ctx = pm.resolve_memory_collection_for_pipeline(
             name, dynamic_params
         )
@@ -1620,7 +1784,111 @@ def create_app(admin_mode: bool = False) -> Flask:
         Returns:
             JSON response with list of KB files
         """
-        return jsonify(pm.list_kb_files())
+        data = pm.list_kb_files()
+        all_collections = data.get("index", [])
+        data["index"] = _filter_collections_by_acl(
+            all_collections, get_current_user_id()
+        )
+        return jsonify(data)
+
+    @app.route("/api/kb/visibility/users", methods=["GET"])
+    def list_kb_visibility_users() -> Response:
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        current_user = _get_authenticated_user_id()
+        users = user_store.list_users()
+        shareable_users = [u for u in users if u != current_user]
+        return jsonify({"users": shareable_users})
+
+    @app.route("/api/kb/visibility/<string:collection_name>", methods=["GET", "POST"])
+    def kb_collection_visibility(collection_name: str) -> Response:
+        normalized_collection = str(collection_name or "").strip()
+        if not normalized_collection:
+            return jsonify({"error": "collection_name is required"}), 400
+        if _is_internal_memory_collection_name(normalized_collection):
+            return jsonify({"error": "internal memory collection is not supported"}), 400
+        if not _collection_exists(normalized_collection):
+            return jsonify({"error": "collection not found"}), 404
+
+        current_user = get_current_user_id()
+        _ensure_legacy_collection_visibility([normalized_collection])
+        if not _can_view_collection(normalized_collection, current_user):
+            return jsonify({"error": "forbidden collection"}), 403
+
+        if request.method == "GET":
+            visibility = visibility_store.get_visibility(normalized_collection)
+            if not visibility:
+                return jsonify({"error": "visibility not found"}), 404
+            can_manage = _is_logged_in_user() and _can_manage_collection(
+                normalized_collection, current_user
+            )
+            return jsonify(
+                {
+                    **visibility,
+                    "can_manage": can_manage,
+                    "can_view": True,
+                }
+            )
+
+        if not _is_logged_in_user():
+            return jsonify({"error": "login required"}), 401
+        if not _can_manage_collection(normalized_collection, current_user):
+            return jsonify({"error": "forbidden collection"}), 403
+
+        payload = request.get_json(force=True) or {}
+        visibility_mode = str(payload.get("visibility") or "").strip().lower()
+        visible_users = payload.get("visible_users", [])
+        if visibility_mode not in {"private", "public", "shared"}:
+            return jsonify({"error": "visibility must be private/public/shared"}), 400
+        if visible_users is not None and not isinstance(visible_users, list):
+            return jsonify({"error": "visible_users must be a list"}), 400
+
+        if visibility_mode == "shared":
+            valid_users = set(user_store.list_users())
+            normalized_users: List[str] = []
+            seen = set()
+            for raw_user in visible_users:
+                user_name = str(raw_user or "").strip()
+                if not user_name:
+                    continue
+                if user_name not in valid_users:
+                    return (
+                        jsonify({"error": f"unknown user in visible_users: {user_name}"}),
+                        400,
+                    )
+                if user_name == current_user or user_name in seen:
+                    continue
+                seen.add(user_name)
+                normalized_users.append(user_name)
+            visible_users = normalized_users
+        else:
+            visible_users = []
+
+        try:
+            updated = visibility_store.set_visibility(
+                collection_name=normalized_collection,
+                owner_user_id=current_user,
+                visibility=visibility_mode,
+                visible_users=visible_users,
+            )
+        except kb_visibility_backend.KbVisibilityValidationError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            LOGGER.error(
+                "Failed to update KB visibility for %s: %s",
+                normalized_collection,
+                exc,
+                exc_info=True,
+            )
+            return jsonify({"error": str(exc)}), 500
+
+        return jsonify(
+            {
+                **updated,
+                "can_manage": True,
+                "can_view": True,
+            }
+        )
 
     @app.route("/api/kb/files/inspect", methods=["GET"])
     def inspect_kb_folder() -> Response:
@@ -1686,8 +1954,35 @@ def create_app(admin_mode: bool = False) -> Flask:
         if category not in ["raw", "corpus", "chunks", "collection", "index"]:
             return jsonify({"error": "Invalid category"}), 400
 
+        if category in {"collection", "index"}:
+            target_collection = str(filename or "").strip()
+            if not target_collection:
+                return jsonify({"error": "collection name is required"}), 400
+            if _is_internal_memory_collection_name(target_collection):
+                return jsonify({"error": "internal memory collection cannot be deleted here"}), 403
+            if not _collection_exists(target_collection):
+                return jsonify({"error": "collection not found"}), 404
+            # Delete permission: admin or collection owner.
+            current_user_id = get_current_user_id()
+            if not _is_admin_user() and not _can_manage_collection(
+                target_collection, current_user_id
+            ):
+                return jsonify({"error": "forbidden collection"}), 403
+
         try:
-            return jsonify(pm.delete_kb_file(category, filename))
+            result = pm.delete_kb_file(category, filename)
+            if (
+                category in {"collection", "index"}
+                and isinstance(result, dict)
+                and str(result.get("status") or "").lower() == "deleted"
+            ):
+                try:
+                    visibility_store.delete_mapping(filename)
+                except Exception as exc:
+                    LOGGER.warning(
+                        "Failed to remove visibility mapping for %s: %s", filename, exc
+                    )
+            return jsonify(result)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -1776,6 +2071,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         payload = request.get_json(force=True)
         pipeline_name = payload.get("pipeline_name")
         target_file = payload.get("target_file")
+        current_user_id = get_current_user_id()
 
         collection_name = payload.get("collection_name")
         index_mode = payload.get("index_mode", "append")
@@ -1798,6 +2094,21 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         if not pipeline_name or not target_file:
             return jsonify({"error": "Missing pipeline_name or target_file"}), 400
+
+        if pipeline_name == "milvus_index":
+            normalized_mode = str(index_mode or "").strip().lower()
+            if normalized_mode in {"append", "overwrite"}:
+                target_collection = str(collection_name or "").strip()
+                if not target_collection:
+                    return jsonify({"error": "collection_name is required"}), 400
+                if _is_internal_memory_collection_name(target_collection):
+                    return jsonify({"error": "internal memory collection is not supported"}), 400
+                if not _collection_exists(target_collection):
+                    return jsonify({"error": "collection not found"}), 404
+                if not _can_manage_collection(target_collection, current_user_id):
+                    return jsonify({"error": "forbidden collection"}), 403
+            elif normalized_mode not in {"new"}:
+                return jsonify({"error": "index_mode must be new/append/overwrite"}), 400
 
         output_dir = ""
         if pipeline_name == "build_text_corpus":
@@ -1825,6 +2136,8 @@ def create_app(admin_mode: bool = False) -> Flask:
                 index_mode,
                 chunk_params,
                 embedding_params,
+                current_user_id,
+                visibility_store,
             ),
             daemon=True,  # Set as daemon thread to auto-exit when main program exits, preventing hangs
         )

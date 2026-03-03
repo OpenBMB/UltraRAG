@@ -4282,6 +4282,7 @@ textarea.parameter-input {
   /* Aspect ratio adjustment: no longer force high, adapt to content */
   min-height: 140px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
 }
 
 /* Hover effect: slight float + soft shadow */
@@ -4360,6 +4361,59 @@ textarea.parameter-input {
 .btn-delete-book:hover {
   background: #fee2e2;
   color: #ef4444;
+}
+
+.kb-visibility-users {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kb-visibility-user-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #374151;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.kb-visibility-user-item:hover {
+  background: #f3f4f6;
+}
+
+.kb-visibility-user-item.is-selected {
+  background: #e8f0ff;
+}
+
+.kb-visibility-user-item.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.kb-visibility-user-item .form-check-input {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.kb-visibility-user-item.is-disabled .form-check-input {
+  cursor: not-allowed;
+}
+
+.kb-visibility-user-name {
+  line-height: 1.2;
 }
 
 /* =========================================

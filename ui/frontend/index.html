@@ -1022,6 +1022,40 @@
     </div>
   </dialog>
 
+  <dialog id="kb-visibility-modal" class="apple-modal">
+    <h5 class="mb-3 fw-bold" data-i18n="kb_visibility_title">知识库可见性</h5>
+    <div id="kb-visibility-collection-name" class="small text-muted mb-3"></div>
+
+    <div class="mb-3">
+      <label class="form-label small text-muted text-uppercase fw-bold" data-i18n="kb_visibility_mode_label">可见范围</label>
+      <select id="kb-visibility-mode" class="form-select"
+        onchange="window.onKbVisibilityModeChange && window.onKbVisibilityModeChange()"
+        oninput="window.onKbVisibilityModeChange && window.onKbVisibilityModeChange()">
+        <option value="private" data-i18n="kb_visibility_mode_private">仅自己可见</option>
+        <option value="public" data-i18n="kb_visibility_mode_public">公开</option>
+        <option value="shared" data-i18n="kb_visibility_mode_shared">指定用户可见</option>
+      </select>
+      <div id="kb-visibility-owner-hint" class="form-text"></div>
+    </div>
+
+    <div id="kb-visibility-users-wrap" class="mb-3 d-none">
+      <label class="form-label small text-muted text-uppercase fw-bold" data-i18n="kb_visibility_users_label">可见用户</label>
+      <div id="kb-visibility-users" class="kb-visibility-users"></div>
+      <div id="kb-visibility-users-empty" class="form-text d-none" data-i18n="kb_visibility_users_empty">暂无可共享用户</div>
+    </div>
+
+    <div id="kb-visibility-readonly-hint" class="form-text text-warning d-none" data-i18n="kb_visibility_readonly_hint">
+      你没有修改权限。
+    </div>
+
+    <div class="modal-actions d-flex justify-content-end gap-2">
+      <button class="btn btn-light border btn-sm" data-i18n="common_cancel"
+        onclick="document.getElementById('kb-visibility-modal').close()">取消</button>
+      <button id="kb-visibility-save-btn" class="btn btn-dark btn-sm" data-i18n="common_save"
+        onclick="saveKbVisibility()">保存</button>
+    </div>
+  </dialog>
+
   <dialog id="chunk-config-modal"
     style="margin: auto; border:none; border-radius:12px; padding:0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: visible; max-width: 90vw;">
     <div class="card" style="width: 380px; border:none;">

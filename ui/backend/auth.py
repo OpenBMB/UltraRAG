@@ -212,6 +212,17 @@ class SQLiteUserStore:
             return None
         return self._row_to_dict(row)
 
+    def list_users(self) -> list[str]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT username
+                FROM users
+                ORDER BY username COLLATE NOCASE ASC
+                """
+            ).fetchall()
+        return [str(row["username"]) for row in rows if row and row["username"]]
+
     def is_admin_username(self, raw_username: Any) -> bool:
         return str(raw_username or "").strip() == ADMIN_USERNAME
 
