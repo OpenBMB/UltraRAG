@@ -2761,6 +2761,15 @@ textarea.parameter-input {
   background-color: #fcfcfc;
 }
 
+.explore-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: #fcfcfc;
+}
+
 .memory-main {
   flex: 1;
   display: flex;
@@ -2777,6 +2786,87 @@ textarea.parameter-input {
   gap: 16px;
   min-height: 0;
   overflow-y: auto;
+}
+
+.explore-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.explore-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.explore-feature-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  color: #0f172a;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+button.explore-feature-card {
+  cursor: pointer;
+}
+
+button.explore-feature-card:hover {
+  border-color: #bfdbfe;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.explore-feature-card-muted {
+  opacity: 0.8;
+}
+
+.explore-feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #334155;
+  flex-shrink: 0;
+}
+
+.explore-feature-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.explore-feature-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.explore-feature-desc {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.explore-feature-arrow {
+  font-size: 1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .memory-panel {

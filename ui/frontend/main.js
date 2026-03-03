@@ -412,10 +412,12 @@ const els = {
     // [New] View containers
     chatMainView: document.getElementById("chat-main-view"),
     kbMainView: document.getElementById("kb-main-view"),
+    exploreMainView: document.getElementById("explore-main-view"),
     memoryMainView: document.getElementById("memory-main-view"),
     // [New] Buttons
     kbBtn: document.getElementById("kb-btn"),
-    memoryBtn: document.getElementById("memory-btn"),
+    exploreBtn: document.getElementById("explore-btn"),
+    exploreFeatureMemory: document.getElementById("explore-feature-memory"),
     memoryEditor: document.getElementById("memory-editor"),
     memoryKbCards: document.getElementById("memory-kb-cards"),
     memorySyncBtn: document.getElementById("memory-sync-btn"),
@@ -3434,16 +3436,23 @@ function showChatSubview(view) {
 
     const showChat = view === "chat";
     const showKB = view === "kb";
+    const showExplore = view === "explore";
     const showMemory = view === "memory";
 
     els.chatMainView.classList.toggle("d-none", !showChat);
     els.kbMainView.classList.toggle("d-none", !showKB);
+    if (els.exploreMainView) {
+        els.exploreMainView.classList.toggle("d-none", !showExplore);
+    }
     if (els.memoryMainView) {
         els.memoryMainView.classList.toggle("d-none", !showMemory);
     }
 
     if (els.kbBtn) els.kbBtn.classList.toggle("active", showKB);
-    if (els.memoryBtn) els.memoryBtn.classList.toggle("active", showMemory);
+    if (els.exploreBtn) {
+        // Memory is now a feature under Explore.
+        els.exploreBtn.classList.toggle("active", showExplore || showMemory);
+    }
 }
 
 function clearChatSessionHighlight() {
@@ -3458,6 +3467,34 @@ function doOpenKBView() {
 
     showChatSubview("kb");
     clearChatSessionHighlight();
+}
+
+function openExploreView() {
+    if (!els.chatMainView || !els.exploreMainView) return;
+
+    if (state.chat.running) {
+        showInterruptConfirmDialog(() => {
+            interruptAndOpenExplore();
+        });
+        return;
+    }
+
+    doOpenExploreView();
+}
+
+function doOpenExploreView() {
+    showChatSubview("explore");
+    clearChatSessionHighlight();
+}
+
+function interruptAndOpenExplore() {
+    if (state.chat.controller) {
+        state.chat.controller.abort();
+        state.chat.controller = null;
+    }
+    setChatRunning(false);
+    saveCurrentSession(true);
+    doOpenExploreView();
 }
 
 // Interrupt generation and open KB
@@ -7493,8 +7530,11 @@ function bindEvents() {
     if (els.kbBtn) {
         els.kbBtn.onclick = openKBView;
     }
-    if (els.memoryBtn) {
-        els.memoryBtn.onclick = openMemoryView;
+    if (els.exploreBtn) {
+        els.exploreBtn.onclick = openExploreView;
+    }
+    if (els.exploreFeatureMemory) {
+        els.exploreFeatureMemory.onclick = openMemoryView;
     }
     if (els.memorySaveBtn) {
         els.memorySaveBtn.onclick = saveMemoryContent;

@@ -471,19 +471,16 @@
             <span class="btn-text" data-i18n="knowledge_base">Knowledge Base</span>
           </button>
 
-          <button type="button" id="memory-btn" class="btn-nav">
+          <button type="button" id="explore-btn" class="btn-nav">
             <span class="icon">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                stroke="currentColor" width="20" height="20">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M9.5 3a3.5 3.5 0 0 0-3.5 3.5V8a2.5 2.5 0 0 0 0 5v1.5A3.5 3.5 0 0 0 9.5 18H10v1a2 2 0 1 0 4 0v-1h.5a3.5 3.5 0 0 0 3.5-3.5V13a2.5 2.5 0 0 0 0-5V6.5A3.5 3.5 0 0 0 14.5 3h-5z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h2.5" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12h3" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15h2.5" />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="20" height="20"
+                stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.3 7 12 12 20.7 7" />
+                <line x1="12" y1="22" x2="12" y2="12" />
               </svg>
             </span>
-            <span class="btn-text" data-i18n="memory">Memroy</span>
+            <span class="btn-text" data-i18n="explore">探索</span>
           </button>
         </div>
 
@@ -734,6 +731,51 @@
 
         <div class="kb-wrapper p-4 bg-light">
           <div id="bookshelf-grid" class="bookshelf-grid">
+          </div>
+        </div>
+      </div>
+
+      <div class="explore-main d-none" id="explore-main-view">
+        <header
+          class="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
+          <h3 class="m-0 fs-5 fw-bold text-dark" data-i18n="explore_title">探索</h3>
+        </header>
+
+        <div class="explore-wrapper p-4 bg-light">
+          <p class="explore-subtitle mb-3" data-i18n="explore_subtitle">在这里查看 UltraRAG 的功能扩展。</p>
+
+          <div class="explore-grid">
+            <button type="button" id="explore-feature-memory" class="explore-feature-card">
+              <div class="explore-feature-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                  stroke="currentColor" width="20" height="20">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9.5 3a3.5 3.5 0 0 0-3.5 3.5V8a2.5 2.5 0 0 0 0 5v1.5A3.5 3.5 0 0 0 9.5 18H10v1a2 2 0 1 0 4 0v-1h.5a3.5 3.5 0 0 0 3.5-3.5V13a2.5 2.5 0 0 0 0-5V6.5A3.5 3.5 0 0 0 14.5 3h-5z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 9h2.5" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 12h3" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 15h2.5" />
+                </svg>
+              </div>
+              <div class="explore-feature-content">
+                <div class="explore-feature-title" data-i18n="explore_feature_memory_title">记忆</div>
+                <div class="explore-feature-desc" data-i18n="explore_feature_memory_desc">管理全局记忆并同步工作记忆到知识库。</div>
+              </div>
+              <span class="explore-feature-arrow" aria-hidden="true">→</span>
+            </button>
+
+            <div class="explore-feature-card explore-feature-card-muted">
+              <div class="explore-feature-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                  stroke="currentColor" width="20" height="20">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+                </svg>
+              </div>
+              <div class="explore-feature-content">
+                <div class="explore-feature-title" data-i18n="explore_feature_more_title">更多功能</div>
+                <div class="explore-feature-desc" data-i18n="explore_feature_more_desc">未来会在这里上线更多扩展能力。</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
