@@ -1069,8 +1069,8 @@
           <div class="mb-3">
             <label class="form-label small fw-bold text-muted" data-i18n="kb_chunk_backend">Chunk Backend</label>
             <select id="cfg-chunk-backend" class="form-select form-select-sm">
-              <option value="token" selected>token</option>
-              <option value="sentence">sentence</option>
+              <option value="token">token</option>
+              <option value="sentence" selected>sentence</option>
               <option value="recursive">recursive</option>
             </select>
           </div>
@@ -1078,8 +1078,8 @@
           <div class="mb-3">
             <label class="form-label small fw-bold text-muted" data-i18n="kb_tokenizer_counter">Tokenizer / Counter</label>
             <select id="cfg-chunk-tokenizer" class="form-select form-select-sm">
-              <option value="gpt2" selected>gpt2</option>
-              <option value="character">character</option>
+              <option value="gpt2">gpt2</option>
+              <option value="character" selected>character</option>
               <option value="word">word</option>
             </select>
           </div>
@@ -1087,7 +1087,7 @@
           <div class="mb-3">
             <label class="form-label small fw-bold text-muted" data-i18n="kb_chunk_size">Chunk Size</label>
             <div class="input-group input-group-sm">
-              <input type="number" id="cfg-chunk-size" class="form-control" value="500" min="1">
+              <input type="number" id="cfg-chunk-size" class="form-control" value="512" min="1">
             </div>
           </div>
 

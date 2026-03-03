@@ -1661,9 +1661,9 @@ function persistIndexConfig() {
 
 // 1. Define default configuration state (try to restore from localStorage)
 let chunkConfigState = loadChunkConfigFromStorage() || {
-    chunk_backend: "token",
-    tokenizer_or_token_counter: "gpt2",
-    chunk_size: 500,
+    chunk_backend: "sentence",
+    tokenizer_or_token_counter: "character",
+    chunk_size: 512,
     use_title: true
 };
 
