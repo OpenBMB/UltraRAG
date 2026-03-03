@@ -5027,6 +5027,24 @@ window.closeSourceDetail = function () {
     if (panel) panel.classList.remove("show");
 };
 
+function shouldKeepSourceDetailOpenForTarget(target) {
+    if (!(target instanceof Element)) return false;
+    if (target.closest("#source-detail-panel")) return true;
+    // Citation interactions should not immediately close the detail panel.
+    if (target.closest(".citation-link")) return true;
+    if (target.closest(".ref-item")) return true;
+    if (target.closest(".reference-container")) return true;
+    return false;
+}
+
+function autoCloseSourceDetailOnOutsideClick(event) {
+    const panel = document.getElementById("source-detail-panel");
+    if (!panel || !panel.classList.contains("show")) return;
+    if (shouldKeepSourceDetailOpenForTarget(event.target)) return;
+
+    panel.classList.remove("show");
+}
+
 // Click citation [x] to highlight citation item and show details
 // messageIdx parameter is used to locate specific message bubble, ensuring correct message citations are displayed
 window.scrollToReference = function (refId, messageIdx = null) {
@@ -7538,6 +7556,8 @@ function bindEvents() {
 
     if (els.chatForm) els.chatForm.onsubmit = handleChatSubmit;
     if (els.chatSend) els.chatSend.onclick = handleChatSubmit;
+    // Use capture phase so outside-click close is not blocked by stopPropagation in inner handlers.
+    document.addEventListener("pointerdown", autoCloseSourceDetailOnOutsideClick, true);
 
     // Support Shift+Enter for newline, Enter for submit
     // Fix: Add IME composition state detection to prevent accidental send during Chinese input

@@ -2494,8 +2494,8 @@ textarea.parameter-input {
 }
 
 .detail-title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 650;
   margin: 0;
   color: var(--text-primary);
   /* Remove truncation limit, allow full title display */
@@ -2507,7 +2507,7 @@ textarea.parameter-input {
   /* Allow flex child to shrink and wrap */
   padding-right: 1rem;
   /* Keep spacing with close button */
-  line-height: 1.5;
+  line-height: 1.45;
   /* Increase line height for better multi-line display */
 }
 
@@ -2524,10 +2524,8 @@ textarea.parameter-input {
 
   /* Font optimization */
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 1rem;
-  /* Larger font size */
-  line-height: 1.75;
-  /* Increased line height for breathing space */
+  font-size: 0.96rem;
+  line-height: 1.68;
   color: #374151;
   /* Dark gray text, moderate contrast */
   background-color: #fff;
@@ -2535,11 +2533,11 @@ textarea.parameter-input {
 
 /* --- Reference document title styles (new) --- */
 .source-doc-title {
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-weight: 650;
+  font-size: 1.12rem;
   color: #111827;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.62rem;
   border-bottom: 1px solid #e5e7eb;
   line-height: 1.5;
 }
@@ -2548,32 +2546,52 @@ textarea.parameter-input {
 /* Since we now render HTML, must add styles to tags */
 
 .detail-content p {
-  margin-bottom: 1.5em;
-  /* Paragraph spacing */
+  margin-bottom: 1.05em;
   text-align: left;
-  /* Keep left align for easier reading */
 }
 
-.detail-content h1,
-.detail-content h2,
-.detail-content h3 {
-  margin-top: 1.8em;
-  margin-bottom: 0.8em;
-  font-weight: 700;
-  color: #111827;
-  /* Pure black for titles */
+.detail-content h1 {
+  font-size: 1.1rem;
+  margin-top: 1.05em;
+  margin-bottom: 0.48em;
   line-height: 1.3;
+  font-weight: 680;
+  color: #111827;
+}
+
+.detail-content h2 {
+  font-size: 1.08rem;
+  margin-top: 1em;
+  margin-bottom: 0.42em;
+  line-height: 1.35;
+  font-weight: 660;
+  color: #111827;
+}
+
+.detail-content h3 {
+  font-size: 1rem;
+  margin-top: 0.95em;
+  margin-bottom: 0.38em;
+  line-height: 1.35;
+  font-weight: 650;
+  color: #111827;
+}
+
+.detail-content h1:first-child,
+.detail-content h2:first-child,
+.detail-content h3:first-child {
+  margin-top: 0;
 }
 
 .detail-content ul,
 .detail-content ol {
-  margin-bottom: 1.5em;
-  padding-left: 1.5em;
+  margin-bottom: 1.05em;
+  padding-left: 1.25em;
   color: #4b5563;
 }
 
 .detail-content li {
-  margin-bottom: 0.5em;
+  margin-bottom: 0.35em;
 }
 
 .detail-content strong {
@@ -2584,13 +2602,12 @@ textarea.parameter-input {
 /* Blockquote optimization */
 .detail-content blockquote {
   border-left: 4px solid #e5e7eb;
-  padding-left: 1rem;
-  margin: 1.5rem 0;
+  padding-left: 0.9rem;
+  margin: 1.1rem 0;
   color: #6b7280;
   font-style: italic;
   background: #f9fafb;
-  /* Light background */
-  padding: 1rem;
+  padding: 0.85rem 0.95rem;
   border-radius: 0 8px 8px 0;
 }
 
