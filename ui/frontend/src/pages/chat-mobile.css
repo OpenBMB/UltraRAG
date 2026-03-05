@@ -1,0 +1,244 @@
+/* Mobile-only overrides for ChatPage, isolated by data-viewport. */
+
+#chat-view .chat-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 992px) {
+  #chat-view[data-viewport="mobile"] {
+    /* Prevent browser bounce from causing layout jump on mobile */
+    overscroll-behavior: contain;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-layout {
+    position: relative;
+    overflow: hidden;
+    min-height: 100%;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    z-index: 2060;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    box-shadow: 2px 0 16px rgba(15, 23, 42, 0.16);
+  }
+
+  /* Avoid 100vh issues on iOS/Android dynamic browser chrome. */
+  #chat-view[data-viewport="mobile"] .chat-sidebar,
+  #chat-view[data-viewport="mobile"] #kb-main-view,
+  #chat-view[data-viewport="mobile"] #memory-main-view {
+    height: 100%;
+  }
+
+  #chat-view[data-viewport="mobile"][data-sidebar-open="true"] .chat-sidebar,
+  #chat-view[data-viewport="mobile"] .chat-sidebar.show {
+    transform: translateX(0);
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-mobile-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: rgba(15, 23, 42, 0.38);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 2055;
+  }
+
+  #chat-view[data-viewport="mobile"][data-sidebar-open="true"] .chat-mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-main {
+    position: relative;
+    z-index: 1;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-main .view-header {
+    min-height: 56px;
+    padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 0.85rem 0.7rem;
+    gap: 0.6rem !important;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-mobile-menu-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: #fff;
+    color: #0d0d0d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  #chat-view[data-viewport="mobile"] .subview-header-main {
+    min-width: 0;
+  }
+
+  #chat-view[data-viewport="mobile"] .subview-header-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #chat-view[data-viewport="mobile"] #kb-main-view .view-header,
+  #chat-view[data-viewport="mobile"] #explore-main-view .view-header,
+  #chat-view[data-viewport="mobile"] #memory-main-view .view-header {
+    min-height: 56px;
+    padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 0.85rem 0.7rem !important;
+  }
+
+  #chat-view[data-viewport="mobile"] #kb-main-view .view-header {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    justify-content: initial !important;
+    align-items: stretch !important;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-header-actions {
+    justify-content: flex-start !important;
+    gap: 0.45rem !important;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-connection-group {
+    min-width: 0;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-conn-uri {
+    display: none;
+  }
+
+  #chat-view[data-viewport="mobile"] .pipeline-selector-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+
+  #chat-view[data-viewport="mobile"] #chatPipelineDropdown {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-left: 0.7rem;
+    padding-right: 0.6rem;
+  }
+
+  #chat-view[data-viewport="mobile"] #chat-pipeline-label {
+    display: inline-block;
+    max-width: min(45vw, 240px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+  }
+
+  #chat-view[data-viewport="mobile"] #chat-pipeline-menu {
+    width: min(92vw, 360px);
+    max-width: min(92vw, 360px);
+    min-width: 220px !important;
+  }
+
+  #chat-view[data-viewport="mobile"] #chat-history {
+    padding: 1rem 0.85rem;
+    gap: 1rem;
+  }
+
+  #chat-view[data-viewport="mobile"] #kb-main-view .kb-wrapper,
+  #chat-view[data-viewport="mobile"] #explore-main-view .explore-wrapper,
+  #chat-view[data-viewport="mobile"] #memory-main-view .memory-wrapper {
+    padding: 0.75rem !important;
+  }
+
+  #chat-view[data-viewport="mobile"] .bookshelf-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-bottom: 18px;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-card-main {
+    padding: 14px;
+  }
+
+  #chat-view[data-viewport="mobile"] .explore-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  #chat-view[data-viewport="mobile"] .memory-panel {
+    padding: 12px;
+  }
+
+  #chat-view[data-viewport="mobile"] .memory-panel-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #chat-view[data-viewport="mobile"] .memory-panel-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  #chat-view[data-viewport="mobile"] .memory-kb-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  #chat-view[data-viewport="mobile"] .memory-editor {
+    min-height: 200px;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-input-wrapper {
+    padding: 0.65rem 0.75rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-input-container {
+    max-width: 100%;
+    border-radius: 22px;
+    padding: 10px 10px 10px 14px;
+  }
+
+  #chat-view[data-viewport="mobile"] .settings-dropdown {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    min-width: 0;
+    max-height: min(66vh, 520px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  #chat-view[data-viewport="mobile"] #chat-pipeline-label {
+    max-width: 38vw;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-header-actions .btn {
+    font-size: 0.78rem;
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  #chat-view[data-viewport="mobile"] .kb-header-actions .btn span {
+    white-space: nowrap;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-input-container {
+    padding: 8px 8px 8px 12px;
+  }
+
+  #chat-view[data-viewport="mobile"] .chat-input {
+    font-size: 0.98rem;
+  }
+}

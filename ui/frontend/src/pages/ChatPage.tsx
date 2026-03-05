@@ -22,7 +22,6 @@ import {
 } from "@/shared/api/chat";
 import {
   clearPipelineChatHistory,
-  fetchPipelineChatHistory,
   startPipelineDemoSession,
   startPipelineBackgroundChat,
   stopPipelineChatGeneration,
@@ -63,6 +62,7 @@ import { AuthDialog } from "@/features/auth/components/AuthDialog";
 import { AccountSettingsDialog } from "@/features/auth/components/AccountSettingsDialog";
 import { useI18n } from "@/shared/i18n/provider";
 import "@/pages/chat-page.css";
+import "@/pages/chat-mobile.css";
 
 function createSessionId(): string {
   return createClientId();
@@ -118,6 +118,12 @@ type CitationPayload = {
 
 const CHUNK_CONFIG_STORAGE_KEY = "ultrarag_chunk_config";
 const INDEX_CONFIG_STORAGE_KEY = "ultrarag_index_config";
+const MOBILE_VIEWPORT_QUERY = "(max-width: 992px)";
+
+function matchesMobileViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia(MOBILE_VIEWPORT_QUERY).matches;
+}
 
 const DEFAULT_CHUNK_CONFIG: ChunkConfigState = {
   chunk_backend: "sentence",
@@ -679,6 +685,7 @@ export function ChatPage() {
   const [sending, setSending] = useState(false);
   const [chatStatus, setChatStatus] = useState<"ready" | "warn" | "error" | "offline">("offline");
   const [, setStatusText] = useState("Offline");
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() => matchesMobileViewport());
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -787,6 +794,7 @@ export function ChatPage() {
   const thinkingBodyRef = useRef<HTMLDivElement | null>(null);
   const thinkingShouldAutoScrollRef = useRef(true);
   const thinkingScrollTopRef = useRef(0);
+  const chatSidebarRef = useRef<HTMLElement | null>(null);
   const settingsMenuRef = useRef<HTMLDivElement | null>(null);
   const kbDropdownRef = useRef<HTMLDivElement | null>(null);
   const pipelineDropdownRef = useRef<HTMLDivElement | null>(null);
@@ -1252,9 +1260,33 @@ export function ChatPage() {
   );
 
   useEffect(() => {
+    const media = window.matchMedia(MOBILE_VIEWPORT_QUERY);
+    const syncViewport = () => {
+      setIsMobileViewport(media.matches);
+    };
+    syncViewport();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", syncViewport);
+      return () => {
+        media.removeEventListener("change", syncViewport);
+      };
+    }
+    media.addListener(syncViewport);
+    return () => {
+      media.removeListener(syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isMobileViewport) return;
+    setMobileSidebarOpen(false);
+  }, [isMobileViewport]);
+
+  useEffect(() => {
     const handleDocumentPointerDown = (event: Event) => {
       const target = event.target as Node | null;
       if (!target) return;
+      const targetElement = target instanceof Element ? target : null;
       if (
         chatSessionContextMenu.open &&
         chatSessionContextMenuRef.current &&
@@ -1272,7 +1304,15 @@ export function ChatPage() {
       if (pipelineDropdownRef.current && !pipelineDropdownRef.current.contains(target)) {
         setPipelineDropdownOpen(false);
       }
-      const targetElement = target instanceof Element ? target : null;
+      if (
+        isMobileViewport &&
+        mobileSidebarOpen &&
+        chatSidebarRef.current &&
+        !chatSidebarRef.current.contains(target) &&
+        !targetElement?.closest("[data-mobile-sidebar-toggle='true']")
+      ) {
+        setMobileSidebarOpen(false);
+      }
       const keepDetailOpen =
         !!targetElement?.closest(".citation-link") ||
         !!targetElement?.closest(".ref-item") ||
@@ -1291,7 +1331,7 @@ export function ChatPage() {
     return () => {
       document.removeEventListener("mousedown", handleDocumentPointerDown);
     };
-  }, [chatSessionContextMenu.open, detailPanelOpen]);
+  }, [chatSessionContextMenu.open, detailPanelOpen, isMobileViewport, mobileSidebarOpen]);
 
   const loadKbData = useCallback(async (): Promise<KbFilesResponse | null> => {
     setKbLoading(true);
@@ -1463,12 +1503,14 @@ export function ChatPage() {
     const cachedSessionId = activeEngineRef.current[selectedPipeline];
     if (cachedSessionId) {
       try {
-        await fetchPipelineChatHistory(cachedSessionId);
+        // Reuse existing engine session if possible; backend get_or_create is idempotent.
+        await startPipelineDemoSession(selectedPipeline, cachedSessionId);
         setChatStatus("ready");
         setStatusText("Ready");
         return cachedSessionId;
       } catch {
         delete activeEngineRef.current[selectedPipeline];
+        saveEngines();
       }
     }
 
@@ -2004,6 +2046,10 @@ export function ChatPage() {
 
   const toggleKbDropdown = () => {
     setKbDropdownOpen((previous) => !previous);
+  };
+
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen((previous) => !previous);
   };
 
   const selectKbCollection = (collectionName: string) => {
@@ -3261,11 +3307,17 @@ export function ChatPage() {
 
   return (
     <>
-      <section id="chat-view" className="view-overlay">
+      <section
+        id="chat-view"
+        className="view-overlay"
+        data-viewport={isMobileViewport ? "mobile" : "desktop"}
+        data-sidebar-open={isMobileViewport && mobileSidebarOpen ? "true" : "false"}
+      >
       <main className="chat-layout">
         <aside
+          ref={chatSidebarRef}
           className={`chat-sidebar ${mobileSidebarOpen ? "show" : ""} ${
-            sidebarCollapsed ? "collapsed" : ""
+            !isMobileViewport && sidebarCollapsed ? "collapsed" : ""
           }`}
         >
           <header className="sidebar-header">
@@ -3663,15 +3715,27 @@ export function ChatPage() {
           </footer>
         </aside>
 
+        <button
+          type="button"
+          className="chat-mobile-backdrop"
+          tabIndex={isMobileViewport && mobileSidebarOpen ? 0 : -1}
+          aria-label={t("common_close", "Close")}
+          onClick={(event) => {
+            event.currentTarget.blur();
+            setMobileSidebarOpen(false);
+          }}
+        />
+
         <section className="chat-main" id="chat-main-view">
           {activeView === "chat" ? (
           <header className="view-header border-bottom-0 justify-content-start gap-3">
             <div className="d-md-none">
               <button
                 type="button"
-                className="btn btn-icon"
+                className="btn btn-icon chat-mobile-menu-btn"
                 id="chat-mobile-menu"
-                onClick={() => setMobileSidebarOpen((previous) => !previous)}
+                data-mobile-sidebar-toggle="true"
+                onClick={toggleMobileSidebar}
               >
                 ☰
               </button>
@@ -4243,8 +4307,21 @@ export function ChatPage() {
           {activeView === "kb" ? (
             <div className="kb-main" id="kb-main-view">
               <header className="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
-                <h3 className="m-0 fs-5 fw-bold text-dark">{t("kb_collections", "Knowledge Base")}</h3>
-                <div className="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+                <div className="subview-header-main d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-icon chat-mobile-menu-btn d-md-none"
+                    data-mobile-sidebar-toggle="true"
+                    aria-label={t("chat_sidebar_toggle_title", "Toggle Sidebar")}
+                    onClick={toggleMobileSidebar}
+                  >
+                    ☰
+                  </button>
+                  <h3 className="m-0 fs-5 fw-bold text-dark subview-header-title">
+                    {t("kb_collections", "Knowledge Base")}
+                  </h3>
+                </div>
+                <div className="kb-header-actions d-flex gap-2 align-items-center flex-wrap justify-content-end">
                   <div className="kb-connection-group">
                     <button
                       type="button"
@@ -4378,7 +4455,20 @@ export function ChatPage() {
           {activeView === "explore" ? (
             <div className="explore-main" id="explore-main-view">
               <header className="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
-                <h3 className="m-0 fs-5 fw-bold text-dark">{t("explore_title", "Explore")}</h3>
+                <div className="subview-header-main d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-icon chat-mobile-menu-btn d-md-none"
+                    data-mobile-sidebar-toggle="true"
+                    aria-label={t("chat_sidebar_toggle_title", "Toggle Sidebar")}
+                    onClick={toggleMobileSidebar}
+                  >
+                    ☰
+                  </button>
+                  <h3 className="m-0 fs-5 fw-bold text-dark subview-header-title">
+                    {t("explore_title", "Explore")}
+                  </h3>
+                </div>
               </header>
               <div className="explore-wrapper p-4 bg-light">
                 <p className="explore-subtitle mb-3">
@@ -4462,7 +4552,18 @@ export function ChatPage() {
           {activeView === "memory" ? (
             <div className="memory-main" id="memory-main-view">
               <header className="view-header border-bottom px-4 py-3 d-flex justify-content-between align-items-center bg-white sticky-top">
-                <h3 className="m-0 fs-5 fw-bold text-dark">{t("memory", "Memory")}</h3>
+                <div className="subview-header-main d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-icon chat-mobile-menu-btn d-md-none"
+                    data-mobile-sidebar-toggle="true"
+                    aria-label={t("chat_sidebar_toggle_title", "Toggle Sidebar")}
+                    onClick={toggleMobileSidebar}
+                  >
+                    ☰
+                  </button>
+                  <h3 className="m-0 fs-5 fw-bold text-dark subview-header-title">{t("memory", "Memory")}</h3>
+                </div>
                 <div className="d-flex align-items-center gap-2">
                   <span
                     id="memory-status"
