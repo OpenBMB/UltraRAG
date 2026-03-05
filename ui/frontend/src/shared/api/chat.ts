@@ -1,5 +1,6 @@
 import { buildApiUrl, httpRequest } from "@/shared/api/http";
 import type { ChatMessage, ChatSession, SourceDoc } from "@/shared/api/types";
+import { createClientId } from "@/shared/lib/id";
 
 type UpsertChatSessionPayload = {
   id: string;
@@ -34,7 +35,7 @@ export async function renameChatSession(sessionId: string, title: string): Promi
 
 export async function createChatSession(title = "New Chat"): Promise<ChatSession> {
   return upsertChatSession({
-    id: crypto.randomUUID().replace(/-/g, ""),
+    id: createClientId(),
     title,
     timestamp: Date.now(),
     messages: [],

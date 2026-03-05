@@ -57,6 +57,7 @@ import {
 import { streamPipelineChat } from "@/shared/api/streaming";
 import type { ChatMessage, ChatSession, PipelineItem, SourceDoc } from "@/shared/api/types";
 import { normalizeSourceDocs, renderChatMarkdown } from "@/shared/lib/chatMarkdown";
+import { createClientId } from "@/shared/lib/id";
 import { useThemeStyles } from "@/shared/lib/useThemeStyles";
 import { AuthDialog } from "@/features/auth/components/AuthDialog";
 import { AccountSettingsDialog } from "@/features/auth/components/AccountSettingsDialog";
@@ -64,7 +65,7 @@ import { useI18n } from "@/shared/i18n/provider";
 import "@/pages/chat-page.css";
 
 function createSessionId(): string {
-  return crypto.randomUUID().replace(/-/g, "");
+  return createClientId();
 }
 
 function readStoredEngineMap(): Record<string, string> {
