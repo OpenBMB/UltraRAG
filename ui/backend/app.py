@@ -33,7 +33,8 @@ from . import pipeline_manager as pm
 LOGGER = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
-FRONTEND_DIR = BASE_DIR.parent / "frontend"
+FRONTEND_DIST_DIR = BASE_DIR.parent / "frontend" / "dist"
+FRONTEND_DIR_ENV = "ULTRARAG_FRONTEND_DIR"
 EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
 KB_TASKS = {}
 LLMS_DOC_PATH = BASE_DIR.parent.parent / "docs" / "llms.txt"
@@ -47,6 +48,31 @@ MEMORY_FILENAME = "MEMORY.md"
 MEMORY_DEFAULT_CONTENT = "# MEMORY\ni am jack. i like LLMs.\n"
 MEMORY_USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 AUTH_DB_PATH = BASE_DIR.parent.parent / "data" / "users.sqlite3"
+
+
+def _resolve_frontend_dir() -> Path:
+    """Resolve active frontend static directory with env override and safe fallback."""
+    env_dir = os.getenv(FRONTEND_DIR_ENV, "").strip()
+    if env_dir:
+        candidate = Path(env_dir).expanduser().resolve()
+        if candidate.exists():
+            return candidate
+        LOGGER.warning(
+            "%s=%s does not exist, fallback to default frontend",
+            FRONTEND_DIR_ENV,
+            candidate,
+        )
+
+    if FRONTEND_DIST_DIR.exists():
+        return FRONTEND_DIST_DIR
+    LOGGER.warning(
+        "React dist not found at %s, static serving may fail until frontend is built",
+        FRONTEND_DIST_DIR,
+    )
+    return FRONTEND_DIST_DIR
+
+
+FRONTEND_DIR = _resolve_frontend_dir()
 
 
 def load_llms_doc() -> str:

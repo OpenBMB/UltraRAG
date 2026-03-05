@@ -1,0 +1,873 @@
+.react-builder-page {
+  min-height: 100dvh;
+  background: var(--bg-surface);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.react-builder-header {
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.react-builder-header-left h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.react-builder-subtitle {
+  color: #64748b;
+  font-size: 0.86rem;
+}
+
+.react-builder-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.react-builder-toolbar {
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.react-builder-pipeline-select {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  min-width: 240px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.react-builder-pipeline-name-input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  height: 36px;
+  min-width: 220px;
+  padding: 0 10px;
+}
+
+.ready-chip,
+.pending-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.ready-chip {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.pending-chip {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.react-builder-tabs {
+  background: #fff;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.react-builder-panel {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.react-builder-demo-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.react-builder-demo-session {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  height: 34px;
+  min-width: 240px;
+  padding: 0 10px;
+}
+
+.yaml-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.yaml-chip--idle {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.yaml-chip--validating {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.yaml-chip--valid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.yaml-chip--invalid {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.react-builder-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.react-builder-panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.react-builder-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.react-builder-editor {
+  width: 100%;
+  min-height: 62dvh;
+  resize: vertical;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.react-builder-editor--pipeline {
+  min-height: 66dvh;
+}
+
+.react-builder-pipeline-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.react-builder-preview-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 10px;
+  min-height: 66dvh;
+  max-height: 74dvh;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.react-builder-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.react-builder-preview-head h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.react-builder-preview-head span {
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+.react-builder-preview-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.react-builder-preview-mode-toggle {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  display: inline-flex;
+}
+
+.react-builder-preview-mode-toggle button {
+  border: none;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.74rem;
+  height: 26px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.react-builder-preview-mode-toggle button.active {
+  background: #e0e7ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.react-builder-preview-empty,
+.react-builder-preview-error {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+.react-builder-preview-error {
+  color: #b91c1c;
+  white-space: pre-wrap;
+}
+
+.react-builder-preview-link {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 8px;
+  color: #1d4ed8;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.react-builder-preview-link:hover {
+  text-decoration: underline;
+}
+
+.react-builder-preview-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.react-builder-preview-tree {
+  margin: 0;
+  padding-left: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.react-builder-preview-tree li {
+  list-style: none;
+}
+
+.react-builder-preview-node {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.82rem;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.react-builder-preview-node--step {
+  border-left: 3px solid #3b82f6;
+}
+
+.react-builder-preview-node--loop {
+  border-left: 3px solid #16a34a;
+}
+
+.react-builder-preview-node--branch {
+  border-left: 3px solid #9333ea;
+}
+
+.react-builder-preview-node--group {
+  border-left: 3px solid #f97316;
+}
+
+.react-builder-flow-layout {
+  display: grid;
+  gap: 8px;
+}
+
+.react-builder-flow-canvas-inner {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+}
+
+.react-builder-flow-canvas-inner .react-flow {
+  width: 100%;
+  height: 100%;
+}
+
+.react-builder-flow-canvas {
+  width: 100%;
+  height: 40dvh;
+  min-height: 250px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.react-builder-flow-tools {
+  border: 1px solid #dbe4ef;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 8px;
+  display: grid;
+  gap: 7px;
+}
+
+.react-builder-flow-tools h4,
+.react-builder-flow-tools p {
+  margin: 0;
+}
+
+.react-builder-flow-tools h4 {
+  font-size: 0.85rem;
+}
+
+.react-builder-flow-tools p {
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.react-builder-flow-tools label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.76rem;
+  color: #334155;
+}
+
+.react-builder-flow-tools input,
+.react-builder-flow-tools select {
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+
+.react-builder-flow-tools button {
+  height: 30px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1f2937;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.react-builder-flow-tools button:hover {
+  background: #eef2f7;
+}
+
+.react-builder-flow-tools button.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.react-builder-flow-tools button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.react-builder-flow-node {
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  padding: 6px 8px;
+  min-width: 128px;
+  font-size: 0.8rem;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.react-builder-flow-node--step {
+  border-left: 3px solid #3b82f6;
+}
+
+.react-builder-flow-node--loop {
+  border-left: 3px solid #16a34a;
+}
+
+.react-builder-flow-node--branch {
+  border-left: 3px solid #9333ea;
+}
+
+.react-builder-flow-node--group {
+  border-left: 3px solid #f97316;
+}
+
+.prompt-gutter .line-number {
+  height: 1.6em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+
+.react-builder-prompts-panel {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.react-builder-prompts-list {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px;
+  max-height: 68dvh;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.react-builder-prompt-item {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+  padding: 8px 10px;
+  background: transparent;
+  cursor: pointer;
+  color: #1f2937;
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.react-builder-prompt-item:hover {
+  background: #f3f4f6;
+}
+
+.react-builder-prompt-item.active {
+  background: #e0e7ff;
+  color: #1d4ed8;
+}
+
+.react-builder-prompts-editor-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.react-builder-status {
+  margin: 0;
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.ai-session-content {
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.ai-action-block.error {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.06);
+}
+
+/* React prompt list uses <button>; reset native button chrome */
+.prompts-list .prompt-item {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: left;
+  box-shadow: none;
+}
+
+.prompts-list .prompt-item:focus-visible {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+@media (max-width: 992px) {
+  .react-builder-page {
+    padding: 10px;
+  }
+
+  .react-builder-header {
+    padding: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .react-builder-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .react-builder-pipeline-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .react-builder-prompts-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .react-builder-pipeline-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .react-builder-preview-panel {
+    min-height: 220px;
+    max-height: 320px;
+  }
+
+  .react-builder-prompts-list {
+    max-height: 220px;
+  }
+
+  .react-builder-editor {
+    min-height: 50dvh;
+  }
+
+  .react-builder-demo-session {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+.flow-insert-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.flow-insert-control:hover .flow-insert-extra,
+.flow-insert-control.prominent .flow-insert-extra {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.flow-insert-extra.compact {
+  gap: 4px;
+  margin-left: 6px;
+}
+
+.flow-insert-extra.compact .flow-insert-kind {
+  font-size: 0.62rem;
+  padding: 1px 6px;
+}
+
+.flow-insert-kind {
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  line-height: 1.4;
+}
+
+.flow-insert-kind:hover {
+  background: #f1f5f9;
+}
+
+.builder-action-btn .spinner-border {
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+}
+
+.builder-inline-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.builder-inline-modal {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+  padding: 18px;
+}
+
+.builder-inline-modal h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.builder-inline-modal p {
+  margin: 0 0 12px;
+  font-size: 0.86rem;
+  color: #475569;
+}
+
+.builder-inline-modal-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.builder-inline-modal-input:focus {
+  outline: none;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.builder-inline-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.prompt-create-modal {
+  width: min(560px, 100%);
+  border-radius: 26px;
+  padding: 26px 28px 22px;
+}
+
+.prompt-create-modal-icon {
+  width: 86px;
+  height: 86px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.prompt-create-modal h4,
+.prompt-create-modal p {
+  text-align: center;
+}
+
+.prompt-create-modal p {
+  margin-bottom: 16px;
+}
+
+.prompt-create-input {
+  margin-bottom: 18px;
+  font-size: 1rem;
+  min-height: 52px;
+}
+
+.prompt-create-modal .builder-inline-modal-actions {
+  justify-content: center;
+  gap: 14px;
+}
+
+.prompt-create-modal .builder-inline-modal-actions .btn {
+  min-width: 112px;
+  min-height: 46px;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+
+.text-xs {
+  font-size: 0.78rem;
+}
+
+.canvas-main .loop-container {
+  width: min(100%, 700px);
+  margin: 10px auto;
+  border: 1px dashed rgba(99, 102, 241, 0.28);
+  background: #f8faff;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.canvas-main .loop-header,
+.canvas-main .branch-header {
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.canvas-main .loop-header h6,
+.canvas-main .branch-header h6 {
+  margin: 0;
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: none;
+}
+
+.canvas-main .branch-container {
+  border: 1px dashed rgba(148, 163, 184, 0.38);
+  background: #f8fafc;
+  border-radius: 16px;
+}
+
+.canvas-main .branch-router {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.canvas-main .branch-case {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  padding: 10px 10px 12px;
+}
+
+.canvas-main .branch-case > .d-flex {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.canvas-main .context-controls .context-breadcrumb {
+  row-gap: 6px;
+}
+
+.node-picker-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.node-picker-modal {
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+}
+
+.node-picker-header {
+  padding: 20px 24px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.node-picker-header h5 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.28rem;
+  color: #111827;
+}
+
+.node-picker-close {
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 1.8rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.node-picker-body {
+  padding: 12px 24px 20px;
+}
+
+.node-picker-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  background: #f6f7fb;
+  padding: 6px;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+.node-picker-tab {
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  padding: 8px 12px;
+}
+
+.node-picker-tab.active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.node-picker-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.node-picker-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.node-picker-input {
+  width: 100%;
+  background: #f6f7fb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: none;
+}
+
+.node-picker-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.node-picker-textarea {
+  resize: vertical;
+}
+
+.node-picker-error {
+  color: #dc2626;
+  font-size: 0.84rem;
+  margin-top: 10px;
+}
+
+.node-picker-footer {
+  padding: 0 24px 24px;
+}
+
+.node-picker-confirm {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  padding: 12px 16px;
+}

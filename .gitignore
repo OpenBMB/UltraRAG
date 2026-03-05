@@ -35,3 +35,6 @@ servers/*/server.yaml
 
 # Python package metadata
 src/*.egg-info/
+
+# JavaScript frontend artifacts
+**/node_modules/

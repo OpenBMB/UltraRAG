@@ -2128,7 +2128,6 @@ def _parameter_candidates(config_file: Path) -> List[Path]:
     base = config_file.stem
     return [
         config_file.parent / "parameter" / f"{base}_parameter.yaml",
-        PIPELINES_DIR / "parameter" / f"{base}_parameter.yaml",
     ]
 
 
@@ -2137,13 +2136,8 @@ def _resolve_parameter_path(name: str, *, for_write: bool = False) -> Path:
     if not cfg:
         raise PipelineManagerError("Pipeline not found")
     cands = _parameter_candidates(cfg)
-    if not for_write:
-        for c in cands:
-            if c.exists():
-                return c
-    for c in cands:
-        if c.parent.exists() or for_write:
-            return c
+    if not for_write and cands[0].exists():
+        return cands[0]
     return cands[0]
 
 
@@ -2192,10 +2186,7 @@ def list_pipelines() -> List[Dict[str, Any]]:
 
             if not any(r["name"] == f.stem for r in res):
 
-                param_path = PIPELINES_DIR / "parameter" / f"{f.stem}_parameter.yaml"
-                if not param_path.exists():
-                    param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
-
+                param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
                 is_ready = param_path.exists()
 
                 res.append(
