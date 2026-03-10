@@ -27,8 +27,10 @@ data/users.sqlite3
 .env
 
 # Example configuration files
-examples/parameter/*.yaml
-examples/server/*.yaml
+examples/experiments/parameter/*.yaml
+examples/experiments/server/*.yaml
+examples/demos/parameter/*.yaml
+examples/demos/server/*.yaml
 
 # Server configuration files for each server module
 servers/*/server.yaml
