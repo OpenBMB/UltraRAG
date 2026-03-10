@@ -1,0 +1,194 @@
+benchmark:
+  tools:
+    get_data:
+      input:
+        benchmark: $benchmark
+      output:
+      - q_ls
+      - gt_ls
+  parameter: servers/benchmark/parameter.yaml
+  path: servers/benchmark/src/benchmark.py
+retriever:
+  tools:
+    retriever_init:
+      input:
+        model_name_or_path: $model_name_or_path
+        backend_configs: $backend_configs
+        batch_size: $batch_size
+        corpus_path: $corpus_path
+        gpu_ids: $gpu_ids
+        is_multimodal: $is_multimodal
+        backend: $backend
+        index_backend: $index_backend
+        index_backend_configs: $index_backend_configs
+        is_demo: $is_demo
+        collection_name: $collection_name
+    retriever_batch_websearch:
+      input:
+        batch_query_list: batch_query_list
+        top_k: $top_k
+        retrieve_thread_num: $retrieve_thread_num
+        websearch_backend: $websearch_backend
+        websearch_backend_configs: $websearch_backend_configs
+      output:
+      - ret_psg_ls
+  parameter: servers/retriever/parameter.yaml
+  path: servers/retriever/src/retriever.py
+generation:
+  tools:
+    generation_init:
+      input:
+        backend_configs: $backend_configs
+        sampling_params: $sampling_params
+        extra_params: $extra_params
+        backend: $backend
+    generate:
+      input:
+        prompt_ls: prompt_ls
+        system_prompt: $system_prompt
+      output:
+      - ans_ls
+  parameter: servers/generation/parameter.yaml
+  path: servers/generation/src/generation.py
+custom:
+  tools:
+    surveycpm_init_citation_registry:
+      input:
+        instruction_ls: instruction_ls
+      output:
+      - instruction_ls
+    surveycpm_state_init:
+      input:
+        instruction_ls: instruction_ls
+      output:
+      - state_ls
+      - cursor_ls
+      - survey_ls
+      - step_ls
+      - extend_time_ls
+      - extend_result_ls
+      - retrieved_info_ls
+      - parsed_ls
+    surveycpm_parse_search_response:
+      input:
+        response_ls: response_ls
+        surveycpm_hard_mode: $surveycpm_hard_mode
+      output:
+      - keywords_ls
+      - parsed_ls
+    surveycpm_process_passages_with_citation:
+      input:
+        ret_psg_ls: ret_psg_ls
+        survey_ls: survey_ls
+      output:
+      - retrieved_info_ls
+      - ret_psg
+    surveycpm_update_state:
+      input:
+        state_ls: state_ls
+        cursor_ls: cursor_ls
+        extend_time_ls: extend_time_ls
+        extend_result_ls: extend_result_ls
+        step_ls: step_ls
+        parsed_ls: parsed_ls
+        surveycpm_max_step: $surveycpm_max_step
+        surveycpm_max_extend_step: $surveycpm_max_extend_step
+      output:
+      - state_ls
+      - extend_time_ls
+      - step_ls
+    surveycpm_after_init_plan:
+      input:
+        response_ls: response_ls
+        survey_ls: survey_ls
+        instruction_ls: instruction_ls
+        surveycpm_hard_mode: $surveycpm_hard_mode
+      output:
+      - survey_ls
+      - cursor_ls
+      - parsed_ls
+    surveycpm_after_write:
+      input:
+        response_ls: response_ls
+        survey_ls: survey_ls
+        cursor_ls: cursor_ls
+        instruction_ls: instruction_ls
+        retrieved_info_ls: retrieved_info_ls
+        surveycpm_hard_mode: $surveycpm_hard_mode
+      output:
+      - survey_ls
+      - cursor_ls
+      - parsed_ls
+    surveycpm_after_extend:
+      input:
+        response_ls: response_ls
+        survey_ls: survey_ls
+        cursor_ls: cursor_ls
+        instruction_ls: instruction_ls
+        surveycpm_hard_mode: $surveycpm_hard_mode
+      output:
+      - survey_ls
+      - cursor_ls
+      - extend_result_ls
+      - parsed_ls
+    surveycpm_format_output:
+      input:
+        survey_ls: survey_ls
+        instruction_ls: instruction_ls
+      output:
+      - ans_ls
+  parameter: servers/custom/parameter.yaml
+  path: servers/custom/src/custom.py
+router:
+  tools:
+    surveycpm_state_router:
+      input:
+        state_ls: state_ls
+        cursor_ls: cursor_ls
+        survey_ls: survey_ls
+        step_ls: step_ls
+        extend_time_ls: extend_time_ls
+        extend_result_ls: extend_result_ls
+      output:
+      - state_ls
+      - cursor_ls
+      - survey_ls
+      - step_ls
+      - extend_time_ls
+      - extend_result_ls
+  path: servers/router/src/router.py
+prompt:
+  prompts:
+    surveycpm_search:
+      input:
+        instruction_ls: instruction_ls
+        survey_ls: survey_ls
+        cursor_ls: cursor_ls
+        surveycpm_search_template: $surveycpm_search_template
+      output:
+      - prompt_ls
+    surveycpm_init_plan:
+      input:
+        instruction_ls: instruction_ls
+        retrieved_info_ls: retrieved_info_ls
+        surveycpm_init_plan_template: $surveycpm_init_plan_template
+      output:
+      - prompt_ls
+    surveycpm_write:
+      input:
+        instruction_ls: instruction_ls
+        survey_ls: survey_ls
+        cursor_ls: cursor_ls
+        retrieved_info_ls: retrieved_info_ls
+        surveycpm_write_template: $surveycpm_write_template
+      output:
+      - prompt_ls
+    surveycpm_extend_plan:
+      input:
+        instruction_ls: instruction_ls
+        survey_ls: survey_ls
+        surveycpm_extend_plan_template: $surveycpm_extend_plan_template
+      output:
+      - prompt_ls
+  parameter: servers/prompt/parameter.yaml
+  path: servers/prompt/src/prompt.py

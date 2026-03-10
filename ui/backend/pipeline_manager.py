@@ -87,7 +87,13 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 SERVERS_DIR = PROJECT_ROOT / "servers"
-PIPELINES_DIR = PROJECT_ROOT / "examples"
+PIPELINES_ROOT_DIR = PROJECT_ROOT / "examples"
+DEMO_PIPELINES_DIR = PIPELINES_ROOT_DIR / "demos"
+EXPERIMENT_PIPELINES_DIR = PIPELINES_ROOT_DIR / "experiments"
+PIPELINE_SEARCH_DIRS = (
+    DEMO_PIPELINES_DIR,
+    EXPERIMENT_PIPELINES_DIR,
+)
 CHAT_DATASET_DIR = PROJECT_ROOT / "data" / "chat_sessions"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 USER_MEMORY_ROOT = PROJECT_ROOT / "data" / "user_memory"
@@ -2115,20 +2121,44 @@ def _as_project_relative(path: Path) -> str:
         return path.as_posix()
 
 
+def _sanitize_pipeline_name(name: str) -> str:
+    return str(name or "").replace("..", "_").strip()
+
+
+def _is_demo_pipeline_name(name: str) -> bool:
+    return any(ch.isupper() for ch in name)
+
+
+def _default_pipeline_dir(name: str) -> Path:
+    return DEMO_PIPELINES_DIR if _is_demo_pipeline_name(name) else EXPERIMENT_PIPELINES_DIR
+
+
+def _pipeline_candidates(name: str) -> List[Path]:
+    safe_name = _sanitize_pipeline_name(name)
+    filename = f"{safe_name}.yaml"
+    preferred_dir = _default_pipeline_dir(safe_name)
+    ordered_dirs = [preferred_dir]
+    for directory in PIPELINE_SEARCH_DIRS:
+        if directory not in ordered_dirs:
+            ordered_dirs.append(directory)
+    return [directory / filename for directory in ordered_dirs]
+
+
 def pipeline_path(name: str) -> Path:
-    return PIPELINES_DIR / f"{name.replace('..','_')}.yaml"
+    safe_name = _sanitize_pipeline_name(name)
+    return _default_pipeline_dir(safe_name) / f"{safe_name}.yaml"
 
 
 def _find_pipeline_file(name: str) -> Path | None:
-    p = pipeline_path(name)
-    return p if p.exists() else None
+    for candidate in _pipeline_candidates(name):
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _parameter_candidates(config_file: Path) -> List[Path]:
     base = config_file.stem
-    return [
-        config_file.parent / "parameter" / f"{base}_parameter.yaml",
-    ]
+    return [config_file.parent / "parameter" / f"{base}_parameter.yaml"]
 
 
 def _resolve_parameter_path(name: str, *, for_write: bool = False) -> Path:
@@ -2136,8 +2166,9 @@ def _resolve_parameter_path(name: str, *, for_write: bool = False) -> Path:
     if not cfg:
         raise PipelineManagerError("Pipeline not found")
     cands = _parameter_candidates(cfg)
-    if not for_write and cands[0].exists():
-        return cands[0]
+    for candidate in cands:
+        if candidate.exists():
+            return candidate
     return cands[0]
 
 
@@ -2178,25 +2209,24 @@ HIDDEN_PIPELINES = {
 
 def list_pipelines() -> List[Dict[str, Any]]:
     res = []
-    if PIPELINES_DIR.exists():
-        for f in PIPELINES_DIR.glob("*.yaml"):
+    if DEMO_PIPELINES_DIR.exists():
+        for f in sorted(DEMO_PIPELINES_DIR.glob("*.yaml")):
             # Skip pipelines in hidden list
             if f.stem in HIDDEN_PIPELINES:
                 continue
 
-            if not any(r["name"] == f.stem for r in res):
+            # UI only displays demo pipelines that are already built.
+            param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
+            if not param_path.exists():
+                continue
 
-                param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
-                is_ready = param_path.exists()
-
-                res.append(
-                    {
-                        "name": f.stem,
-                        "config": yaml.safe_load(f.read_text(encoding="utf-8"))
-                        or {},
-                        "is_ready": is_ready,
-                    }
-                )
+            res.append(
+                {
+                    "name": f.stem,
+                    "config": yaml.safe_load(f.read_text(encoding="utf-8")) or {},
+                    "is_ready": True,
+                }
+            )
     return res
 
 
@@ -2264,7 +2294,9 @@ def save_pipeline(payload: Dict) -> Dict:
         "pipeline": steps,
     }
 
-    with pipeline_path(name).open("w", encoding="utf-8") as f:
+    output_path = pipeline_path(name)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(yaml_data, f, sort_keys=False, allow_unicode=True)
 
     return {"name": name, **yaml_data}
@@ -2294,6 +2326,7 @@ def save_pipeline_yaml(name: str, yaml_content: str) -> Dict:
 
     # Write file
     p = pipeline_path(name)
+    p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(yaml_content, encoding="utf-8")
 
     return {"name": name, "status": "saved"}
@@ -2326,18 +2359,20 @@ def rename_pipeline(old_name: str, new_name: str) -> Dict:
     if not old_path:
         raise PipelineManagerError(f"Pipeline '{old_name}' not found")
 
-    # Check if new name already exists
-    new_path = pipeline_path(new_name)
-    if new_path.exists():
+    # Check if new name already exists in any known pipeline directory
+    if _find_pipeline_file(new_name):
         raise PipelineManagerError(f"Pipeline '{new_name}' already exists")
+
+    new_path = pipeline_path(new_name)
+    new_path.parent.mkdir(parents=True, exist_ok=True)
+    old_param_path = old_path.parent / "parameter" / f"{old_path.stem}_parameter.yaml"
+    new_param_path = new_path.parent / "parameter" / f"{new_path.stem}_parameter.yaml"
 
     # Execute rename
     old_path.rename(new_path)
 
     # Also rename corresponding parameter file (if exists)
-    old_param_path = _resolve_parameter_path(old_name, for_write=False)
     if old_param_path.exists():
-        new_param_path = _resolve_parameter_path(new_name, for_write=True)
         new_param_path.parent.mkdir(parents=True, exist_ok=True)
         old_param_path.rename(new_param_path)
 

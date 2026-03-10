@@ -1,0 +1,73 @@
+benchmark:
+  tools:
+    get_data:
+      input:
+        benchmark: $benchmark
+      output:
+      - q_ls
+      - gt_ls
+  parameter: servers/benchmark/parameter.yaml
+  path: servers/benchmark/src/benchmark.py
+memory:
+  tools:
+    get_global_memory:
+      input:
+        user_id: $user_id
+      output:
+      - global_memory_content
+      - current_user_id
+  parameter: servers/memory/parameter.yaml
+  path: servers/memory/src/memory.py
+retriever:
+  tools:
+    retriever_init:
+      input:
+        model_name_or_path: $model_name_or_path
+        backend_configs: $backend_configs
+        batch_size: $batch_size
+        corpus_path: $corpus_path
+        gpu_ids: $gpu_ids
+        is_multimodal: $is_multimodal
+        backend: $backend
+        index_backend: $index_backend
+        index_backend_configs: $index_backend_configs
+        is_demo: $is_demo
+        collection_name: $collection_name
+    retriever_project_memory_search:
+      input:
+        query_list: q_ls
+        top_k: $top_k
+        query_instruction: $query_instruction
+        current_user_id: current_user_id
+      output:
+      - project_memory_content
+  parameter: servers/retriever/parameter.yaml
+  path: servers/retriever/src/retriever.py
+generation:
+  tools:
+    generation_init:
+      input:
+        backend_configs: $backend_configs
+        sampling_params: $sampling_params
+        extra_params: $extra_params
+        backend: $backend
+    generate:
+      input:
+        prompt_ls: prompt_ls
+        system_prompt: $system_prompt
+      output:
+      - ans_ls
+  parameter: servers/generation/parameter.yaml
+  path: servers/generation/src/generation.py
+prompt:
+  prompts:
+    qa_with_memory:
+      input:
+        q_ls: q_ls
+        global_memory_content: global_memory_content
+        project_memory_content: project_memory_content
+        template: $template
+      output:
+      - prompt_ls
+  parameter: servers/prompt/parameter.yaml
+  path: servers/prompt/src/prompt.py

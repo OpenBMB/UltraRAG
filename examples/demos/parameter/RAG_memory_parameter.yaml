@@ -1,3 +1,15 @@
+benchmark:
+  benchmark:
+    name: nq
+    path: data/chat_sessions/RAG_memory_1772248229205.jsonl
+    key_map:
+      q_ls: question
+      gt_ls: golden_answers
+    shuffle: false
+    seed: 42
+    limit: -1
+memory:
+  user_id: default
 retriever:
   model_name_or_path: openbmb/MiniCPM-Embedding-Light
   backend_configs:
@@ -52,5 +64,37 @@ retriever:
       index_chunk_size: 1000
   is_demo: false
   collection_name: wiki
-  embedding_path: embedding/embedding.npy
-  overwrite: false
+  top_k: 5
+  query_instruction: 'Query: '
+generation:
+  backend: openai
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1
+      base_url: http://localhost:65503/v1
+      concurrency: 8
+      model_name: qwen3-32b
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: 请记住，你是一个专业的UltraRAG问答助手。请一定记住使用中文回答问题。
+custom: {}
+prompt:
+  template: prompt/qa_rag_with_memory.jinja

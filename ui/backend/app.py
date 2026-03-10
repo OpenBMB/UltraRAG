@@ -35,7 +35,9 @@ LOGGER = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIST_DIR = BASE_DIR.parent / "frontend" / "dist"
 FRONTEND_DIR_ENV = "ULTRARAG_FRONTEND_DIR"
-EXAMPLES_DIR = BASE_DIR.parent.parent / "examples"
+EXAMPLES_ROOT_DIR = BASE_DIR.parent.parent / "examples"
+DEMO_EXAMPLES_DIR = EXAMPLES_ROOT_DIR / "demos"
+EXPERIMENT_EXAMPLES_DIR = EXAMPLES_ROOT_DIR / "experiments"
 KB_TASKS = {}
 LLMS_DOC_PATH = BASE_DIR.parent.parent / "docs" / "llms.txt"
 LLMS_DOC_CACHE = None
@@ -1087,13 +1089,20 @@ def create_app(admin_mode: bool = False) -> Flask:
             JSON response with list of template names and contents
         """
         templates = []
-        for f in sorted(EXAMPLES_DIR.glob("*.yaml")):
-            try:
-                templates.append(
-                    {"name": f.stem, "content": f.read_text(encoding="utf-8")}
-                )
-            except Exception:
+        seen_names: set[str] = set()
+        for template_dir in (DEMO_EXAMPLES_DIR, EXPERIMENT_EXAMPLES_DIR):
+            if not template_dir.exists():
                 continue
+            for f in sorted(template_dir.glob("*.yaml")):
+                if f.stem in seen_names:
+                    continue
+                try:
+                    templates.append(
+                        {"name": f.stem, "content": f.read_text(encoding="utf-8")}
+                    )
+                    seen_names.add(f.stem)
+                except Exception:
+                    continue
         return jsonify(templates)
 
     @app.route("/api/servers", methods=["GET"])

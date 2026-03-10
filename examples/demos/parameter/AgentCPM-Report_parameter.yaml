@@ -1,0 +1,104 @@
+benchmark:
+  benchmark:
+    name: nq
+    path: data/sample_nq_10.jsonl
+    key_map:
+      q_ls: question
+      gt_ls: golden_answers
+    shuffle: false
+    seed: 42
+    limit: -1
+retriever:
+  model_name_or_path: openbmb/MiniCPM-Embedding-Light
+  backend_configs:
+    infinity:
+      bettertransformer: false
+      pooling_method: auto
+      model_warmup: false
+      trust_remote_code: true
+    sentence_transformers:
+      trust_remote_code: true
+      sentence_transformers_encode:
+        normalize_embeddings: false
+        encode_chunk_size: 256
+        q_prompt_name: query
+        psg_prompt_name: document
+        psg_task: null
+        q_task: null
+    openai:
+      model_name: text-embedding-3-small
+      base_url: https://api.openai.com/v1
+      api_key: abc
+      concurrency: 8
+    bm25:
+      lang: en
+      save_path: index/bm25
+  batch_size: 16
+  corpus_path: data/corpus_example.jsonl
+  gpu_ids: '1'
+  is_multimodal: false
+  backend: sentence_transformers
+  index_backend: faiss
+  index_backend_configs:
+    faiss:
+      index_use_gpu: true
+      index_chunk_size: 10000
+      index_path: index/index.index
+    milvus:
+      uri: index/milvus_demo.db
+      token: null
+      id_field_name: id
+      vector_field_name: vector
+      text_field_name: contents
+      id_max_length: 64
+      text_max_length: 60000
+      metric_type: IP
+      index_params:
+        index_type: AUTOINDEX
+        metric_type: IP
+      search_params:
+        metric_type: IP
+        params: {}
+      index_chunk_size: 1000
+  is_demo: false
+  collection_name: wiki
+  top_k: 5
+  query_instruction: ''
+generation:
+  backend_configs:
+    vllm:
+      model_name_or_path: openbmb/MiniCPM4-8B
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      dtype: auto
+      trust_remote_code: true
+    openai:
+      model_name: MiniCPM4-8B
+      base_url: http://localhost:8000/v1
+      api_key: abc
+      concurrency: 8
+      retries: 3
+      base_delay: 1.0
+    hf:
+      model_name_or_path: openbmb/MiniCPM4-8B
+      gpu_ids: 2,3
+      trust_remote_code: true
+      batch_size: 8
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.8
+    max_tokens: 2048
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  backend: vllm
+  system_prompt: ''
+custom:
+  surveycpm_hard_mode: false
+  surveycpm_max_step: 140
+  surveycpm_max_extend_step: 12
+prompt:
+  surveycpm_search_template: prompt/surveycpm_search.jinja
+  surveycpm_init_plan_template: prompt/surveycpm_init_plan.jinja
+  surveycpm_write_template: prompt/surveycpm_write.jinja
+  surveycpm_extend_plan_template: prompt/surveycpm_extend_plan.jinja

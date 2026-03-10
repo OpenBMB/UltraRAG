@@ -1,0 +1,71 @@
+benchmark:
+  tools:
+    get_data:
+      input:
+        benchmark: $benchmark
+      output:
+      - q_ls
+      - gt_ls
+  parameter: servers/benchmark/parameter.yaml
+  path: servers/benchmark/src/benchmark.py
+retriever:
+  tools:
+    retriever_init:
+      input:
+        model_name_or_path: $model_name_or_path
+        backend_configs: $backend_configs
+        batch_size: $batch_size
+        corpus_path: $corpus_path
+        gpu_ids: $gpu_ids
+        is_multimodal: $is_multimodal
+        backend: $backend
+        index_backend: $index_backend
+        index_backend_configs: $index_backend_configs
+        is_demo: $is_demo
+        collection_name: $collection_name
+    retriever_search:
+      input:
+        query_list: q_ls
+        top_k: $top_k
+        query_instruction: $query_instruction
+        collection_name: $collection_name
+      output:
+      - ret_psg
+  parameter: servers/retriever/parameter.yaml
+  path: servers/retriever/src/retriever.py
+generation:
+  tools:
+    generation_init:
+      input:
+        backend_configs: $backend_configs
+        sampling_params: $sampling_params
+        extra_params: $extra_params
+        backend: $backend
+    generate:
+      input:
+        prompt_ls: prompt_ls
+        system_prompt: $system_prompt
+      output:
+      - ans_ls
+  parameter: servers/generation/parameter.yaml
+  path: servers/generation/src/generation.py
+custom:
+  tools:
+    assign_citation_ids:
+      input:
+        ret_psg: ret_psg
+      output:
+      - ret_psg
+  parameter: servers/custom/parameter.yaml
+  path: servers/custom/src/custom.py
+prompt:
+  prompts:
+    qa_rag_boxed:
+      input:
+        q_ls: q_ls
+        ret_psg: ret_psg
+        template: $template
+      output:
+      - prompt_ls
+  parameter: servers/prompt/parameter.yaml
+  path: servers/prompt/src/prompt.py

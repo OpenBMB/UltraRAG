@@ -1,0 +1,41 @@
+benchmark:
+  benchmark:
+    key_map:
+      gt_ls: golden_answers
+      q_ls: question
+    limit: -1
+    name: nq
+    path: data/chat_sessions/LLM_1772707848766.jsonl
+    seed: 42
+    shuffle: false
+generation:
+  backend: openai
+  backend_configs:
+    hf:
+      batch_size: 8
+      gpu_ids: 2,3
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+    openai:
+      api_key: abc
+      base_delay: 1
+      base_url: http://localhost:65503/v1
+      concurrency: 8
+      model_name: qwen3-32b
+      retries: 3
+    vllm:
+      dtype: auto
+      gpu_ids: 2,3
+      gpu_memory_utilization: 0.9
+      model_name_or_path: openbmb/MiniCPM4-8B
+      trust_remote_code: true
+  extra_params:
+    chat_template_kwargs:
+      enable_thinking: false
+  sampling_params:
+    max_tokens: 2048
+    temperature: 0.7
+    top_p: 0.8
+  system_prompt: 请记住，你是一个专业的UltraRAG问答助手。请一定记住使用中文回答问题。
+prompt:
+  template: prompt/qa_simple.jinja
