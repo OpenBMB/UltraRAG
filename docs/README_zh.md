@@ -242,6 +242,7 @@ Hello, UltraRAG v3!
 - [实验上手](https://ultrarag.openbmb.cn/pages/cn/getting_started/quick_start)：了解如何基于 UltraRAG 快速跑通标准的 RAG 实验流程。
 - [评测数据](https://ultrarag.openbmb.cn/pages/cn/develop_guide/dataset)：下载 RAG 领域最常用的公开评测数据集以及大规模检索语料库，直接用于科研基准测试。
 - [案例分析](https://ultrarag.openbmb.cn/pages/cn/develop_guide/case_study)：提供可视化的 Case Study 界面，深入追踪工作流的每一步中间输出，辅助分析与错误归因。
+- [结构化排障指南](./debug_rag_workflows_zh.md)：当回答结果可疑、检索命中不稳定、推理链路漂移或部署后行为异常时，可按输入与检索、推理与规划、状态与上下文、部署与运行四个层级进行快速排查。
 - [代码集成](https://ultrarag.openbmb.cn/pages/cn/develop_guide/code_integration)：了解如何在 Python 代码中直接调用 UltraRAG 组件，实现更灵活的定制化开发。
 
 ### 🛠️ 演示系统
