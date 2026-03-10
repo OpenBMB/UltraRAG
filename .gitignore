@@ -27,7 +27,6 @@ ui/storage/db/
 ui/storage/chat_sessions/
 ui/storage/knowledge_base/
 ui/storage/memory/
-ui/storage/.ui_storage_migration.json
 ui/storage/ext/*
 !ui/storage/ext/.gitkeep
 

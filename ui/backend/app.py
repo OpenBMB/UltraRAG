@@ -29,8 +29,12 @@ from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
-from . import storage_migration
-from .storage_paths import UI_MEMORY_ROOT_DIR, UI_STORAGE_ROOT, UI_USERS_DB_PATH
+from .storage_paths import (
+    UI_MEMORY_ROOT_DIR,
+    UI_STORAGE_ROOT,
+    UI_USERS_DB_PATH,
+    ensure_ui_storage_dirs,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -476,13 +480,8 @@ def create_app(admin_mode: bool = False) -> Flask:
         in {"1", "true", "yes", "on"}
     )
 
-    migration_result = storage_migration.migrate_ui_storage_with_backup(LOGGER)
-    LOGGER.info(
-        "UI storage ready: status=%s root=%s backup=%s",
-        migration_result.get("status"),
-        UI_STORAGE_ROOT,
-        migration_result.get("backup_root", ""),
-    )
+    ensure_ui_storage_dirs()
+    LOGGER.info("UI storage ready at: %s", UI_STORAGE_ROOT)
 
     user_store = auth_backend.SQLiteUserStore(AUTH_DB_PATH)
     user_store.init_db()

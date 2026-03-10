@@ -52,16 +52,6 @@ UI_STORAGE_DIRS: Final[tuple[Path, ...]] = (
     UI_EXT_DIR,
 )
 
-LEGACY_DATA_ROOT: Final[Path] = PROJECT_ROOT / "data"
-LEGACY_USERS_DB_PATH: Final[Path] = LEGACY_DATA_ROOT / "users.sqlite3"
-LEGACY_CHAT_SESSIONS_DIR: Final[Path] = LEGACY_DATA_ROOT / "chat_sessions"
-LEGACY_KB_ROOT_DIR: Final[Path] = LEGACY_DATA_ROOT / "knowledge_base"
-LEGACY_MEMORY_ROOT_DIR: Final[Path] = LEGACY_DATA_ROOT / "user_memory"
-
-UI_STORAGE_MIGRATION_MARKER: Final[Path] = (
-    UI_STORAGE_ROOT / ".ui_storage_migration.json"
-)
-
 
 def ensure_ui_storage_dirs() -> None:
     for path in UI_STORAGE_DIRS:
