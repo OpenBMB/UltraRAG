@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import os
 import re
 from typing import Any, Dict, List, Union
 
@@ -11,7 +12,21 @@ from ultrarag.server import UltraRAG_MCP_Server
 app = UltraRAG_MCP_Server("memory")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-USER_MEMORY_ROOT = PROJECT_ROOT / "data" / "user_memory"
+UI_STORAGE_ENV_VAR = "ULTRARAG_UI_STORAGE_ROOT"
+DEFAULT_UI_STORAGE_ROOT = PROJECT_ROOT / "ui" / "storage"
+
+
+def _resolve_ui_storage_root() -> Path:
+    raw_value = str(os.getenv(UI_STORAGE_ENV_VAR, "")).strip()
+    if not raw_value:
+        return DEFAULT_UI_STORAGE_ROOT
+    configured = Path(raw_value).expanduser()
+    if not configured.is_absolute():
+        configured = PROJECT_ROOT / configured
+    return configured.resolve()
+
+
+USER_MEMORY_ROOT = _resolve_ui_storage_root() / "memory"
 MEMORY_TEMPLATE = "# MEMORY\ni am jack. i like LLMs.\n"
 USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 

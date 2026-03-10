@@ -22,6 +22,18 @@ import unicodedata
 import hashlib
 from datetime import datetime
 
+from .storage_paths import (
+    UI_CHAT_SESSIONS_DIR,
+    UI_MEMORY_ROOT_DIR,
+    UI_KB_ROOT_DIR,
+    UI_KB_RAW_DIR,
+    UI_KB_CORPUS_DIR,
+    UI_KB_CHUNKS_DIR,
+    UI_KB_INDEX_DIR,
+    UI_KB_CONFIG_PATH,
+    UI_MEMORY_SYNC_WORKDIR,
+)
+
 try:
     from pymilvus import MilvusClient
 except ImportError:
@@ -94,17 +106,17 @@ PIPELINE_SEARCH_DIRS = (
     DEMO_PIPELINES_DIR,
     EXPERIMENT_PIPELINES_DIR,
 )
-CHAT_DATASET_DIR = PROJECT_ROOT / "data" / "chat_sessions"
+CHAT_DATASET_DIR = UI_CHAT_SESSIONS_DIR
 OUTPUT_DIR = PROJECT_ROOT / "output"
-USER_MEMORY_ROOT = PROJECT_ROOT / "data" / "user_memory"
+USER_MEMORY_ROOT = UI_MEMORY_ROOT_DIR
 
-KB_ROOT = PROJECT_ROOT / "data" / "knowledge_base"
-KB_RAW_DIR = KB_ROOT / "raw"
-KB_CORPUS_DIR = KB_ROOT / "corpus"
-KB_CHUNKS_DIR = KB_ROOT / "chunks"
-KB_INDEX_DIR = KB_ROOT / "index"
-KB_CONFIG_PATH = KB_ROOT / "kb_config.json"
-MEMORY_SYNC_WORKDIR = KB_ROOT / "_memory_sync"
+KB_ROOT = UI_KB_ROOT_DIR
+KB_RAW_DIR = UI_KB_RAW_DIR
+KB_CORPUS_DIR = UI_KB_CORPUS_DIR
+KB_CHUNKS_DIR = UI_KB_CHUNKS_DIR
+KB_INDEX_DIR = UI_KB_INDEX_DIR
+KB_CONFIG_PATH = UI_KB_CONFIG_PATH
+MEMORY_SYNC_WORKDIR = UI_MEMORY_SYNC_WORKDIR
 MAX_COLLECTION_NAME_LEN = 255
 
 # Default session keep-alive duration, can be overridden via environment variable;
@@ -2031,7 +2043,7 @@ def _normalize_memory_user_id(user_id: Optional[str]) -> str:
 
 def _write_memory_locally(user_id: str, question: str, answer: str) -> None:
     normalized_user_id = _normalize_memory_user_id(user_id)
-    user_dir = PROJECT_ROOT / "data" / "user_memory" / normalized_user_id
+    user_dir = USER_MEMORY_ROOT / normalized_user_id
     project_dir = user_dir / "project"
     memory_file = user_dir / "MEMORY.md"
 

@@ -19,12 +19,17 @@ output/
 logs/
 test/
 corpora/
-data/chat_sessions/
-data/knowledge_base/
-data/user_memory/
-data/users.sqlite3
 # Environment variables and secrets
 .env
+
+# UI storage directories
+ui/storage/db/
+ui/storage/chat_sessions/
+ui/storage/knowledge_base/
+ui/storage/memory/
+ui/storage/.ui_storage_migration.json
+ui/storage/ext/*
+!ui/storage/ext/.gitkeep
 
 # Example configuration files
 examples/experiments/parameter/*.yaml

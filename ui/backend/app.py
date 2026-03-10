@@ -29,6 +29,8 @@ from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
+from . import storage_migration
+from .storage_paths import UI_MEMORY_ROOT_DIR, UI_STORAGE_ROOT, UI_USERS_DB_PATH
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,12 +46,12 @@ LLMS_DOC_CACHE = None
 DOCX_MIME_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
-MEMORY_ROOT = BASE_DIR.parent.parent / "data" / "user_memory"
 DEFAULT_MEMORY_USER = "default"
 MEMORY_FILENAME = "MEMORY.md"
 MEMORY_DEFAULT_CONTENT = "# MEMORY\ni am jack. i like LLMs.\n"
 MEMORY_USER_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
-AUTH_DB_PATH = BASE_DIR.parent.parent / "data" / "users.sqlite3"
+MEMORY_ROOT = UI_MEMORY_ROOT_DIR
+AUTH_DB_PATH = UI_USERS_DB_PATH
 
 
 def _resolve_frontend_dir() -> Path:
@@ -472,6 +474,14 @@ def create_app(admin_mode: bool = False) -> Flask:
     app.config["SESSION_COOKIE_SECURE"] = (
         os.getenv("ULTRARAG_SESSION_COOKIE_SECURE", "false").lower()
         in {"1", "true", "yes", "on"}
+    )
+
+    migration_result = storage_migration.migrate_ui_storage_with_backup(LOGGER)
+    LOGGER.info(
+        "UI storage ready: status=%s root=%s backup=%s",
+        migration_result.get("status"),
+        UI_STORAGE_ROOT,
+        migration_result.get("backup_root", ""),
     )
 
     user_store = auth_backend.SQLiteUserStore(AUTH_DB_PATH)
