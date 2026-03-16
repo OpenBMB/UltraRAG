@@ -298,3 +298,13 @@ If you find this repository helpful for your research, please consider giving us
   </td>
   </tr>
 </table>
+
+## 📖 Publications
+
+1. Shi Yu, Chaoyue Tang, Bokai Xu, Junbo Cui, Junhao Ran, Yukun Yan, Zhenghao Liu, Shuo Wang, Xu Han, Zhiyuan Liu, Maosong Sun. (2025) VisRAG: Vision-based Retrieval-augmented Generation on Multi-modality Documents. [arXiv:2410.10594](https://arxiv.org/abs/2410.10594) and [In Proceedings of the Thirteenth International Conference on Learning Representations (ICLR 2025)](https://openreview.net/forum?id=zG459X3Xge).
+
+2. Xinze Li, Sen Mei, Zhenghao Liu, Yukun Yan, Shuo Wang, Shi Yu, Zheni Zeng, Hao Chen, Ge Yu, Zhiyuan Liu, Maosong Sun, Chenyan Xiong. (2025) RAG-DDR: Optimizing Retrieval-Augmented Generation Using Differentiable Data Rewards. [arXiv:2410.13509](https://arxiv.org/abs/2410.13509) and [In Proceedings of the Thirteenth International Conference on Learning Representations (ICLR 2025)](https://openreview.net/forum?id=Pnktu2PBXD).
+
+3. Kunlun Zhu, Yifan Luo, Dingling Xu, Yukun Yan, Zhenghao Liu, Shi Yu, Ruobing Wang, Shuo Wang, Yishan Li, Nan Zhang, Xu Han, Zhiyuan Liu, Maosong Sun. (2025) RAGEval: Scenario Specific RAG Evaluation Dataset Generation Framework. [arXiv:2408.01262](https://arxiv.org/abs/2408.01262) and [In Proceedings of the 63rd Annual Meeting of the Association for Computational Linguistics (ACL 2025)](https://aclanthology.org/2025.acl-long.418/).
+
+4. Ruobing Wang, Qingfei Zhao, Yukun Yan, Daren Zha, Yuxuan Chen, Shi Yu, Zhenghao Liu, Yixuan Wang, Shuo Wang, Xu Han, Zhiyuan Liu, Maosong Sun. (2025) DeepNote: Note-Centric Deep Retrieval-Augmented Generation. [arXiv:2410.08821](https://arxiv.org/abs/2410.08821) and [In Findings of the Association for Computational Linguistics: EMNLP 2025](https://aclanthology.org/2025.findings-emnlp.1073/).
