@@ -1,0 +1,23 @@
+# Generation parameters for MiniMax backend
+#
+# Set the MINIMAX_API_KEY environment variable:
+#   export MINIMAX_API_KEY="your-api-key"
+
+generation:
+  backend: minimax
+  backend_configs:
+    minimax:
+      model_name: MiniMax-M2.7
+      base_url: https://api.minimax.io/v1
+      api_key: ""                         # or set MINIMAX_API_KEY env var
+      concurrency: 4
+      retries: 3
+      base_delay: 1.0
+      strip_think_tags: true
+
+  sampling_params:
+    temperature: 0.7
+    top_p: 0.8
+    max_tokens: 2048
+
+  system_prompt: ""

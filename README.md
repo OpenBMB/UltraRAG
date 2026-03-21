@@ -252,6 +252,26 @@ Designed for developers and end users, providing complete UI interaction and com
 - [Deployment Guide](https://ultrarag.openbmb.cn/pages/en/ui/prepare): Detailed production environment deployment tutorials, covering the setup of Retriever, Generation models (LLM), and Milvus vector database.
 - [Deep Research](https://ultrarag.openbmb.cn/pages/en/demo/deepresearch): Flagship case, deploy a Deep Research Pipeline. Combined with the AgentCPM-Report model, it can automatically perform multi-step retrieval and integration to generate tens of thousands of words of survey reports.
 
+### ☁️ Supported Cloud LLM Backends
+
+The Generation server supports multiple backends out of the box:
+
+| Backend | Description |
+|---------|-------------|
+| `vllm` | Local inference via [vLLM](https://github.com/vllm-project/vllm) |
+| `openai` | OpenAI API (or any OpenAI-compatible endpoint) |
+| `minimax` | [MiniMax](https://www.minimaxi.com) cloud API (M2.7, M2.5 series) |
+| `hf` | Local inference via HuggingFace Transformers |
+
+To use MiniMax as the generation backend, set `backend: minimax` in your parameter file and provide your API key:
+
+```shell
+export MINIMAX_API_KEY="your-api-key"
+ultrarag run examples/minimax_rag.yaml
+```
+
+See [`examples/parameter/minimax_generation_parameter.yaml`](examples/parameter/minimax_generation_parameter.yaml) for full configuration options.
+
 ## 🤝 Contributing
 
 Thanks to the following contributors for their code submissions and testing. We also welcome new members to join us in collectively building a comprehensive RAG ecosystem!

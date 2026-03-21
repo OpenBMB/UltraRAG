@@ -1,6 +1,6 @@
 # servers/generation/parameter.yaml
 
-backend: vllm # options: vllm, openai
+backend: vllm # options: vllm, openai, minimax, hf
 backend_configs:
   vllm:
     model_name_or_path: openbmb/MiniCPM4-8B
@@ -15,6 +15,14 @@ backend_configs:
     concurrency: 8
     retries: 3
     base_delay: 1.0
+  minimax:
+    model_name: MiniMax-M2.7           # or MiniMax-M2.7-highspeed, MiniMax-M2.5, MiniMax-M2.5-highspeed
+    base_url: https://api.minimax.io/v1
+    api_key: ""                         # or set MINIMAX_API_KEY env var
+    concurrency: 4
+    retries: 3
+    base_delay: 1.0
+    strip_think_tags: true              # strip <think>...</think> from model output
   hf:
     model_name_or_path: openbmb/MiniCPM4-8B
     gpu_ids: '2,3'

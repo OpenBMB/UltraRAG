@@ -148,6 +148,43 @@ class Generation:
             b64 = base64.b64encode(f.read()).decode("utf-8")
         return f"data:{mime};base64,{b64}"
 
+    @staticmethod
+    def _clamp_temperature(
+        sampling_params: Dict[str, Any], low: float = 0.01, high: float = 1.0
+    ) -> Dict[str, Any]:
+        """Clamp temperature in sampling_params to [low, high].
+
+        Args:
+            sampling_params: Sampling parameters dict (may contain 'temperature')
+            low: Minimum allowed temperature
+            high: Maximum allowed temperature
+
+        Returns:
+            Updated sampling_params dict with clamped temperature
+        """
+        params = dict(sampling_params)
+        if "temperature" in params:
+            raw = float(params["temperature"])
+            params["temperature"] = max(low, min(high, raw))
+        return params
+
+    @staticmethod
+    def _strip_think_tags(text: str) -> str:
+        """Strip ``<think>...</think>`` blocks from model output.
+
+        MiniMax M2.5/M2.7 models may include internal reasoning wrapped in
+        ``<think>`` tags. This helper removes them so only the final answer
+        is returned to callers.
+
+        Args:
+            text: Raw model output
+
+        Returns:
+            Text with think blocks removed
+        """
+        import re
+        return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
     def generation_init(
         self,
         backend_configs: Dict[str, Any],
@@ -155,13 +192,13 @@ class Generation:
         extra_params: Optional[Dict[str, Any]] = None,
         backend: str = "vllm",
     ) -> None:
-        """Initialize generation backend (vllm, openai, or hf).
+        """Initialize generation backend (vllm, openai, minimax, or hf).
 
         Args:
             backend_configs: Dictionary of backend-specific configurations
             sampling_params: Sampling parameters for generation
             extra_params: Optional extra parameters (e.g., chat_template_kwargs)
-            backend: Backend name ("vllm", "openai", or "hf")
+            backend: Backend name ("vllm", "openai", "minimax", or "hf")
 
         Raises:
             ImportError: If required dependencies are not installed
@@ -233,6 +270,39 @@ class Generation:
             self._max_concurrency = int(cfg.get("concurrency", 1))
             self._retries = int(cfg.get("retries", 3))
             self._base_delay = float(cfg.get("base_delay", 1.0))
+
+        elif self.backend == "minimax":
+            self.model_name = cfg.get("model_name") or "MiniMax-M2.7"
+
+            base_url = cfg.get("base_url") or "https://api.minimax.io/v1"
+
+            api_key = (
+                cfg.get("api_key")
+                or os.environ.get("MINIMAX_API_KEY")
+                or os.environ.get("LLM_API_KEY")
+            )
+            if not api_key:
+                error_msg = (
+                    "api_key is required for minimax backend. "
+                    "Set it in backend_configs or via the MINIMAX_API_KEY "
+                    "environment variable."
+                )
+                app.logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
+            # Clamp temperature to MiniMax's accepted range (0, 1].
+            sampling_params = self._clamp_temperature(sampling_params, 0.01, 1.0)
+
+            if extra_params:
+                sampling_params["extra_body"] = extra_params
+            self.sampling_params = sampling_params
+
+            self._max_concurrency = int(cfg.get("concurrency", 1))
+            self._retries = int(cfg.get("retries", 3))
+            self._base_delay = float(cfg.get("base_delay", 1.0))
+            self._strip_think = bool(cfg.get("strip_think_tags", True))
 
         elif self.backend == "hf":
             try:
@@ -382,6 +452,86 @@ class Generation:
                 asyncio.as_completed(tasks),
                 total=len(tasks),
                 desc="OpenAI Generating: ",
+            ):
+                idx, ans = await coro
+                ret[idx] = ans
+
+        elif self.backend == "minimax":
+            sem = asyncio.Semaphore(self._max_concurrency)
+
+            async def call_minimax(
+                idx,
+                msg,
+                client,
+                model_name,
+                sampling_params,
+                retries: int,
+                base_delay: float,
+            ):
+                import random
+                from openai import RateLimitError, APIStatusError
+
+                delay = base_delay
+                for attempt in range(retries):
+                    try:
+                        async with sem:
+                            resp = await client.chat.completions.create(
+                                model=model_name,
+                                messages=msg,
+                                **sampling_params,
+                            )
+                        text = resp.choices[0].message.content or ""
+                        if getattr(self, "_strip_think", True):
+                            text = self._strip_think_tags(text)
+                        return idx, text
+                    except AuthenticationError as e:
+                        error_msg = (
+                            f"[{e.status_code}] Unauthorized: Invalid or missing MINIMAX_API_KEY."
+                        )
+                        app.logger.error(error_msg)
+                        raise ToolError(error_msg)
+                    except RateLimitError as e:
+                        warn_msg = f"[{e.status_code}] MiniMax rate limited (idx={idx}, attempt={attempt+1}): {e}"
+                        app.logger.warning(warn_msg)
+                        raise ToolError(warn_msg)
+                    except APIStatusError as e:
+                        if e.status_code >= 500:
+                            warn_msg = f"[{e.status_code}] MiniMax server error (idx={idx}, attempt={attempt+1}): {e}"
+                            app.logger.warning(warn_msg)
+                        else:
+                            error_msg = f"[{e.status_code}] MiniMax API error (idx={idx}, attempt={attempt+1}): {e}"
+                            app.logger.error(error_msg)
+                            raise ToolError(error_msg)
+                    except Exception as e:
+                        error_msg = f"[Retry {attempt+1}] MiniMax failed (idx={idx}): {e}"
+                        app.logger.error(error_msg)
+                        raise ToolError(error_msg)
+
+                    await asyncio.sleep(delay + random.random() * 0.25)
+                    delay *= 2
+
+                return idx, "<error>"
+
+            tasks = [
+                asyncio.create_task(
+                    call_minimax(
+                        idx,
+                        msg,
+                        self.client,
+                        self.model_name,
+                        self.sampling_params,
+                        retries=getattr(self, "_retries", 3),
+                        base_delay=getattr(self, "_base_delay", 1.0),
+                    )
+                )
+                for idx, msg in enumerate(msg_ls)
+            ]
+            ret = [None] * len(msg_ls)
+
+            for coro in tqdm(
+                asyncio.as_completed(tasks),
+                total=len(tasks),
+                desc="MiniMax Generating: ",
             ):
                 idx, ans = await coro
                 ret[idx] = ans
