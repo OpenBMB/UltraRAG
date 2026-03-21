@@ -250,6 +250,26 @@ Hello, UltraRAG v3!
 - [部署指南](https://ultrarag.openbmb.cn/pages/cn/ui/prepare)：详细的生产环境部署教程，涵盖检索器 (Retriever)、生成模型 (LLM) 以及 Milvus 向量库的搭建。
 - [深度研究](https://ultrarag.openbmb.cn/pages/cn/demo/deepresearch)：旗舰案例，部署一个深度研究 Pipeline。配合 AgentCPM-Report 模型，可自动执行多步检索与整合，生成数万字的综述报告。
 
+### ☁️ 支持的云端 LLM 后端
+
+Generation 服务器开箱即用地支持多种后端：
+
+| 后端 | 说明 |
+|------|------|
+| `vllm` | 通过 [vLLM](https://github.com/vllm-project/vllm) 进行本地推理 |
+| `openai` | OpenAI API（或任何 OpenAI 兼容端点） |
+| `minimax` | [MiniMax](https://www.minimaxi.com) 云端 API（M2.7、M2.5 系列） |
+| `hf` | 通过 HuggingFace Transformers 进行本地推理 |
+
+使用 MiniMax 作为生成后端，只需在参数文件中设置 `backend: minimax` 并提供 API Key：
+
+```shell
+export MINIMAX_API_KEY="your-api-key"
+ultrarag run examples/minimax_rag.yaml
+```
+
+完整配置选项请参考 [`examples/parameter/minimax_generation_parameter.yaml`](../examples/parameter/minimax_generation_parameter.yaml)。
+
 ## 🤝 贡献
 
 感谢以下贡献者在代码提交和测试中的付出。我们也欢迎新的成员加入，共同构建完善的 RAG 生态！

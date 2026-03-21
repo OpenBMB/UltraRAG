@@ -1,0 +1,29 @@
+# RAG Demo using MiniMax as the generation backend
+#
+# MiniMax provides OpenAI-compatible cloud LLM APIs.
+# Available models:
+#   - MiniMax-M2.7           (latest, 1M context)
+#   - MiniMax-M2.7-highspeed (fast variant)
+#   - MiniMax-M2.5           (previous generation)
+#   - MiniMax-M2.5-highspeed (204K context, fast)
+#
+# Set the MINIMAX_API_KEY environment variable before running:
+#   export MINIMAX_API_KEY="your-api-key"
+
+# MCP Server
+servers:
+  benchmark: servers/benchmark
+  retriever: servers/retriever
+  prompt: servers/prompt
+  generation: servers/generation
+  evaluation: servers/evaluation
+
+# MCP Client Pipeline
+pipeline:
+- benchmark.get_data
+- retriever.retriever_init
+- retriever.retriever_search
+- generation.generation_init
+- prompt.qa_rag_boxed
+- generation.generate
+- evaluation.evaluate
