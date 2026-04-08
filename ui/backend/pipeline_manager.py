@@ -1908,8 +1908,8 @@ def clear_user_memory_collection_vectors(user_id: Optional[str]) -> Dict[str, An
         if client is not None:
             try:
                 client.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                LOGGER.debug("Failed to close Milvus client for user %s: %s", normalized_user_id, exc)
         lock.release()
 
 
