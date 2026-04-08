@@ -64,7 +64,7 @@ async def startup_event():
 
     retriever = Retriever(app)
 
-    retriever.retriever_init(
+    await retriever.retriever_init(
         model_name_or_path=retriever_cfg["model_name_or_path"],
         backend_configs=retriever_cfg["backend_configs"],
         batch_size=retriever_cfg.get("batch_size", 32),
