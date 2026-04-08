@@ -1421,8 +1421,12 @@ def create_app(admin_mode: bool = False) -> Flask:
                                 answer = data_obj.get("answer")
                                 if answer is not None:
                                     final_answer = str(answer)
-                except Exception:
-                    pass
+                except Exception as e:
+                    LOGGER.debug(
+                        "Ignoring stream chunk while extracting final answer: %s",
+                        e,
+                        exc_info=True,
+                    )
                 yield chunk
 
             if final_answer is not None:
