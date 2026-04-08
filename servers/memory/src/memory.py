@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import os
 import re
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 from fastmcp.exceptions import ToolError
 from ultrarag.server import UltraRAG_MCP_Server
