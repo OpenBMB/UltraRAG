@@ -154,11 +154,10 @@ cd UltraRAG
   ```shell
   uv sync --all-extras
   ```
-- 按需安装：如果您只需运行定模块，按需保留对应 `--extra`，例如：
-
+- 按需安装：如果您只需运行指定模块，请保留对应 `--extra`，例如：
   ```shell
-  uv sync --extra retriever   # 仅检索模块
-  uv sync --extra generation  # 仅生成模块
+  uv sync --extra retriever   # 检索模块
+  uv sync --extra generation  # 生成模块
   ```
 
 安装完成后，激活虚拟环境：
