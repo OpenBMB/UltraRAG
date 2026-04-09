@@ -1,0 +1,10 @@
+# Milvus Embedding and Indexing Demo for UltraRAG UI
+
+# MCP Server
+servers:
+  retriever: servers/retriever
+
+# MCP Client Pipeline
+pipeline:
+- retriever.retriever_init
+- retriever.retriever_index

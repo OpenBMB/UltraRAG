@@ -8,9 +8,9 @@ import subprocess
 import sys
 import tempfile
 import zipfile
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from xml.etree import ElementTree as ET
 
 from fastmcp.exceptions import ToolError
@@ -61,6 +61,49 @@ def _validate_path(user_path: str, allowed_base: Optional[str] = None) -> Path:
         raise ValueError(f"Invalid path: {user_path}") from e
 
 app = UltraRAG_MCP_Server("corpus")
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+_TQDM_PROGRESS_RE = re.compile(r"^(?P<name>[^:]{1,120}):\s*(?P<pct>\d{1,3})%")
+
+
+def _iter_clean_subprocess_lines(raw_line: bytes) -> Iterable[str]:
+    """Yield cleaned log lines from a subprocess stdout chunk."""
+    text = raw_line.decode("utf-8", errors="replace")
+    text = text.replace("\r", "\n")
+    text = _ANSI_ESCAPE_RE.sub("", text)
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        if len(line) > 320:
+            line = line[:317] + "..."
+        yield line
+
+
+def _extract_progress_update(line: str) -> Optional[Tuple[str, int]]:
+    """Extract progress updates from tqdm-like lines."""
+    if "|" not in line:
+        return None
+    match = _TQDM_PROGRESS_RE.match(line)
+    if not match:
+        return None
+    name = match.group("name").strip()
+    try:
+        pct = int(match.group("pct"))
+    except ValueError:
+        return None
+    return name, pct
+
+
+def _can_render_live_tqdm() -> bool:
+    """Whether current process should render local tqdm progress bars."""
+    flag = os.getenv("ULTRARAG_MINERU_LIVE_TQDM", "1").strip().lower()
+    if flag in {"0", "false", "no", "off"}:
+        return False
+    try:
+        return sys.stderr.isatty()
+    except Exception:
+        return False
 
 
 @contextmanager
@@ -675,9 +718,21 @@ async def mineru_parse(
     out_root = os.path.abspath(mineru_dir)
     os.makedirs(out_root, exist_ok=True)
 
+    proc_env = os.environ.copy()
     extra_args: List[str] = []
     if mineru_extra_params:
+        source_val = mineru_extra_params.get("source")
+        if source_val:
+            # MinerU's internal model downloader reads MINERU_MODEL_SOURCE.
+            # Passing --source alone may not affect download source in newer versions.
+            proc_env["MINERU_MODEL_SOURCE"] = str(source_val)
+            app.logger.info(
+                "Set MINERU_MODEL_SOURCE=%s from mineru_extra_params.source",
+                source_val,
+            )
         for k in sorted(mineru_extra_params.keys()):
+            if k == "source":
+                continue
             v = mineru_extra_params[k]
             extra_args.append(f"--{k}")
             if v is not None and v != "":
@@ -690,12 +745,67 @@ async def mineru_parse(
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
+            env=proc_env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
         assert proc.stdout is not None
+        use_live_tqdm = _can_render_live_tqdm()
+        progress_state: Dict[str, int] = {}
+        progress_bars: Dict[str, tqdm] = {}
+        last_plain_line = ""
+        suppressed_progress = 0
         async for line in proc.stdout:
-            app.logger.info(line.decode("utf-8", errors="replace").rstrip())
+            for cleaned in _iter_clean_subprocess_lines(line):
+                progress = _extract_progress_update(cleaned)
+                if progress:
+                    name, pct = progress
+                    last_pct = progress_state.get(name, 0)
+                    if use_live_tqdm:
+                        bar = progress_bars.get(name)
+                        if bar is None:
+                            bar = tqdm(
+                                total=100,
+                                desc=f"[mineru] {name}",
+                                unit="%",
+                                dynamic_ncols=True,
+                                leave=False,
+                            )
+                            progress_bars[name] = bar
+                        if pct < last_pct:
+                            bar.n = 0
+                            bar.refresh()
+                            last_pct = 0
+                        delta = max(0, pct - last_pct)
+                        if delta:
+                            bar.update(delta)
+                            progress_state[name] = pct
+                        if pct >= 100:
+                            bar.set_postfix_str("done")
+                            bar.refresh()
+                            bar.close()
+                            progress_bars.pop(name, None)
+                    else:
+                        # Keep logs readable for non-interactive sessions.
+                        if pct >= 100 or pct - last_pct >= 10:
+                            progress_state[name] = pct
+                            app.logger.info(f"[mineru] {name}: {pct}%")
+                    suppressed_progress += 1
+                    continue
+
+                if cleaned == last_plain_line:
+                    continue
+                last_plain_line = cleaned
+                app.logger.info(f"[mineru] {cleaned}")
+
+        for bar in progress_bars.values():
+            with suppress(Exception):
+                bar.close()
+
+        if suppressed_progress > 0:
+            app.logger.info(
+                f"[mineru] Suppressed {suppressed_progress} verbose progress lines"
+            )
 
         returncode = await proc.wait()
         if returncode != 0:

@@ -1,0 +1,3 @@
+corpus:
+  parse_file_path: data/UltraRAG.pdf
+  text_corpus_save_path: corpora/text.jsonl

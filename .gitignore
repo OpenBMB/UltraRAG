@@ -19,6 +19,8 @@ output/
 logs/
 test/
 corpora/
+data/
+
 # Environment variables and secrets
 .env
 
@@ -35,6 +37,14 @@ examples/experiments/parameter/*.yaml
 examples/experiments/server/*.yaml
 examples/demos/parameter/*.yaml
 examples/demos/server/*.yaml
+!examples/experiments/parameter/sayhello_parameter.yaml
+!examples/experiments/server/sayhello_server.yaml
+!examples/demos/parameter/build_text_corpus_parameter.yaml
+!examples/demos/server/build_text_corpus_server.yaml
+!examples/demos/parameter/corpus_chunk_parameter.yaml
+!examples/demos/server/corpus_chunk_server.yaml
+!examples/demos/parameter/milvus_index_parameter.yaml
+!examples/demos/server/milvus_index_server.yaml
 
 # Server configuration files for each server module
 servers/*/server.yaml

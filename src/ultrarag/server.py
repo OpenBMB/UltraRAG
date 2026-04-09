@@ -5,7 +5,6 @@ import inspect
 import logging
 import os
 from contextlib import AbstractAsyncContextManager
-from functools import partial
 from pathlib import Path
 from types import EllipsisType, SimpleNamespace
 from typing import Any, Callable, List, Literal, Optional, Union
@@ -156,6 +155,7 @@ class UltraRAG_MCP_Server(FastMCP):
         self.output = {}
         self.fn_meta: dict[str, dict[str, Any]] = {}
         self.prompt_meta: dict[str, dict[str, Any]] = {}
+        self._prompt_output_override: dict[str, str] = {}
         self.tool(self.build, name="build")
 
     def load_config(self, file_path: str) -> dict[str, Any]:
@@ -169,6 +169,77 @@ class UltraRAG_MCP_Server(FastMCP):
         """
         with open(file_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
+
+    @staticmethod
+    def _extract_param_names(fn: Callable[..., Any]) -> List[str]:
+        """Extract positional and keyword parameter names from function signature."""
+        sig = inspect.signature(fn)
+        return [
+            p.name
+            for p in sig.parameters.values()
+            if p.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        ]
+
+    def _record_tool_meta(self, tool: Tool) -> None:
+        """Record tool metadata for server.yaml generation."""
+        fn = getattr(tool, "fn", None)
+        if not callable(fn):
+            return
+
+        fn_name = fn.__name__
+        if fn_name == "build":
+            return
+
+        annotations = getattr(tool, "annotations", None)
+        output = getattr(annotations, "output", None)
+        self.fn_meta[tool.name or fn_name] = {
+            "fn_name": fn_name,
+            "params": self._extract_param_names(fn),
+            "output": output,
+        }
+
+    def _record_prompt_meta(self, prompt: Prompt, output: Optional[str] = None) -> None:
+        """Record prompt metadata for server.yaml generation."""
+        fn = getattr(prompt, "fn", None)
+        if not callable(fn):
+            return
+
+        fn_name = fn.__name__
+        self.prompt_meta[prompt.name or fn_name] = {
+            "fn_name": fn_name,
+            "params": self._extract_param_names(fn),
+            "output": output,
+        }
+
+    def _refresh_registered_meta(self) -> None:
+        """Refresh tool/prompt metadata from FastMCP's registered components."""
+        self.fn_meta = {}
+        self.prompt_meta = {}
+
+        components = getattr(self._local_provider, "_components", {})
+        if not isinstance(components, dict):
+            return
+
+        for component in components.values():
+            if isinstance(component, Tool):
+                self._record_tool_meta(component)
+                continue
+
+            if isinstance(component, Prompt):
+                fn = getattr(component, "fn", None)
+                fn_name = fn.__name__ if callable(fn) else None
+                prompt_name = component.name or fn_name
+                output = None
+                if prompt_name:
+                    output = self._prompt_output_override.get(prompt_name)
+                if output is None and fn_name:
+                    output = self._prompt_output_override.get(fn_name)
+                self._record_prompt_meta(component, output)
 
     def tool(
         self,
@@ -254,6 +325,7 @@ class UltraRAG_MCP_Server(FastMCP):
         description: Optional[str] = None,
         tags: Optional[set[str]] = None,
         enabled: Optional[bool] = None,
+        **extra_kwargs: Any,
     ) -> Any:
         """Register a prompt with UltraRAG-specific output annotation support.
 
@@ -284,115 +356,98 @@ class UltraRAG_MCP_Server(FastMCP):
                 )
             )
 
-        # Determine the actual name and function based on the calling pattern
+        prompt_kwargs = {
+            "name": name,
+            "description": description,
+            "tags": tags,
+            "enabled": enabled,
+            **extra_kwargs,
+        }
+
+        prompt_params = inspect.signature(super().prompt).parameters
+        filtered_kwargs = {}
+        unsupported = []
+        for key, value in prompt_kwargs.items():
+            if key not in prompt_params:
+                unsupported.append(key)
+                continue
+            if value is None and prompt_params[key].default is not inspect._empty:
+                continue
+            filtered_kwargs[key] = value
+
+        if unsupported:
+            self.logger.debug("Ignoring unsupported FastMCP.prompt args: %s", unsupported)
+
+        result = super().prompt(name_or_fn, **filtered_kwargs)
+        if output is None:
+            return result
+
+        declared_name: Optional[str] = None
+        if isinstance(name_or_fn, str):
+            declared_name = name_or_fn
+        elif isinstance(filtered_kwargs.get("name"), str):
+            declared_name = filtered_kwargs["name"]
+
         if inspect.isroutine(name_or_fn):
-            # Case 1: @prompt (without parens) - function passed directly as decorator
-            # Case 2: direct call like prompt(fn, name="something")
-            fn = name_or_fn
-            prompt_name = name  # Use keyword name if provided, otherwise None
+            self._prompt_output_override[name_or_fn.__name__] = output
+            if declared_name:
+                self._prompt_output_override[declared_name] = output
+            if isinstance(result, Prompt):
+                self._prompt_output_override[result.name or name_or_fn.__name__] = output
+            return result
 
-            if not hasattr(self, "_pending_output"):
-                self._pending_output: dict[int, str] = {}
-            self._pending_output[name or fn.__name__] = output
+        if isinstance(result, Prompt):
+            fn = getattr(result, "fn", None)
+            fn_name = fn.__name__ if callable(fn) else None
+            prompt_key = result.name or fn_name
+            if prompt_key:
+                self._prompt_output_override[prompt_key] = output
+            if declared_name:
+                self._prompt_output_override[declared_name] = output
+            return result
 
-            # Register the prompt immediately
-            prompt = Prompt.from_function(
-                fn=fn,
-                name=prompt_name,
-                description=description,
-                tags=tags,
-                enabled=enabled,
-            )
-            self.add_prompt(prompt)
+        if callable(result):
 
-            return prompt
+            def wrapped(fn: AnyFunction) -> Any:
+                self._prompt_output_override[fn.__name__] = output
+                if declared_name:
+                    self._prompt_output_override[declared_name] = output
+                registered = result(fn)
+                if isinstance(registered, Prompt):
+                    self._prompt_output_override[registered.name or fn.__name__] = output
+                return registered
 
-        elif isinstance(name_or_fn, str):
-            # Case 3: @prompt("custom_name") - name passed as first argument
-            if name is not None:
-                raise TypeError(
-                    "Cannot specify both a name as first argument and as keyword argument. "
-                    f"Use either @prompt('{name_or_fn}') or @prompt(name='{name}'), not both."
-                )
-            prompt_name = name_or_fn
-        elif name_or_fn is None:
-            # Case 4: @prompt() or @prompt(name="something") - use keyword name
-            prompt_name = name
-        else:
-            raise TypeError(
-                f"First argument to @prompt must be a function, string, or None, got {type(name_or_fn)}"
-            )
+            return wrapped
 
-        # Return partial for cases where we need to wait for the function
-        return partial(
-            self.prompt,
-            name=prompt_name,
-            description=description,
-            tags=tags,
-            enabled=enabled,
-            output=output,
-        )
+        return result
 
-    def add_prompt(self, prompt: Prompt) -> None:
+    def add_prompt(self, prompt: Prompt) -> Prompt:
         """Add a prompt and track its metadata.
 
         Args:
             prompt: Prompt instance to add
         """
-        fn = prompt.fn
-        fn_name = fn.__name__
+        registered = super().add_prompt(prompt)
+        if isinstance(registered, Prompt):
+            self._record_prompt_meta(registered, output=None)
+            return registered
 
-        sig = inspect.signature(fn)
-        param_names = [
-            p.name
-            for p in sig.parameters.values()
-            if p.kind
-            in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.KEYWORD_ONLY,
-            )
-        ]
-        output_val = self._pending_output.pop(fn_name, None)
-        self.prompt_meta[prompt.name or fn_name] = {
-            "fn_name": fn_name,
-            "params": param_names,
-            "output": output_val,
-        }
+        self._record_prompt_meta(prompt, output=None)
+        return prompt
 
-        super().add_prompt(prompt)
-
-    def add_tool(self, tool: Tool) -> None:
+    def add_tool(self, tool: Tool) -> Tool:
         """Add a tool and track its metadata.
 
         Args:
             tool: Tool instance to add
         """
-        fn = tool.fn
-        fn_name = fn.__name__
-        if fn_name != "build":
-            sig = inspect.signature(fn)
-            param_names = [
-                p.name
-                for p in sig.parameters.values()
-                if p.kind
-                in (
-                    inspect.Parameter.POSITIONAL_ONLY,
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    inspect.Parameter.KEYWORD_ONLY,
-                )
-            ]
-            try:
-                output = tool.annotations.output
-            except (AttributeError, TypeError):
-                output = None
-            self.fn_meta[tool.name or fn_name] = {
-                "fn_name": fn_name,
-                "params": param_names,
-                "output": output,
-            }
+        registered = super().add_tool(tool)
+        if isinstance(registered, Tool):
+            self._record_tool_meta(registered)
+            return registered
 
-        super().add_tool(tool)
+        self._record_tool_meta(tool)
+        return tool
 
     def _make_io_mapping(
         self, params: List[str], io_spec: Optional[str], param_cfg: dict[str, Any]
@@ -467,6 +522,7 @@ class UltraRAG_MCP_Server(FastMCP):
         base_dir = cfg_path.parent
         srv_name = base_dir.name
         self.param_cfg = self.load_config(str(cfg_path)) if cfg_path.exists() else {}
+        self._refresh_registered_meta()
         out_path = base_dir / "server.yaml"
         build_yaml = {
             "path": self.param_cfg.get(

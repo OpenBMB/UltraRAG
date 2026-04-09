@@ -1,0 +1,9 @@
+# Text File(s) Parsing Demo
+
+# MCP Server
+servers:
+  corpus: servers/corpus
+
+# MCP Client Pipeline
+pipeline:
+- corpus.build_text_corpus

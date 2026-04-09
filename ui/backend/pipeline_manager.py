@@ -2137,8 +2137,17 @@ def _sanitize_pipeline_name(name: str) -> str:
     return str(name or "").replace("..", "_").strip()
 
 
+UI_KB_PIPELINES = {
+    "build_text_corpus",
+    "corpus_chunk",
+    "milvus_index",
+}
+
+
 def _is_demo_pipeline_name(name: str) -> bool:
-    return any(ch.isupper() for ch in name)
+    safe_name = _sanitize_pipeline_name(name)
+    # Keep UI KB pipelines under demos so clone users can run without rebuilding.
+    return safe_name in UI_KB_PIPELINES or any(ch.isupper() for ch in safe_name)
 
 
 def _default_pipeline_dir(name: str) -> Path:
