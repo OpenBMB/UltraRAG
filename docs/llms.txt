@@ -3184,7 +3184,7 @@ Tip: The container will automatically run UltraRAG UI after startup. You can acc
 After installation is complete, run the following example command to check if the environment is normal:
 
 ```shell
-ultrarag run examples/sayhello.yaml
+ultrarag run examples/experiments/sayhello.yaml
 ```
 
 Seeing the following output indicates a successful installation:

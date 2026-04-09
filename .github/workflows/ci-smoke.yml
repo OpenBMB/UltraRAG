@@ -7,9 +7,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   sayhello-build-run:
     name: Sayhello Build and Run
@@ -19,14 +16,12 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          enable-cache: true
+      - name: Install uv
+        run: python -m pip install --upgrade pip uv
 
       - name: Sync Python dependencies
         run: uv sync
@@ -48,11 +43,9 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: ui/frontend/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci

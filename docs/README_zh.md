@@ -222,7 +222,7 @@ docker run -it --gpus all -p 5050:5050 <docker_image_name>
 安装完成后，运行以下示例命令来检查环境是否正常：
 
 ```shell
-ultrarag run examples/sayhello.yaml
+ultrarag run examples/experiments/sayhello.yaml
 ```
 
 看到以下输出即代表安装成功：
