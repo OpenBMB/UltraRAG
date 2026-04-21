@@ -1258,12 +1258,13 @@ wheels = [
 
 [[package]]
 name = "fastmcp"
-version = "3.2.0"
+version = "3.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "authlib" },
     { name = "cyclopts" },
     { name = "exceptiongroup" },
+    { name = "griffelib" },
     { name = "httpx" },
     { name = "jsonref" },
     { name = "jsonschema-path" },
@@ -1283,9 +1284,9 @@ dependencies = [
     { name = "watchfiles" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d0/32/4f1b2cfd7b50db89114949f90158b1dcc2c92a1917b9f57c0ff24e47a2f4/fastmcp-3.2.0.tar.gz", hash = "sha256:d4830b8ffc3592d3d9c76dc0f398904cf41f04910e41a0de38cc1004e0903bef", size = 26318581, upload-time = "2026-03-30T20:25:37.692Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/13/29544fbc6dfe45ea38046af0067311e0bad7acc7d1f2ad38bb08f2409fe2/fastmcp-3.2.4.tar.gz", hash = "sha256:083ecb75b44a4169e7fc0f632f94b781bdb0ff877c6b35b9877cbb566fd4d4d1", size = 28746127, upload-time = "2026-04-14T01:42:24.174Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/67/684fa2d2de1e7504549d4ca457b4f854ccec3cd3be03bd86b33b599fbf58/fastmcp-3.2.0-py3-none-any.whl", hash = "sha256:e71aba3df16f86f546a4a9e513261d3233bcc92bef0dfa647bac3fa33623f681", size = 705550, upload-time = "2026-03-30T20:25:35.499Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/76/b310d52fa0e30d39bd937eb58ec2c1f1ea1b5f519f0575e9dd9612f01deb/fastmcp-3.2.4-py3-none-any.whl", hash = "sha256:e6c9c429171041455e47ab94bb3f83c4657622a0ec28922f6940053959bd58a9", size = 728599, upload-time = "2026-04-14T01:42:26.85Z" },
 ]
 
 [[package]]
@@ -1556,6 +1557,15 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/52/e8/e8c4e4261cc381807705b964aab40d95f345a4c1d9d7995afe6539cbd089/gradio_pdf-0.0.24-py3-none-any.whl", hash = "sha256:b9b18eaf0e75e1394c33694e638dce6e2b8d82d0838674948148db832152ac5f", size = 320649, upload-time = "2025-11-26T21:17:48.435Z" },
+]
+
+[[package]]
+name = "griffelib"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/82/74f4a3310cdabfbb10da554c3a672847f1ed33c6f61dd472681ce7f1fe67/griffelib-2.0.2.tar.gz", hash = "sha256:3cf20b3bc470e83763ffbf236e0076b1211bac1bc67de13daf494640f2de707e", size = 166461, upload-time = "2026-03-27T11:34:51.091Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/8c/c9138d881c79aa0ea9ed83cbd58d5ca75624378b38cee225dcf5c42cc91f/griffelib-2.0.2-py3-none-any.whl", hash = "sha256:925c857658fb1ba40c0772c37acbc2ab650bd794d9c1b9726922e36ea4117ea1", size = 142357, upload-time = "2026-03-27T11:34:46.275Z" },
 ]
 
 [[package]]
@@ -4348,11 +4358,11 @@ wheels = [
 
 [[package]]
 name = "python-dotenv"
-version = "1.2.1"
+version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6", size = 44221, upload-time = "2025-10-26T15:12:10.434Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/82/ed/0301aeeac3e5353ef3d94b6ec08bbcabd04a72018415dcb29e588514bba8/python_dotenv-1.2.2.tar.gz", hash = "sha256:2c371a91fbd7ba082c2c1dc1f8bf89ca22564a087c2c287cd9b662adde799cf3", size = 50135, upload-time = "2026-03-01T16:00:26.196Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61", size = 21230, upload-time = "2025-10-26T15:12:09.109Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/d7/1959b9648791274998a9c3526f6d0ec8fd2233e4d4acce81bbae76b44b2a/python_dotenv-1.2.2-py3-none-any.whl", hash = "sha256:1d8214789a24de455a8b8bd8ae6fe3c6b69a5e3d64aa8a8e5d68e694bbcb285a", size = 22101, upload-time = "2026-03-01T16:00:25.09Z" },
 ]
 
 [[package]]
@@ -5773,7 +5783,7 @@ requires-dist = [
     { name = "faiss-gpu-cu12", marker = "extra == 'retriever'" },
     { name = "fakeredis" },
     { name = "fastapi", marker = "extra == 'retriever'" },
-    { name = "fastmcp", specifier = "==3.2.0" },
+    { name = "fastmcp", specifier = "==3.2.4" },
     { name = "flask" },
     { name = "httpx", extras = ["socks"] },
     { name = "infinity-emb", marker = "extra == 'retriever'" },
