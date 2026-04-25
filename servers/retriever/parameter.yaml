@@ -27,7 +27,8 @@ backend_configs:
     api_key: "abc"
     concurrency: 8
   bm25:
-    lang: en
+    lang: en # set to zh for Chinese corpora/query
+    tokenizer: auto # options: auto, default, jieba, character; auto uses jieba for Chinese
     save_path: index/bm25
 
 index_backend: faiss # options: faiss, milvus

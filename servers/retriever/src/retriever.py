@@ -13,6 +13,7 @@ import uuid
 
 from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
+from bm25_tokenizer import build_bm25_splitter
 from index_backends import BaseIndexBackend, create_index_backend
 from websearch_backends import create_websearch_backend
 
@@ -372,18 +373,28 @@ class Retriever:
                 app.logger.warning(warn_msg)
                 self.model = bm25s.BM25(backend="numpy")
             lang = self.cfg.get("lang", "en")
+            tokenizer_mode = self.cfg.get("tokenizer", "auto")
             try:
-                self.tokenizer = bm25s.tokenization.Tokenizer(stopwords=lang)
+                splitter = build_bm25_splitter(
+                    lang,
+                    tokenizer_mode,
+                    logger=app.logger,
+                )
+                tokenizer_kwargs = {"stopwords": lang}
+                if splitter is not None:
+                    tokenizer_kwargs["splitter"] = splitter
+                self.tokenizer = bm25s.tokenization.Tokenizer(**tokenizer_kwargs)
             except Exception as e:
                 err_msg = (
-                    f"Failed to initialize BM25 tokenizer for language '{lang}': {e}"
+                    f"Failed to initialize BM25 tokenizer for language '{lang}' "
+                    f"with tokenizer mode '{tokenizer_mode}': {e}"
                 )
                 app.logger.error(err_msg)
                 raise RuntimeError(err_msg)
         else:
             error_msg = (
                 f"Unsupported backend: {backend}. "
-                "Supported backends: 'infinity', 'sentence_transformers', 'openai'"
+                "Supported backends: 'infinity', 'sentence_transformers', 'openai', 'bm25'"
             )
             app.logger.error(error_msg)
             raise ValueError(error_msg)

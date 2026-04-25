@@ -29,6 +29,7 @@ dependencies = [
     "fakeredis",
     "pymilvus",
     "pypinyin",
+    "jieba",
     "charset-normalizer",
     "python-docx",
     "pymupdf",
