@@ -29,6 +29,7 @@ from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
+from ._ai_base_url import validate_ai_base_url
 from .storage_paths import (
     UI_MEMORY_ROOT_DIR,
     UI_STORAGE_ROOT,
@@ -2363,6 +2364,10 @@ def create_app(admin_mode: bool = False) -> Flask:
         if not api_key:
             return jsonify({"success": False, "error": "API key is required"})
 
+        url_error = validate_ai_base_url(base_url)
+        if url_error:
+            return jsonify({"success": False, "error": url_error})
+
         try:
             if provider == "openai" or provider == "custom":
                 # OpenAI-compatible API
@@ -2496,6 +2501,10 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         if not api_key:
             return jsonify({"error": "API key is required"})
+
+        url_error = validate_ai_base_url(base_url)
+        if url_error:
+            return jsonify({"error": url_error})
 
         # Build system prompt with context
         system_prompt = build_ai_system_prompt(context)
