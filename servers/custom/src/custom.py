@@ -399,21 +399,39 @@ def assign_citation_ids(
     }
 
 
+# Thread-local storage for citation registry to prevent cross-request contamination
+import threading
+_citation_registry_local = threading.local()
+
+
 class CitationRegistry:
-    _instances: Dict[int, Dict[str, Any]] = {}
+    """Per-request citation registry to prevent cross-request contamination.
+    
+    Uses thread-local storage to isolate citation state between concurrent requests.
+    Each request gets its own isolated registry instance.
+    """
 
     @classmethod
     def reset(cls):
-        cls._instances = {}
+        """Initialize or reset the citation registry for the current thread."""
+        if not hasattr(_citation_registry_local, '_instances'):
+            _citation_registry_local._instances = {}
+        else:
+            _citation_registry_local._instances.clear()
 
     @classmethod
     def get_or_create(cls, query_index: int) -> Dict[str, Any]:
-        if query_index not in cls._instances:
-            cls._instances[query_index] = {"registry": {}, "counter": 0}
-        return cls._instances[query_index]
+        """Get or create registry entry for the current thread."""
+        if not hasattr(_citation_registry_local, '_instances'):
+            _citation_registry_local._instances = {}
+        
+        if query_index not in _citation_registry_local._instances:
+            _citation_registry_local._instances[query_index] = {"registry": {}, "counter": 0}
+        return _citation_registry_local._instances[query_index]
 
     @classmethod
     def assign_id(cls, query_index: int, doc_text: str) -> int:
+        """Assign unique citation ID to a document within the current request."""
         state = cls.get_or_create(query_index)
         doc_hash = doc_text.strip()
 
@@ -471,21 +489,30 @@ def assign_citation_ids_stateful(
 
 class SurveyCPMCitationRegistry:
     """Citation registry for SurveyCPM pipeline.
+    
+    Uses thread-local storage to isolate citation state between concurrent requests.
+    Each request gets its own isolated registry instance.
 
     Maintains unique citation IDs across multiple search rounds for each query.
     """
 
-    _instances: Dict[int, Dict[str, Any]] = {}
-
     @classmethod
     def reset(cls):
-        cls._instances = {}
+        """Initialize or reset the citation registry for the current thread."""
+        if not hasattr(_citation_registry_local, 'survey_instances'):
+            _citation_registry_local.survey_instances = {}
+        else:
+            _citation_registry_local.survey_instances.clear()
 
     @classmethod
     def get_or_create(cls, query_index: int) -> Dict[str, Any]:
-        if query_index not in cls._instances:
-            cls._instances[query_index] = {"registry": {}, "counter": 0}
-        return cls._instances[query_index]
+        """Get or create registry entry for the current thread."""
+        if not hasattr(_citation_registry_local, 'survey_instances'):
+            _citation_registry_local.survey_instances = {}
+        
+        if query_index not in _citation_registry_local.survey_instances:
+            _citation_registry_local.survey_instances[query_index] = {"registry": {}, "counter": 0}
+        return _citation_registry_local.survey_instances[query_index]
 
     @classmethod
     def assign_id(cls, query_index: int, doc_text: str) -> str:
