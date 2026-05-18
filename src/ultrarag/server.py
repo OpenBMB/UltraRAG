@@ -542,9 +542,10 @@ class UltraRAG_MCP_Server(FastMCP):
         if not Path(build_yaml["path"]).exists():
             raise FileNotFoundError(f"Server code not found: {build_yaml['path']}")
 
-        yaml.safe_dump(
-            build_yaml, out_path.open("w"), allow_unicode=True, sort_keys=False
-        )
+        with out_path.open("w") as f:
+            yaml.safe_dump(
+                build_yaml, f, allow_unicode=True, sort_keys=False
+            )
 
     def run(
         self,

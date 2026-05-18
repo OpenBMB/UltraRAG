@@ -48,7 +48,7 @@ def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     """
 
     def get_query(text):
-        pattern = re.compile(r"<|begin_of_query|>([^<]*)", re.DOTALL)
+        pattern = re.compile(r"<\|begin_of_query\|>([^<]*)", re.DOTALL)
         matches = pattern.findall(text)
 
         if matches:
@@ -626,11 +626,7 @@ def _surveycpm_to_one_line(string):
         if "content" in string:
             if not string["content"]:
                 return ""
-            return (
-                "[OK] "
-                + string["content"].replace("\n", " ").strip()
-                + _surveycpm_to_one_line(string["content"])
-            )
+            return "[OK] " + string["content"].replace("\n", " ").strip()
         elif "plan" in string:
             return "[PLAN] " + string["plan"].replace("\n", " ").strip()
         else:
@@ -702,7 +698,7 @@ def _surveycpm_print_tasknote_hire(current_survey, last_detail=False):
     try:
         content = _surveycpm_abbr_one_line(current_survey["title"], abbr=False)
         string += f"# Title: {content}\n\n"
-    except:
+    except Exception:
         string += f"# Title: None\n\n"
 
     # sections
@@ -879,7 +875,7 @@ def surveycpm_parse_response(
                     hard_mode=hard_mode,  # You can use hard mode for better performance
                     **kwargs,
                 )
-            except:
+            except Exception:
                 action_is_valid = False
                 action = {}
         else:
@@ -991,7 +987,7 @@ def surveycpm_validate_action(
                     )
                     if "subsections" in section_node:
                         return False
-                except:
+                except Exception:
                     return False
 
             for sec in action["subsections"]:
@@ -1028,7 +1024,7 @@ def surveycpm_validate_action(
                             return False
                 assert action["content"].count("\\cite") <= 12
 
-    except:
+    except Exception:
         return False
 
     return True
