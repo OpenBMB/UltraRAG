@@ -115,7 +115,7 @@ https://github.com/user-attachments/assets/fcf437b7-8b79-42f2-bf4e-e3b7c2a896b9
 
 ## 📦 Installation
 
-We provide two installation methods: local source code installation (recommended using `uv` for package management) and Docker container deployment
+We provide two installation methods: local source code installation (recommended using `uv` for package management) and Docker container deployment.
 
 ### Method 1: Source Code Installation
 
@@ -206,9 +206,6 @@ docker pull hdxin2002/ultrarag:v0.3.0          # Full version (GPU)
 
 # Option B: Build locally
 docker build -t ultrarag:v0.3.0 .
-
-# 3. Start container (port 5050 is automatically mapped)
-docker run -it --gpus all -p 5050:5050 <docker_image_name>
 ```
 
 **Start the Container**
