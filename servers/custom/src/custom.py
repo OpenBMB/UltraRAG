@@ -702,7 +702,7 @@ def _surveycpm_print_tasknote_hire(current_survey, last_detail=False):
     try:
         content = _surveycpm_abbr_one_line(current_survey["title"], abbr=False)
         string += f"# Title: {content}\n\n"
-    except:
+    except Exception:
         string += f"# Title: None\n\n"
 
     # sections
@@ -879,7 +879,7 @@ def surveycpm_parse_response(
                     hard_mode=hard_mode,  # You can use hard mode for better performance
                     **kwargs,
                 )
-            except:
+            except Exception:
                 action_is_valid = False
                 action = {}
         else:
@@ -991,7 +991,7 @@ def surveycpm_validate_action(
                     )
                     if "subsections" in section_node:
                         return False
-                except:
+                except Exception:
                     return False
 
             for sec in action["subsections"]:
@@ -1028,7 +1028,7 @@ def surveycpm_validate_action(
                             return False
                 assert action["content"].count("\\cite") <= 12
 
-    except:
+    except Exception:
         return False
 
     return True

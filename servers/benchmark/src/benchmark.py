@@ -83,7 +83,7 @@ def _load_from_local(
     data = _load_data_from_file(path, -1 if is_shuffle else limit)
     ret: Dict[str, List[Any]] = {}
     for alias, original_key in key_map.items():
-        ret[alias] = [item[original_key] for item in data if original_key in item]
+        ret[alias] = [item.get(original_key) for item in data]
 
     if is_shuffle:
         # Check if ret is empty before accessing values

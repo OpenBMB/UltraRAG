@@ -921,12 +921,11 @@ class UltraData:
             pipeline_name: Name of the pipeline
             timestamp: Timestamp string for filename
         """
+        benchmark_name = ""
         benchmark_cfg = self.local_vals.get("benchmark", {})
         if isinstance(benchmark_cfg, dict):
             if "benchmark" in benchmark_cfg and "name" in benchmark_cfg["benchmark"]:
                 benchmark_name = benchmark_cfg["benchmark"]["name"]
-            else:
-                benchmark_name = ""
 
         output_dir = Path("output")
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -2208,4 +2207,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
