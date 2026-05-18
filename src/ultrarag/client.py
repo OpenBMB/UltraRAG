@@ -1021,17 +1021,15 @@ async def build(config_path: str) -> None:
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_servers[name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_servers[name] = {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "mcp-remote",
+                    path,
+                ],
+                "env": os.environ.copy(),
+            }
         else:
             raise ValueError(
                 f"[UltraRAG Error] Unsupported server type for {name}: {path}"
@@ -1266,17 +1264,15 @@ def load_pipeline_context(
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_cfg["mcpServers"][name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_cfg["mcpServers"][name] = {
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "mcp-remote",
+                    path,
+                ],
+                "env": os.environ.copy(),
+            }
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 

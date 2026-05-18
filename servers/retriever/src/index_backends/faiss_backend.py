@@ -206,6 +206,8 @@ class FaissIndexBackend(BaseIndexBackend):
         for doc_ids in indices:
             cur_ret = []
             for doc_id in doc_ids:
+                if doc_id == -1:
+                    continue
                 cur_ret.append(self.contents[doc_id])
             results.append(cur_ret)
         return results

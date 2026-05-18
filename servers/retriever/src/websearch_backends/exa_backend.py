@@ -24,7 +24,14 @@ class ExaWebSearchBackend(BaseWebSearchBackend):
             raise ImportError(err_msg)
 
         api_key = self.config.get("api_key") or os.environ.get("EXA_API_KEY", "")
-        self._client = AsyncExa(api_key=api_key if api_key else "EMPTY")
+        if not api_key:
+            err_msg = (
+                "EXA_API_KEY is not set. "
+                "Please set it via config or the EXA_API_KEY environment variable."
+            )
+            self.logger.error(err_msg)
+            raise ToolError(err_msg)
+        self._client = AsyncExa(api_key=api_key)
 
     async def search(
         self,

@@ -48,7 +48,7 @@ def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     """
 
     def get_query(text):
-        pattern = re.compile(r"<|begin_of_query|>([^<]*)", re.DOTALL)
+        pattern = re.compile(r"<\|begin_of_query\|>([^<]*)", re.DOTALL)
         matches = pattern.findall(text)
 
         if matches:
@@ -626,11 +626,7 @@ def _surveycpm_to_one_line(string):
         if "content" in string:
             if not string["content"]:
                 return ""
-            return (
-                "[OK] "
-                + string["content"].replace("\n", " ").strip()
-                + _surveycpm_to_one_line(string["content"])
-            )
+            return "[OK] " + string["content"].replace("\n", " ").strip()
         elif "plan" in string:
             return "[PLAN] " + string["plan"].replace("\n", " ").strip()
         else:

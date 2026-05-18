@@ -603,6 +603,8 @@ def evaluate_trec_pvalue(
         key = _process_metric_key(base, k)
         return row[key] if key in row else 0.0
 
+    if metrics is None:
+        metrics = ["recall", "ndcg", "precision", "map", "recip_rank"]
     if ks is None:
         ks = [1, 5, 10, 20, 50, 100]
     n_resamples = int(n_resamples or 10000)
