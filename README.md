@@ -241,6 +241,7 @@ Designed for researchers, providing data, experimental workflows, and visualizat
 - [Getting Started](https://ultrarag.openbmb.cn/pages/en/getting_started/quick_start): Learn how to quickly run standard RAG experimental workflows based on UltraRAG.
 - [Evaluation Data](https://ultrarag.openbmb.cn/pages/en/develop_guide/dataset): Download the most commonly used public evaluation datasets in the RAG field and large-scale retrieval corpora, directly for research benchmark testing.
 - [Case Analysis](https://ultrarag.openbmb.cn/pages/en/develop_guide/case_study): Provides a visual Case Study interface to deeply track each intermediate output of the workflow, assisting in analysis and error attribution.
+- [Structured Debugging Guide](./docs/debug_rag_workflows_zh.md) (Chinese): When answers look suspicious, retrieval hits are unstable, the reasoning chain drifts, or post-deployment behavior is abnormal, troubleshoot across four layers — input & retrieval, reasoning & planning, state & context, and deployment & runtime.
 - [Code Integration](https://ultrarag.openbmb.cn/pages/en/develop_guide/code_integration): Learn how to directly call UltraRAG components in Python code to achieve more flexible customized development.
 
 ### 🛠️ Demo Systems
