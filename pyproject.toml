@@ -9,7 +9,7 @@ description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "fastmcp==3.2.4",
+    "fastmcp>=3.3.1",
     "mcp",
     "rich",
     "pandas",
@@ -93,3 +93,19 @@ dev = [
 
 [tool.uv]
 package = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+    { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
