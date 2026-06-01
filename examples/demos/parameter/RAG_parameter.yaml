@@ -90,6 +90,13 @@ retriever:
       token: null
       uri: index/milvus_demo.db
       vector_field_name: vector
+    qdrant:
+      url: null
+      path: index/qdrant
+      api_key: null
+      text_field_name: contents
+      distance: Cosine
+      index_chunk_size: 50000
   is_demo: false
   is_multimodal: false
   model_name_or_path: openbmb/MiniCPM-Embedding-Light

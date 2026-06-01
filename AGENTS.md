@@ -334,6 +334,7 @@ if __name__ == "__main__":
 - Index backends are pluggable via factory:
   - `faiss`
   - `milvus`
+  - `qdrant`
 - Web search backends are pluggable via factory:
   - `exa`
   - `tavily`

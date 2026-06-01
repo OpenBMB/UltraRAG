@@ -39,6 +39,11 @@ try:
 except ImportError:
     MilvusClient = None
 
+try:
+    from qdrant_client import QdrantClient as QdrantClientCls
+except ImportError:
+    QdrantClientCls = None
+
 LOGGER = logging.getLogger(__name__)
 
 # Suppress noisy "Event loop is closed" errors triggered by fastmcp transport
@@ -1805,15 +1810,15 @@ def sync_user_memory_to_kb(
         _write_turn_chunks_jsonl(chunk_file, turn_chunks, normalized_user_id)
         _report_progress(45, f"Prepared {len(turn_chunks)} turn chunks")
 
-        # Use examples/milvus_index.yaml pipeline for indexing.
+        index_pipeline = load_kb_config().get("index_backend", "milvus") + "_index"
         run_kb_pipeline_tool(
-            pipeline_name="milvus_index",
+            pipeline_name=index_pipeline,
             target_file_path=str(chunk_file),
             output_dir="",
             collection_name=collection_name,
             index_mode=run_mode,
         )
-        _report_progress(85, "Indexed turn chunks to Milvus")
+        _report_progress(85, "Indexed turn chunks to vector store")
 
         _save_memory_sync_state(
             normalized_user_id,
@@ -1860,18 +1865,20 @@ def clear_user_memory_collection_vectors(user_id: Optional[str]) -> Dict[str, An
         }
 
     client = None
+    index_backend = load_kb_config().get("index_backend", "milvus")
     try:
-        client = _get_milvus_client()
+        client = _get_qdrant_client() if index_backend == "qdrant" else _get_milvus_client()
         before_count = 0
-        if client.has_collection(collection_name):
+        if index_backend == "qdrant":
+            if client.collection_exists(collection_name):
+                before_count = client.get_collection(collection_name).points_count or 0
+                client.delete_collection(collection_name)
+                LOGGER.info("Dropped memory collection for user %s: %s", normalized_user_id, collection_name)
+        elif client.has_collection(collection_name):
             before_count = _get_collection_row_count(client, collection_name)
             # Drop collection instead of row-by-row delete to avoid stale row_count.
             client.drop_collection(collection_name)
-            LOGGER.info(
-                "Dropped memory collection for user %s: %s",
-                normalized_user_id,
-                collection_name,
-            )
+            LOGGER.info("Dropped memory collection for user %s: %s", normalized_user_id, collection_name)
 
         # Also clear user working-memory project files so next sync starts clean.
         # Keep global MEMORY.md untouched.
@@ -1909,7 +1916,7 @@ def clear_user_memory_collection_vectors(user_id: Optional[str]) -> Dict[str, An
             try:
                 client.close()
             except Exception as exc:
-                LOGGER.debug("Failed to close Milvus client for user %s: %s", normalized_user_id, exc)
+                LOGGER.debug("Failed to close vector store client for user %s: %s", normalized_user_id, exc)
         lock.release()
 
 
@@ -2141,6 +2148,7 @@ UI_KB_PIPELINES = {
     "build_text_corpus",
     "corpus_chunk",
     "milvus_index",
+    "qdrant_index",
 }
 
 
@@ -2224,6 +2232,7 @@ HIDDEN_PIPELINES = {
     "build_text_corpus",
     "corpus_chunk",
     "milvus_index",
+    "qdrant_index",
     "multiturn_chat",
 }
 
@@ -2872,6 +2881,7 @@ def clear_completed_background_tasks(user_id: str = "") -> int:
 # Knowledge Base Management
 def load_kb_config() -> Dict[str, Any]:
     default_config = {
+        "index_backend": "milvus",
         "milvus": {
             "uri": "tcp://127.0.0.1:19530",
             "token": "",
@@ -2884,7 +2894,15 @@ def load_kb_config() -> Dict[str, Any]:
             "index_params": {"index_type": "AUTOINDEX", "metric_type": "IP"},
             "search_params": {"metric_type": "IP", "params": {}},
             "index_chunk_size": 1000,
-        }
+        },
+        "qdrant": {
+            "url": None,
+            "path": "index/qdrant",
+            "api_key": None,
+            "text_field_name": "contents",
+            "distance": "Cosine",
+            "index_chunk_size": 50000,
+        },
     }
 
     if not KB_CONFIG_PATH.exists():
@@ -2892,12 +2910,13 @@ def load_kb_config() -> Dict[str, Any]:
 
     try:
         saved = json.loads(KB_CONFIG_PATH.read_text(encoding="utf-8"))
-        if "milvus" not in saved:
-            return default_config
-
-        full_cfg = default_config["milvus"].copy()
-        full_cfg.update(saved["milvus"])
-        return {"milvus": full_cfg}
+        result = {"index_backend": saved.get("index_backend", "milvus")}
+        for backend in ("milvus", "qdrant"):
+            full_cfg = default_config[backend].copy()
+            if backend in saved:
+                full_cfg.update(saved[backend])
+            result[backend] = full_cfg
+        return result
 
     except Exception:
         return default_config
@@ -2908,29 +2927,36 @@ def save_kb_config(config: Dict[str, str]):
 
 
 def _get_milvus_client() -> Any:
-    """Get Milvus client instance.
-
-    Returns:
-        MilvusClient instance
-
-    Raises:
-        ValueError: If URI is empty
-        Exception: If connection fails
-    """
     cfg = load_kb_config()
     try:
         milvus_cfg = cfg.get("milvus", {})
         uri = milvus_cfg.get("uri", "")
-
         if not uri:
             raise ValueError("URI is empty")
-
-        if not uri.startswith("http") and not Path(uri).is_absolute():
-            pass
-
         return MilvusClient(uri=uri, token=milvus_cfg.get("token", ""))
     except Exception as e:
         LOGGER.error(f"Failed to connect to Milvus: {e}")
+        raise e
+
+
+def _get_qdrant_client() -> Any:
+    cfg = load_kb_config()
+    try:
+        qdrant_cfg = cfg.get("qdrant", {})
+        url = qdrant_cfg.get("url")
+        path = qdrant_cfg.get("path")
+        api_key = qdrant_cfg.get("api_key")
+        if url:
+            kw = {"url": url}
+            if api_key:
+                kw["api_key"] = api_key
+            return QdrantClientCls(**kw)
+        elif path:
+            return QdrantClientCls(path=path)
+        else:
+            return QdrantClientCls(":memory:")
+    except Exception as e:
+        LOGGER.error(f"Failed to connect to Qdrant: {e}")
         raise e
 
 
@@ -3010,28 +3036,43 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
 
     collections = []
     db_status = "unknown"
+    index_backend = load_kb_config().get("index_backend", "milvus")
     try:
-        client = _get_milvus_client()
-        names = client.list_collections()
-        for name in names:
-            res = client.get_collection_stats(name)
-            count = res.get("row_count", 0)
-            try:
-                desc = client.describe_collection(name).get("description", "")
-            except Exception:
-                desc = ""
-            collections.append(
-                {
-                    "name": name,
-                    "display_name": _extract_display_name_from_desc(desc, name),
-                    "count": count,
-                    "category": "collection",
-                }
-            )
-        client.close()
+        if index_backend == "qdrant":
+            client = _get_qdrant_client()
+            for col in client.get_collections().collections:
+                info = client.get_collection(col.name)
+                collections.append(
+                    {
+                        "name": col.name,
+                        "display_name": col.name,
+                        "count": info.points_count or 0,
+                        "category": "collection",
+                    }
+                )
+            client.close()
+        else:
+            client = _get_milvus_client()
+            names = client.list_collections()
+            for name in names:
+                res = client.get_collection_stats(name)
+                count = res.get("row_count", 0)
+                try:
+                    desc = client.describe_collection(name).get("description", "")
+                except Exception:
+                    desc = ""
+                collections.append(
+                    {
+                        "name": name,
+                        "display_name": _extract_display_name_from_desc(desc, name),
+                        "count": count,
+                        "category": "collection",
+                    }
+                )
+            client.close()
         db_status = "connected"
     except Exception as e:
-        LOGGER.warning(f"Milvus connection failed: {e}")
+        LOGGER.warning(f"{index_backend.capitalize()} connection failed: {e}")
         db_status = "error"
 
     return {
@@ -3256,9 +3297,11 @@ def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
     elif category == "chunks":
         base_dir = KB_CHUNKS_DIR
     elif category == "collection":
-        return _delete_milvus_collection(filename)
+        backend = load_kb_config().get("index_backend", "milvus")
+        return _delete_qdrant_collection(filename) if backend == "qdrant" else _delete_milvus_collection(filename)
     elif category == "index":
-        return _delete_milvus_collection(filename)
+        backend = load_kb_config().get("index_backend", "milvus")
+        return _delete_qdrant_collection(filename) if backend == "qdrant" else _delete_milvus_collection(filename)
 
     if not base_dir:
         raise ValueError("Invalid category")
@@ -3287,17 +3330,6 @@ def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
 
 
 def _delete_milvus_collection(name: str) -> Dict[str, str]:
-    """Delete a Milvus collection.
-
-    Args:
-        name: Collection name
-
-    Returns:
-        Dictionary with deletion status
-
-    Raises:
-        Exception: If deletion fails
-    """
     try:
         client = _get_milvus_client()
         if client.has_collection(name):
@@ -3307,6 +3339,19 @@ def _delete_milvus_collection(name: str) -> Dict[str, str]:
         return {"status": "deleted", "collection": name}
     except Exception as e:
         LOGGER.error(f"Failed to drop collection {name}: {e}")
+        raise e
+
+
+def _delete_qdrant_collection(name: str) -> Dict[str, str]:
+    try:
+        client = _get_qdrant_client()
+        if client.collection_exists(name):
+            client.delete_collection(name)
+            LOGGER.info(f"Dropped Qdrant collection: {name}")
+        client.close()
+        return {"status": "deleted", "collection": name}
+    except Exception as e:
+        LOGGER.error(f"Failed to drop Qdrant collection {name}: {e}")
         raise e
 
 
@@ -3376,7 +3421,7 @@ def run_kb_pipeline_tool(
     chunk_params: Optional[Dict[str, Any]] = None,  # [New] Receive parameters
     embedding_params: Optional[
         Dict[str, Any]
-    ] = None,  # [New] Embedding configuration (for milvus_index)
+    ] = None,  # [New] Embedding configuration (for milvus_index / qdrant_index)
     progress_callback: Optional[Any] = None,  # Progress callback: (progress: int, message: str) -> None
 ) -> Dict[str, Any]:
     """Run knowledge base pipeline tool.
@@ -3385,7 +3430,7 @@ def run_kb_pipeline_tool(
         pipeline_name: Name of the pipeline to run
         target_file_path: Path to target file or directory
         output_dir: Output directory path
-        collection_name: Optional Milvus collection name
+        collection_name: Optional collection name (Milvus or Qdrant)
         index_mode: Index mode ("append" or "overwrite")
         chunk_params: Optional chunking parameters
         embedding_params: Optional embedding parameters
@@ -3563,6 +3608,56 @@ def run_kb_pipeline_tool(
                     "model_name": embedding_params.get(
                         "model_name", "text-embedding-3-small"
                     ),
+                }
+            }
+
+        override_params = {"retriever": retriever_override}
+
+    elif pipeline_name == "qdrant_index":
+        requested_name = collection_name if collection_name else stem
+
+        client = None
+        try:
+            client = _get_qdrant_client()
+            existing_collections = {c.name for c in client.get_collections().collections}
+        except Exception as exc:
+            raise PipelineManagerError(f"Qdrant connection failed: {exc}") from exc
+        finally:
+            try:
+                if client:
+                    client.close()
+            except Exception:
+                pass
+
+        if index_mode == "new" and requested_name in existing_collections:
+            raise PipelineManagerError(
+                "Collection name already exists. Choose append or overwrite."
+            )
+
+        resolved_collection_name = requested_name
+        resolved_collection_display_name = requested_name
+        is_overwrite = index_mode == "overwrite"
+
+        full_kb_cfg = load_kb_config()
+        qdrant_config_dict = dict(full_kb_cfg["qdrant"])
+
+        KB_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+
+        retriever_override = {
+            "corpus_path": str(target_file),
+            "collection_name": requested_name,
+            "overwrite": is_overwrite,
+            "index_backend": "qdrant",
+            "index_backend_configs": {"qdrant": qdrant_config_dict},
+        }
+
+        if embedding_params and embedding_params.get("api_key"):
+            retriever_override["backend"] = "openai"
+            retriever_override["backend_configs"] = {
+                "openai": {
+                    "api_key": embedding_params.get("api_key", ""),
+                    "base_url": embedding_params.get("base_url", "https://api.openai.com/v1"),
+                    "model_name": embedding_params.get("model_name", "text-embedding-3-small"),
                 }
             }
 

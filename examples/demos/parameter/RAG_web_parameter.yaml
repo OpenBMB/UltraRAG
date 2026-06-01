@@ -60,6 +60,13 @@ retriever:
         metric_type: IP
         params: {}
       index_chunk_size: 1000
+    qdrant:
+      url: null
+      path: index/qdrant
+      api_key: null
+      text_field_name: contents
+      distance: Cosine
+      index_chunk_size: 50000
   is_demo: false
   collection_name: wiki
   top_k: 5
