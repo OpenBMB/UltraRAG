@@ -207,10 +207,10 @@ class Retriever:
             gpu_ids: Comma-separated GPU IDs (e.g., "0,1")
             is_multimodal: Whether to use multimodal (image) embeddings
             backend: Backend name ("infinity", "sentence_transformers", "openai", or "bm25")
-            index_backend: Index backend name ("faiss" or "milvus")
+            index_backend: Index backend name ("faiss", "milvus", or "qdrant")
             index_backend_configs: Dictionary of index backend configurations
             is_demo: Whether to run in demo mode (forces OpenAI + Milvus)
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Raises:
             ImportError: If required dependencies are not installed
@@ -461,7 +461,7 @@ class Retriever:
                 self.index_backend_name, {}
             )
 
-            if self.index_backend_name == "milvus":
+            if self.index_backend_name in ("milvus", "qdrant"):
                 index_backend_cfg["collection_name"] = collection_name
 
             self.index_backend = create_index_backend(
@@ -694,7 +694,7 @@ class Retriever:
         Args:
             embedding_path: Path to embeddings file (.npy) for non-demo mode
             overwrite: Whether to overwrite existing index
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
             corpus_path: Corpus file path (required for demo mode)
 
         Raises:
@@ -873,7 +873,7 @@ class Retriever:
             query_list: List of query strings
             top_k: Number of top passages to return per query
             query_instruction: Optional instruction to prepend to queries
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Returns:
             Dictionary with 'ret_psg' containing retrieved passages
@@ -996,7 +996,7 @@ class Retriever:
             batch_query_list: List of query lists (one batch per list)
             top_k: Number of top passages to return per query
             query_instruction: Optional instruction to prepend to queries
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Returns:
             Dictionary with 'ret_psg_ls' containing retrieved passages for each batch

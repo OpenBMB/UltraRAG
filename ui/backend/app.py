@@ -377,7 +377,7 @@ def _run_kb_background(
         pipeline_name: Name of the pipeline to run
         target_file: Path to target file
         output_dir: Output directory path
-        collection_name: Milvus collection name
+        collection_name: Milvus or Qdrant collection name
         index_mode: Index mode ("append" or "overwrite")
         chunk_params: Optional chunking parameters
         embedding_params: Optional embedding parameters
@@ -397,7 +397,7 @@ def _run_kb_background(
         )
 
         if (
-            pipeline_name == "milvus_index"
+            pipeline_name in ("milvus_index", "qdrant_index")
             and index_mode == "new"
             and visibility_store is not None
             and owner_user_id
@@ -1453,11 +1453,12 @@ def create_app(admin_mode: bool = False) -> Flask:
 
         try:
             kb_config = pm.load_kb_config()
-            milvus_global_config = kb_config.get("milvus", {})
+            index_backend = kb_config.get("index_backend", "milvus")
+            backend_cfg = kb_config.get(index_backend, {})
 
             retriever_params = {
-                "index_backend": "milvus",
-                "index_backend_configs": {"milvus": milvus_global_config},
+                "index_backend": index_backend,
+                "index_backend_configs": {index_backend: backend_cfg},
             }
 
             if selected_collection:
@@ -1686,11 +1687,12 @@ def create_app(admin_mode: bool = False) -> Flask:
             dynamic_params["memory"] = memory_params
         try:
             kb_config = pm.load_kb_config()
-            milvus_global_config = kb_config.get("milvus", {})
+            index_backend = kb_config.get("index_backend", "milvus")
+            backend_cfg = kb_config.get(index_backend, {})
 
             retriever_params = {
-                "index_backend": "milvus",
-                "index_backend_configs": {"milvus": milvus_global_config},
+                "index_backend": index_backend,
+                "index_backend_configs": {index_backend: backend_cfg},
             }
 
             if selected_collection:
@@ -2133,7 +2135,7 @@ def create_app(admin_mode: bool = False) -> Flask:
             "use_title": payload.get("use_title", True),
         }
 
-        # Embedding parameters (for milvus_index)
+        # Embedding parameters (for milvus_index / qdrant_index)
         embedding_params = {
             "api_key": payload.get("emb_api_key", ""),
             "base_url": payload.get("emb_base_url", "https://api.openai.com/v1"),
@@ -2143,7 +2145,7 @@ def create_app(admin_mode: bool = False) -> Flask:
         if not pipeline_name or not target_file:
             return jsonify({"error": "Missing pipeline_name or target_file"}), 400
 
-        if pipeline_name == "milvus_index":
+        if pipeline_name in ("milvus_index", "qdrant_index"):
             normalized_mode = str(index_mode or "").strip().lower()
             if normalized_mode in {"append", "overwrite"}:
                 target_collection = str(collection_name or "").strip()
@@ -2163,7 +2165,7 @@ def create_app(admin_mode: bool = False) -> Flask:
             output_dir = str(pm.KB_CORPUS_DIR)
         elif pipeline_name == "corpus_chunk":
             output_dir = str(pm.KB_CHUNKS_DIR)
-        elif pipeline_name == "milvus_index":
+        elif pipeline_name in ("milvus_index", "qdrant_index"):
             output_dir = ""
 
         task_id = str(uuid.uuid4())
