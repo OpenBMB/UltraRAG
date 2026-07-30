@@ -127,9 +127,9 @@ https://github.com/user-attachments/assets/9cca0d4f-fb47-4232-9e47-69bfbb7b5d5d
 
 ```shell
 ## 直接安装
-pip install uv
+pip install uv==0.12.0
 ## 下载
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/0.12.0/install.sh | sh
 ```
 
 **下载源码**
@@ -154,6 +154,10 @@ cd UltraRAG
   ```shell
   uv sync --all-extras
   ```
+  这是推荐的团队安装方式：所有 MCP Server 共用同一个 `.venv` 和
+  `uv.lock`。Linux GPU 依赖统一锁定在 CUDA 12.9，包括官方 vLLM cu129
+  wheel。
+
 - 按需安装：如果您只需运行指定模块，请保留对应 `--extra`，例如：
   ```shell
   uv sync --extra retriever   # 检索模块

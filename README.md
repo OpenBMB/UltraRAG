@@ -127,9 +127,9 @@ If you haven't installed uv yet, please execute:
 
 ```shell
 ## Direct installation
-pip install uv
+pip install uv==0.12.0
 ## Download
-curl -LsSf https://astral.sh/uv/install.sh | sh
+curl -LsSf https://astral.sh/uv/0.12.0/install.sh | sh
 ```
 
 **Download Source Code**
@@ -154,6 +154,10 @@ Choose one of the following modes to install dependencies based on your use case
   ```shell
   uv sync --all-extras
   ```
+  This is the recommended team setup: every MCP server shares the same
+  `.venv` and `uv.lock`. Linux GPU dependencies are locked to CUDA 12.9,
+  including the official vLLM cu129 wheel.
+
 - On-demand installation: If you only need to run specific modules, keep the corresponding `--extra` as needed, for example:
 
   ```shell

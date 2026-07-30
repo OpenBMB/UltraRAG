@@ -9,7 +9,8 @@ description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    "fastmcp>=3.3.1",
+    # 3.4.5 requires Starlette >=1 through its client extra; MinerU/Gradio need <1.
+    "fastmcp>=3.3.1,<3.4.5",
     "mcp",
     "rich",
     "pandas",
@@ -25,7 +26,8 @@ dependencies = [
     "aiohttp",
     "pillow",
     "flask",
-    "numpy",
+    # faiss-gpu-cu12 1.14 requires NumPy 2; <2.4 also satisfies vLLM/Numba.
+    "numpy>=2,<2.4",
     "fakeredis",
     "pymilvus",
     "pypinyin",
@@ -55,10 +57,13 @@ retriever = [
 ]
 
 generation = [
-    "vllm>=0.22.1",
+    # Newer cu129 wheels currently pull CUDA 13 tooling or conflict with MinerU.
+    "vllm==0.22.1",
     "openai",
     "transformers",
     "torch",
+    # 0.2.4 has no CPython 3.12 Linux x86_64 wheel.
+    "xgrammar<0.2.4",
 ]
 
 evaluation = [
@@ -67,7 +72,7 @@ evaluation = [
 ]
 
 corpus = [
-    "mineru[core]",
+    "mineru[core]>=3,<4",
 ]
 
 all = [
@@ -95,6 +100,7 @@ dev = [
 package = true
 
 [tool.uv.sources]
+vllm = { index = "vllm-cu129" }
 torch = [
     { index = "pytorch-cu129", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
@@ -108,4 +114,9 @@ torchaudio = [
 [[tool.uv.index]]
 name = "pytorch-cu129"
 url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[[tool.uv.index]]
+name = "vllm-cu129"
+url = "https://wheels.vllm.ai/0.22.1/cu129"
 explicit = true

@@ -5,6 +5,8 @@
 .idea
 
 # Python caches
+.venv/
+.uv-cache/
 __pycache__/
 *.pyc
 
@@ -12,6 +14,9 @@ __pycache__/
 logs/
 output/
 data/
+test/
+tests/
+ui/storage/
 
 # Frontend artifacts
 **/node_modules/
