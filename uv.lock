@@ -1043,23 +1043,6 @@ wheels = [
 ]
 
 [[package]]
-name = "faiss-gpu-cu12"
-version = "1.14.1.post1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "nvidia-cublas-cu12", version = "12.8.4.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
-    { name = "nvidia-cublas-cu12", version = "12.9.1.4", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cuda-runtime-cu12", version = "12.8.90", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
-    { name = "nvidia-cuda-runtime-cu12", version = "12.9.79", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'linux'" },
-    { name = "packaging" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7e/4b/c32a725ec4b8be8a7abbeb05afc973dc72256b2d1ae8a3fd8c120d6199de/faiss_gpu_cu12-1.14.1.post1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:87e630faed349ba71e6c10e8340e93edf406bf22b42e08f097d7d3d64e16d0cb", size = 48386908, upload-time = "2026-03-07T01:09:05.296Z" },
-    { url = "https://files.pythonhosted.org/packages/e4/91/cd341417dc21b3ec99ea665c66f6939bc21640944c79a8f3908362fe7d63/faiss_gpu_cu12-1.14.1.post1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d997b9a4d9c7697e3ce39576edb91733c20ac2e81b455b4c08afea9d69e894cf", size = 48391873, upload-time = "2026-03-07T01:09:09.645Z" },
-]
-
-[[package]]
 name = "fakeredis"
 version = "2.37.0"
 source = { registry = "https://pypi.org/simple" }
@@ -5842,7 +5825,6 @@ all = [
     { name = "bm25s" },
     { name = "exa-py" },
     { name = "faiss-cpu", marker = "sys_platform == 'darwin'" },
-    { name = "faiss-gpu-cu12", marker = "sys_platform != 'darwin'" },
     { name = "fastapi" },
     { name = "infinity-emb" },
     { name = "mineru", extra = ["core"] },
@@ -5881,7 +5863,6 @@ retriever = [
     { name = "bm25s" },
     { name = "exa-py" },
     { name = "faiss-cpu", marker = "sys_platform == 'darwin'" },
-    { name = "faiss-gpu-cu12", marker = "sys_platform != 'darwin'" },
     { name = "fastapi" },
     { name = "infinity-emb" },
     { name = "numba" },
