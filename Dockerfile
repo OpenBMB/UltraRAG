@@ -6,9 +6,9 @@ RUN npm ci
 COPY ui/frontend/ ./
 RUN npm run build
 
-FROM nvidia/cuda:13.1.1-base-ubuntu24.04
+FROM nvidia/cuda:12.9.1-base-ubuntu24.04
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.0 /uv /uvx /bin/
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
