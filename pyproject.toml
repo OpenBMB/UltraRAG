@@ -63,7 +63,7 @@ generation = [
     "transformers",
     "torch",
     # 0.2.4 has no CPython 3.12 Linux x86_64 wheel.
-    "xgrammar<0.2.4",
+    "xgrammar<0.2.6",
 ]
 
 evaluation = [
