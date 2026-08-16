@@ -48,7 +48,7 @@ def r1_searcher_query_extract(ans_ls: List[str]) -> Dict[str, List[str]]:
     """
 
     def get_query(text):
-        pattern = re.compile(r"<|begin_of_query|>([^<]*)", re.DOTALL)
+        pattern = re.compile(r"<\|begin_of_query\|>([^<]*)", re.DOTALL)
         matches = pattern.findall(text)
 
         if matches:
