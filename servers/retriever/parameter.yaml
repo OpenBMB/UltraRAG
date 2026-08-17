@@ -31,7 +31,7 @@ backend_configs:
     tokenizer: auto # options: auto, default, jieba, character; auto uses jieba for Chinese
     save_path: index/bm25
 
-index_backend: faiss # options: faiss, milvus
+index_backend: faiss # options: faiss, milvus, qdrant
 index_backend_configs:
   faiss:
     index_use_gpu: True
@@ -53,6 +53,13 @@ index_backend_configs:
       metric_type: IP
       params: {}
     index_chunk_size: 1000
+  qdrant:
+    url: null # http://localhost:6333 for server, or leave null for local path
+    path: index/qdrant # local persistent storage; ignored when url is set
+    api_key: null
+    text_field_name: contents
+    distance: Cosine # options: Cosine, Dot, Euclid, Manhattan
+    index_chunk_size: 50000
 
 websearch_backend: tavily # options: tavily, exa, zhipuai
 websearch_backend_configs:

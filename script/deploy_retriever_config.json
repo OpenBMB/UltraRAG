@@ -58,6 +58,15 @@
         "params": {}
       },
       "index_chunk_size": 50000
+    },
+    "qdrant": {
+      "url": null,
+      "path": "index/qdrant",
+      "api_key": null,
+      "collection_name": "ultrarag_embeddings",
+      "text_field_name": "contents",
+      "distance": "Cosine",
+      "index_chunk_size": 50000
     }
   },
 
