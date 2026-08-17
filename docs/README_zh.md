@@ -268,11 +268,11 @@ Hello, UltraRAG v3!
 
 如果您觉得本项目对您的研究有所帮助，欢迎点亮一颗 ⭐ 来支持我们！
 
-<a href="https://star-history.com/#OpenBMB/UltraRAG&Date">
+<a href="https://star-history.dera.page/#OpenBMB/UltraRAG&type=Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=OpenBMB/UltraRAG&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=OpenBMB/UltraRAG&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=OpenBMB/UltraRAG&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://star-history.dera.page/svg?repos=OpenBMB/UltraRAG&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://star-history.dera.page/svg?repos=OpenBMB/UltraRAG&type=Date" />
+   <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=OpenBMB/UltraRAG&type=Date" />
  </picture>
 </a>
 
