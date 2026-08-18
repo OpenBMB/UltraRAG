@@ -1,7 +1,8 @@
-import re
-import json
 import copy
-from typing import List, Dict, Any
+import json
+import re
+from typing import Any, Dict, List
+from uuid import uuid4
 
 from ultrarag.server import UltraRAG_MCP_Server
 
@@ -400,21 +401,30 @@ def assign_citation_ids(
 
 
 class CitationRegistry:
-    _instances: Dict[int, Dict[str, Any]] = {}
+    _instances: Dict[str, Dict[int, Dict[str, Any]]] = {}
 
     @classmethod
-    def reset(cls):
-        cls._instances = {}
+    def create(cls) -> str:
+        registry_id = uuid4().hex
+        cls._instances[registry_id] = {}
+        return registry_id
 
     @classmethod
-    def get_or_create(cls, query_index: int) -> Dict[str, Any]:
-        if query_index not in cls._instances:
-            cls._instances[query_index] = {"registry": {}, "counter": 0}
-        return cls._instances[query_index]
+    def clear(cls, registry_id: str) -> None:
+        cls._instances.pop(registry_id, None)
 
     @classmethod
-    def assign_id(cls, query_index: int, doc_text: str) -> int:
-        state = cls.get_or_create(query_index)
+    def get_or_create(cls, registry_id: str, query_index: int) -> Dict[str, Any]:
+        if registry_id not in cls._instances:
+            raise ValueError(f"Unknown citation registry: {registry_id}")
+        registry = cls._instances[registry_id]
+        if query_index not in registry:
+            registry[query_index] = {"registry": {}, "counter": 0}
+        return registry[query_index]
+
+    @classmethod
+    def assign_id(cls, registry_id: str, query_index: int, doc_text: str) -> int:
+        state = cls.get_or_create(registry_id, query_index)
         doc_hash = doc_text.strip()
 
         if doc_hash in state["registry"]:
@@ -425,7 +435,7 @@ class CitationRegistry:
             return state["counter"]
 
 
-@app.tool(output="q_ls->q_ls")
+@app.tool(output="q_ls->q_ls,citation_registry_id")
 def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
     """Initialize citation registry for stateful citation assignment.
 
@@ -433,20 +443,24 @@ def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
         q_ls: List of queries
 
     Returns:
-        Dictionary with 'q_ls' (pass-through)
+        Dictionary with 'q_ls' (pass-through) and an isolated registry ID
     """
-    CitationRegistry.reset()
-    return {"q_ls": q_ls}
+    return {
+        "q_ls": q_ls,
+        "citation_registry_id": CitationRegistry.create(),
+    }
 
 
-@app.tool(output="ret_psg->ret_psg")
+@app.tool(output="ret_psg,citation_registry_id->ret_psg")
 def assign_citation_ids_stateful(
     ret_psg: List[List[str]],
+    citation_registry_id: str,
 ) -> Dict[str, Any]:
     """Assign unique citation IDs to passages using stateful registry.
 
     Args:
         ret_psg: List of lists of document strings
+        citation_registry_id: Registry ID returned by init_citation_registry
 
     Returns:
         Dictionary with 'ret_psg' containing passages with unique citation IDs
@@ -457,13 +471,24 @@ def assign_citation_ids_stateful(
         cited_docs = []
         for doc in docs_list:
             doc_text = str(doc).strip()
-            doc_id = CitationRegistry.assign_id(i, doc_text)
+            doc_id = CitationRegistry.assign_id(
+                citation_registry_id,
+                i,
+                doc_text,
+            )
             cited_docs.append(f"[{doc_id}] {doc_text}")
         result_psg.append(cited_docs)
 
     return {
         "ret_psg": result_psg,
     }
+
+
+@app.tool(output="citation_registry_id->None")
+def clear_citation_registry(citation_registry_id: str) -> Dict[str, Any]:
+    """Release citation state after a pipeline finishes."""
+    CitationRegistry.clear(citation_registry_id)
+    return {}
 
 
 # ==================== SurveyCPM Citation Tools ====================
