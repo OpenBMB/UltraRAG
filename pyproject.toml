@@ -75,9 +75,16 @@ corpus = [
     "mineru[core]>=3,<4",
 ]
 
+# LiteLLM generation backend: a pure API client, so it is kept separate from the
+# heavy `generation` extra (vllm/torch) — CPU/proxy users can install just this.
+litellm = [
+    "litellm>=1.60,<2.0",
+]
+
 all = [
     "ultrarag[retriever]",
     "ultrarag[generation]",
+    "ultrarag[litellm]",
     "ultrarag[corpus]",
     "ultrarag[evaluation]",
 ]
