@@ -79,7 +79,7 @@ class Retriever:
         """
         return {k: v for k, v in (d or {}).items() if k not in banned and v is not None}
 
-    async def _openai_embed_texts(
+    async def _api_embed_texts(
         self,
         texts: List[str],
         *,
@@ -90,7 +90,7 @@ class Retriever:
         allow_fallback_zero: bool = False,
         log_prefix: str = "[openai]",
     ) -> List[List[float]]:
-        """Embed texts with OpenAI using controlled concurrency."""
+        """Embed texts with an API backend (openai or litellm) using controlled concurrency."""
         if not texts:
             return []
 
@@ -114,16 +114,39 @@ class Retriever:
         cached_dim: Optional[int] = None
 
         async def _call_batch(batch: List[str]) -> List[List[float]]:
-            resp = await self.model.embeddings.create(
-                model=self.model_name,
-                input=batch,
-            )
-            if len(resp.data) != len(batch):
+            if self.backend == "litellm":
+                import litellm
+
+                call_kwargs: Dict[str, Any] = {
+                    "drop_params": self.litellm_drop_params
+                }
+                if self.litellm_api_key:
+                    call_kwargs["api_key"] = self.litellm_api_key
+                if self.litellm_base_url:
+                    call_kwargs["api_base"] = self.litellm_base_url
+                resp = await litellm.aembedding(
+                    model=self.model_name,
+                    input=batch,
+                    **call_kwargs,
+                )
+                # LiteLLM returns OpenAI-shaped data; items may be dicts or objects.
+                vectors = [
+                    (d["embedding"] if isinstance(d, dict) else d.embedding)
+                    for d in resp.data
+                ]
+            else:
+                resp = await self.model.embeddings.create(
+                    model=self.model_name,
+                    input=batch,
+                )
+                vectors = [d.embedding for d in resp.data]
+
+            if len(vectors) != len(batch):
                 raise RuntimeError(
                     f"{log_prefix} Embedding result size mismatch: "
-                    f"{len(resp.data)} vs {len(batch)}"
+                    f"{len(vectors)} vs {len(batch)}"
                 )
-            return [d.embedding for d in resp.data]
+            return vectors
 
         async def _process_batch(start: int, batch: List[str]) -> None:
             nonlocal cached_dim
@@ -206,7 +229,7 @@ class Retriever:
             corpus_path: Path to corpus file (JSONL format)
             gpu_ids: Comma-separated GPU IDs (e.g., "0,1")
             is_multimodal: Whether to use multimodal (image) embeddings
-            backend: Backend name ("infinity", "sentence_transformers", "openai", or "bm25")
+            backend: Backend name ("infinity", "sentence_transformers", "openai", "litellm", or "bm25")
             index_backend: Index backend name ("faiss" or "milvus")
             index_backend_configs: Dictionary of index backend configurations
             is_demo: Whether to run in demo mode (forces OpenAI + Milvus)
@@ -352,6 +375,36 @@ class Retriever:
                 err_msg = f"[openai] Failed to initialize OpenAI client: {e}"
                 app.logger.error(err_msg)
                 raise RuntimeError(err_msg) from e
+        elif self.backend == "litellm":
+            model_name = self.cfg.get("model_name")
+            if not model_name:
+                err_msg = "[litellm] model_name is required"
+                app.logger.error(err_msg)
+                raise ValueError(err_msg)
+            self.model_name = model_name
+
+            # api_key / base_url are optional. When unset, LiteLLM falls back to the
+            # provider's own env var (OPENAI_API_KEY, COHERE_API_KEY, AWS creds for
+            # Bedrock, ...), so omit them rather than sending empty strings.
+            self.litellm_api_key = self.cfg.get("api_key") or os.environ.get(
+                "RETRIEVER_API_KEY"
+            )
+            self.litellm_base_url = self.cfg.get("base_url")
+            self.litellm_drop_params = bool(self.cfg.get("drop_params", True))
+
+            raw_concurrency = self.cfg.get("concurrency", 1)
+            try:
+                self.openai_concurrency = max(1, int(raw_concurrency or 1))
+            except (TypeError, ValueError):
+                self.openai_concurrency = 1
+                app.logger.warning(
+                    "[litellm] Invalid concurrency=%s, fallback to 1",
+                    raw_concurrency,
+                )
+            app.logger.info(
+                "[litellm] LiteLLM embedding backend initialized (model='%s')",
+                model_name,
+            )
         elif self.backend == "bm25":
             try:
                 import bm25s
@@ -456,7 +509,7 @@ class Retriever:
                 app.logger.warning(f"[retriever] Corpus path not found: {corpus_path}")
 
         self.index_backend: Optional[BaseIndexBackend] = None
-        if self.backend in ["infinity", "sentence_transformers", "openai"]:
+        if self.backend in ["infinity", "sentence_transformers", "openai", "litellm"]:
             index_backend_cfg = self.index_backend_configs.get(
                 self.index_backend_name, {}
             )
@@ -653,19 +706,19 @@ class Retriever:
 
                 embeddings = await asyncio.to_thread(_encode_single)
 
-        elif self.backend == "openai":
+        elif self.backend in ("openai", "litellm"):
             if is_multimodal:
                 err_msg = (
-                    "openai backend does not support image embeddings in this path."
+                    f"{self.backend} backend does not support image embeddings in this path."
                 )
                 app.logger.error(err_msg)
                 raise ValueError(err_msg)
 
-            embeddings = await self._openai_embed_texts(
+            embeddings = await self._api_embed_texts(
                 self.contents,
                 batch_size=self.batch_size,
                 concurrency=getattr(self, "openai_concurrency", 1),
-                desc="[openai] Embedding:",
+                desc=f"[{self.backend}] Embedding:",
                 unit="item",
             )
         else:
@@ -793,7 +846,7 @@ class Retriever:
                 return
 
             app.logger.info(f"[Demo] Embedding {len(texts)} chunks...")
-            all_embeddings = await self._openai_embed_texts(
+            all_embeddings = await self._api_embed_texts(
                 texts,
                 batch_size=self.batch_size,
                 concurrency=getattr(self, "openai_concurrency", 1),
@@ -949,12 +1002,12 @@ class Retriever:
 
                 query_embedding = await asyncio.to_thread(_encode_single)
 
-        elif self.backend == "openai":
-            query_embedding = await self._openai_embed_texts(
+        elif self.backend in ("openai", "litellm"):
+            query_embedding = await self._api_embed_texts(
                 queries,
                 batch_size=self.batch_size,
                 concurrency=getattr(self, "openai_concurrency", 1),
-                desc="[openai] Embedding:",
+                desc=f"[{self.backend}] Embedding:",
                 unit="item",
             )
 
