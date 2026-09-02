@@ -155,13 +155,13 @@ class Generation:
         extra_params: Optional[Dict[str, Any]] = None,
         backend: str = "vllm",
     ) -> None:
-        """Initialize generation backend (vllm, openai, or hf).
+        """Initialize generation backend (vllm, openai, litellm, or hf).
 
         Args:
             backend_configs: Dictionary of backend-specific configurations
             sampling_params: Sampling parameters for generation
             extra_params: Optional extra parameters (e.g., chat_template_kwargs)
-            backend: Backend name ("vllm", "openai", or "hf")
+            backend: Backend name ("vllm", "openai", "litellm", or "hf")
 
         Raises:
             ImportError: If required dependencies are not installed
@@ -225,6 +225,33 @@ class Generation:
                 app.logger.warning(warn_msg)
 
             self.client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+
+            if extra_params:
+                sampling_params["extra_body"] = extra_params
+            self.sampling_params = sampling_params
+
+            self._max_concurrency = int(cfg.get("concurrency", 1))
+            self._retries = int(cfg.get("retries", 3))
+            self._base_delay = float(cfg.get("base_delay", 1.0))
+
+        elif self.backend == "litellm":
+            self.model_name = cfg.get("model_name")
+            if not self.model_name:
+                error_msg = "model_name is required for litellm backend"
+                app.logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            # api_key / base_url are optional. When unset, LiteLLM falls back to
+            # the provider's own env vars (OPENAI_API_KEY, ANTHROPIC_API_KEY,
+            # AWS creds for Bedrock, etc.), so leave them out of the call kwargs
+            # entirely rather than forwarding empty strings.
+            self.litellm_api_key = cfg.get("api_key") or os.environ.get("LLM_API_KEY")
+            self.litellm_base_url = cfg.get("base_url")
+
+            # Drop per-provider-unsupported sampling params instead of erroring,
+            # so one sampling_params block works across 100+ providers (e.g.
+            # Anthropic/Gemini reject some OpenAI-only kwargs). User can override.
+            self._drop_params = bool(cfg.get("drop_params", True))
 
             if extra_params:
                 sampling_params["extra_body"] = extra_params
@@ -382,6 +409,92 @@ class Generation:
                 asyncio.as_completed(tasks),
                 total=len(tasks),
                 desc="OpenAI Generating: ",
+            ):
+                idx, ans = await coro
+                ret[idx] = ans
+
+        elif self.backend == "litellm":
+            import litellm
+
+            sem = asyncio.Semaphore(self._max_concurrency)
+
+            base_kwargs: Dict[str, Any] = dict(self.sampling_params)
+            base_kwargs["drop_params"] = self._drop_params
+            if self.litellm_api_key:
+                base_kwargs["api_key"] = self.litellm_api_key
+            if self.litellm_base_url:
+                base_kwargs["api_base"] = self.litellm_base_url
+
+            async def call_with_retry(
+                idx,
+                msg,
+                model_name,
+                call_kwargs,
+                retries: int,
+                base_delay: float,
+            ):
+
+                import random
+
+                delay = base_delay
+                for attempt in range(retries):
+                    try:
+                        async with sem:
+                            resp = await litellm.acompletion(
+                                model=model_name,
+                                messages=msg,
+                                **call_kwargs,
+                            )
+                        return idx, (resp.choices[0].message.content or "")
+                    except litellm.AuthenticationError as e:
+                        error_msg = (
+                            f"[{getattr(e, 'status_code', 401)}] Unauthorized: "
+                            f"invalid or missing credentials for model={model_name}."
+                        )
+                        app.logger.error(error_msg)
+                        raise ToolError(error_msg)
+                    except litellm.RateLimitError as e:
+                        warn_msg = f"[429] API Rate limited (idx={idx}, attempt={attempt+1}): {e}"
+                        app.logger.warning(warn_msg)
+                        raise ToolError(warn_msg)
+                    except (
+                        litellm.Timeout,
+                        litellm.APIConnectionError,
+                        litellm.InternalServerError,
+                        litellm.ServiceUnavailableError,
+                    ) as e:
+                        # Transient: log and back off before the next attempt.
+                        warn_msg = f"[transient] Server/network error (idx={idx}, attempt={attempt+1}): {e}"
+                        app.logger.warning(warn_msg)
+                    except Exception as e:
+                        error_msg = f"[Retry {attempt+1}] Failed (idx={idx}): {e}"
+                        app.logger.error(error_msg)
+                        raise ToolError(error_msg)
+
+                    await asyncio.sleep(delay + random.random() * 0.25)
+                    delay *= 2
+
+                return idx, "<error>"
+
+            tasks = [
+                asyncio.create_task(
+                    call_with_retry(
+                        idx,
+                        msg,
+                        self.model_name,
+                        base_kwargs,
+                        retries=getattr(self, "_retries", 3),
+                        base_delay=getattr(self, "_base_delay", 1.0),
+                    )
+                )
+                for idx, msg in enumerate(msg_ls)
+            ]
+            ret = [None] * len(msg_ls)
+
+            for coro in tqdm(
+                asyncio.as_completed(tasks),
+                total=len(tasks),
+                desc="LiteLLM Generating: ",
             ):
                 idx, ans = await coro
                 ret[idx] = ans

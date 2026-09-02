@@ -2107,6 +2107,19 @@ async def run(
     log_server_banner(Path(config_path).stem)
 
     context = load_pipeline_context(config_path, param_path)
+    if os.name == "nt":
+        for name, server_config in context["server_cfg"].items():
+            mcp_server = context["mcp_cfg"]["mcpServers"].get(name)
+            if not isinstance(mcp_server, dict):
+                continue
+            mcp_server["env"].pop("ULTRARAG_PRELOAD_FAISS", None)
+            server_params = server_config.get("parameter", {})
+            if (
+                not is_demo
+                and isinstance(server_params, dict)
+                and str(server_params.get("index_backend", "")).lower() == "faiss"
+            ):
+                mcp_server["env"]["ULTRARAG_PRELOAD_FAISS"] = "1"
 
     client = create_mcp_client(context["mcp_cfg"])
 

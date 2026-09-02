@@ -5,7 +5,7 @@ corpus_path: data/corpus_example.jsonl
 embedding_path: embedding/embedding.npy
 collection_name: wiki
 
-backend: sentence_transformers # options: infinity, sentence_transformers, openai, bm25
+backend: sentence_transformers # options: infinity, sentence_transformers, openai, litellm, bm25
 backend_configs:
   infinity:
     bettertransformer: false
@@ -26,6 +26,15 @@ backend_configs:
     base_url: "https://api.openai.com/v1"
     api_key: "abc"
     concurrency: 8
+  litellm:
+    # Provider-prefixed embedding model routes to any LiteLLM-supported provider,
+    # e.g. openai/text-embedding-3-small, cohere/embed-english-v3.0,
+    # gemini/text-embedding-004, bedrock/amazon.titan-embed-text-v2:0, azure/<deployment>.
+    model_name: openai/text-embedding-3-small
+    # api_key: "sk-..."               # optional; falls back to the provider's own env var
+    # base_url: http://localhost:4000 # optional; e.g. a self-hosted LiteLLM proxy
+    concurrency: 8
+    drop_params: true
   bm25:
     lang: en # set to zh for Chinese corpora/query
     tokenizer: auto # options: auto, default, jieba, character; auto uses jieba for Chinese
