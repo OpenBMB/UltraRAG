@@ -45,7 +45,15 @@ class QdrantIndexBackend(BaseIndexBackend):
 
     def _connect(self) -> QdrantClient:
         if self.client is None:
-            kw = {k: v for k, v in self.config.items() if k not in _INTERNAL_KEYS and v is not None}
+            kw = {
+                k: v
+                for k, v in self.config.items()
+                if k not in _INTERNAL_KEYS and v is not None
+            }
+            if kw.get("url"):
+                kw.pop("path", None)
+            elif kw.get("path"):
+                kw.pop("url", None)
             self.client = QdrantClient(**kw) if kw else QdrantClient(":memory:")
         return self.client
 
@@ -87,7 +95,7 @@ class QdrantIndexBackend(BaseIndexBackend):
         overwrite: bool = False,
         **kwargs: Any,
     ) -> None:
-        col = kwargs.get("collection_name", self.collection_name)
+        col = kwargs.get("collection_name") or self.collection_name
         contents = kwargs.get("contents")
         metadatas = kwargs.get("metadatas") or []
 
@@ -101,6 +109,10 @@ class QdrantIndexBackend(BaseIndexBackend):
             raise ValueError("[qdrant] embeddings must be 2-D.")
         if len(ids) != len(embeddings):
             raise ValueError("[qdrant] ids and embeddings must have the same length.")
+        if len(contents) != len(embeddings):
+            raise ValueError(
+                "[qdrant] contents and embeddings must have the same length."
+            )
 
         self._ensure_collection(col, embeddings.shape[1], overwrite)
         client = self._connect()
@@ -131,7 +143,7 @@ class QdrantIndexBackend(BaseIndexBackend):
     def search(
         self, query_embeddings: np.ndarray, top_k: int, **kwargs: Any
     ) -> List[List[str]]:
-        col = kwargs.get("collection_name", self.collection_name)
+        col = kwargs.get("collection_name") or self.collection_name
         if not col:
             raise ValueError("[qdrant] 'collection_name' is required.")
 
