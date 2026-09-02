@@ -135,14 +135,14 @@ class SQLiteKbVisibilityStore:
                     f"""
                     INSERT INTO {TABLE_NAME}
                     (collection_name, owner_user_id, is_public, visible_users_json, created_at, updated_at)
-                    VALUES (?, ?, 1, '[]', ?, ?)
+                    VALUES (?, ?, 0, '[]', ?, ?)
                     """,
                     (normalized_collection, normalized_owner, now, now),
                 )
                 conn.commit()
                 existing = self._fetch_row(conn, normalized_collection)
         if not existing:
-            raise RuntimeError("failed to ensure legacy public visibility mapping")
+            raise RuntimeError("failed to ensure legacy private visibility mapping")
         return self._row_to_dict(existing)
 
     def bootstrap_legacy_public(
@@ -175,7 +175,7 @@ class SQLiteKbVisibilityStore:
                 f"""
                 INSERT INTO {TABLE_NAME}
                 (collection_name, owner_user_id, is_public, visible_users_json, created_at, updated_at)
-                VALUES (?, ?, 1, '[]', ?, ?)
+                VALUES (?, ?, 0, '[]', ?, ?)
                 """,
                 [(name, normalized_owner, now, now) for name in missing],
             )
