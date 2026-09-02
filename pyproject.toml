@@ -72,7 +72,7 @@ evaluation = [
 ]
 
 corpus = [
-    "mineru[core]>=3,<4",
+    "mineru[core]>=3.4.5,<4",
 ]
 
 # LiteLLM generation backend: a pure API client, so it is kept separate from the
