@@ -58,7 +58,7 @@ retriever = [
 
 generation = [
     # Newer cu129 wheels currently pull CUDA 13 tooling or conflict with MinerU.
-    "vllm==0.22.1",
+    "vllm==0.28.0",
     "openai",
     "transformers",
     "torch",
