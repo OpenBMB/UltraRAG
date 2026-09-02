@@ -230,10 +230,10 @@ class Retriever:
             gpu_ids: Comma-separated GPU IDs (e.g., "0,1")
             is_multimodal: Whether to use multimodal (image) embeddings
             backend: Backend name ("infinity", "sentence_transformers", "openai", "litellm", or "bm25")
-            index_backend: Index backend name ("faiss" or "milvus")
+            index_backend: Index backend name ("faiss", "milvus" or "qdrant")
             index_backend_configs: Dictionary of index backend configurations
             is_demo: Whether to run in demo mode (forces OpenAI + Milvus)
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Raises:
             ImportError: If required dependencies are not installed
@@ -455,7 +455,7 @@ class Retriever:
         self.contents = []
 
         should_load_corpus_to_memory = (self.backend == "bm25") or (
-            self.index_backend_name == "faiss"
+            self.index_backend_name in ("faiss", "qdrant")
         )
         if should_load_corpus_to_memory and corpus_path and os.path.exists(corpus_path):
             app.logger.info(
@@ -514,7 +514,7 @@ class Retriever:
                 self.index_backend_name, {}
             )
 
-            if self.index_backend_name == "milvus":
+            if self.index_backend_name in ("milvus", "qdrant"):
                 index_backend_cfg["collection_name"] = collection_name
 
             self.index_backend = create_index_backend(
@@ -747,7 +747,7 @@ class Retriever:
         Args:
             embedding_path: Path to embeddings file (.npy) for non-demo mode
             overwrite: Whether to overwrite existing index
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
             corpus_path: Corpus file path (required for demo mode)
 
         Raises:
@@ -898,11 +898,25 @@ class Retriever:
             embedding = np.load(embedding_path)
             vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
 
+            build_kwargs: Dict[str, Any] = {}
+            if self.index_backend_name == "qdrant":
+                if len(self.contents) != embedding.shape[0]:
+                    err_msg = (
+                        f"[qdrant] Corpus size ({len(self.contents)}) does not match "
+                        f"embedding rows ({embedding.shape[0]})."
+                    )
+                    app.logger.error(err_msg)
+                    raise ValidationError(err_msg)
+                build_kwargs["contents"] = self.contents
+                if target_collection:
+                    build_kwargs["collection_name"] = target_collection
+
             try:
                 self.index_backend.build_index(
                     embeddings=embedding,
                     ids=vec_ids,
                     overwrite=overwrite,
+                    **build_kwargs,
                 )
             except ValueError as exc:
                 raise ValidationError(str(exc)) from exc
@@ -926,7 +940,7 @@ class Retriever:
             query_list: List of query strings
             top_k: Number of top passages to return per query
             query_instruction: Optional instruction to prepend to queries
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Returns:
             Dictionary with 'ret_psg' containing retrieved passages
@@ -1049,7 +1063,7 @@ class Retriever:
             batch_query_list: List of query lists (one batch per list)
             top_k: Number of top passages to return per query
             query_instruction: Optional instruction to prepend to queries
-            collection_name: Collection name for Milvus backend
+            collection_name: Collection name for Milvus or Qdrant backend
 
         Returns:
             Dictionary with 'ret_psg_ls' containing retrieved passages for each batch

@@ -1596,7 +1596,7 @@ async def retriever_init(
 **Function**
 - Initializes retrieval service.
 - Embedding Backend (backend): Responsible for converting text/images into vectors (Infinity, SentenceTransformers, OpenAI, BM25).
-- Index Backend (index_backend): Responsible for vector storage and retrieval (FAISS, Milvus).
+- Index Backend (index_backend): Responsible for vector storage and retrieval (FAISS, Milvus, Qdrant).
 - Demo Mode: If is_demo=True, forces OpenAI + Milvus configuration, ignoring some parameters.
 
 ---
@@ -1634,7 +1634,7 @@ async def retriever_index(
 **Function**
 - Builds retrieval index.
 - FAISS: Reads embedding_path (.npy) to build local index file.
-- Milvus / Demo: Reads corpus_path (.jsonl), generates vectors and inserts into specified collection_name.
+- Milvus / Qdrant / Demo: Reads corpus_path (.jsonl), generates vectors and inserts into specified collection_name.
 
 ---
 
@@ -1652,7 +1652,7 @@ async def retriever_search(
 
 **Function**
 - Retrieves single or multiple queries.
-- Automatically handles query vectorization (adds query_instruction) and finds Top-K in specified collection_name (for Milvus) or default index.
+- Automatically handles query vectorization (adds query_instruction) and finds Top-K in specified collection_name (for Milvus or Qdrant) or default index.
 
 **Output Format (JSON)**
 ```json
@@ -1820,7 +1820,7 @@ backend_configs:
     save_path: index/bm25
 
 # Index Backend Configuration
-index_backend: faiss # options: faiss, milvus
+index_backend: faiss # options: faiss, milvus, qdrant
 index_backend_configs:
   faiss:
     index_use_gpu: True
@@ -1878,9 +1878,9 @@ Parameter Description:
 | `model_name_or_path` | str | Retrieval model path or name (e.g., HuggingFace model ID) |
 | `corpus_path` | str | Input corpus JSONL file path |
 | `embedding_path` | str | Vector file save path (`.npy`) |
-| `collection_name` | str | Milvus collection name |
+| `collection_name` | str | Milvus or Qdrant collection name |
 | `backend` | str | Select retrieval backend: `infinity`, `sentence_transformers`, `openai`, `bm25` |
-| `index_backend` | str | Index backend: `faiss`, `milvus` |
+| `index_backend` | str | Index backend: `faiss`, `milvus`, `qdrant` |
 | `backend_configs` | dict | Parameter configuration for each backend (see table below) |
 | `index_backend_configs` | dict | Parameter configuration for each index backend (see table below) |
 | `websearch_backend` | str | Web search backend: `tavily`, `exa`, `zhipuai` |
@@ -1941,6 +1941,12 @@ Parameter Description:
 ||index_params|	Dict| Index construction parameters (e.g., index_type: AUTOINDEX)|
 ||search_params	|Dict |Retrieval parameters (e.g., nprobe etc.)|
 ||index_chunk_size|	int| Batch size when inserting data|
+|qdrant|url|	str| Qdrant server URL (e.g., http://localhost:6333); leave null to use local path|
+||path|	str |Local persistent storage path; used when url is null|
+||api_key|	str |API key for authentication (if needed)|
+||text_field_name|	str |Payload field name for document text (default contents)|
+||distance|	str |Distance metric: Cosine, Dot, Euclid, Manhattan (default Cosine)|
+||index_chunk_size|	int |Batch size when upserting vectors|
 
 ================
 File: pages/en/api/router.mdx

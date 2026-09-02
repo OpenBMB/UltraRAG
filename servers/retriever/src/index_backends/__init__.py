@@ -8,6 +8,7 @@ from .base import BaseIndexBackend
 _INDEX_BACKENDS: Dict[str, str] = {
     "faiss": ".faiss_backend.FaissIndexBackend",
     "milvus": ".milvus_backend.MilvusIndexBackend",
+    "qdrant": ".qdrant_backend.QdrantIndexBackend",
 }
 
 
