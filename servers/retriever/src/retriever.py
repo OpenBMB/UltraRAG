@@ -1273,5 +1273,12 @@ class Retriever:
 
 
 if __name__ == "__main__":
+    if os.name == "nt" and os.environ.get("ULTRARAG_PRELOAD_FAISS") == "1":
+        try:
+            # Load FAISS before FastMCP starts its event loop on Windows.
+            import faiss  # noqa: F401
+        except ImportError:
+            pass
+
     Retriever(app)
     app.run(transport="stdio")
