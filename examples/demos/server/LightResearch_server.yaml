@@ -56,11 +56,16 @@ custom:
         q_ls: q_ls
       output:
       - q_ls
+      - citation_registry_id
     assign_citation_ids_stateful:
       input:
         ret_psg: ret_psg
+        citation_registry_id: citation_registry_id
       output:
       - ret_psg
+    clear_citation_registry:
+      input:
+        citation_registry_id: citation_registry_id
   parameter: servers/custom/parameter.yaml
   path: servers/custom/src/custom.py
 prompt:

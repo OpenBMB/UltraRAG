@@ -52,3 +52,4 @@ pipeline:
           complete: []
 - prompt.webnote_gen_answer
 - generation.generate
+- custom.clear_citation_registry
