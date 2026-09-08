@@ -27,7 +27,7 @@ dependencies = [
     "pillow",
     "flask",
     # faiss-gpu-cu12 1.14 requires NumPy 2; <2.4 also satisfies vLLM/Numba.
-    "numpy>=2,<2.4",
+    "numpy>=2.4.6,<2.5",
     "fakeredis",
     "pymilvus",
     "pypinyin",
