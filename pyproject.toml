@@ -80,7 +80,7 @@ corpus = [
 # LiteLLM generation backend: a pure API client, so it is kept separate from the
 # heavy `generation` extra (vllm/torch) — CPU/proxy users can install just this.
 litellm = [
-    "litellm>=1.60,<2.0",
+    "litellm>=1.100.0,<2.0",
 ]
 
 all = [
