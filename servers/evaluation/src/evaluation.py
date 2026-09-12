@@ -35,7 +35,13 @@ def normalize_text(text: str) -> str:
         return {"True": "yes", "False": "no"}.get(s, s)
 
     def _remove_articles(t: str) -> str:
-        return re.sub(r"\b(a|an|the)\b", " ", t)
+        # Article stripping must not consume the whole answer. A multiple-choice
+        # gold of "A" (prompt/qa_boxed_multiple_choice labels options with
+        # string.ascii_uppercase) normalizes to "" otherwise, and an empty
+        # string is a substring of every prediction, so acc and coverem score
+        # 1.0 against any answer. Keep the un-stripped form in that case.
+        stripped = re.sub(r"\b(a|an|the)\b", " ", t)
+        return t if not stripped.strip() else stripped
 
     def _white_space_fix(t: str) -> str:
         return " ".join(t.split())
