@@ -81,9 +81,23 @@ def _load_from_local(
     """
     # Load all data if shuffling, otherwise load with limit
     data = _load_data_from_file(path, -1 if is_shuffle else limit)
+
+    # Build every column from the same records. Filtering each column on its own
+    # key drops a row from one column but not the others, which shifts the rest
+    # of that column: downstream tools pair questions with ground truths by
+    # position, so question i is then scored against another row's answer.
+    required = list(key_map.values())
+    complete = [item for item in data if all(key in item for key in required)]
+    dropped = len(data) - len(complete)
+    if dropped:
+        app.logger.warning(
+            f"Skipped {dropped} of {len(data)} records missing one of the "
+            f"key_map keys {required}"
+        )
+
     ret: Dict[str, List[Any]] = {}
     for alias, original_key in key_map.items():
-        ret[alias] = [item[original_key] for item in data if original_key in item]
+        ret[alias] = [item[original_key] for item in complete]
 
     if is_shuffle:
         # Check if ret is empty before accessing values
