@@ -206,6 +206,11 @@ class FaissIndexBackend(BaseIndexBackend):
         for doc_ids in indices:
             cur_ret = []
             for doc_id in doc_ids:
+                # FAISS pads the result with -1 when the index holds fewer than
+                # `top_k` vectors. Indexing `contents` with -1 would silently
+                # return the LAST document instead of signalling a miss.
+                if doc_id == -1:
+                    continue
                 cur_ret.append(self.contents[doc_id])
             results.append(cur_ret)
         return results
