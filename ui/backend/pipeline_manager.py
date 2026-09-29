@@ -46,28 +46,34 @@ except ImportError:
 
 LOGGER = logging.getLogger(__name__)
 
-# Suppress noisy "Event loop is closed" errors triggered by fastmcp transport
-try:
-    from fastmcp.client.transports import StdioTransport  # type: ignore
+NO_MCP_MODE = False
 
-    _orig_stdio_del = getattr(StdioTransport, "__del__", None)
 
-    def _safe_stdio_del(self):
+def configure_execution_mode(no_mcp: bool) -> None:
+    """Set the UI process-wide execution mode before handling requests."""
+    global NO_MCP_MODE
+    NO_MCP_MODE = no_mcp
+    if no_mcp:
+        return
+    # Suppress noisy closed-loop errors from the optional MCP transport.
+    try:
+        from fastmcp.client.transports import StdioTransport  # type: ignore
+    except ImportError:
+        return
+    original = getattr(StdioTransport, "__del__", None)
+    if original is None or getattr(original, "_ultrarag_patched", False):
+        return
+
+    def safe_stdio_del(self):
         try:
-            if _orig_stdio_del:
-                _orig_stdio_del(self)
-        except RuntimeError as exc:  # pragma: no cover - best effort guard
-            if "Event loop is closed" in str(exc):
-                LOGGER.debug("Suppressed closed-loop warning in StdioTransport.__del__")
-                return
-            raise
-        except Exception as exc:  # pragma: no cover - best effort guard
-            LOGGER.debug("Suppressed StdioTransport.__del__ error: %s", exc)
+            original(self)
+        except RuntimeError as exc:
+            if "Event loop is closed" not in str(exc):
+                raise
+            LOGGER.debug("Suppressed closed-loop warning in StdioTransport.__del__")
 
-    if _orig_stdio_del:
-        StdioTransport.__del__ = _safe_stdio_del  # type: ignore
-except Exception as exc:  # pragma: no cover - defensive
-    LOGGER.warning("Failed to patch StdioTransport destructor: %s", exc)
+    safe_stdio_del._ultrarag_patched = True  # type: ignore[attr-defined]
+    StdioTransport.__del__ = safe_stdio_del  # type: ignore[method-assign]
 
 # Suppress noisy "Event loop is closed" stack traces from fakeredis callbacks
 try:
@@ -292,13 +298,13 @@ def _ensure_client_funcs():
         from ultrarag.client import (
             build,
             load_pipeline_context,
-            create_mcp_client,
+            create_execution_client,
             execute_pipeline,
         )
 
         _client_funcs["build"] = build
         _client_funcs["load_ctx"] = load_pipeline_context
-        _client_funcs["create_client"] = create_mcp_client
+        _client_funcs["create_client"] = create_execution_client
         _client_funcs["exec_pipe"] = execute_pipeline
         return _client_funcs
     except ModuleNotFoundError as exc:
@@ -410,8 +416,8 @@ class DemoSession:
             raise PipelineManagerError(f"Pipeline {name} not found")
 
         param_path = _resolve_parameter_path(name, for_write=False)
-        self._context = funcs["load_ctx"](str(config_file), str(param_path))
-        self._client = funcs["create_client"](self._context["mcp_cfg"])
+        self._context = funcs["load_ctx"](str(config_file), str(param_path), no_mcp=NO_MCP_MODE)
+        self._client = funcs["create_client"](self._context["mcp_cfg"], self._context["server_cfg"], NO_MCP_MODE)
 
         future = asyncio.run_coroutine_threadsafe(self._client.__aenter__(), self._loop)
         try:
@@ -512,10 +518,10 @@ class DemoSession:
                 "multiturn_chat", for_write=False
             )
             self._multiturn_context = funcs["load_ctx"](
-                str(multiturn_config_file), str(multiturn_param_path)
+                str(multiturn_config_file), str(multiturn_param_path), no_mcp=NO_MCP_MODE
             )
             self._multiturn_client = funcs["create_client"](
-                self._multiturn_context["mcp_cfg"]
+                self._multiturn_context["mcp_cfg"], self._multiturn_context["server_cfg"], NO_MCP_MODE
             )
 
             future = asyncio.run_coroutine_threadsafe(
@@ -2109,7 +2115,7 @@ def _auto_save_memory_chat_turn(
             )
             future.result(timeout=15)
             LOGGER.info(
-                "Auto-saved memory via MCP tool=%s input=q_ls pipeline=%s user_id=%s",
+                "Auto-saved memory via tool=%s input=q_ls pipeline=%s user_id=%s",
                 save_tool_name,
                 pipeline_name,
                 user_id,
@@ -2118,7 +2124,7 @@ def _auto_save_memory_chat_turn(
             return
         except Exception as exc:
             LOGGER.warning(
-                "Auto memory save via MCP failed, fallback to local write: %s", exc
+                "Auto memory save via tool failed, fallback to local write: %s", exc
             )
 
     try:
@@ -2433,7 +2439,7 @@ def build(name: str) -> Dict:
         # Build is fast, run synchronously
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(funcs["build"](str(p)))
+        loop.run_until_complete(funcs["build"](str(p), no_mcp=NO_MCP_MODE))
         loop.close()
     except Exception as e:
         raise PipelineManagerError(f"Build failed: {e}")
@@ -3674,12 +3680,12 @@ def run_kb_pipeline_tool(
 
     async def _async_task():
         _report_progress(15, "Loading pipeline context...")
-        context = funcs["load_ctx"](config_file, param_file)
+        context = funcs["load_ctx"](config_file, param_file, no_mcp=NO_MCP_MODE)
 
-        _report_progress(20, "Creating MCP client...")
-        client = funcs["create_client"](context["mcp_cfg"])
+        _report_progress(20, "Preparing pipeline tools...")
+        client = funcs["create_client"](context["mcp_cfg"], context["server_cfg"], NO_MCP_MODE)
 
-        _report_progress(25, "Connecting to server...")
+        _report_progress(25, "Initializing pipeline tools...")
         async with client:
             _report_progress(30, "Executing pipeline...")
             

@@ -15,7 +15,7 @@ The key design choice is strict modularization: retrieval, prompting, generation
 Current core metadata:
 
 - Package: `ultrarag`
-- Version: `0.3.0`
+- Version: `0.3.0.2`
 - Python: `>=3.11, <3.13`
 - CLI entrypoint: `ultrarag = ultrarag.client:main`
 - Package manager: `uv` (`[tool.uv] package = true`)
@@ -28,7 +28,11 @@ Current core metadata:
 UltraRAG/
 ├── src/ultrarag/                    # Installable core package
 │   ├── client.py                    # CLI + pipeline engine + run/build orchestration
-│   ├── server.py                    # UltraRAG_MCP_Server (FastMCP extension)
+│   ├── server.py                    # Mode-selecting UltraRAG_MCP_Server facade
+│   ├── local_server.py              # Dependency-free tool/prompt registration
+│   ├── mcp_server.py                # FastMCP compatibility implementation
+│   ├── registration.py              # Shared I/O metadata rules
+│   ├── execution.py                 # Direct and mixed execution clients
 │   ├── api.py                       # Python API wrappers (ToolCall, PipelineCall)
 │   ├── cli.py                       # Rich banner and CLI visuals
 │   ├── mcp_logging.py               # Central logging setup
@@ -80,14 +84,16 @@ Think of UltraRAG as a three-layer system:
 
 1. **Interface layer**: CLI (`ultrarag ...`), UI (`ultrarag show ui`), and Python API (`ToolCall`, `PipelineCall`)
 2. **Orchestration layer**: `src/ultrarag/client.py` (`build`, `load_pipeline_context`, `execute_pipeline`)
-3. **Execution layer**: MCP servers in `servers/*`, each exposing tools/prompts over stdio (or remote MCP proxy)
+3. **Execution layer**: server registrations in `servers/*`, executed through MCP or directly in process with `--no-mcp`
 
 The runtime contract is:
 
 - A pipeline YAML declares **which servers** to use and **which steps** to execute.
 - The client resolves I/O dependencies between steps.
-- Each step calls exactly one MCP tool or prompt.
+- Each step calls exactly one tool or prompt through the selected execution client.
 - Outputs are saved to a shared variable pool and can feed downstream steps.
+
+`--no-mcp` calls local UltraRAG registrations directly and keeps the same YAML and generated config format. Remote MCP entries may be mixed in and still require the `mcp` extra. Each UI session owns independent local registrations.
 
 ---
 
@@ -104,7 +110,7 @@ ultrarag build <pipeline.yaml>
 What happens:
 
 - Reads `servers:` from the pipeline YAML.
-- For each referenced server, calls the server's `build` tool.
+- For each referenced server, calls its MCP `build` tool or direct local `build` method.
 - Produces:
   - `<pipeline_dir>/parameter/<pipeline_name>_parameter.yaml`
   - `<pipeline_dir>/server/<pipeline_name>_server.yaml`
@@ -125,7 +131,7 @@ ultrarag run <pipeline.yaml> [--param path] [--is_demo]
 What happens:
 
 - Loads generated server config + parameter config.
-- Creates `fastmcp.Client` transport config for each server.
+- Uses `fastmcp.Client` by default, or direct local calls with `--no-mcp` (remote entries still use MCP).
 - Executes pipeline steps in order, including `loop` and `branch`.
 - Saves intermediate memory snapshots and writes `output/memory_*.json`.
 - Invokes cleanup tools (e.g., tools ending with `vllm_shutdown`) if present.
@@ -235,14 +241,14 @@ Important runtime behaviors:
 
 ### `src/ultrarag/server.py`
 
-Defines `UltraRAG_MCP_Server`, a compatibility wrapper over FastMCP.
+Defines the `UltraRAG_MCP_Server` facade. It selects the dependency-free registrar during local imports and lazily loads the FastMCP implementation otherwise. `registration.py` shares I/O metadata rules across both modes; `execution.py` supplies the client-shaped local and mixed adapter.
 
 Key responsibilities:
 
 - Enhanced `tool()` and `prompt()` registration with `output` metadata support
 - Metadata capture for automatic config generation
 - `build(parameter_file)` to generate per-server `server.yaml`
-- Compatibility filtering for FastMCP signature differences
+- Compatibility filtering for FastMCP signature differences in `mcp_server.py`
 
 ### `src/ultrarag/api.py`
 
@@ -290,6 +296,7 @@ Use either:
 2. Class-bound method registration style
 
 Both are valid in this codebase.
+Register tools when the module is imported where possible. The local loader also supports older class-bound servers that register only inside the `__main__` guard.
 
 ### 8.2 `output=` grammar
 
@@ -426,6 +433,7 @@ Runtime outputs:
 Install tiers from `pyproject.toml`:
 
 - Core install: no extras
+- `mcp` extra for the default MCP transport and remote MCP entries
 - `retriever` extra
 - `generation` extra
 - `evaluation` extra
@@ -436,6 +444,7 @@ Typical commands:
 
 ```bash
 uv sync
+uv sync --extra mcp
 uv sync --extra retriever
 uv sync --extra generation
 uv sync --all-extras
@@ -453,16 +462,17 @@ Development dependencies include:
 ## 14) CLI Commands (Canonical)
 
 ```bash
-ultrarag build <pipeline.yaml>
-ultrarag run <pipeline.yaml> [--param <parameter.yaml>] [--log_level info|debug|warn|error] [--is_demo]
-ultrarag show ui [--host 127.0.0.1] [--port 5050]
+ultrarag build <pipeline.yaml> [--no-mcp]
+ultrarag run <pipeline.yaml> [--param <parameter.yaml>] [--log_level info|debug|warn|error] [--is_demo] [--no-mcp]
+ultrarag show ui [--host 127.0.0.1] [--port 5050] [--no-mcp]
 ultrarag show case [--config_path <memory.json>] [--host 127.0.0.1] [--port 8080]
 ```
 
 Minimal smoke check:
 
 ```bash
-ultrarag run examples/experiments/sayhello.yaml
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
 
 ---

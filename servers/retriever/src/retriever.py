@@ -11,7 +11,7 @@ from tqdm import tqdm
 from PIL import Image
 import uuid
 
-from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
+from ultrarag.errors import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 from bm25_tokenizer import build_bm25_splitter
 from index_backends import BaseIndexBackend, create_index_backend
@@ -1339,6 +1339,8 @@ class Retriever:
         return {"ret_psg_ls": ret_psg_ls}
 
 
+provider = Retriever(app)
+
 if __name__ == "__main__":
     if os.name == "nt" and os.environ.get("ULTRARAG_PRELOAD_FAISS") == "1":
         try:
@@ -1347,5 +1349,4 @@ if __name__ == "__main__":
         except ImportError:
             pass
 
-    Retriever(app)
     app.run(transport="stdio")

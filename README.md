@@ -149,6 +149,14 @@ Choose one of the following modes to install dependencies based on your use case
   ```shell
   uv sync
   ```
+  This installs the local execution mode. Use `--no-mcp` with `build`, `run`,
+  and `show ui`. Local pipelines do not start MCP server processes.
+
+- MCP execution (the default when `--no-mcp` is omitted):
+  ```shell
+  uv sync --extra mcp
+  ```
+  Remote MCP servers also require this extra when mixed into a local pipeline.
 
 - Full installation: If you want to fully experience UltraRAG's retrieval, generation, corpus processing, and evaluation functions, please run:
   ```shell
@@ -183,6 +191,9 @@ source .venv/bin/activate
 ```shell
 # Core dependencies
 uv pip install -e .
+
+# Existing MCP execution mode
+uv pip install -e ".[mcp]"
 
 # Full installation
 uv pip install -e ".[all]"
@@ -226,7 +237,8 @@ Note: After the container starts, UltraRAG UI will run automatically. You can di
 After installation, run the following example command to check if the environment is normal:
 
 ```shell
-ultrarag run examples/experiments/sayhello.yaml
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
 
 If you see the following output, the installation is successful:

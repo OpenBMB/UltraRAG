@@ -5855,12 +5855,10 @@ dependencies = [
     { name = "charset-normalizer" },
     { name = "chonkie" },
     { name = "fakeredis" },
-    { name = "fastmcp" },
     { name = "flask" },
     { name = "httpx", extra = ["socks"] },
     { name = "jieba" },
     { name = "jinja2" },
-    { name = "mcp" },
     { name = "numpy" },
     { name = "openai" },
     { name = "orjson" },
@@ -5886,8 +5884,10 @@ all = [
     { name = "faiss-cpu", marker = "sys_platform == 'darwin'" },
     { name = "faiss-gpu-cu12", marker = "sys_platform != 'darwin'" },
     { name = "fastapi" },
+    { name = "fastmcp" },
     { name = "infinity-emb" },
     { name = "litellm" },
+    { name = "mcp" },
     { name = "mineru", extra = ["core"] },
     { name = "numba" },
     { name = "openai" },
@@ -5922,6 +5922,10 @@ generation = [
 ]
 litellm = [
     { name = "litellm" },
+]
+mcp = [
+    { name = "fastmcp" },
+    { name = "mcp" },
 ]
 retriever = [
     { name = "bm25s" },
@@ -5961,14 +5965,14 @@ requires-dist = [
     { name = "faiss-gpu-cu12", marker = "sys_platform != 'darwin' and extra == 'retriever'" },
     { name = "fakeredis" },
     { name = "fastapi", marker = "extra == 'retriever'" },
-    { name = "fastmcp", specifier = ">=3.3.1,<3.4.5" },
+    { name = "fastmcp", marker = "extra == 'mcp'", specifier = ">=3.3.1,<3.4.5" },
     { name = "flask" },
     { name = "httpx", extras = ["socks"] },
     { name = "infinity-emb", marker = "extra == 'retriever'" },
     { name = "jieba" },
     { name = "jinja2" },
     { name = "litellm", marker = "extra == 'litellm'", specifier = ">=1.60,<2.0" },
-    { name = "mcp" },
+    { name = "mcp", marker = "extra == 'mcp'" },
     { name = "mineru", extras = ["core"], marker = "extra == 'corpus'", specifier = ">=3,<4" },
     { name = "numba", marker = "extra == 'retriever'" },
     { name = "numpy", specifier = ">=2,<2.4" },
@@ -6005,12 +6009,13 @@ requires-dist = [
     { name = "ultrarag", extras = ["evaluation"], marker = "extra == 'all'" },
     { name = "ultrarag", extras = ["generation"], marker = "extra == 'all'" },
     { name = "ultrarag", extras = ["litellm"], marker = "extra == 'all'" },
+    { name = "ultrarag", extras = ["mcp"], marker = "extra == 'all'" },
     { name = "ultrarag", extras = ["retriever"], marker = "extra == 'all'" },
     { name = "uvicorn", marker = "extra == 'retriever'" },
     { name = "vllm", marker = "extra == 'generation'", specifier = "==0.22.1", index = "https://wheels.vllm.ai/0.22.1/cu129" },
     { name = "xgrammar", marker = "extra == 'generation'", specifier = "<0.2.4" },
 ]
-provides-extras = ["retriever", "generation", "evaluation", "corpus", "litellm", "all"]
+provides-extras = ["mcp", "retriever", "generation", "evaluation", "corpus", "litellm", "all"]
 
 [package.metadata.requires-dev]
 dev = [

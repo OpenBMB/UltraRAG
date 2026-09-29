@@ -1,39 +1,38 @@
 import asyncio
 import os
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import yaml
-from fastmcp import Client
 
-from .mcp_logging import get_logger
 from . import client as _client_mod
+from .mcp_logging import get_logger
 
-_client: Optional[Client] = None
+_client: Optional[Any] = None
+_client_entered = False
 _servers: Optional[List[str]] = None
 SERVER_ROOT = ""
 logger = None
 
 
 class _CallWrapper:
-    """Wraps a MCP tool so it can be called like a normal Python function."""
+    """Wrap a registered tool so it can be called like a Python function."""
 
-    def __init__(self, client: Client, server: str, tool: str, multi: bool):
+    def __init__(self, client: Any, server: str, tool: str, multi: bool):
         self._client = client
         self._server = server
         self._tool = tool
         self._multi = multi
 
     async def _ensure_client(self):
-        global _client, logger
+        global _client, _client_entered, logger
         if _client is None:
             raise RuntimeError(
                 "[UltraRAG Error] ToolCall was used before `initialize()` was called."
             )
-        try:
-            _ = _client.session
-        except RuntimeError:
+        if not _client_entered:
             await _client.__aenter__()
+            _client_entered = True
             tools = await _client.list_tools()
             tool_name_lst = [
                 tool.name
@@ -114,7 +113,7 @@ class _ServerProxy(SimpleNamespace):
     `_CallWrapper` bound to that (server, tool) pair.
     """
 
-    def __init__(self, client: Client, name: str, multi: bool):
+    def __init__(self, client: Any, name: str, multi: bool):
         """Initialize server proxy.
 
         Args:
@@ -165,21 +164,25 @@ class _Router(SimpleNamespace):
         return _ServerProxy(_client, server, len(_servers) > 1)
 
 
-def initialize(servers: List[str], server_root: str, log_level: str = "info") -> None:
-    """Initialize MCP servers so they can be accessed via ToolCall.
+def initialize(
+    servers: List[str], server_root: str, log_level: str = "info", no_mcp: bool = False
+) -> None:
+    """Initialize servers so they can be accessed via ToolCall.
 
     Args:
         servers: List of server names to initialize
         server_root: Root directory containing server directories
         log_level: Logging level (default: "info")
+        no_mcp: Execute local registrations in process when True
 
     Raises:
         ValueError: If server path does not exist
     """
-    global _client, _servers, SERVER_ROOT, logger
+    global _client, _client_entered, _servers, SERVER_ROOT, logger
     logger = get_logger("Client", log_level)
     SERVER_ROOT = server_root
     mcp_cfg = {"mcpServers": {}}
+    server_cfg = {}
     for server_name in servers:
         path = os.path.join(server_root, server_name, "src", f"{server_name}.py")
         if not os.path.exists(path):
@@ -189,8 +192,10 @@ def initialize(servers: List[str], server_root: str, log_level: str = "info") ->
             "args": [path],
             "env": os.environ.copy(),
         }
+        server_cfg[server_name] = {"path": path}
 
-    _client = Client(mcp_cfg)
+    _client = _client_mod.create_execution_client(mcp_cfg, server_cfg, no_mcp)
+    _client_entered = False
     _servers = servers
 
 
@@ -201,6 +206,7 @@ async def _pipeline_async(
     pipeline_file: str,
     parameter_file: str,
     log_level: str = "error",
+    no_mcp: bool = False,
 ):
     """Internal async helper that runs a full UltraRAG pipeline.
 
@@ -214,13 +220,16 @@ async def _pipeline_async(
     """
     _client_mod.logger = get_logger("Client", log_level)
 
-    return await _client_mod.run(pipeline_file, parameter_file, return_all=True)
+    return await _client_mod.run(
+        pipeline_file, parameter_file, return_all=True, no_mcp=no_mcp
+    )
 
 
 def PipelineCall(
     pipeline_file: str,
     parameter_file: str,
     log_level: str = "error",
+    no_mcp: bool = False,
 ):
     """Run a full UltraRAG pipeline from Python.
 
@@ -231,6 +240,7 @@ def PipelineCall(
         pipeline_file: Path to pipeline YAML file
         parameter_file: Path to parameter YAML file
         log_level: Logging level (default: "error")
+        no_mcp: Execute local registrations in process when True
 
     Returns:
         Pipeline execution results (synchronous) or Task (asynchronous if loop is running)
@@ -238,9 +248,9 @@ def PipelineCall(
     loop = asyncio.get_event_loop_policy().get_event_loop()
     if loop.is_running():
         return loop.create_task(
-            _pipeline_async(pipeline_file, parameter_file, log_level)
+            _pipeline_async(pipeline_file, parameter_file, log_level, no_mcp)
         )
     else:
         return loop.run_until_complete(
-            _pipeline_async(pipeline_file, parameter_file, log_level)
+            _pipeline_async(pipeline_file, parameter_file, log_level, no_mcp)
         )

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from xml.etree import ElementTree as ET
 
-from fastmcp.exceptions import ToolError
+from ultrarag.errors import ToolError
 from PIL import Image
 from tqdm import tqdm
 from ultrarag.server import UltraRAG_MCP_Server

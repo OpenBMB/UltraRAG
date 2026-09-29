@@ -6,7 +6,7 @@ import os
 import re
 from typing import Dict, List, Union
 
-from fastmcp.exceptions import ToolError
+from ultrarag.errors import ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("memory")

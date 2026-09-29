@@ -7,7 +7,7 @@ from jinja2 import Template
 from jinja2.sandbox import SandboxedEnvironment
 from markupsafe import escape
 
-from fastmcp.prompts import PromptMessage
+from typing import Any as PromptMessage
 from ultrarag.server import UltraRAG_MCP_Server
 
 

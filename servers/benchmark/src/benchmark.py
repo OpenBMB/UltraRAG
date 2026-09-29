@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from fastmcp.exceptions import NotFoundError, ToolError
+from ultrarag.errors import NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 
 
