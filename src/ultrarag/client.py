@@ -225,7 +225,7 @@ class Configuration:
         path = Path(file_path)
         if not path.is_file():
             return {}
-        return yaml.safe_load(path.read_text())
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 ROOT = "BASE"
