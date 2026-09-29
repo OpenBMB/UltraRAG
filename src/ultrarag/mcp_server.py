@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import asyncio
 import inspect
 import logging
 import os
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
-from types import EllipsisType, SimpleNamespace
+from types import EllipsisType
 from typing import Any, Callable, List, Literal, Optional, Union
 
 import yaml
 from fastmcp import FastMCP
-from fastmcp.client import Client
 from fastmcp.prompts import Prompt
 from fastmcp.server.auth.auth import OAuthProvider
-from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.server.middleware import Middleware
 from fastmcp.tools.tool import Tool
 from fastmcp.tools.tool_transform import ToolTransformConfig
 from mcp.server.lowlevel.server import LifespanResultT
