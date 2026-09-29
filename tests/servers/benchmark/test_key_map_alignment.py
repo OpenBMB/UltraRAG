@@ -37,7 +37,7 @@ class _App:
 
 def _load(data):
     """Compile ``_load_from_local`` with a stub app and a fixed record list."""
-    tree = ast.parse(BENCHMARK_SRC.read_text())
+    tree = ast.parse(BENCHMARK_SRC.read_text(encoding="utf-8"))
     module = ast.Module(
         body=[
             node
