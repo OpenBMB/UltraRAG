@@ -212,7 +212,9 @@ class MilvusIndexBackend(BaseIndexBackend):
 
     def load_index(self) -> None:
         """Connect to Milvus (index is stored in database, not loaded from file)."""
-        self._client_connect()
+        client = self._client_connect()
+        if self.collection_name and client.has_collection(self.collection_name):
+            client.load_collection(self.collection_name)
 
     def build_index(
         self,

@@ -455,7 +455,7 @@ class Retriever:
         self.contents = []
 
         should_load_corpus_to_memory = (self.backend == "bm25") or (
-            self.index_backend_name in ("faiss", "qdrant")
+            self.index_backend_name in ("faiss", "milvus", "qdrant")
         )
         if should_load_corpus_to_memory and corpus_path and os.path.exists(corpus_path):
             app.logger.info(
@@ -899,10 +899,10 @@ class Retriever:
             vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
 
             build_kwargs: Dict[str, Any] = {}
-            if self.index_backend_name == "qdrant":
+            if self.index_backend_name in ("milvus", "qdrant"):
                 if len(self.contents) != embedding.shape[0]:
                     err_msg = (
-                        f"[qdrant] Corpus size ({len(self.contents)}) does not match "
+                        f"[{self.index_backend_name}] Corpus size ({len(self.contents)}) does not match "
                         f"embedding rows ({embedding.shape[0]})."
                     )
                     app.logger.error(err_msg)
