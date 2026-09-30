@@ -56,11 +56,14 @@ custom:
         q_ls: q_ls
       output:
       - q_ls
+      - citation_state
     assign_citation_ids_stateful:
       input:
         ret_psg: ret_psg
+        citation_state: citation_state
       output:
       - ret_psg
+      - citation_state
   parameter: servers/custom/parameter.yaml
   path: servers/custom/src/custom.py
 prompt:
@@ -107,9 +110,11 @@ prompt:
   path: servers/prompt/src/prompt.py
 router:
   tools:
-    webnote_check_page:
+    webnote_check_page_with_citations:
       input:
         page_ls: page_ls
+        citation_state: citation_state
       output:
       - page_ls
+      - citation_state
   path: servers/router/src/router.py
