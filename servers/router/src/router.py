@@ -121,6 +121,25 @@ def webnote_check_page(page_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     return {"page_ls": page_ls}
 
 
+@app.tool(output="page_ls,citation_state->page_ls,citation_state")
+def webnote_check_page_with_citations(
+    page_ls: List[str], citation_state: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Route each WebNote page and its citation state through the same branch.
+
+    Explicitly routing both values also handles the first iteration, before
+    the pipeline's variable pool has branch metadata for citation state.
+    """
+    if len(page_ls) != len(citation_state):
+        raise ValueError("Pages and citation state must contain the same queries")
+    routed = webnote_check_page(page_ls)
+    routed["citation_state"] = [
+        {"data": state, "state": page["state"]}
+        for page, state in zip(routed["page_ls"], citation_state)
+    ]
+    return routed
+
+
 @app.tool(output="ans_ls->ans_ls")
 def r1_searcher_check(ans_ls: List[str]) -> Dict[str, List[Dict[str, str]]]:
     """Check if r1_searcher answers are complete based on EOS tokens.
