@@ -158,6 +158,7 @@ def create_info_table(
     pipeline_name: str,
     doc_url: str = "https://ultrarag.openbmb.cn/",
     show_system_info: bool = True,
+    no_mcp: bool = False,
 ) -> Table:
     """Create information table with pipeline and version details.
 
@@ -184,8 +185,11 @@ def create_info_table(
     mcp_ver = get_version_safe("mcp")
 
     table.add_row("◆", "UltraRAG", Text(f"v{ultrarag_ver}", style=STYLES["success"]))
-    table.add_row("◇", "FastMCP", Text(f"v{fastmcp_ver}", style=STYLES["muted"]))
-    table.add_row("◇", "MCP", Text(f"v{mcp_ver}", style=STYLES["muted"]))
+    if no_mcp:
+        table.add_row("◇", "Execution", Text("Local", style=STYLES["muted"]))
+    else:
+        table.add_row("◇", "FastMCP", Text(f"v{fastmcp_ver}", style=STYLES["muted"]))
+        table.add_row("◇", "MCP", Text(f"v{mcp_ver}", style=STYLES["muted"]))
     table.add_row("", "", "")
 
     # Documentation link
@@ -234,6 +238,7 @@ def make_server_banner(
     show_logo: bool = True,
     doc_url: str = "https://ultrarag.openbmb.cn/",
     compact: bool = False,
+    no_mcp: bool = False,
 ) -> Panel:
     """Create a formatted banner panel for UltraRAG server.
 
@@ -261,6 +266,7 @@ def make_server_banner(
         pipeline_name=pipeline_name,
         doc_url=doc_url,
         show_system_info=not compact,
+        no_mcp=no_mcp,
     )
     elements.append(info_table)
 
@@ -415,14 +421,14 @@ def create_progress_bar(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
-def log_server_banner(pipeline_name: str) -> None:
+def log_server_banner(pipeline_name: str, no_mcp: bool = False) -> None:
     """Print server banner to stderr console.
 
     Args:
         pipeline_name: Name of the pipeline to display in banner
     """
     console = Console(stderr=True)
-    panel = make_server_banner(pipeline_name)
+    panel = make_server_banner(pipeline_name, no_mcp=no_mcp)
     console.print()
     console.print(panel)
     console.print()

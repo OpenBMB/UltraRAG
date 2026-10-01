@@ -4,7 +4,7 @@ import asyncio
 import os
 from typing import Any, Dict, List, Optional, Sequence
 
-from fastmcp.exceptions import ToolError
+from ultrarag.errors import ToolError
 
 from .base import BaseWebSearchBackend
 
@@ -41,7 +41,7 @@ class TavilyWebSearchBackend(BaseWebSearchBackend):
                 "Please set it to use Tavily."
             )
             self.logger.error(err_msg)
-            raise MissingAPIKeyError(err_msg)
+            raise ToolError(err_msg)
         self._client = AsyncTavilyClient(api_key=api_key)
 
     async def search(

@@ -149,6 +149,14 @@ cd UltraRAG
   ```shell
   uv sync
   ```
+  默认安装支持本地执行模式。`build`、`run` 和 `show ui` 加上
+  `--no-mcp` 后，本地流水线不会启动 MCP 服务进程。
+
+- 如需使用未加 `--no-mcp` 的原有 MCP 模式，安装可选依赖：
+  ```shell
+  uv sync --extra mcp
+  ```
+  无 MCP 模式的流水线如果包含远程 MCP 服务，也需要安装此依赖。
 
 - 全量安装：如果您希望完整体验 UltraRAG 的检索、生成、语料处理及评测功能，请运行：
   ```shell
@@ -181,6 +189,9 @@ source .venv/bin/activate
 ```shell
 # 核心依赖
 uv pip install -e .
+
+# 原有 MCP 执行模式
+uv pip install -e ".[mcp]"
 
 # 全量安装
 uv pip install -e ".[all]"
@@ -226,7 +237,8 @@ docker run -it --gpus all -p 5050:5050 <docker_image_name>
 安装完成后，运行以下示例命令来检查环境是否正常：
 
 ```shell
-ultrarag run examples/experiments/sayhello.yaml
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
 
 看到以下输出即代表安装成功：

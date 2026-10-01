@@ -7,11 +7,22 @@ from jinja2 import Template
 from jinja2.sandbox import SandboxedEnvironment
 from markupsafe import escape
 
-from fastmcp.prompts import PromptMessage
+from typing import Any as PromptMessage
 from ultrarag.server import UltraRAG_MCP_Server
 
 
 app = UltraRAG_MCP_Server("prompt")
+
+
+def _prompt_text(message: Any) -> str:
+    """Read prompt history from in-process objects or MCP JSON messages."""
+    if isinstance(message, str):
+        return message
+    content = message.get("content") if isinstance(message, dict) else message.content
+    if isinstance(content, str):
+        return content
+    text = content.get("text") if isinstance(content, dict) else content.text
+    return str(text)
 
 # Create a sandboxed Jinja2 environment for security
 _sandboxed_env = SandboxedEnvironment(autoescape=True)
@@ -499,7 +510,7 @@ def search_r1_gen(
     for prompt, ans, psg in zip(prompt_ls, ans_ls, ret_psg):
         passages = psg[:3]
         passage_text = "\n".join(passages)
-        _pro = prompt.content.text
+        _pro = _prompt_text(prompt)
         p = _safe_render(template, history=_pro, answer=ans, passages=passage_text)
         ret.append(p)
     return ret
@@ -528,7 +539,7 @@ def r1_searcher_gen(
     for prompt, ans, psg in zip(prompt_ls, ans_ls, ret_psg):
         passages = psg[:5]
         passage_text = "\n".join(passages)
-        _pro = prompt.content.text
+        _pro = _prompt_text(prompt)
         p = _safe_render(template, history=_pro, answer=ans, passages=passage_text)
         ret.append(p)
     return ret

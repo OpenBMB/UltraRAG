@@ -8,7 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .base import BaseIndexBackend
-from fastmcp.exceptions import ValidationError
+from ultrarag.errors import ValidationError
 
 try:
     import faiss

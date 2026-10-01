@@ -34,11 +34,20 @@ jobs:
       - name: Sync Python dependencies
         run: uv sync
 
-      - name: Build sayhello pipeline
-        run: uv run ultrarag build examples/experiments/sayhello.yaml
+      - name: Build sayhello pipeline without MCP
+        run: uv run ultrarag build examples/experiments/sayhello.yaml --no-mcp
 
-      - name: Run sayhello pipeline
-        run: uv run ultrarag run examples/experiments/sayhello.yaml
+      - name: Run sayhello pipeline without MCP
+        run: uv run ultrarag run examples/experiments/sayhello.yaml --no-mcp
+
+      - name: Sync MCP dependencies
+        run: uv sync --extra mcp
+
+      - name: Build sayhello pipeline with MCP
+        run: uv run --extra mcp ultrarag build examples/experiments/sayhello.yaml
+
+      - name: Run sayhello pipeline with MCP
+        run: uv run --extra mcp ultrarag run examples/experiments/sayhello.yaml
 
   frontend-build:
     name: Frontend Build

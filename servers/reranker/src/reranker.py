@@ -264,4 +264,14 @@ class Reranker:
 provider = Reranker(app)
 
 if __name__ == "__main__":
+    if os.name == "nt":
+        # Load optional native libraries before the Windows stdio event loop.
+        try:
+            import sentence_transformers  # noqa: F401
+        except ImportError:
+            pass
+        try:
+            import sentencepiece  # noqa: F401
+        except ImportError:
+            pass
     app.run(transport="stdio")

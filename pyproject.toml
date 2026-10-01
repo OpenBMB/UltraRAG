@@ -10,8 +10,6 @@ readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
     # 3.4.5 requires Starlette >=1 through its client extra; MinerU/Gradio need <1.
-    "fastmcp>=3.3.1,<3.4.5",
-    "mcp",
     "rich",
     "pandas",
     "Jinja2",
@@ -40,13 +38,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "fastmcp>=3.3.1,<3.4.5",
+    "mcp",
+]
 retriever = [
     "infinity-emb",
     "sentence-transformers",
+    "sentencepiece",
     "openai",
     "bm25s",
-    "faiss-gpu-cu12; sys_platform != 'darwin'",
-    "faiss-cpu; sys_platform == 'darwin'",
+    "faiss-gpu-cu12; sys_platform == 'linux'",
+    "faiss-cpu; sys_platform != 'linux'",
     "exa_py",
     "tavily-python",
     "pymilvus",
@@ -84,6 +87,7 @@ litellm = [
 ]
 
 all = [
+    "ultrarag[mcp]",
     "ultrarag[retriever]",
     "ultrarag[generation]",
     "ultrarag[litellm]",

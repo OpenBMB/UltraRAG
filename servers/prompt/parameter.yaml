@@ -3,6 +3,11 @@
 # QA
 template: prompt/qa_boxed.jinja
 
+# Iterative retrieval and visual QA experiments
+gen_subq_template: prompt/gen_subq.jinja
+check_psg_template: prompt/check_passages.jinja
+evisrag_template: prompt/evisrag.jinja
+
 # RankCoT
 kr_template: prompt/RankCoT_knowledge_refinement.jinja
 qa_template: prompt/RankCoT_question_answering.jinja

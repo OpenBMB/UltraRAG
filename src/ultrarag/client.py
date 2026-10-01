@@ -12,9 +12,10 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
 
 import yaml
 from dotenv import load_dotenv
-from fastmcp import Client
 
 from ultrarag.cli import log_server_banner
+from ultrarag.execution import LocalExecutionClient
+from ultrarag.execution import create_mcp_client as _create_mcp_client
 from ultrarag.mcp_exceptions import (
     NodeNotInstalledError,
     NodeVersionTooLowError,
@@ -23,7 +24,7 @@ from ultrarag.mcp_exceptions import (
 from ultrarag.mcp_logging import get_logger
 
 log_level = ""
-logger = None
+logger = get_logger("Client", os.getenv("log_level", "info"))
 PipelineStep = Union[str, Dict[str, Any]]
 node_status = False
 
@@ -53,12 +54,13 @@ class MockResult:
         self.data = text_content
 
 
-def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
+def launch_ui(host: str = "127.0.0.1", port: int = 5050, no_mcp: bool = False) -> None:
     """Launch UltraRAG UI server.
 
     Args:
         host: Server host address (default: "127.0.0.1")
         port: Server port (default: 5050)
+        no_mcp: Execute local registrations in process
     Raises:
         RuntimeError: If UI backend cannot be loaded or server fails to start
     """
@@ -74,7 +76,7 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050) -> None:
             "Please ensure the `ui/backend` directory exists and is importable."
         ) from exc
 
-    app = create_app(admin_mode=True)
+    app = create_app(admin_mode=True, no_mcp=no_mcp)
     ui_logger = logging.getLogger("UltraRAG-UI")
     ui_logger.info("UltraRAG UI started: http://%s:%d", host, port)
 
@@ -223,7 +225,7 @@ class Configuration:
         path = Path(file_path)
         if not path.is_file():
             return {}
-        return yaml.safe_load(path.read_text())
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
 ROOT = "BASE"
@@ -948,11 +950,12 @@ class UltraData:
         return self.remain_branch
 
 
-async def build(config_path: str) -> None:
+async def build(config_path: str, no_mcp: bool = False) -> None:
     """Build server and parameter configuration files from pipeline.
 
     Args:
         config_path: Path to pipeline configuration file
+        no_mcp: Build local server metadata without MCP transports
 
     Raises:
         FileNotFoundError: If server file doesn't exist
@@ -1000,7 +1003,7 @@ async def build(config_path: str) -> None:
                     f"[UltraRAG Error] Cannot find the server file of {name}: {path}"
                 )
             mcp_servers[name] = {
-                "command": "python",
+                "command": sys.executable,
                 "args": [path],
                 "env": os.environ.copy(),
             }
@@ -1021,17 +1024,11 @@ async def build(config_path: str) -> None:
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_servers[name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_servers[name] = {
+                "command": "npx",
+                "args": ["-y", "mcp-remote", path],
+                "env": os.environ.copy(),
+            }
         else:
             raise ValueError(
                 f"[UltraRAG Error] Unsupported server type for {name}: {path}"
@@ -1040,7 +1037,7 @@ async def build(config_path: str) -> None:
     mcp_cfg = {"mcpServers": mcp_servers}
     logger.debug("Initializing MCP client with config: %s", mcp_cfg)
 
-    client = Client(mcp_cfg)
+    client = create_execution_client(mcp_cfg, server_cfgs, no_mcp=no_mcp)
     # logging.getLogger("FastMCP").setLevel(logging.WARNING)
     logger.info("Building server configs")
     already_built = []
@@ -1184,13 +1181,16 @@ async def build(config_path: str) -> None:
 
 
 def load_pipeline_context(
-    config_path: str, param_path: Optional[Union[str, Path]] = None
+    config_path: str,
+    param_path: Optional[Union[str, Path]] = None,
+    no_mcp: bool = False,
 ) -> Dict[str, Any]:
     """Load pipeline context from configuration files.
 
     Args:
         config_path: Path to pipeline configuration file
         param_path: Optional path to parameter file
+        no_mcp: Select local execution for local servers
 
     Returns:
         Dictionary containing pipeline context
@@ -1245,7 +1245,7 @@ def load_pipeline_context(
         path = sc.get("path", "")
         if path.endswith(".py"):
             mcp_cfg["mcpServers"][name] = {
-                "command": "python",
+                "command": sys.executable,
                 "args": [path],
                 "env": os.environ.copy(),
             }
@@ -1266,17 +1266,11 @@ def load_pipeline_context(
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_cfg["mcpServers"][name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_cfg["mcpServers"][name] = {
+                "command": "npx",
+                "args": ["-y", "mcp-remote", path],
+                "env": os.environ.copy(),
+            }
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 
@@ -1288,10 +1282,11 @@ def load_pipeline_context(
         "server_cfg": server_cfg,
         "pipeline_cfg": pipeline_cfg,
         "init_cfg": init_cfg,
+        "no_mcp": no_mcp,
     }
 
 
-def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Client:
+def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Any:
     """Create and initialize MCP client.
 
     Args:
@@ -1301,7 +1296,16 @@ def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Client:
         Initialized MCP Client instance
     """
     logger.info("Initializing MCP Client...")
-    return Client(mcp_cfg)
+    return _create_mcp_client(mcp_cfg)
+
+
+def create_execution_client(
+    mcp_cfg: Dict[str, Any], server_cfg: Dict[str, Any], no_mcp: bool = False
+) -> Any:
+    """Select the client protocol used by build, run, UI, and Python API."""
+    if no_mcp:
+        return LocalExecutionClient(mcp_cfg, server_cfg)
+    return create_mcp_client(mcp_cfg)
 
 
 def _summarize_step_result(step_name: str, result: Any) -> str:
@@ -1364,7 +1368,7 @@ def _summarize_step_result(step_name: str, result: Any) -> str:
 
 
 async def execute_pipeline(
-    client: Client,
+    client: Any,
     context: Dict[str, Any],
     is_demo: bool = False,
     return_all: bool = False,
@@ -2091,6 +2095,7 @@ async def run(
     param_path: Optional[Union[str, Path]] = None,
     return_all: bool = False,
     is_demo: bool = False,
+    no_mcp: bool = False,
 ) -> Any:
     """Run UltraRAG pipeline with given configuration.
 
@@ -2099,14 +2104,15 @@ async def run(
         param_path: Optional path to parameter file
         return_all: Whether to return all intermediate results
         is_demo: Whether to run in demo mode
+        no_mcp: Execute local registrations in process
 
     Returns:
         Pipeline execution results
     """
 
-    log_server_banner(Path(config_path).stem)
+    log_server_banner(Path(config_path).stem, no_mcp=no_mcp)
 
-    context = load_pipeline_context(config_path, param_path)
+    context = load_pipeline_context(config_path, param_path, no_mcp=no_mcp)
     if os.name == "nt":
         for name, server_config in context["server_cfg"].items():
             mcp_server = context["mcp_cfg"]["mcpServers"].get(name)
@@ -2121,7 +2127,7 @@ async def run(
             ):
                 mcp_server["env"]["ULTRARAG_PRELOAD_FAISS"] = "1"
 
-    client = create_mcp_client(context["mcp_cfg"])
+    client = create_execution_client(context["mcp_cfg"], context["server_cfg"], no_mcp)
 
     async with client:
         result = await execute_pipeline(client, context, is_demo, return_all)
@@ -2139,11 +2145,13 @@ def main() -> None:
 
     p_val = subparsers.add_parser("build", help="Build the configuration")
     p_val.add_argument("config")
+    p_val.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
 
     p_run = subparsers.add_parser(
         "run", help="Run the pipeline with the given configuration"
     )
     p_run.add_argument("config")
+    p_run.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
     p_run.add_argument(
         "--param",
         type=str,
@@ -2173,6 +2181,7 @@ def main() -> None:
     p_show_ui = show_sub.add_parser("ui", help="Launch the UltraRAG web UI")
     p_show_ui.add_argument("--host", default="127.0.0.1")
     p_show_ui.add_argument("--port", type=int, default=5050)
+    p_show_ui.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
 
     p_show_case = show_sub.add_parser("case", help="Launch Case Study Viewer")
     p_show_case.add_argument(
@@ -2199,13 +2208,13 @@ def main() -> None:
     logger = get_logger("Client", log_level)
 
     if args.cmd == "build":
-        log_server_banner("Building")
-        asyncio.run(build(args.config))
+        log_server_banner("Building", no_mcp=args.no_mcp)
+        asyncio.run(build(args.config, no_mcp=args.no_mcp))
     elif args.cmd == "run":
-        asyncio.run(run(args.config, args.param, is_demo=args.is_demo))
+        asyncio.run(run(args.config, args.param, is_demo=args.is_demo, no_mcp=args.no_mcp))
     elif args.cmd == "show":
         if args.show_target == "ui":
-            launch_ui(host=args.host, port=args.port)
+            launch_ui(host=args.host, port=args.port, no_mcp=args.no_mcp)
         elif args.show_target == "case":
             launch_case_study(
                 config_path=args.config_path,
@@ -2221,4 +2230,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
