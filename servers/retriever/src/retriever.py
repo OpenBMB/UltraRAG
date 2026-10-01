@@ -1211,11 +1211,11 @@ class Retriever:
             app.logger.info(info_msg)
             return
 
-        if overwrite and os.path.exists(bm25_save_path):
-            os.remove(bm25_save_path)
-
-        corpus_tokens = self.tokenizer.tokenize(self.contents, return_as="tuple")
+        corpus_tokens = self.tokenizer.tokenize(
+            self.contents, return_as="tuple", update_vocab=True
+        )
         self.model.index(corpus_tokens)
+        # BM25S saves a directory and replaces its index files in place.
         self.model.save(bm25_save_path, corpus=None)
         self.tokenizer.save_stopwords(bm25_save_path)
         self.tokenizer.save_vocab(bm25_save_path)

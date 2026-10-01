@@ -745,6 +745,7 @@ async def mineru_parse(
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
+            stdin=asyncio.subprocess.DEVNULL,
             env=proc_env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -1143,4 +1144,16 @@ async def chunk_documents(
 
 
 if __name__ == "__main__":
+    if os.name == "nt":
+        # Chonkie can import native tokenizer/ML libraries when installed.
+        # Initialize them before entering the Windows MCP stdio event loop.
+        try:
+            from chonkie import (  # noqa: F401
+                RecursiveChunker,
+                RecursiveRules,
+                SentenceChunker,
+                TokenChunker,
+            )
+        except ImportError:
+            pass
     app.run(transport="stdio")
