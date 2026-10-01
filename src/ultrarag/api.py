@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from types import SimpleNamespace
 from typing import Any, List, Optional
 
@@ -188,7 +189,7 @@ def initialize(
         if not os.path.exists(path):
             raise ValueError(f"Server path {path} does not exist!")
         mcp_cfg["mcpServers"][server_name] = {
-            "command": "python",
+            "command": sys.executable,
             "args": [path],
             "env": os.environ.copy(),
         }

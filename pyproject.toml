@@ -45,10 +45,11 @@ mcp = [
 retriever = [
     "infinity-emb",
     "sentence-transformers",
+    "sentencepiece",
     "openai",
     "bm25s",
-    "faiss-gpu-cu12; sys_platform != 'darwin'",
-    "faiss-cpu; sys_platform == 'darwin'",
+    "faiss-gpu-cu12; sys_platform == 'linux'",
+    "faiss-cpu; sys_platform != 'linux'",
     "exa_py",
     "tavily-python",
     "pymilvus",

@@ -41,7 +41,7 @@ class TavilyWebSearchBackend(BaseWebSearchBackend):
                 "Please set it to use Tavily."
             )
             self.logger.error(err_msg)
-            raise MissingAPIKeyError(err_msg)
+            raise ToolError(err_msg)
         self._client = AsyncTavilyClient(api_key=api_key)
 
     async def search(

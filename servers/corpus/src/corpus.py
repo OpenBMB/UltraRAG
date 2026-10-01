@@ -908,11 +908,24 @@ async def build_mineru_corpus(
     os.makedirs(base_out_img_dir, exist_ok=True)
 
     for stem in stems:
-        auto_dir = os.path.join(root, stem, "auto")
-        if not os.path.isdir(auto_dir):
-            warn_msg = f"Auto dir not found for '{stem}': {auto_dir} (skip)"
+        # MinerU names the output directory after the selected parsing method.
+        # Explicit txt/ocr and VLM runs do not produce an 'auto' directory.
+        parse_dirs = [
+            Path(root) / stem / method for method in ("auto", "txt", "ocr", "vlm")
+        ]
+        parse_dir = next(
+            (
+                folder for folder in parse_dirs
+                if (folder / f"{stem}.md").is_file() or (folder / "images").is_dir()
+            ),
+            None,
+        )
+        if parse_dir is None:
+            warn_msg = f"MinerU parsing output not found for '{stem}' under {root} (skip)"
             app.logger.warning(warn_msg)
             continue
+
+        auto_dir = str(parse_dir)
 
         md_path = os.path.join(auto_dir, f"{stem}.md")
         if not os.path.isfile(md_path):
@@ -921,7 +934,8 @@ async def build_mineru_corpus(
         else:
             with open(md_path, "r", encoding="utf-8") as f:
                 md_text = f.read().strip()
-            text_rows.append({"id": stem, "title": stem, "contents": md_text})
+            if md_text:
+                text_rows.append({"id": stem, "title": stem, "contents": md_text})
 
         images_dir = os.path.join(auto_dir, "images")
         if not os.path.isdir(images_dir):
@@ -953,6 +967,8 @@ async def build_mineru_corpus(
             )
 
     text_out = os.path.abspath(text_corpus_save_path)
+    if not text_rows and not image_rows:
+        raise ToolError(f"No corpus records found in MinerU parsing output: {root}")
     _save_jsonl(text_rows, text_out)
     _save_jsonl(image_rows, image_out)
 

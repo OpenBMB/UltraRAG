@@ -396,6 +396,27 @@ def test_builtin_servers_register_for_local_execution() -> None:
                 {"q_ls": ["Ada"], "template": str(root / "prompt" / "qa_boxed.jinja")},
             )
             assert "Ada" in result.messages[0].content.text
+            # Local calls also accept history supplied in the MCP JSON shape.
+            for name, template_name in (
+                ("search_r1_gen", "search_r1_append.jinja"),
+                ("r1_searcher_gen", "r1_searcher_append.jinja"),
+            ):
+                continued = await client.get_prompt(
+                    f"prompt_{name}",
+                    {
+                        "prompt_ls": [
+                            {
+                                "role": "user",
+                                "content": {"type": "text", "text": "Prior question"},
+                            }
+                        ],
+                        "ans_ls": ["Prior answer"],
+                        "ret_psg": [["New evidence"]],
+                        "template": str(root / "prompt" / template_name),
+                    },
+                )
+                assert "Prior question" in continued.messages[0].content.text
+                assert "New evidence" in continued.messages[0].content.text
 
     asyncio.run(exercise())
 
@@ -472,6 +493,27 @@ def test_builtin_prompt_still_works_over_mcp(monkeypatch: pytest.MonkeyPatch) ->
                 {"q_ls": ["Ada"], "template": str(root / "prompt" / "qa_boxed.jinja")},
             )
             assert "Ada" in result.messages[0].content.text
+            # MCP serializes prompt history into dicts, without attribute access.
+            for name, template_name in (
+                ("search_r1_gen", "search_r1_append.jinja"),
+                ("r1_searcher_gen", "r1_searcher_append.jinja"),
+            ):
+                continued = await client.get_prompt(
+                    name,
+                    {
+                        "prompt_ls": [
+                            {
+                                "role": "user",
+                                "content": {"type": "text", "text": "Prior question"},
+                            }
+                        ],
+                        "ans_ls": ["Prior answer"],
+                        "ret_psg": [["New evidence"]],
+                        "template": str(root / "prompt" / template_name),
+                    },
+                )
+                assert "Prior question" in continued.messages[0].content.text
+                assert "New evidence" in continued.messages[0].content.text
 
     asyncio.run(exercise())
 
@@ -483,10 +525,8 @@ def test_mcp_and_local_pipeline_agree(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     path = _pipeline(tmp_path)
-    monkeypatch.setenv(
-        "PATH",
-        str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""),
-    )
+    # API callers may use an interpreter without activating its environment.
+    monkeypatch.setenv("PATH", "")
     monkeypatch.setenv("PYTHONPATH", str(Path(__file__).resolve().parents[1] / "src"))
 
     async def exercise() -> None:

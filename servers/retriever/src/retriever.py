@@ -1342,9 +1342,15 @@ class Retriever:
 provider = Retriever(app)
 
 if __name__ == "__main__":
-    if os.name == "nt" and os.environ.get("ULTRARAG_PRELOAD_FAISS") == "1":
+    if os.name == "nt":
+        # On Windows, importing native BLAS/FAISS libraries after the stdio
+        # event loop starts can hang the loader (also reached by BM25/Milvus).
+        # Keep these optional imports outside the MCP event loop.
         try:
-            # Load FAISS before FastMCP starts its event loop on Windows.
+            import scipy.linalg  # noqa: F401
+        except ImportError:
+            pass
+        try:
             import faiss  # noqa: F401
         except ImportError:
             pass

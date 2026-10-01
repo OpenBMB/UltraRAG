@@ -1003,7 +1003,7 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                     f"[UltraRAG Error] Cannot find the server file of {name}: {path}"
                 )
             mcp_servers[name] = {
-                "command": "python",
+                "command": sys.executable,
                 "args": [path],
                 "env": os.environ.copy(),
             }
@@ -1245,7 +1245,7 @@ def load_pipeline_context(
         path = sc.get("path", "")
         if path.endswith(".py"):
             mcp_cfg["mcpServers"][name] = {
-                "command": "python",
+                "command": sys.executable,
                 "args": [path],
                 "env": os.environ.copy(),
             }
