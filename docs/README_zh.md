@@ -203,20 +203,32 @@ cd UltraRAG
 # 2. 准备镜像 (二选一)
 # 选项 A：从 Docker Hub 拉取
 
-docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # 基础版 (CPU)
-docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # 基础版 (GPU)
-docker pull hdxin2002/ultrarag:v0.3.0          # 完整版 (GPU)
+docker pull hdxin2002/ultrarag:latest-base-cpu # 核心依赖 (CPU)
+docker pull hdxin2002/ultrarag:latest-base-gpu # 核心依赖 (GPU 基础镜像)
+docker pull hdxin2002/ultrarag:latest          # 全量依赖 (GPU)
 
 # 选项 B：本地构建
-docker build -t ultrarag:v0.3.0 .
+docker build -f Dockerfile.base-cpu -t ultrarag:latest-base-cpu . # CPU
+docker build -t ultrarag:latest .                              # 完整 GPU 镜像
 
 ```
+
+每日构建流程在 UTC 00:00（北京时间 08:00）检查 `main`，有最近 24 小时内的
+提交时更新 `latest` 系列标签，也可手动触发强制重建。原有的 `v0.3.0`、
+`v0.3.0-base-cpu`、`v0.3.0-base-gpu` 标签继续与新标签一起发布。这些标签会更新；
+需要可复现部署时，请固定镜像 digest。
+
+三个镜像均包含编译后的前端，以及远程 HTTP MCP 所需的 Node.js 22 和 npm/npx。
+基础镜像安装核心 Python 依赖；使用本地检索或生成后端时，请按需安装对应 extras。
 
 **启动容器**
 
 ```shell
-# 启动容器（已自动映射 5050 端口）
-docker run -it --gpus all -p 5050:5050 <docker_image_name>
+# CPU：无需 GPU 运行时
+docker run --rm -it -p 5050:5050 hdxin2002/ultrarag:latest-base-cpu
+
+# GPU：需安装 NVIDIA Container Toolkit
+docker run --rm -it --gpus all -p 5050:5050 hdxin2002/ultrarag:latest
 ```
 
 提示：容器启动后会自动运行 UltraRAG UI，您可以直接在浏览器访问 `http://localhost:5050` 使用。
