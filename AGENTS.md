@@ -339,6 +339,7 @@ if __name__ == "__main__":
   - `exa`
   - `tavily`
   - `zhipuai`
+  - `serply`
 
 ### Generation (`servers/generation`)
 
