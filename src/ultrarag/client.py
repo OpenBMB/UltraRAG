@@ -972,6 +972,15 @@ def local_server_launch_config(path: str) -> Dict[str, Any]:
     }
 
 
+def remote_server_launch_config(url: str) -> Dict[str, Any]:
+    """Create the stdio bridge configuration for a remote HTTP MCP server."""
+    return {
+        "command": "npx",
+        "args": ["-y", "mcp-remote", url],
+        "env": os.environ.copy(),
+    }
+
+
 async def build(config_path: str) -> None:
     """Build server and parameter configuration files from pipeline.
 
@@ -1041,17 +1050,7 @@ async def build(config_path: str) -> None:
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_servers[name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_servers[name] = remote_server_launch_config(path)
         else:
             raise ValueError(
                 f"[UltraRAG Error] Unsupported server type for {name}: {path}"
@@ -1282,17 +1281,7 @@ def load_pipeline_context(
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_cfg["mcpServers"][name] = (
-                {
-                    "command": "npx",
-                    "args": [
-                        "-y",
-                        "mcp-remote",
-                        path,
-                    ],
-                    "env": os.environ.copy(),
-                },
-            )
+            mcp_cfg["mcpServers"][name] = remote_server_launch_config(path)
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 

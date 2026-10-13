@@ -204,19 +204,33 @@ cd UltraRAG
 
 # 2. Prepare the image (choose one)
 # Option A: Pull from Docker Hub
-docker pull hdxin2002/ultrarag:v0.3.0-base-cpu # Base version (CPU)
-docker pull hdxin2002/ultrarag:v0.3.0-base-gpu # Base version (GPU)
-docker pull hdxin2002/ultrarag:v0.3.0          # Full version (GPU)
+docker pull hdxin2002/ultrarag:latest-base-cpu # Core dependencies (CPU)
+docker pull hdxin2002/ultrarag:latest-base-gpu # Core dependencies (GPU base)
+docker pull hdxin2002/ultrarag:latest          # All extras (GPU)
 
 # Option B: Build locally
-docker build -t ultrarag:v0.3.0 .
+docker build -f Dockerfile.base-cpu -t ultrarag:latest-base-cpu . # CPU
+docker build -t ultrarag:latest .                              # Full GPU image
 ```
+
+The nightly workflow checks `main` daily at 00:00 UTC and updates the `latest`
+tags when there are commits from the last 24 hours. It can also be triggered
+manually to force a rebuild. The existing `v0.3.0`, `v0.3.0-base-cpu`, and
+`v0.3.0-base-gpu` tags continue to be published alongside these tags. These are
+moving tags; pin an image digest when you need a reproducible deployment.
+
+All three images include the built frontend and Node.js 22 with npm/npx for
+remote HTTP MCP servers. Base images install core Python dependencies; install
+the relevant extras if your pipeline uses local retrieval or generation backends.
 
 **Start the Container**
 
 ```shell
-# Start the container (Port 5050 is mapped by default)
-docker run -it --gpus all -p 5050:5050 <docker_image_name>
+# CPU: no GPU runtime required
+docker run --rm -it -p 5050:5050 hdxin2002/ultrarag:latest-base-cpu
+
+# GPU: requires the NVIDIA Container Toolkit
+docker run --rm -it --gpus all -p 5050:5050 hdxin2002/ultrarag:latest
 ```
 
 Note: After the container starts, UltraRAG UI will run automatically. You can directly access `http://localhost:5050` in your browser to use it.

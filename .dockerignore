@@ -6,6 +6,7 @@
 
 # Python caches
 .venv/
+.conda/
 .uv-cache/
 __pycache__/
 *.pyc
