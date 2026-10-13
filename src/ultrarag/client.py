@@ -948,6 +948,30 @@ class UltraData:
         return self.remain_branch
 
 
+def local_server_launch_config(path: str) -> Dict[str, Any]:
+    """Launch configuration for a local python MCP server.
+
+    Spawns the server with ``sys.executable`` rather than the bare ``"python"``
+    name: the server has to run under the very interpreter that has
+    ``ultrarag`` importable. Resolving ``python`` through PATH can pick a
+    different interpreter (a system Python while the client runs inside a
+    virtual environment, an IDE-provided one, ...) whose site-packages lack
+    UltraRAG's dependencies; the child then dies on import and the only thing
+    the caller sees is the MCP client's opaque ``Connection closed``.
+
+    Args:
+        path: Path to the server entry script
+
+    Returns:
+        Command/args/env mapping for launching the server
+    """
+    return {
+        "command": sys.executable or "python",
+        "args": [path],
+        "env": os.environ.copy(),
+    }
+
+
 async def build(config_path: str) -> None:
     """Build server and parameter configuration files from pipeline.
 
@@ -999,11 +1023,7 @@ async def build(config_path: str) -> None:
                 raise FileNotFoundError(
                     f"[UltraRAG Error] Cannot find the server file of {name}: {path}"
                 )
-            mcp_servers[name] = {
-                "command": "python",
-                "args": [path],
-                "env": os.environ.copy(),
-            }
+            mcp_servers[name] = local_server_launch_config(path)
         elif path.startswith(("http://", "https://")):
             if not node_status:
                 try:
@@ -1244,11 +1264,7 @@ def load_pipeline_context(
     for name, sc in server_cfg.items():
         path = sc.get("path", "")
         if path.endswith(".py"):
-            mcp_cfg["mcpServers"][name] = {
-                "command": "python",
-                "args": [path],
-                "env": os.environ.copy(),
-            }
+            mcp_cfg["mcpServers"][name] = local_server_launch_config(path)
         elif path.startswith(("http://", "https://")):
             if not node_status:
                 try:
@@ -2221,4 +2237,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
