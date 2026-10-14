@@ -28,7 +28,7 @@ pipeline:
     steps:
     - branch:
         router:
-        - router.webnote_check_page
+        - router.webnote_check_page_with_citations
         branches:
           incomplete:
           - prompt.webnote_gen_subq
@@ -45,6 +45,7 @@ pipeline:
                 ret_psg: psg_ls
               output:
                 ret_psg: psg_ls
+                citation_state: citation_state
           - prompt.webnote_fill_page
           - generation.generate:
               output:
