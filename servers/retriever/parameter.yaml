@@ -70,7 +70,7 @@ index_backend_configs:
     distance: Cosine # options: Cosine, Dot, Euclid, Manhattan
     index_chunk_size: 50000
 
-websearch_backend: tavily # options: tavily, exa, zhipuai, serply
+websearch_backend: tavily # options: tavily, exa, zhipuai, serply, youcom
 websearch_backend_configs:
   exa:
     api_key: ""
@@ -95,6 +95,12 @@ websearch_backend_configs:
   serply:
     api_key: ""
     base_url: "https://api.serply.io/v1/search"
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  youcom:
+    api_key: ""
+    base_url: "https://ydc-index.io/v1/search"
     retries: 3
     base_delay: 1.0
     search_kwargs: {}
