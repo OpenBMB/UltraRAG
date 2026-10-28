@@ -546,8 +546,10 @@ def evisrag_output_extract_from_special(ans_ls: List[str]) -> Dict[str, List[str
 
 ### `assign_citation_ids` / `assign_citation_ids_stateful`
 - `assign_citation_ids`: Assigns citation IDs in the form of `[1]`, `[2]` to retrieved passages.
-- `assign_citation_ids_stateful`: Uses `CitationRegistry` class to maintain global citation IDs (cross-step deduplication).
-- `init_citation_registry`: Resets global citation registry.
+- `assign_citation_ids_stateful`: Takes per-query `citation_state` and returns numbered passages plus updated state, preserving IDs across retrieval iterations without server-global storage.
+- `init_citation_registry`: Returns fresh per-query citation state for the pipeline variable pool.
+- `router.webnote_check_page_with_citations`: Routes each page and its citation state together so completed queries retain their IDs while other queries continue retrieving.
+- LightResearch keeps `generation.generate` last; no citation cleanup step is needed on completion, failure, or cancellation.
 
 ---
 
@@ -2376,7 +2378,7 @@ pipeline:
     steps:
     - branch:
         router:
-        - router.webnote_check_page
+        - router.webnote_check_page_with_citations
         branches:
           incomplete:
           - prompt.webnote_gen_subq
@@ -2393,6 +2395,7 @@ pipeline:
                 ret_psg: psg_ls
               output:
                 ret_psg: psg_ls
+                citation_state: citation_state
           - prompt.webnote_fill_page
           - generation.generate:
               output:
@@ -2400,7 +2403,6 @@ pipeline:
           complete: []
 - prompt.webnote_gen_answer
 - generation.generate
-
 ```
 
 ## 2. Compile Pipeline File
