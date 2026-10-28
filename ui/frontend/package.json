@@ -24,7 +24,7 @@
     "dompurify": "^3.4.16",
     "highlight.js": "^11.11.1",
     "js-yaml": "^4.3.2",
-    "katex": "^0.16.33",
+    "katex": "^0.18.2",
     "lucide-react": "^0.576.0",
     "marked": "^17.0.3",
     "react": "^19.2.0",
