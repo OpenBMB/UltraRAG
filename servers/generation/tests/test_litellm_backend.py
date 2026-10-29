@@ -112,3 +112,23 @@ def test_multiturn_routes_through_litellm():
     )
     assert out == {"ans_ls": ["Ada"]}
     assert fake.acompletion.calls[0]["model"] == "gemini/gemini-1.5-pro"
+
+
+def test_rate_limit_is_retried_instead_of_aborting():
+    fake = _stub_litellm("ok")
+    calls = []
+
+    async def _flaky(**kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            raise fake.RateLimitError("slow down")
+        message = types.SimpleNamespace(content="ok")
+        return types.SimpleNamespace(choices=[types.SimpleNamespace(message=message)])
+
+    fake.acompletion = _flaky
+    g = _make({"model_name": "openai/gpt-4o-mini", "base_delay": 0.001})
+
+    out = asyncio.run(g.generate(prompt_ls=["hi"]))
+
+    assert out == {"ans_ls": ["ok"]}
+    assert len(calls) == 2
