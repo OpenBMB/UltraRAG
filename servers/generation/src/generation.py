@@ -368,9 +368,9 @@ class Generation:
                         app.logger.error(error_msg)
                         raise ToolError(error_msg)
                     except RateLimitError as e:
+                        # Transient: log and back off before the next attempt.
                         warn_msg = f"[{e.status_code}] API Rate limited (idx={idx}, attempt={attempt+1}): {e}"
                         app.logger.warning(warn_msg)
-                        raise ToolError(warn_msg)
                     except APIStatusError as e:
                         if e.status_code >= 500:
                             warn_msg = f"[{e.status_code}] Server error (idx={idx}, attempt={attempt+1}): {e}"
@@ -454,9 +454,9 @@ class Generation:
                         app.logger.error(error_msg)
                         raise ToolError(error_msg)
                     except litellm.RateLimitError as e:
+                        # Transient: log and back off before the next attempt.
                         warn_msg = f"[429] API Rate limited (idx={idx}, attempt={attempt+1}): {e}"
                         app.logger.warning(warn_msg)
-                        raise ToolError(warn_msg)
                     except (
                         litellm.Timeout,
                         litellm.APIConnectionError,
