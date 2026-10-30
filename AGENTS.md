@@ -341,6 +341,7 @@ if __name__ == "__main__":
   - `zhipuai`
   - `serply`
   - `youcom`
+  - `firecrawl`
 
 ### Generation (`servers/generation`)
 
