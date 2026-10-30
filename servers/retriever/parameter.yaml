@@ -70,7 +70,7 @@ index_backend_configs:
     distance: Cosine # options: Cosine, Dot, Euclid, Manhattan
     index_chunk_size: 50000
 
-websearch_backend: tavily # options: tavily, exa, zhipuai, serply, youcom
+websearch_backend: tavily # options: tavily, exa, zhipuai, serply, youcom, firecrawl
 websearch_backend_configs:
   exa:
     api_key: ""
@@ -101,6 +101,12 @@ websearch_backend_configs:
   youcom:
     api_key: ""
     base_url: "https://ydc-index.io/v1/search"
+    retries: 3
+    base_delay: 1.0
+    search_kwargs: {}
+  firecrawl:
+    api_key: ""
+    base_url: "https://api.firecrawl.dev/v2/search"
     retries: 3
     base_delay: 1.0
     search_kwargs: {}

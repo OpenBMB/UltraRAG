@@ -11,6 +11,7 @@ _WEBSEARCH_BACKENDS: Dict[str, str] = {
     "zhipuai": ".zhipuai_backend.ZhipuaiWebSearchBackend",
     "serply": ".serply_backend.SerplyWebSearchBackend",
     "youcom": ".youcom_backend.YoucomWebSearchBackend",
+    "firecrawl": ".firecrawl_backend.FirecrawlWebSearchBackend",
 }
 
 
