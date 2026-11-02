@@ -5944,6 +5944,7 @@ retriever = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "ipython" },
     { name = "jupyter" },
     { name = "pytest" },
@@ -6014,6 +6015,7 @@ provides-extras = ["retriever", "generation", "evaluation", "corpus", "litellm",
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi" },
     { name = "ipython" },
     { name = "jupyter" },
     { name = "pytest" },
