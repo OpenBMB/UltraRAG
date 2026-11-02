@@ -464,6 +464,13 @@ class UltraRAG_MCP_Server(FastMCP):
         """
         if io_spec:
             in_specs = [p.strip() for p in io_spec.split(",")]
+            # 声明的输入数必须与形参一一对应：少写时下面的 zip() 会静默丢掉尾部形参，
+            # 生成的 input 映射缺项，要等到运行期才以「缺变量」暴露；多写则被无声忽略。
+            if len(in_specs) != len(params):
+                raise ValueError(
+                    f"Input count mismatch: {len(in_specs)} declared in "
+                    f"{io_spec!r} vs {len(params)} parameters {params}"
+                )
         else:
             in_specs = params
 
@@ -492,18 +499,25 @@ class UltraRAG_MCP_Server(FastMCP):
         entry: dict[str, Any] = {}
         if meta["output"]:
             parts = [span.strip() for span in meta["output"].split("->")]
-            assert len(parts) <= 2, f"Output format error: {meta['output']}"
+            # 用异常而非 assert：assert 在 python -O 下会被整条剥掉，畸形声明便不再报错，
+            # 转而静默错解析——正好落进本仓库最常见的故障模式：变量名对不上。
+            if len(parts) > 2:
+                raise ValueError(
+                    f"Output format error: {meta['output']!r} has more than one '->'"
+                )
             entry["input"] = self._make_io_mapping(
                 meta["params"], parts[0] if len(parts) == 2 else None, param_cfg
             )
             if parts[-1].strip() and not parts[-1].strip().lower() == "none":
-                entry["output"] = [
-                    (
-                        "$" + p.strip()
-                        if p.strip() in param_cfg and not p.strip().startswith("$")
-                        else p.strip()
+                out_specs = [p.strip() for p in parts[-1].split(",")]
+                # 尾随逗号会产出一个空名字，它永远匹配不上返回的 key，该输出就被静默丢掉
+                if any(not p for p in out_specs):
+                    raise ValueError(
+                        f"Output format error: empty output name in {meta['output']!r}"
                     )
-                    for p in parts[-1].split(",")
+                entry["output"] = [
+                    "$" + p if p in param_cfg and not p.startswith("$") else p
+                    for p in out_specs
                 ]
         else:
             entry["input"] = self._make_io_mapping(meta["params"], None, param_cfg)
