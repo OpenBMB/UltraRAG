@@ -229,7 +229,7 @@ Key responsibilities:
 Important runtime behaviors:
 
 - Supports both local python MCP servers (`path.endswith(".py")`) and remote MCP endpoints (`http(s)`).
-- For remote MCP, requires Node.js >= 20 and uses `npx -y mcp-remote <url>`.
+- For remote MCP, requires Node.js >= 20 and uses `npx -y mcp-remote@0.16.0 <url>`.
 - Keeps loop-termination state in `ContextVar` for coroutine safety.
 - Emits structured stream events in demo/UI flows (`step_start`, `step_end`, `token`, `sources`).
 
