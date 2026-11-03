@@ -73,7 +73,7 @@ def test_build_accepts_remote_configuration(
     asyncio.run(client.build(str(pipeline)))
 
     assert checked_versions == [20]
-    assert captured["mcpServers"]["remote"]["args"] == ["-y", "mcp-remote", url]
+    assert captured["mcpServers"]["remote"]["args"] == ["-y", "mcp-remote@0.16.0", url]
     generated = yaml.safe_load(
         (pipeline.parent / "server" / "pipeline_server.yaml").read_text("utf-8")
     )
@@ -101,6 +101,6 @@ def test_runtime_accepts_remote_configuration(
     assert checked_versions == [20]
     assert context["mcp_cfg"]["mcpServers"]["remote"]["args"] == [
         "-y",
-        "mcp-remote",
+        "mcp-remote@0.16.0",
         url,
     ]
