@@ -19,6 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          ref: main
           fetch-depth: 1
 
       - name: Check commits in last 24 hours
@@ -61,6 +62,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: main
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
@@ -77,6 +80,8 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           pull: true
-          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}${{ matrix.tag_suffix }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}${{ matrix.tag_suffix }}
+            ${{ env.IMAGE_NAME }}:latest${{ matrix.tag_suffix }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

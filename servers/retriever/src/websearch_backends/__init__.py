@@ -9,6 +9,7 @@ _WEBSEARCH_BACKENDS: Dict[str, str] = {
     "exa": ".exa_backend.ExaWebSearchBackend",
     "tavily": ".tavily_backend.TavilyWebSearchBackend",
     "zhipuai": ".zhipuai_backend.ZhipuaiWebSearchBackend",
+    "serply": ".serply_backend.SerplyWebSearchBackend",
 }
 
 

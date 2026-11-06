@@ -950,6 +950,39 @@ class UltraData:
         return self.remain_branch
 
 
+def local_server_launch_config(path: str) -> Dict[str, Any]:
+    """Launch configuration for a local python MCP server.
+
+    Spawns the server with ``sys.executable`` rather than the bare ``"python"``
+    name: the server has to run under the very interpreter that has
+    ``ultrarag`` importable. Resolving ``python`` through PATH can pick a
+    different interpreter (a system Python while the client runs inside a
+    virtual environment, an IDE-provided one, ...) whose site-packages lack
+    UltraRAG's dependencies; the child then dies on import and the only thing
+    the caller sees is the MCP client's opaque ``Connection closed``.
+
+    Args:
+        path: Path to the server entry script
+
+    Returns:
+        Command/args/env mapping for launching the server
+    """
+    return {
+        "command": sys.executable or "python",
+        "args": [path],
+        "env": os.environ.copy(),
+    }
+
+
+def remote_server_launch_config(url: str) -> Dict[str, Any]:
+    """Create the stdio bridge configuration for a remote HTTP MCP server."""
+    return {
+        "command": "npx",
+        "args": ["-y", "mcp-remote", url],
+        "env": os.environ.copy(),
+    }
+
+
 async def build(config_path: str, no_mcp: bool = False) -> None:
     """Build server and parameter configuration files from pipeline.
 
@@ -1002,11 +1035,7 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                 raise FileNotFoundError(
                     f"[UltraRAG Error] Cannot find the server file of {name}: {path}"
                 )
-            mcp_servers[name] = {
-                "command": sys.executable,
-                "args": [path],
-                "env": os.environ.copy(),
-            }
+            mcp_servers[name] = local_server_launch_config(path)
         elif path.startswith(("http://", "https://")):
             if not node_status:
                 try:
@@ -1024,11 +1053,7 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_servers[name] = {
-                "command": "npx",
-                "args": ["-y", "mcp-remote", path],
-                "env": os.environ.copy(),
-            }
+            mcp_servers[name] = remote_server_launch_config(path)
         else:
             raise ValueError(
                 f"[UltraRAG Error] Unsupported server type for {name}: {path}"
@@ -1244,11 +1269,7 @@ def load_pipeline_context(
     for name, sc in server_cfg.items():
         path = sc.get("path", "")
         if path.endswith(".py"):
-            mcp_cfg["mcpServers"][name] = {
-                "command": sys.executable,
-                "args": [path],
-                "env": os.environ.copy(),
-            }
+            mcp_cfg["mcpServers"][name] = local_server_launch_config(path)
         elif path.startswith(("http://", "https://")):
             if not node_status:
                 try:
@@ -1266,11 +1287,7 @@ def load_pipeline_context(
                     )
                     logger.error(str(e))
                     sys.exit(1)
-            mcp_cfg["mcpServers"][name] = {
-                "command": "npx",
-                "args": ["-y", "mcp-remote", path],
-                "env": os.environ.copy(),
-            }
+            mcp_cfg["mcpServers"][name] = remote_server_launch_config(path)
         else:
             raise ValueError(f"Unsupported server type for {name}: {path}")
 

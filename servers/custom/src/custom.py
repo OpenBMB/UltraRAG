@@ -1,7 +1,7 @@
-import re
-import json
 import copy
-from typing import List, Dict, Any
+import json
+import re
+from typing import Any, Dict, List
 
 from ultrarag.server import UltraRAG_MCP_Server
 
@@ -399,71 +399,45 @@ def assign_citation_ids(
     }
 
 
-class CitationRegistry:
-    _instances: Dict[int, Dict[str, Any]] = {}
-
-    @classmethod
-    def reset(cls):
-        cls._instances = {}
-
-    @classmethod
-    def get_or_create(cls, query_index: int) -> Dict[str, Any]:
-        if query_index not in cls._instances:
-            cls._instances[query_index] = {"registry": {}, "counter": 0}
-        return cls._instances[query_index]
-
-    @classmethod
-    def assign_id(cls, query_index: int, doc_text: str) -> int:
-        state = cls.get_or_create(query_index)
-        doc_hash = doc_text.strip()
-
-        if doc_hash in state["registry"]:
-            return state["registry"][doc_hash]
-        else:
-            state["counter"] += 1
-            state["registry"][doc_hash] = state["counter"]
-            return state["counter"]
-
-
-@app.tool(output="q_ls->q_ls")
+@app.tool(output="q_ls->q_ls,citation_state")
 def init_citation_registry(q_ls: List[str]) -> Dict[str, Any]:
-    """Initialize citation registry for stateful citation assignment.
+    """Create per-query citation state owned by this pipeline execution.
 
-    Args:
-        q_ls: List of queries
-
-    Returns:
-        Dictionary with 'q_ls' (pass-through)
+    State travels through MCP as JSON rather than remaining in the server.
+    Each query has its own dictionary so branch filtering preserves its IDs.
     """
-    CitationRegistry.reset()
-    return {"q_ls": q_ls}
+    return {
+        "q_ls": q_ls,
+        "citation_state": [{"registry": {}, "counter": 0} for _ in q_ls],
+    }
 
 
-@app.tool(output="ret_psg->ret_psg")
+@app.tool(output="ret_psg,citation_state->ret_psg,citation_state")
 def assign_citation_ids_stateful(
     ret_psg: List[List[str]],
+    citation_state: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Assign unique citation IDs to passages using stateful registry.
+    """Return numbered passages and updated, JSON-serializable query state.
 
-    Args:
-        ret_psg: List of lists of document strings
-
-    Returns:
-        Dictionary with 'ret_psg' containing passages with unique citation IDs
+    Copy the input to preserve earlier pipeline snapshots and caller ownership.
+    No server-global state or cleanup step is required on failure/cancellation.
     """
-    result_psg = []
+    if len(ret_psg) != len(citation_state):
+        raise ValueError("Passages and citation state must contain the same queries")
 
-    for i, docs_list in enumerate(ret_psg):
+    updated_state = copy.deepcopy(citation_state)
+    result_psg = []
+    for docs_list, state in zip(ret_psg, updated_state):
         cited_docs = []
         for doc in docs_list:
             doc_text = str(doc).strip()
-            doc_id = CitationRegistry.assign_id(i, doc_text)
-            cited_docs.append(f"[{doc_id}] {doc_text}")
+            if doc_text not in state["registry"]:
+                state["counter"] += 1
+                state["registry"][doc_text] = state["counter"]
+            cited_docs.append(f"[{state['registry'][doc_text]}] {doc_text}")
         result_psg.append(cited_docs)
 
-    return {
-        "ret_psg": result_psg,
-    }
+    return {"ret_psg": result_psg, "citation_state": updated_state}
 
 
 # ==================== SurveyCPM Citation Tools ====================
