@@ -77,7 +77,17 @@ def create_mcp_client(mcp_cfg: dict[str, Any]) -> Any:
                 "pip install 'ultrarag[mcp]'"
             ) from exc
         raise
-    return Client(mcp_cfg)
+    # UltraRAG owns a server for exactly one execution/session context. FastMCP
+    # otherwise keeps single-server stdio transports alive after __aexit__, which
+    # leaks subprocesses when UI-owned event loops are subsequently closed.
+    config = {
+        **mcp_cfg,
+        "mcpServers": {
+            name: {**server, "keep_alive": False} if "command" in server else server
+            for name, server in mcp_cfg["mcpServers"].items()
+        },
+    }
+    return Client(config)
 
 
 class LocalExecutionClient:

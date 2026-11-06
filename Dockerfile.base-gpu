@@ -8,7 +8,7 @@ RUN npm run build
 
 FROM nvidia/cuda:12.9.1-base-ubuntu24.04
 
-COPY --from=ghcr.io/astral-sh/uv:0.12.0 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.7 /uv /uvx /bin/
 COPY --from=frontend-builder /usr/local/bin/node /usr/local/bin/node
 COPY --from=frontend-builder /usr/local/lib/node_modules /usr/local/lib/node_modules
 

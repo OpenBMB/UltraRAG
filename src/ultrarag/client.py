@@ -978,7 +978,7 @@ def remote_server_launch_config(url: str) -> Dict[str, Any]:
     """Create the stdio bridge configuration for a remote HTTP MCP server."""
     return {
         "command": "npx",
-        "args": ["-y", "mcp-remote", url],
+        "args": ["-y", "mcp-remote@0.16.1", url],
         "env": os.environ.copy(),
     }
 

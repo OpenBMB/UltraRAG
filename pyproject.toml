@@ -19,6 +19,8 @@ dependencies = [
     "PyYAML",
     "tqdm",
     "requests",
+    # Include the CA trust updates for the emSign certificate incident.
+    "certifi>=2026.10.19",
     "orjson",
     "tabulate",
     "aiohttp",
@@ -39,9 +41,9 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = [
-    # 3.4.5 requires Starlette >=1 through its client extra; MinerU/Gradio need <1.
-    "fastmcp>=3.3.1,<3.4.5",
-    "mcp",
+    # Keep the supported adapter API while including maintenance security fixes.
+    "fastmcp>=3.4.11,<4",
+    "mcp>=1.30.0,<2",
 ]
 retriever = [
     "infinity-emb",
@@ -78,7 +80,8 @@ evaluation = [
 ]
 
 corpus = [
-    "mineru[core]>=3,<4",
+    # Use the parsing backends without the unused Gradio UI / Starlette <1 pin.
+    "mineru[pipeline,vlm]>=3.4.5,<4",
 ]
 
 # LiteLLM generation backend: a pure API client, so it is kept separate from the

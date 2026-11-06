@@ -127,7 +127,7 @@ If you haven't installed uv yet, please execute:
 
 ```shell
 ## Direct installation
-pip install uv==0.12.0
+python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 ## Download
 curl -LsSf https://astral.sh/uv/0.12.0/install.sh | sh
 ```

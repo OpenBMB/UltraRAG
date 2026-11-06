@@ -127,7 +127,7 @@ https://github.com/user-attachments/assets/9cca0d4f-fb47-4232-9e47-69bfbb7b5d5d
 
 ```shell
 ## 直接安装
-pip install uv==0.12.0
+python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 ## 下载
 curl -LsSf https://astral.sh/uv/0.12.0/install.sh | sh
 ```

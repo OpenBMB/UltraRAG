@@ -63,6 +63,11 @@ def disabled_prompt() -> str:
 def lifecycle() -> dict:
     return {'started': app.started}
 
+@app.tool()
+def process_id() -> dict:
+    import os
+    return {'pid': os.getpid()}
+
 @app.prompt()
 def welcome(names: list[str], label: str = 'hello') -> list[str]:
     return [label + ' ' + name for name in names]
@@ -111,6 +116,86 @@ def _snapshot(result) -> dict:
         "data": getattr(result, "data", None),
         "content": [item.model_dump(exclude_none=True) for item in result.content],
     }
+
+
+def _process_is_alive(pid: int) -> bool:
+    if sys.platform == "win32":
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.GetExitCodeProcess.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        handle = kernel32.OpenProcess(0x1000, False, pid)
+        if not handle:
+            error = ctypes.get_last_error()
+            if error == 87:  # ERROR_INVALID_PARAMETER: process no longer exists.
+                return False
+            raise ctypes.WinError(error)
+        try:
+            code = wintypes.DWORD()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                raise ctypes.WinError(ctypes.get_last_error())
+            return code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+@pytest.mark.parametrize("aliases", [("one",), ("one", "two")])
+def test_mcp_context_exit_stops_server_processes(
+    tmp_path: Path, aliases: tuple[str, ...]
+) -> None:
+    pytest.importorskip("fastmcp")
+    paths = []
+    servers = {}
+    for alias in aliases:
+        folder = tmp_path / alias
+        folder.mkdir()
+        source = _source(folder)
+        paths.append(source)
+        servers[alias] = _mcp_config(source)["mcpServers"]["audit"]
+    config = {"mcpServers": servers}
+    original = json.loads(json.dumps(config))
+
+    async def exercise() -> None:
+        client = create_mcp_client(config)
+        try:
+            async with client:
+                # Nested uses must retain the same process until the outer exit.
+                async with client:
+                    names = [
+                        f"{alias}_process_id" if len(aliases) > 1 else "process_id"
+                        for alias in aliases
+                    ]
+                    pids = [
+                        (await client.call_tool(name, {})).data["pid"] for name in names
+                    ]
+                assert all(_process_is_alive(pid) for pid in pids)
+                assert [
+                    (await client.call_tool(name, {})).data["pid"] for name in names
+                ] == pids
+            # Do not rely on asyncio.run teardown or a local-mode marker to close MCP.
+            async with asyncio.timeout(5):
+                while any(_process_is_alive(pid) for pid in pids):
+                    await asyncio.sleep(0.05)
+            assert all(
+                path.with_suffix(".closed").read_text() == "closed" for path in paths
+            )
+            assert config == original
+        finally:
+            await client.close()
+
+    asyncio.run(exercise())
 
 
 def test_values_validation_prompts_and_lifespan_match_mcp(tmp_path: Path) -> None:
@@ -297,15 +382,16 @@ def test_cancel_waits_for_sync_tool_before_releasing_its_resources(
 
 
 @pytest.mark.parametrize(
-    "aliases,bridge",
+    "aliases,bridge,trailing_slash",
     [
-        (("remote_one",), False),
-        (("remote", "remote_one"), False),
-        (("remote_one",), True),
+        (("remote_one",), False, False),
+        (("remote", "remote_one"), False, False),
+        (("remote_one",), True, False),
+        (("remote_one",), False, True),
     ],
 )
 def test_real_http_mixed_aliases(
-    tmp_path: Path, aliases: tuple[str, ...], bridge: bool
+    tmp_path: Path, aliases: tuple[str, ...], bridge: bool, trailing_slash: bool
 ) -> None:
     pytest.importorskip("fastmcp")
     if bridge and not shutil.which("npx"):
@@ -336,6 +422,15 @@ def test_real_http_mixed_aliases(
         else:
             pytest.fail("HTTP MCP server did not start")
         url = f"http://127.0.0.1:{port}/mcp"
+        if trailing_slash:
+            import httpx
+
+            url += "/"
+            with httpx.stream(
+                "GET", url, follow_redirects=False, timeout=3
+            ) as response:
+                assert response.status_code in (307, 308)
+                assert response.headers["location"] == url.rstrip("/")
         cfg = {
             "local": {"path": str(path)},
             **{alias: {"path": url} for alias in aliases},
