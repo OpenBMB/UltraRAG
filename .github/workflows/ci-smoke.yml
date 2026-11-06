@@ -47,7 +47,7 @@ jobs:
         run: uv sync --extra mcp
 
       - name: Test execution parity and regressions
-        run: uv run --extra mcp pytest tests -q
+        run: uv run --extra mcp python -m pytest tests -q
 
       - name: Build sayhello pipeline with MCP
         run: uv run --extra mcp ultrarag build examples/experiments/sayhello.yaml
