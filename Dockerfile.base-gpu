@@ -32,7 +32,7 @@ WORKDIR /ultrarag
 COPY . .
 COPY --from=frontend-builder /ultrarag-frontend/dist ./ui/frontend/dist
 
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --extra mcp
 RUN node --version && npx --version && test -s ui/frontend/dist/index.html
 
 EXPOSE 5050

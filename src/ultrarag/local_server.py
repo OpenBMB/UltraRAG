@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -12,12 +13,56 @@ from ultrarag.mcp_logging import get_logger
 from ultrarag.registration import Registration, build_io_entry
 
 
+def _reject_behavior_options(options: dict[str, Any], allowed: set[str]) -> None:
+    unsupported = []
+    for key, value in options.items():
+        if key in allowed or value is Ellipsis:
+            continue
+        if key != "output_schema" and (
+            value is None
+            or (isinstance(value, (str, list, tuple, dict, set)) and not value)
+        ):
+            continue
+        unsupported.append(key)
+    if unsupported:
+        raise ValueError(
+            "--no-mcp does not support MCP-specific options: "
+            + ", ".join(unsupported)
+            + ". Use MCP mode for these extensions."
+        )
+
+
 class LocalServer:
     def __init__(self, name: str = "UltraRAG", *args: Any, **kwargs: Any) -> None:
+        _reject_behavior_options(
+            kwargs,
+            {
+                "log_level",
+                "lifespan",
+                "tools",
+                "instructions",
+                "version",
+                "host",
+                "port",
+                "sse_path",
+                "message_path",
+                "streamable_http_path",
+                "json_response",
+                "stateless_http",
+                "debug",
+                "include_fastmcp_meta",
+            },
+        )
         self.name = name
         self.logger = get_logger(name, kwargs.get("log_level") or "warn")
         self.tools: dict[str, Registration] = {}
         self.prompts: dict[str, Registration] = {}
+        self.lifespan = kwargs.get("lifespan")
+        for tool in kwargs.get("tools") or []:
+            if callable(tool):
+                self.tool(tool)
+            else:
+                self.add_tool(tool)
 
     def _register(
         self,
@@ -26,6 +71,7 @@ class LocalServer:
         *,
         name: str | None,
         output: str | None,
+        enabled: bool = True,
     ) -> Any:
         if isinstance(name_or_fn, str):
             name = name_or_fn
@@ -33,7 +79,7 @@ class LocalServer:
 
         def decorate(fn: Callable[..., Any]) -> Callable[..., Any]:
             registry[name or fn.__name__] = Registration(
-                name or fn.__name__, fn, output
+                name or fn.__name__, fn, output, enabled
             )
             return fn
 
@@ -47,7 +93,24 @@ class LocalServer:
         name: str | None = None,
         **kwargs: Any,
     ) -> Any:
-        return self._register(self.tools, name_or_fn, name=name, output=output)
+        _reject_behavior_options(
+            kwargs,
+            {"enabled", "description", "title", "icons", "tags", "annotations", "meta"},
+        )
+        if output is None:
+            annotations = kwargs.get("annotations")
+            output = (
+                annotations.get("output")
+                if isinstance(annotations, dict)
+                else getattr(annotations, "output", None)
+            )
+        return self._register(
+            self.tools,
+            name_or_fn,
+            name=name,
+            output=output,
+            enabled=kwargs.get("enabled") is not False,
+        )
 
     def prompt(
         self,
@@ -57,7 +120,16 @@ class LocalServer:
         name: str | None = None,
         **kwargs: Any,
     ) -> Any:
-        return self._register(self.prompts, name_or_fn, name=name, output=output)
+        _reject_behavior_options(
+            kwargs, {"enabled", "description", "title", "icons", "tags", "meta"}
+        )
+        return self._register(
+            self.prompts,
+            name_or_fn,
+            name=name,
+            output=output,
+            enabled=kwargs.get("enabled") is not False,
+        )
 
     def add_tool(self, tool: Any) -> Any:
         self.tool(tool.fn, name=tool.name, output=getattr(tool, "output", None))

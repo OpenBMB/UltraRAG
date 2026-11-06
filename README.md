@@ -231,7 +231,8 @@ manually to force a rebuild. The existing `v0.3.0`, `v0.3.0-base-cpu`, and
 moving tags; pin an image digest when you need a reproducible deployment.
 
 All three images include the built frontend and Node.js 22 with npm/npx for
-remote HTTP MCP servers. Base images install core Python dependencies; install
+remote HTTP MCP servers. Base images install core Python dependencies and the
+`mcp` extra for their default startup command; install
 the relevant extras if your pipeline uses local retrieval or generation backends.
 
 **Start the Container**
@@ -254,6 +255,17 @@ After installation, run the following example command to check if the environmen
 ultrarag build examples/experiments/sayhello.yaml --no-mcp
 ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
+
+Use `ultrarag show ui --no-mcp` to select local execution for UI sessions and
+knowledge-base jobs. Python callers select the same mode with
+`initialize(..., no_mcp=True)` or `PipelineCall(..., no_mcp=True)`.
+Pipeline YAML and parameter files are shared by both modes. Local server scripts
+must register through `UltraRAG_MCP_Server`; scripts using FastMCP directly need
+to migrate their registrations or continue using the default MCP mode.
+Local execution supports registered tools and prompts. FastMCP-specific Context
+injection, authentication, middleware and resources require MCP mode.
+Long-running Python applications should call `ultrarag.api.shutdown()` when
+finished with `ToolCall`; inside an async function, use `await shutdown()`.
 
 If you see the following output, the installation is successful:
 

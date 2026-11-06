@@ -378,14 +378,17 @@ def _extract_non_empty_model_settings(raw_settings: Any) -> Dict[str, Dict[str, 
 class DemoSession:
     def __init__(self, session_id: str):
         self.session_id = session_id
+        self._no_mcp = NO_MCP_MODE
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._bg_loop, daemon=True)
         self._client = None
         self._context = None
         self._active = False
+        self._stopping = False
         self.last_accessed = time.time()
         self._thread.start()
         self._current_future = None
+        self._running_task = None
 
         # Multi-turn conversation support
         self._conversation_history: List[Dict[str, str]] = (
@@ -400,7 +403,10 @@ class DemoSession:
 
     def _bg_loop(self):
         asyncio.set_event_loop(self._loop)
-        self._loop.run_forever()
+        try:
+            self._loop.run_forever()
+        finally:
+            self._loop.close()
 
     def touch(self):
         self.last_accessed = time.time()
@@ -416,8 +422,12 @@ class DemoSession:
             raise PipelineManagerError(f"Pipeline {name} not found")
 
         param_path = _resolve_parameter_path(name, for_write=False)
-        self._context = funcs["load_ctx"](str(config_file), str(param_path), no_mcp=NO_MCP_MODE)
-        self._client = funcs["create_client"](self._context["mcp_cfg"], self._context["server_cfg"], NO_MCP_MODE)
+        self._context = funcs["load_ctx"](
+            str(config_file), str(param_path), no_mcp=self._no_mcp
+        )
+        self._client = funcs["create_client"](
+            self._context["mcp_cfg"], self._context["server_cfg"], self._no_mcp
+        )
 
         future = asyncio.run_coroutine_threadsafe(self._client.__aenter__(), self._loop)
         try:
@@ -426,37 +436,57 @@ class DemoSession:
             self._pipeline_name = name  # Record pipeline name
             LOGGER.info(f"Session {self.session_id} connected for pipeline {name}")
         except Exception as e:
+            future.cancel()
             LOGGER.error(f"Session start failed: {e}")
             raise PipelineManagerError(f"Connection failed: {e}")
 
     def stop(self):
         self.touch()
-        if self._active and self._client:
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    self._client.__aexit__(None, None, None), self._loop
-                ).result(timeout=5)
-            except Exception as e:
-                LOGGER.warning(f"Error during disconnect: {e}")
-
-        # Clean up multi-turn conversation client
-        if self._multiturn_active and self._multiturn_client:
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    self._multiturn_client.__aexit__(None, None, None), self._loop
-                ).result(timeout=5)
-            except Exception as e:
-                LOGGER.warning(f"Error during multiturn disconnect: {e}")
-
+        if self._loop.is_closed() or self._stopping:
+            return
+        self._stopping = True
         self._active = False
         self._multiturn_active = False
-        self._loop.call_soon_threadsafe(self._loop.stop)
+
+        async def close_clients() -> None:
+            # Let execute_pipeline finish its cleanup tools before discarding the
+            # local registrations or closing the MCP transport.
+            if self._running_task is not None:
+                task = self._running_task
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+            for client in (self._client, self._multiturn_client):
+                if client is not None:
+                    try:
+                        await client.__aexit__(None, None, None)
+                    except Exception as exc:
+                        LOGGER.warning("Error during disconnect: %s", exc)
+            self._loop.call_soon(self._loop.stop)
+
+        try:
+            asyncio.run_coroutine_threadsafe(close_clients(), self._loop).result(
+                timeout=15
+            )
+        except Exception as exc:
+            LOGGER.warning("Error stopping session %s: %s", self.session_id, exc)
+            # A synchronous tool may still be finishing in a worker thread.
+            # Keep its loop alive until close_clients has completed cleanup.
+            return
         self._thread.join(timeout=1)
 
         # Reset conversation state
         self._conversation_history = []
 
         LOGGER.info(f"Session {self.session_id} stopped")
+
+    async def _execute_request(
+        self, client: Any, context: Dict[str, Any], **kwargs: Any
+    ) -> Any:
+        self._running_task = asyncio.current_task()
+        try:
+            return await _ensure_client_funcs()["exec_pipe"](client, context, **kwargs)
+        finally:
+            self._running_task = None
 
     def add_to_history(self, role: str, content: str) -> None:
         """Add message to conversation history.
@@ -518,10 +548,10 @@ class DemoSession:
                 "multiturn_chat", for_write=False
             )
             self._multiturn_context = funcs["load_ctx"](
-                str(multiturn_config_file), str(multiturn_param_path), no_mcp=NO_MCP_MODE
+                str(multiturn_config_file), str(multiturn_param_path), no_mcp=self._no_mcp
             )
             self._multiturn_client = funcs["create_client"](
-                self._multiturn_context["mcp_cfg"], self._multiturn_context["server_cfg"], NO_MCP_MODE
+                self._multiturn_context["mcp_cfg"], self._multiturn_context["server_cfg"], self._no_mcp
             )
 
             future = asyncio.run_coroutine_threadsafe(
@@ -635,8 +665,6 @@ class DemoSession:
         if not self._multiturn_active:
             raise PipelineManagerError("Multiturn client not active")
 
-        funcs = _ensure_client_funcs()
-
         # Build override_params and enforce demo backends
         override_params = self._build_demo_backend_overrides(dynamic_params)
 
@@ -647,7 +675,7 @@ class DemoSession:
             override_params[generation_alias] = {}
 
         self._current_future = asyncio.run_coroutine_threadsafe(
-            funcs["exec_pipe"](
+            self._execute_request(
                 self._multiturn_client,
                 self._multiturn_context,
                 is_demo=True,
@@ -685,10 +713,9 @@ class DemoSession:
         if not self._active:
             raise PipelineManagerError("Session not active")
 
-        funcs = _ensure_client_funcs()
         override_params = self._build_demo_backend_overrides(dynamic_params)
         self._current_future = asyncio.run_coroutine_threadsafe(
-            funcs["exec_pipe"](
+            self._execute_request(
                 self._client,
                 self._context,
                 is_demo=True,
@@ -1030,26 +1057,36 @@ def stop_demo_session(session_id: str):
 # Chat Logic (Streaming + Context)
 
 
-def _prepare_chat_context(name: str, question: str):
-    # This prepares the temporary JSONL file for Benchmark/Retriever
-    param_path = _resolve_parameter_path(name, for_write=False)
-    original_text = param_path.read_text(encoding="utf-8")
+def _prepare_chat_context(
+    name: str, question: str, dynamic_params: Optional[Dict[str, Any]] = None
+) -> tuple[Dict[str, Any], Optional[Path]]:
+    """Prepare request-local input without editing the shared parameter file."""
     params = load_parameters(name)
+    overrides = copy.deepcopy(dynamic_params or {})
 
     dataset_path = None
-    if "benchmark" in params and "benchmark" in params["benchmark"]:
+    benchmark_aliases = [
+        alias
+        for alias, values in params.items()
+        if isinstance(values, dict) and isinstance(values.get("benchmark"), dict)
+    ]
+    if benchmark_aliases:
         d_dir = CHAT_DATASET_DIR
         d_dir.mkdir(parents=True, exist_ok=True)
-        dataset_path = d_dir / f"{name}_{int(time.time()*1000)}.jsonl"
+        dataset_path = d_dir / f"{name}_{uuid.uuid4().hex}.jsonl"
         record = {"id": 0, "question": question, "golden_answers": [], "meta_data": {}}
         dataset_path.write_text(
             json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8"
         )
 
-        params["benchmark"]["benchmark"]["path"] = _as_project_relative(dataset_path)
-        save_parameters(name, params)
+        for alias in benchmark_aliases:
+            benchmark_override = overrides.setdefault(alias, {})
+            dataset_config = copy.deepcopy(params[alias]["benchmark"])
+            dataset_config.update(benchmark_override.get("benchmark", {}))
+            dataset_config["path"] = _as_project_relative(dataset_path)
+            benchmark_override["benchmark"] = dataset_config
 
-    return param_path, original_text, dataset_path
+    return overrides, dataset_path
 
 
 def chat_demo_stream(
@@ -1062,7 +1099,9 @@ def chat_demo_stream(
         return
 
     # 1. Prepare (Write JSONL)
-    param_path, original_text, dataset_path = _prepare_chat_context(name, question)
+    request_params, dataset_path = _prepare_chat_context(
+        name, question, dynamic_params
+    )
     before_memory = {
         str(path) for path in sorted(OUTPUT_DIR.glob(f"memory_*_{name}_*.json"))
     }
@@ -1083,10 +1122,7 @@ def chat_demo_stream(
     def run_bg():
         try:
             # Execute
-            res = session.run_chat(token_callback, dynamic_params)
-
-            # Cleanup & Resolve
-            param_path.write_text(original_text, encoding="utf-8")
+            res = session.run_chat(token_callback, request_params)
 
             # Resolve Answer
             final_ans = _extract_result(res)
@@ -1322,7 +1358,10 @@ def chat_multiturn_stream(
             try:
                 loop.run_until_complete(generate())
             finally:
-                loop.close()
+                try:
+                    loop.run_until_complete(service.client.close())
+                finally:
+                    loop.close()
 
             # Send step_end event
             token_queue.put(
@@ -2435,14 +2474,15 @@ def build(name: str) -> Dict:
     if not p:
         raise PipelineManagerError(f"Not found: {name}")
 
+    loop = asyncio.new_event_loop()
     try:
         # Build is fast, run synchronously
-        loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(funcs["build"](str(p), no_mcp=NO_MCP_MODE))
-        loop.close()
     except Exception as e:
         raise PipelineManagerError(f"Build failed: {e}")
+    finally:
+        loop.close()
     return {"status": "ok"}
 
 
@@ -2766,8 +2806,8 @@ def run_background_chat(
 
         # Prepare context
         try:
-            param_path, original_text, dataset_path = _prepare_chat_context(
-                name, question
+            request_params, dataset_path = _prepare_chat_context(
+                name, question, dynamic_params
             )
         except Exception as e:
             BACKGROUND_TASK_MANAGER.update_task(
@@ -2792,10 +2832,7 @@ def run_background_chat(
 
         try:
             # Execute pipeline
-            res = bg_session.run_chat(token_callback, dynamic_params)
-
-            # Restore original parameter file
-            param_path.write_text(original_text, encoding="utf-8")
+            res = bg_session.run_chat(token_callback, request_params)
 
             # Extract result
             final_ans = _extract_result(res)

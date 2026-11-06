@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
+
+from pydantic import TypeAdapter
 
 
 @dataclass
@@ -11,6 +14,10 @@ class Registration:
     name: str
     fn: Callable[..., Any]
     output: str | None
+    enabled: bool = True
+
+    def __post_init__(self) -> None:
+        self.adapter = TypeAdapter(self.fn)
 
 
 def make_io_mapping(

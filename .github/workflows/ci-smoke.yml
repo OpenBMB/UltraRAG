@@ -34,6 +34,9 @@ jobs:
       - name: Sync Python dependencies
         run: uv sync
 
+      - name: Verify core installation has no MCP packages
+        run: uv run python -c "import importlib.util; assert importlib.util.find_spec('fastmcp') is None; assert importlib.util.find_spec('mcp') is None"
+
       - name: Build sayhello pipeline without MCP
         run: uv run ultrarag build examples/experiments/sayhello.yaml --no-mcp
 
@@ -43,8 +46,8 @@ jobs:
       - name: Sync MCP dependencies
         run: uv sync --extra mcp
 
-      - name: Test client launch configurations
-        run: uv run --extra mcp pytest tests/ultrarag -q
+      - name: Test execution parity and regressions
+        run: uv run --extra mcp pytest tests -q
 
       - name: Build sayhello pipeline with MCP
         run: uv run --extra mcp ultrarag build examples/experiments/sayhello.yaml
@@ -94,11 +97,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify Node bridge prerequisites and frontend route
+      - name: Verify MCP pipelines, Node bridge, and frontend route
         run: |
           docker run --rm --entrypoint sh ultrarag:cpu-smoke -ec '
             node --version
             npx --version
+            ultrarag build examples/experiments/sayhello.yaml
+            ultrarag run examples/experiments/sayhello.yaml
+            ultrarag build examples/experiments/sayhello.yaml --no-mcp
+            ultrarag run examples/experiments/sayhello.yaml --no-mcp
             python -c "from ui.backend.app import create_app; response = create_app().test_client().get(\"/\"); assert response.status_code == 200, response.status_code; assert b\"<html\" in response.data.lower()"
           '
 

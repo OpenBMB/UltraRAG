@@ -230,7 +230,7 @@ docker build -t ultrarag:latest .                              # 完整 GPU 镜�
 需要可复现部署时，请固定镜像 digest。
 
 三个镜像均包含编译后的前端，以及远程 HTTP MCP 所需的 Node.js 22 和 npm/npx。
-基础镜像安装核心 Python 依赖；使用本地检索或生成后端时，请按需安装对应 extras。
+基础镜像安装核心 Python 依赖与默认启动命令需要的 `mcp` extra；使用本地检索或生成后端时，请按需安装对应 extras。
 
 **启动容器**
 
@@ -252,6 +252,14 @@ docker run --rm -it --gpus all -p 5050:5050 hdxin2002/ultrarag:latest
 ultrarag build examples/experiments/sayhello.yaml --no-mcp
 ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
+
+通过 `ultrarag show ui --no-mcp` 为 UI 会话和知识库任务选择本地执行模式。
+Python API 对应使用 `initialize(..., no_mcp=True)` 或
+`PipelineCall(..., no_mcp=True)`。两种模式共用流水线 YAML 和参数文件。
+本地服务脚本需通过 `UltraRAG_MCP_Server` 注册；直接使用 FastMCP 的脚本需要迁移注册方式，或继续使用默认 MCP 模式。
+本地模式支持注册的工具和提示词；FastMCP 专用的 Context 注入、鉴权、中间件和资源需使用 MCP 模式。
+长期运行的 Python 应用结束使用 `ToolCall` 后，应调用 `ultrarag.api.shutdown()`；
+在异步函数中使用 `await shutdown()`。
 
 看到以下输出即代表安装成功：
 

@@ -313,7 +313,39 @@ class UltraRAG_MCP_Server(FastMCP):
         if unsupported:
             self.logger.debug("Ignoring unsupported FastMCP.tool args: %s", unsupported)
 
-        return super().tool(name_or_fn, **filtered_kwargs)
+        result = super().tool(name_or_fn, **filtered_kwargs)
+        return self._apply_enabled(result, name_or_fn, name, enabled, "tool")
+
+    def _apply_enabled(
+        self,
+        result: Any,
+        name_or_fn: Any,
+        name: str | None,
+        enabled: bool | None,
+        kind: Literal["tool", "prompt"],
+    ) -> Any:
+        """Preserve the public enabled option on FastMCP 3 visibility APIs."""
+        if enabled is not False or not hasattr(self, "disable"):
+            return result
+
+        def disable(registered: Any, fn: Any = None) -> Any:
+            registered_name = (
+                name
+                or (name_or_fn if isinstance(name_or_fn, str) else None)
+                or getattr(registered, "name", None)
+                or getattr(fn, "__name__", None)
+                or getattr(registered, "__name__", None)
+            )
+            self.disable(names={registered_name}, components={kind})
+            return registered
+
+        if inspect.isroutine(name_or_fn) or isinstance(result, (Tool, Prompt)):
+            return disable(result, name_or_fn)
+
+        def wrapped(fn: Callable[..., Any]) -> Any:
+            return disable(result(fn), fn)
+
+        return wrapped
 
     def prompt(
         self,
@@ -375,9 +407,12 @@ class UltraRAG_MCP_Server(FastMCP):
             filtered_kwargs[key] = value
 
         if unsupported:
-            self.logger.debug("Ignoring unsupported FastMCP.prompt args: %s", unsupported)
+            self.logger.debug(
+                "Ignoring unsupported FastMCP.prompt args: %s", unsupported
+            )
 
         result = super().prompt(name_or_fn, **filtered_kwargs)
+        result = self._apply_enabled(result, name_or_fn, name, enabled, "prompt")
         if output is None:
             return result
 
@@ -392,7 +427,9 @@ class UltraRAG_MCP_Server(FastMCP):
             if declared_name:
                 self._prompt_output_override[declared_name] = output
             if isinstance(result, Prompt):
-                self._prompt_output_override[result.name or name_or_fn.__name__] = output
+                self._prompt_output_override[result.name or name_or_fn.__name__] = (
+                    output
+                )
             return result
 
         if isinstance(result, Prompt):
@@ -413,7 +450,9 @@ class UltraRAG_MCP_Server(FastMCP):
                     self._prompt_output_override[declared_name] = output
                 registered = result(fn)
                 if isinstance(registered, Prompt):
-                    self._prompt_output_override[registered.name or fn.__name__] = output
+                    self._prompt_output_override[registered.name or fn.__name__] = (
+                        output
+                    )
                 return registered
 
             return wrapped

@@ -9,13 +9,13 @@ description = "UltraRAG"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
-    # 3.4.5 requires Starlette >=1 through its client extra; MinerU/Gradio need <1.
     "rich",
     "pandas",
     "Jinja2",
     "openai",
     "httpx[socks]",
     "python-dotenv",
+    "pydantic>=2",
     "PyYAML",
     "tqdm",
     "requests",
@@ -39,6 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = [
+    # 3.4.5 requires Starlette >=1 through its client extra; MinerU/Gradio need <1.
     "fastmcp>=3.3.1,<3.4.5",
     "mcp",
 ]
