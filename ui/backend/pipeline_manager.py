@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
+from concurrent.futures import CancelledError as FutureCancelledError
 import copy
 import json
 import logging
@@ -385,9 +387,9 @@ class DemoSession:
         self._context = None
         self._active = False
         self._stopping = False
+        self._lifecycle_lock = threading.RLock()
         self.last_accessed = time.time()
         self._thread.start()
-        self._current_future = None
         self._running_task = None
 
         # Multi-turn conversation support
@@ -412,8 +414,16 @@ class DemoSession:
         self.last_accessed = time.time()
 
     def start(self, name: str):
+        with self._lifecycle_lock:
+            self._start(name)
+
+    def _start(self, name: str) -> None:
         self.touch()
+        if self._stopping:
+            raise PipelineManagerError("Session is stopping")
         if self._active:
+            if self._pipeline_name != name:
+                raise PipelineManagerError("Session is already connected to another pipeline")
             return
 
         funcs = _ensure_client_funcs()
@@ -441,6 +451,10 @@ class DemoSession:
             raise PipelineManagerError(f"Connection failed: {e}")
 
     def stop(self):
+        with self._lifecycle_lock:
+            self._stop()
+
+    def _stop(self) -> None:
         self.touch()
         if self._loop.is_closed() or self._stopping:
             return
@@ -453,7 +467,8 @@ class DemoSession:
             # local registrations or closing the MCP transport.
             if self._running_task is not None:
                 task = self._running_task
-                task.cancel()
+                if not task.cancelling():
+                    task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
             for client in (self._client, self._multiturn_client):
                 if client is not None:
@@ -482,11 +497,26 @@ class DemoSession:
     async def _execute_request(
         self, client: Any, context: Dict[str, Any], **kwargs: Any
     ) -> Any:
+        return await _ensure_client_funcs()["exec_pipe"](client, context, **kwargs)
+
+    async def _execute_owned(self, request: Callable[[], Awaitable[Any]]) -> Any:
+        if self._stopping:
+            raise PipelineManagerError("Session is stopping")
+        if self._running_task is not None:
+            raise PipelineManagerError("A request is already running for this session")
         self._running_task = asyncio.current_task()
         try:
-            return await _ensure_client_funcs()["exec_pipe"](client, context, **kwargs)
+            return await request()
         finally:
             self._running_task = None
+
+    def run_async(self, request: Callable[[], Awaitable[Any]]) -> Any:
+        """Run one owned request on the session loop, including direct generation."""
+        self.touch()
+        if self._stopping or self._loop.is_closed():
+            raise PipelineManagerError("Session is stopping")
+        future = asyncio.run_coroutine_threadsafe(self._execute_owned(request), self._loop)
+        return future.result()
 
     def add_to_history(self, role: str, content: str) -> None:
         """Add message to conversation history.
@@ -532,6 +562,12 @@ class DemoSession:
 
     def init_multiturn_client(self) -> None:
         """Initialize multi-turn conversation MCP client."""
+        with self._lifecycle_lock:
+            self._init_multiturn_client()
+
+    def _init_multiturn_client(self) -> None:
+        if self._stopping:
+            return
         if self._multiturn_active:
             return
 
@@ -674,25 +710,16 @@ class DemoSession:
         if generation_alias not in override_params:
             override_params[generation_alias] = {}
 
-        self._current_future = asyncio.run_coroutine_threadsafe(
-            self._execute_request(
+        return self.run_async(
+            lambda: self._execute_request(
                 self._multiturn_client,
                 self._multiturn_context,
                 is_demo=True,
                 return_all=True,
                 stream_callback=callback,
                 override_params=override_params,
-            ),
-            self._loop,
+            )
         )
-
-        try:
-            return self._current_future.result()
-        except asyncio.CancelledError:
-            LOGGER.info(f"Session {self.session_id} multiturn task cancelled by user.")
-            raise
-        finally:
-            self._current_future = None
 
     def run_chat(
         self, callback: Any, dynamic_params: Optional[Dict[str, Any]] = None
@@ -714,33 +741,37 @@ class DemoSession:
             raise PipelineManagerError("Session not active")
 
         override_params = self._build_demo_backend_overrides(dynamic_params)
-        self._current_future = asyncio.run_coroutine_threadsafe(
-            self._execute_request(
+        return self.run_async(
+            lambda: self._execute_request(
                 self._client,
                 self._context,
                 is_demo=True,
                 return_all=True,
                 stream_callback=callback,
                 override_params=override_params,
-            ),
-            self._loop,
+            )
         )
 
-        try:
-            return self._current_future.result()
-        except asyncio.CancelledError:
-            LOGGER.info(f"Session {self.session_id} task cancelled by user.")
-            raise
-        finally:
-            self._current_future = None
-
-    def interrupt_task(self):
+    def interrupt_task(self) -> bool:
+        """Cancel and drain the active request before allowing the next turn."""
         self.touch()
-        if self._current_future and not self._current_future.done():
-            self._current_future.cancel()
-            LOGGER.info(f"Interrupt signal sent to session {self.session_id}")
+        if self._stopping or self._loop.is_closed():
+            return False
+
+        async def interrupt() -> bool:
+            task = self._running_task
+            if task is None or task.done():
+                return False
+            if not task.cancelling():
+                task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
             return True
-        return False
+
+        future = asyncio.run_coroutine_threadsafe(interrupt(), self._loop)
+        try:
+            return future.result(timeout=14)
+        except TimeoutError as exc:
+            raise PipelineManagerError("Request cancellation is still finishing") from exc
 
 
 class SessionManager:
@@ -1155,7 +1186,7 @@ def chat_demo_stream(
             }
             token_queue.put({"type": "final", "data": final_data})
 
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, FutureCancelledError):
             # [New] Catch CancelledError, treat as user-initiated stop
             # Don't send error message, or send a specific info
             # Actually since frontend has already Aborted, whatever we send here
@@ -1311,24 +1342,6 @@ def chat_multiturn_stream(
                 token_queue.put(None)
                 return
 
-            # Create service instance
-            try:
-                service = LocalGenerationService(
-                    backend_configs=gen_params.get("backend_configs", {}),
-                    sampling_params=gen_params.get("sampling_params", {}),
-                    extra_params=gen_params.get("extra_params", {}),
-                    backend="openai",
-                )
-            except Exception as e:
-                token_queue.put(
-                    {
-                        "type": "error",
-                        "message": f"Failed to init generation service: {e}",
-                    }
-                )
-                token_queue.put(None)
-                return
-
             # Send step_start event
             token_queue.put(
                 {"type": "step_start", "name": "multiturn_generate", "depth": 0}
@@ -1337,31 +1350,31 @@ def chat_multiturn_stream(
             # Execute streaming generation
             full_content = ""
 
-            async def generate():
+            async def generate() -> None:
                 nonlocal full_content
-                async for token in service.multiturn_generate_stream(
-                    messages=history, system_prompt=system_prompt
-                ):
-                    full_content += token
-                    token_queue.put(
-                        {
-                            "type": "token",
-                            "content": token,
-                            "step": f"{generation_alias}.multiturn_generate",
-                            "is_final": True,
-                        }
-                    )
-
-            # Run in event loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(generate())
-            finally:
+                service = LocalGenerationService(
+                    backend_configs=gen_params.get("backend_configs", {}),
+                    sampling_params=gen_params.get("sampling_params", {}),
+                    extra_params=gen_params.get("extra_params", {}),
+                    backend="openai",
+                )
                 try:
-                    loop.run_until_complete(service.client.close())
+                    async for token in service.multiturn_generate_stream(
+                        messages=history, system_prompt=system_prompt
+                    ):
+                        full_content += token
+                        token_queue.put(
+                            {
+                                "type": "token",
+                                "content": token,
+                                "step": f"{generation_alias}.multiturn_generate",
+                                "is_final": True,
+                            }
+                        )
                 finally:
-                    loop.close()
+                    await service.client.close()
+
+            session.run_async(generate)
 
             # Send step_end event
             token_queue.put(
@@ -1395,7 +1408,7 @@ def chat_multiturn_stream(
             }
             token_queue.put({"type": "final", "data": final_data})
 
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, FutureCancelledError):
             LOGGER.info("Multiturn chat cancelled.")
             token_queue.put(None)
             return
@@ -2850,7 +2863,7 @@ def run_background_chat(
 
             LOGGER.info(f"Background task {task_id} completed successfully")
 
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, FutureCancelledError):
             BACKGROUND_TASK_MANAGER.update_task(
                 task_id, status="failed", error="Task was cancelled"
             )
