@@ -5,8 +5,6 @@ import subprocess
 class NodeNotInstalledError(Exception):
     """Exception raised when Node.js is not installed or not found in PATH."""
 
-    pass
-
 
 class NodeVersionTooLowError(Exception):
     """Exception raised when Node.js version is below the required minimum."""
@@ -33,8 +31,7 @@ def check_node_version(min_major: int = 20) -> None:
     try:
         result = subprocess.run(
             ["node", "--version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
         )

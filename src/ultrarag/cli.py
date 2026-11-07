@@ -3,7 +3,6 @@
 import importlib.metadata
 import platform
 import sys
-from typing import Optional
 
 from rich.console import Console, Group
 from rich.panel import Panel
@@ -16,11 +15,11 @@ from rich.text import Text
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 GRADIENT_COLORS = [
-    (255, 255, 200),  
-    (255, 215, 0),   
-    (255, 165, 0),   
-    (255, 140, 0),  
-    (255, 69, 0),   
+    (255, 255, 200),
+    (255, 215, 0),
+    (255, 165, 0),
+    (255, 140, 0),
+    (255, 69, 0),
     (200, 40, 0),
 ]
 
@@ -29,16 +28,16 @@ LOGO_COLOR = "#f97316"
 
 # Theme styles
 STYLES = {
-    "primary": Style(color="#f59e0b", bold=True),        # Amber
-    "secondary": Style(color="#a38b78"),                  # Warm gray
-    "success": Style(color="#fbbf24", bold=True),        # Gold
-    "warning": Style(color="#f97316"),                    # Orange
-    "error": Style(color="#ef4444", bold=True),          # Red
-    "info": Style(color="#fb923c"),                       # Soft orange
-    "muted": Style(color="#8c7a6b"),                      # Warm muted
-    "accent": Style(color="#f97316", bold=True),         # Accent orange
-    "highlight": Style(color="#fde68a", bold=True),      # Warm highlight
-    "link": Style(color="#fb923c", underline=True),      # Orange link
+    "primary": Style(color="#f59e0b", bold=True),  # Amber
+    "secondary": Style(color="#a38b78"),  # Warm gray
+    "success": Style(color="#fbbf24", bold=True),  # Gold
+    "warning": Style(color="#f97316"),  # Orange
+    "error": Style(color="#ef4444", bold=True),  # Red
+    "info": Style(color="#fb923c"),  # Soft orange
+    "muted": Style(color="#8c7a6b"),  # Warm muted
+    "accent": Style(color="#f97316", bold=True),  # Accent orange
+    "highlight": Style(color="#fde68a", bold=True),  # Warm highlight
+    "link": Style(color="#fb923c", underline=True),  # Orange link
 }
 
 # ASCII art logo - pixel block style (UltraRAG)
@@ -69,7 +68,7 @@ def get_version_safe(pkgname: str) -> str:
     """
     try:
         return importlib.metadata.version(pkgname)
-    except Exception:
+    except importlib.metadata.PackageNotFoundError:
         return "not installed"
 
 
@@ -101,7 +100,7 @@ def get_gradient_logo(use_large: bool = True) -> Text:
         else:
             r, g, b = GRADIENT_COLORS[-1]
             color_hex = f"#{r:02x}{g:02x}{b:02x}"
-            
+
         final_text.append(line + "\n", style=f"{color_hex} bold")
 
     return final_text
@@ -129,7 +128,9 @@ def get_gradient_text(text: str, bold: bool = True) -> Text:
         idx_2 = min(idx_1 + 1, len(GRADIENT_COLORS) - 1)
         factor = color_idx - idx_1
 
-        color = interpolate_color(GRADIENT_COLORS[idx_1], GRADIENT_COLORS[idx_2], factor)
+        color = interpolate_color(
+            GRADIENT_COLORS[idx_1], GRADIENT_COLORS[idx_2], factor
+        )
         style = f"{color} bold" if bold else color
         final_text.append(char, style=style)
 
@@ -407,7 +408,9 @@ def create_progress_bar(
         idx_1 = int(color_idx)
         idx_2 = min(idx_1 + 1, len(GRADIENT_COLORS) - 1)
         factor = color_idx - idx_1
-        color = interpolate_color(GRADIENT_COLORS[idx_1], GRADIENT_COLORS[idx_2], factor)
+        color = interpolate_color(
+            GRADIENT_COLORS[idx_1], GRADIENT_COLORS[idx_2], factor
+        )
         bar.append(filled_char, style=color)
 
     bar.append(empty_char * empty_width, style=STYLES["muted"])
@@ -428,7 +431,12 @@ def log_server_banner(pipeline_name: str, no_mcp: bool = False) -> None:
         pipeline_name: Name of the pipeline to display in banner
     """
     console = Console(stderr=True)
-    panel = make_server_banner(pipeline_name, no_mcp=no_mcp)
+    panel = make_server_banner(
+        pipeline_name,
+        no_mcp=no_mcp,
+        show_logo=console.width >= 90,
+        compact=console.width < 70,
+    )
     console.print()
     console.print(panel)
     console.print()
@@ -437,7 +445,7 @@ def log_server_banner(pipeline_name: str, no_mcp: bool = False) -> None:
 def log_message(
     message: str,
     level: str = "info",
-    console: Optional[Console] = None,
+    console: Console | None = None,
 ) -> None:
     """Print a styled log message.
 
@@ -469,7 +477,7 @@ def log_step(
     total_steps: int,
     description: str,
     status: str = "running",
-    console: Optional[Console] = None,
+    console: Console | None = None,
 ) -> None:
     """Print a pipeline step indicator.
 
@@ -503,7 +511,7 @@ def log_step(
 def print_divider(
     title: str = "",
     style: str = "muted",
-    console: Optional[Console] = None,
+    console: Console | None = None,
 ) -> None:
     """Print a styled divider line.
 
@@ -528,25 +536,20 @@ def print_divider(
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 __all__ = [
-    # Banner functions
-    "make_server_banner",
-    "make_welcome_banner",
-    "make_command_help_panel",
-    "log_server_banner",
-    # Styling
-    "get_gradient_logo",
-    "get_styled_text",
-    "STYLES",
     "GRADIENT_COLORS",
-    # Progress & Status
-    "create_status_bar",
+    "STYLES",
+    "create_info_table",
     "create_progress_bar",
     "create_spinner_frames",
-    # Logging
-    "log_message",
-    "log_step",
-    "print_divider",
-    # Utilities
+    "create_status_bar",
+    "get_gradient_logo",
+    "get_styled_text",
     "get_version_safe",
-    "create_info_table",
+    "log_message",
+    "log_server_banner",
+    "log_step",
+    "make_command_help_panel",
+    "make_server_banner",
+    "make_welcome_banner",
+    "print_divider",
 ]
