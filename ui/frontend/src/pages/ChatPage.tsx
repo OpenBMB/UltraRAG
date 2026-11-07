@@ -5607,12 +5607,12 @@ export function ChatPage() {
         <div className="card" style={{ width: "380px", border: "none" }}>
           <div className="card-header bg-white border-bottom pt-3 pb-2 d-flex justify-content-between align-items-center">
             <h6 className="card-title m-0 fw-bold">{t("kb_chunk_configuration", "Chunk Configuration")}</h6>
-            <button type="button" className="btn-close small" onClick={closeKbChunkConfigModal} />
+            <button type="button" className="btn-close small" aria-label={t("common_close", "Close")} onClick={closeKbChunkConfigModal} />
           </div>
           <div className="card-body">
             <div className="mb-3">
               <label className="form-label small fw-bold text-muted">{t("kb_chunk_backend", "Chunk Backend")}</label>
-              <select
+              <select aria-label={t("kb_chunk_backend", "Chunk Backend")}
                 className="form-select form-select-sm"
                 value={kbChunkConfigDraft.chunk_backend}
                 onChange={(event) =>
@@ -5629,7 +5629,7 @@ export function ChatPage() {
               <label className="form-label small fw-bold text-muted">
                 {t("kb_tokenizer_counter", "Tokenizer / Counter")}
               </label>
-              <select
+              <select aria-label={t("kb_tokenizer_counter", "Tokenizer / Counter")}
                 className="form-select form-select-sm"
                 value={kbChunkConfigDraft.tokenizer_or_token_counter}
                 onChange={(event) =>
@@ -5648,7 +5648,7 @@ export function ChatPage() {
             <div className="mb-3">
               <label className="form-label small fw-bold text-muted">{t("kb_chunk_size", "Chunk Size")}</label>
               <div className="input-group input-group-sm">
-                <input
+                <input aria-label={t("kb_chunk_size", "Chunk Size")}
                   type="number"
                   min={1}
                   className="form-control"
@@ -5665,7 +5665,7 @@ export function ChatPage() {
 
             <div className="mb-1">
               <label className="form-label small fw-bold text-muted">{t("kb_use_title", "Use Title")}</label>
-              <select
+              <select aria-label={t("kb_use_title", "Use Title")}
                 className="form-select form-select-sm"
                 value={kbChunkConfigDraft.use_title ? "true" : "false"}
                 onChange={(event) =>
@@ -5719,7 +5719,7 @@ export function ChatPage() {
             <h6 className="card-title m-0 fw-bold">
               {t("kb_embedding_configuration", "Embedding Configuration")}
             </h6>
-            <button type="button" className="btn-close small" onClick={closeKbIndexConfigModal} />
+            <button type="button" className="btn-close small" aria-label={t("common_close", "Close")} onClick={closeKbIndexConfigModal} />
           </div>
           <div className="card-body">
             <p className="text-muted small mb-3">
@@ -5730,7 +5730,7 @@ export function ChatPage() {
             </p>
             <div className="mb-3">
               <label className="form-label small fw-bold text-muted">{t("kb_api_key", "API Key")}</label>
-              <input
+              <input aria-label={t("kb_api_key", "API Key")}
                 type="password"
                 className="form-control form-control-sm"
                 placeholder="sk-..."
@@ -5746,7 +5746,7 @@ export function ChatPage() {
 
             <div className="mb-3">
               <label className="form-label small fw-bold text-muted">{t("kb_base_url", "Base URL")}</label>
-              <input
+              <input aria-label={t("kb_base_url", "Base URL")}
                 type="text"
                 className="form-control form-control-sm"
                 placeholder="https://api.openai.com/v1"
@@ -5762,7 +5762,7 @@ export function ChatPage() {
 
             <div className="mb-1">
               <label className="form-label small fw-bold text-muted">{t("kb_model_name", "Model Name")}</label>
-              <input
+              <input aria-label={t("kb_model_name", "Model Name")}
                 type="text"
                 className="form-control form-control-sm"
                 placeholder="text-embedding-3-small"
