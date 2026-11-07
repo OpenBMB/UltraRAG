@@ -795,19 +795,19 @@ textarea.parameter-input {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   background: rgba(37, 99, 235, 0.15);
-  color: #2563eb;
+  color: #1d4ed8;
   max-width: 100%;
   white-space: normal;
 }
 
 .canvas-main .flow-node-server[data-module="retriever"] {
   background: rgba(245, 158, 11, 0.18);
-  color: #d97706;
+  color: #92400e;
 }
 
 .canvas-main .flow-node-server[data-module="generation"] {
   background: rgba(16, 185, 129, 0.18);
-  color: #059669;
+  color: #047857;
 }
 
 .canvas-main .flow-node-server[data-module="prompt"] {
@@ -817,7 +817,7 @@ textarea.parameter-input {
 
 .canvas-main .flow-node-server[data-module="reranker"] {
   background: rgba(244, 114, 182, 0.2);
-  color: #db2777;
+  color: #9d174d;
 }
 
 .canvas-main .flow-node-server[data-module="router"] {
