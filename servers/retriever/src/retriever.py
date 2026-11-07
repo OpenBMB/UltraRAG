@@ -12,6 +12,7 @@ from PIL import Image
 import uuid
 
 from ultrarag.errors import ValidationError, NotFoundError, ToolError
+from ultrarag.async_utils import cancel_tasks
 from ultrarag.server import UltraRAG_MCP_Server
 from bm25_tokenizer import build_bm25_splitter
 from index_backends import BaseIndexBackend, create_index_backend
@@ -199,7 +200,10 @@ class Retriever:
                 asyncio.create_task(_process_batch(start, batch))
                 for start, batch in batches
             ]
-            await asyncio.gather(*tasks)
+            try:
+                await asyncio.gather(*tasks)
+            finally:
+                await cancel_tasks(tasks)
 
         if any(r is None for r in results):
             raise RuntimeError("Embedding generation failed: missing results")

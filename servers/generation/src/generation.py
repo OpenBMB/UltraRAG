@@ -11,6 +11,7 @@ import base64
 import mimetypes
 
 from ultrarag.errors import ToolError
+from ultrarag.async_utils import cancel_tasks
 from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("generation")
@@ -168,6 +169,7 @@ class Generation:
         """
         self.backend = backend.lower()
         self.backend_configs = backend_configs or {}
+        sampling_params = dict(sampling_params or {})
         cfg: Dict[str, Any] = (self.backend_configs.get(self.backend) or {}).copy()
 
         if self.backend == "vllm":
@@ -229,8 +231,8 @@ class Generation:
                 sampling_params["extra_body"] = extra_params
             self.sampling_params = sampling_params
 
-            self._max_concurrency = int(cfg.get("concurrency", 1))
-            self._retries = int(cfg.get("retries", 3))
+            self._max_concurrency = max(1, int(cfg.get("concurrency", 1)))
+            self._retries = max(1, int(cfg.get("retries", 3)))
             self._base_delay = float(cfg.get("base_delay", 1.0))
 
         elif self.backend == "litellm":
@@ -256,8 +258,8 @@ class Generation:
                 sampling_params["extra_body"] = extra_params
             self.sampling_params = sampling_params
 
-            self._max_concurrency = int(cfg.get("concurrency", 1))
-            self._retries = int(cfg.get("retries", 3))
+            self._max_concurrency = max(1, int(cfg.get("concurrency", 1)))
+            self._retries = max(1, int(cfg.get("retries", 3)))
             self._base_delay = float(cfg.get("base_delay", 1.0))
 
         elif self.backend == "hf":
@@ -383,10 +385,11 @@ class Generation:
                         app.logger.error(error_msg)
                         raise ToolError(error_msg)
 
-                    await asyncio.sleep(delay + random.random() * 0.25)
-                    delay *= 2
+                    if attempt + 1 < retries:
+                        await asyncio.sleep(delay + random.random() * 0.25)
+                        delay *= 2
 
-                return idx, "<error>"
+                raise ToolError(f"Generation failed after {retries} attempts (idx={idx})")
 
             tasks = [
                 asyncio.create_task(
@@ -404,13 +407,16 @@ class Generation:
             ]
             ret = [None] * len(msg_ls)
 
-            for coro in tqdm(
-                asyncio.as_completed(tasks),
-                total=len(tasks),
-                desc="OpenAI Generating: ",
-            ):
-                idx, ans = await coro
-                ret[idx] = ans
+            try:
+                for coro in tqdm(
+                    asyncio.as_completed(tasks),
+                    total=len(tasks),
+                    desc="OpenAI Generating: ",
+                ):
+                    idx, ans = await coro
+                    ret[idx] = ans
+            finally:
+                await cancel_tasks(tasks)
 
         elif self.backend == "litellm":
             import litellm
@@ -470,10 +476,11 @@ class Generation:
                         app.logger.error(error_msg)
                         raise ToolError(error_msg)
 
-                    await asyncio.sleep(delay + random.random() * 0.25)
-                    delay *= 2
+                    if attempt + 1 < retries:
+                        await asyncio.sleep(delay + random.random() * 0.25)
+                        delay *= 2
 
-                return idx, "<error>"
+                raise ToolError(f"Generation failed after {retries} attempts (idx={idx})")
 
             tasks = [
                 asyncio.create_task(
@@ -490,13 +497,16 @@ class Generation:
             ]
             ret = [None] * len(msg_ls)
 
-            for coro in tqdm(
-                asyncio.as_completed(tasks),
-                total=len(tasks),
-                desc="LiteLLM Generating: ",
-            ):
-                idx, ans = await coro
-                ret[idx] = ans
+            try:
+                for coro in tqdm(
+                    asyncio.as_completed(tasks),
+                    total=len(tasks),
+                    desc="LiteLLM Generating: ",
+                ):
+                    idx, ans = await coro
+                    ret[idx] = ans
+            finally:
+                await cancel_tasks(tasks)
 
         elif self.backend == "hf":
             prompt_txt_ls: List[str] = []
