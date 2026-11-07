@@ -2202,7 +2202,15 @@ def _as_project_relative(path: Path) -> str:
 
 
 def _sanitize_pipeline_name(name: str) -> str:
-    return str(name or "").replace("..", "_").strip()
+    value = str(name or "").strip()
+    if (
+        not value
+        or value in {".", ".."}
+        or len(value) > 128
+        or any(c in value for c in ("/", "\\", "\0"))
+    ):
+        raise PipelineManagerError("Invalid pipeline name")
+    return value
 
 
 UI_KB_PIPELINES = {
@@ -2220,7 +2228,9 @@ def _is_demo_pipeline_name(name: str) -> bool:
 
 
 def _default_pipeline_dir(name: str) -> Path:
-    return DEMO_PIPELINES_DIR if _is_demo_pipeline_name(name) else EXPERIMENT_PIPELINES_DIR
+    return (
+        DEMO_PIPELINES_DIR if _is_demo_pipeline_name(name) else EXPERIMENT_PIPELINES_DIR
+    )
 
 
 def _pipeline_candidates(name: str) -> List[Path]:
@@ -2236,7 +2246,10 @@ def _pipeline_candidates(name: str) -> List[Path]:
 
 def pipeline_path(name: str) -> Path:
     safe_name = _sanitize_pipeline_name(name)
-    return _default_pipeline_dir(safe_name) / f"{safe_name}.yaml"
+    return (
+        _find_pipeline_file(safe_name)
+        or _default_pipeline_dir(safe_name) / f"{safe_name}.yaml"
+    )
 
 
 def _find_pipeline_file(name: str) -> Path | None:
@@ -2299,23 +2312,32 @@ HIDDEN_PIPELINES = {
 
 
 def list_pipelines() -> List[Dict[str, Any]]:
+    """List drafts and built pipelines; chat clients select only ready entries."""
     res = []
-    if DEMO_PIPELINES_DIR.exists():
-        for f in sorted(DEMO_PIPELINES_DIR.glob("*.yaml")):
+    seen = set()
+    for directory in PIPELINE_SEARCH_DIRS:
+        for f in sorted(directory.glob("*.yaml")):
             # Skip pipelines in hidden list
-            if f.stem in HIDDEN_PIPELINES:
+            if f.stem in HIDDEN_PIPELINES or f.stem in seen:
                 continue
-
-            # UI only displays demo pipelines that are already built.
+            if _find_pipeline_file(f.stem) != f:
+                continue
+            seen.add(f.stem)
             param_path = f.parent / "parameter" / f"{f.stem}_parameter.yaml"
-            if not param_path.exists():
-                continue
-
+            server_path = f.parent / "server" / f"{f.stem}_server.yaml"
+            try:
+                config = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+                if not isinstance(config, dict):
+                    config = {}
+            except yaml.YAMLError:
+                config = {}
             res.append(
                 {
                     "name": f.stem,
-                    "config": yaml.safe_load(f.read_text(encoding="utf-8")) or {},
-                    "is_ready": True,
+                    "config": config,
+                    "is_ready": bool(config)
+                    and param_path.is_file()
+                    and server_path.is_file(),
                 }
             )
     return res
@@ -2361,11 +2383,23 @@ def parse_pipeline_yaml_content(yaml_content: str) -> Dict:
 
 
 def save_pipeline(payload: Dict) -> Dict:
+    from ultrarag.configuration import Configuration
+
+    if not isinstance(payload, dict):
+        raise PipelineManagerError("Pipeline payload must be an object")
     name = payload.get("name")
-    if not name:
-        raise PipelineManagerError("Name required")
+    if not isinstance(name, str) or not re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_-]{0,127}", name
+    ):
+        raise PipelineManagerError(
+            "Invalid pipeline name: use letters, numbers, _ or -; start with a letter or _"
+        )
+    if _find_pipeline_file(name) is not None:
+        raise FileExistsError(f"Pipeline {name} already exists")
 
     steps = payload.get("pipeline", [])
+    if not isinstance(steps, list):
+        raise PipelineManagerError("Pipeline steps must be a list")
     servers = set()
 
     def _scan(s):
@@ -2375,20 +2409,26 @@ def save_pipeline(payload: Dict) -> Dict:
             for item in s:
                 _scan(item)
         elif isinstance(s, dict):
-            for v in s.values():
+            for key, v in s.items():
+                if isinstance(key, str) and "." in key:
+                    servers.add(key.split(".", 1)[0])
                 _scan(v)
 
     _scan(steps)
 
+    declared = payload.get("servers", {s: f"servers/{s}" for s in sorted(servers)})
+    if not isinstance(declared, dict) or any(
+        not isinstance(k, str) or not isinstance(v, str) for k, v in declared.items()
+    ):
+        raise PipelineManagerError("Servers must map aliases to directory paths")
     yaml_data = {
-        "servers": {s: f"servers/{s}" for s in sorted(servers)},
+        "servers": declared,
         "pipeline": steps,
     }
 
     output_path = pipeline_path(name)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(yaml_data, f, sort_keys=False, allow_unicode=True)
+    Configuration.save_config(output_path, yaml_data, overwrite=False)
 
     return {"name": name, **yaml_data}
 
@@ -2414,11 +2454,21 @@ def save_pipeline_yaml(name: str, yaml_content: str) -> Dict:
         parsed = yaml.safe_load(yaml_content)
     except yaml.YAMLError as e:
         raise PipelineManagerError(f"Invalid YAML syntax: {e}")
+    if parsed is not None and not isinstance(parsed, dict):
+        raise PipelineManagerError("Pipeline YAML must be a mapping")
 
-    # Write file
+    from ultrarag.configuration import Configuration
+
     p = pipeline_path(name)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(yaml_content, encoding="utf-8")
+    try:
+        previous = yaml.safe_load(p.read_text(encoding="utf-8")) if p.exists() else None
+    except yaml.YAMLError:
+        previous = None
+    Configuration.save_text(p, yaml_content)
+    if parsed != previous:
+        # Parameters remain user-owned; rebuild only the derived server metadata.
+        (p.parent / "server" / f"{p.stem}_server.yaml").unlink(missing_ok=True)
 
     return {"name": name, "status": "saved"}
 
@@ -2426,6 +2476,8 @@ def save_pipeline_yaml(name: str, yaml_content: str) -> Dict:
 def delete_pipeline(name: str):
     p = _find_pipeline_file(name)
     if p:
+        for folder in ("parameter", "server"):
+            (p.parent / folder / f"{p.stem}_{folder}.yaml").unlink(missing_ok=True)
         p.unlink()
 
 
@@ -2454,18 +2506,28 @@ def rename_pipeline(old_name: str, new_name: str) -> Dict:
     if _find_pipeline_file(new_name):
         raise PipelineManagerError(f"Pipeline '{new_name}' already exists")
 
-    new_path = pipeline_path(new_name)
+    safe_name = _sanitize_pipeline_name(new_name)
+    new_path = old_path.with_name(f"{safe_name}.yaml")
     new_path.parent.mkdir(parents=True, exist_ok=True)
-    old_param_path = old_path.parent / "parameter" / f"{old_path.stem}_parameter.yaml"
-    new_param_path = new_path.parent / "parameter" / f"{new_path.stem}_parameter.yaml"
-
-    # Execute rename
-    old_path.rename(new_path)
-
-    # Also rename corresponding parameter file (if exists)
-    if old_param_path.exists():
-        new_param_path.parent.mkdir(parents=True, exist_ok=True)
-        old_param_path.rename(new_param_path)
+    moves = [(old_path, new_path)]
+    for folder in ("parameter", "server"):
+        source = old_path.parent / folder / f"{old_path.stem}_{folder}.yaml"
+        target = new_path.parent / folder / f"{new_path.stem}_{folder}.yaml"
+        if source.exists():
+            if target.exists():
+                raise PipelineManagerError(
+                    f"Build artifact already exists for {new_name}"
+                )
+            moves.append((source, target))
+    completed = []
+    try:
+        for source, target in moves:
+            source.rename(target)
+            completed.append((source, target))
+    except OSError:
+        for source, target in reversed(completed):
+            target.rename(source)
+        raise
 
     return {"status": "renamed", "old_name": old_name, "new_name": new_name}
 
@@ -2484,22 +2546,31 @@ def save_parameters(name: str, params: Dict):
         yaml.safe_dump(params, f, sort_keys=False, allow_unicode=True)
 
 
-def build(name: str) -> Dict:
+def build(name: str, *, include_logs: bool = False) -> Dict:
     funcs = _ensure_client_funcs()
     p = _find_pipeline_file(name)
     if not p:
         raise PipelineManagerError(f"Not found: {name}")
 
+    from .build_logs import BuildLogCapture
+
+    capture = BuildLogCapture()
+    logger = logging.getLogger("UltraRAG")
+    logger.addHandler(capture)
     loop = asyncio.new_event_loop()
     try:
         # Build is fast, run synchronously
         asyncio.set_event_loop(loop)
         loop.run_until_complete(funcs["build"](str(p), no_mcp=NO_MCP_MODE))
     except Exception as e:
-        raise PipelineManagerError(f"Build failed: {e}")
+        error = PipelineManagerError(f"Build failed: {e}")
+        error.logs = capture.lines
+        raise error from e
     finally:
+        logger.removeHandler(capture)
         loop.close()
-    return {"status": "ok"}
+        asyncio.set_event_loop(None)
+    return {"status": "ok", **({"logs": capture.lines} if include_logs else {})}
 
 
 # Internal Utils (Stubs & Parsing)

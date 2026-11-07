@@ -37,8 +37,19 @@ class Configuration:
         return Configuration.load_config(path) if path.is_file() else {}
 
     @staticmethod
-    def save_config(file_path: str | Path, data: dict[str, Any]) -> None:
+    def save_config(
+        file_path: str | Path, data: dict[str, Any], *, overwrite: bool = True
+    ) -> None:
         """Atomically replace a YAML document without leaving truncated files."""
+        Configuration.save_text(
+            file_path,
+            yaml.safe_dump(data, allow_unicode=True, sort_keys=False),
+            overwrite=overwrite,
+        )
+
+    @staticmethod
+    def save_text(file_path: str | Path, text: str, *, overwrite: bool = True) -> None:
+        """Publish complete UTF-8 text, optionally requiring a new destination."""
         path = Path(file_path)
         temporary: Path | None = None
         try:
@@ -46,8 +57,11 @@ class Configuration:
                 mode="w", encoding="utf-8", dir=path.parent, delete=False
             ) as stream:
                 temporary = Path(stream.name)
-                yaml.safe_dump(data, stream, allow_unicode=True, sort_keys=False)
-            os.replace(temporary, path)
+                stream.write(text)
+            if overwrite:
+                os.replace(temporary, path)
+            else:
+                os.link(temporary, path)
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)

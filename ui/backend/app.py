@@ -1161,7 +1161,10 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
             JSON response with save result
         """
         payload = request.get_json(force=True)
-        return jsonify(pm.save_pipeline(payload))
+        try:
+            return jsonify(pm.save_pipeline(payload)), 201
+        except FileExistsError as exc:
+            return jsonify({"error": str(exc)}), 409
 
     @app.route("/api/pipelines/<string:name>/yaml", methods=["PUT"])
     @require_admin_user
@@ -1231,7 +1234,10 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
     @app.route("/api/pipelines/<string:name>/build", methods=["POST"])
     @require_admin_user
     def build_pipeline(name: str):
-        return jsonify(pm.build(name))
+        try:
+            return jsonify(pm.build(name, include_logs=True))
+        except pm.PipelineManagerError as exc:
+            return jsonify({"error": str(exc), "logs": getattr(exc, "logs", [])}), 400
 
     @app.route("/api/pipelines/<string:name>/demo/start", methods=["POST"])
     def start_demo_session(name: str) -> Response:
