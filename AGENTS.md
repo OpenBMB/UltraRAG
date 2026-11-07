@@ -545,6 +545,12 @@ If touching build/runtime semantics, cross-check against:
 - Keep tool outputs deterministic and JSON-serializable.
 - Keep imports grouped: stdlib -> third-party -> local.
 - Keep async boundaries explicit (`async`/`await`).
+- Use modern Python annotations (`dict`, `list`, `X | None`) in the core package.
+- Write implementation comments and public docstrings in English; explain contracts and non-obvious decisions rather than restating code. Keep user-facing prompts in their intended language.
+- Library functions raise recoverable exceptions; process exit belongs to the CLI boundary.
+- Server registration inherits application logging. Never change shared verbosity while importing a server or log credentials from configuration payloads.
+- Concurrent API requests belong to their pipeline step: cancel and drain siblings before returning after a failure or cancellation.
+- Use focused English Conventional Commits (`fix(scope): ...`, `perf(scope): ...`, `test: ...`, `docs: ...`); keep unrelated functionality in separate commits.
 
 ---
 
@@ -612,6 +618,8 @@ Before finalizing any non-trivial change:
    - validate parameter schema keys and output names
 5. Keep generated artifacts intentional:
    - do not accidentally commit transient runtime outputs
+6. For core changes, run `ruff check src/ultrarag` and `ruff format --check src/ultrarag`.
+7. For frontend changes, run `npm test` and `npm run check` from `ui/frontend`, then verify the rendered UI at mobile, tablet, and desktop widths. Lighthouse scores do not replace interaction testing.
 
 ---
 
