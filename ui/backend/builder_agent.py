@@ -293,7 +293,19 @@ class AgentRun:
             self.events.put_nowait(event)
         except queue.Full:
             self.cancel()
-            raise RuntimeError("Agent event consumer is too slow")
+            # Preserve one terminal error even when a burst fills the bounded bridge.
+            while True:
+                try:
+                    self.events.get_nowait()
+                except queue.Empty:
+                    break
+            self.events.put_nowait(
+                {
+                    "type": "error",
+                    "message": "Assistant output arrived too quickly; retry with a smaller request",
+                }
+            )
+            raise asyncio.CancelledError
 
     def worker(self) -> None:
         async def main() -> None:
