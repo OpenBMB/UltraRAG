@@ -1,9 +1,10 @@
 import ctypes
-import logging
 import os
 import signal
 import subprocess
-from typing import Dict, List, Optional
+import sys
+
+from ultrarag.mcp_logging import get_logger
 
 IS_POSIX = os.name == "posix"
 IS_WINDOWS = os.name == "nt"
@@ -16,7 +17,7 @@ else:
 _windows_job_handle = None
 
 if IS_WINDOWS:
-    import ctypes.wintypes as wintypes
+    from ctypes import wintypes
 
     JobObjectExtendedLimitInformation = 9
     JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
@@ -113,12 +114,12 @@ def set_pdeathsig() -> None:
     Configures the process to receive SIGTERM when the parent process dies,
     ensuring child processes are properly cleaned up.
     """
-    if IS_POSIX and libc is not None:
+    if IS_POSIX and libc is not None and hasattr(libc, "prctl"):
         libc.prctl(1, signal.SIGTERM)
 
 
 def popen_follow_parent(
-    command: List[str], env: Optional[Dict[str, str]] = None
+    command: list[str], env: dict[str, str] | None = None
 ) -> subprocess.Popen:
     """Create a subprocess that will be terminated when parent dies.
 
@@ -133,8 +134,17 @@ def popen_follow_parent(
     Returns:
         Popen object representing the started subprocess
     """
-    if IS_POSIX:
-        return subprocess.Popen(command, env=env, preexec_fn=set_pdeathsig)
+    if sys.platform.startswith("linux"):
+        # Run prctl in a fresh interpreter, never in Popen's preexec_fn: the
+        # latter can deadlock when UI/background worker threads hold locks.
+        bootstrap = (
+            "import ctypes, os, signal, sys; "
+            "parent = os.getppid(); "
+            "ctypes.CDLL(None).prctl(1, signal.SIGTERM, 0, 0, 0); "
+            "os.getppid() == parent or os.kill(os.getpid(), signal.SIGTERM); "
+            "os.execvpe(sys.argv[1], sys.argv[1:], os.environ)"
+        )
+        return subprocess.Popen([sys.executable, "-c", bootstrap, *command], env=env)
     elif IS_WINDOWS:
         hJob = _windows_ensure_job_object()
         proc = subprocess.Popen(command, env=env)
@@ -142,7 +152,7 @@ def popen_follow_parent(
         hProcess = wintypes.HANDLE(proc._handle)
         ok = kernel32.AssignProcessToJobObject(hJob, hProcess)
         if not ok:
-            logging.warning(
+            get_logger("Subprocess").warning(
                 "AssignProcessToJobObject failed; child may outlive parent."
             )
         return proc
