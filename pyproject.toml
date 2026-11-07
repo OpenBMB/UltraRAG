@@ -23,9 +23,11 @@ dependencies = [
     "certifi>=2026.10.19",
     "orjson",
     "tabulate",
-    "aiohttp",
-    "pillow",
+    "aiohttp>=3.14.4",
+    "pillow>=13.0.0",
     "flask",
+    "werkzeug>=3.1.9",
+    "urllib3>=2.8.0",
     # faiss-gpu-cu12 1.14 requires NumPy 2; <2.4 also satisfies vLLM/Numba.
     "numpy>=2,<2.4",
     "fakeredis",
@@ -44,6 +46,8 @@ mcp = [
     # Keep the supported adapter API while including maintenance security fixes.
     "fastmcp>=3.4.11,<4",
     "mcp>=1.30.0,<2",
+    "authlib>=1.9.1,<2",
+    "PyJWT>=2.15.0,<3",
 ]
 retriever = [
     "infinity-emb",
@@ -87,7 +91,7 @@ corpus = [
 # LiteLLM generation backend: a pure API client, so it is kept separate from the
 # heavy `generation` extra (vllm/torch) — CPU/proxy users can install just this.
 litellm = [
-    "litellm>=1.60,<2.0",
+    "litellm>=1.100.4,<2.0",
 ]
 
 all = [
