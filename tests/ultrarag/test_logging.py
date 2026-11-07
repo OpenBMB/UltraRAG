@@ -102,3 +102,20 @@ def test_server_specific_level_does_not_reconfigure_application() -> None:
     finally:
         get_logger("Client", logging.getLevelName(original).lower())
         logging.getLogger("UltraRAG.Server.quiet-probe").setLevel(logging.NOTSET)
+
+
+def test_redaction_covers_credential_spelling_variants_without_mutation():
+    from ultrarag.mcp_logging import redact_config
+
+    payload = {
+        "apiKey": "test-key",
+        "nested": [{"access-token": "test-token", "refreshToken": "refresh"}],
+        "model_name": "model",
+    }
+    result = redact_config(payload)
+    assert result["apiKey"] == "[REDACTED]"
+    assert result["nested"] == [
+        {"access-token": "[REDACTED]", "refreshToken": "[REDACTED]"}
+    ]
+    assert result["model_name"] == "model"
+    assert payload["apiKey"] == "test-key"
