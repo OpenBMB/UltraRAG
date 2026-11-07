@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChatTurnController } from "@/features/chat/ChatTurnController";
+import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, MouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -55,7 +57,7 @@ import {
 } from "@/shared/api/backgroundTasks";
 import { streamPipelineChat } from "@/shared/api/streaming";
 import type { ChatMessage, ChatSession, PipelineItem, SourceDoc } from "@/shared/api/types";
-import { normalizeSourceDocs, renderChatMarkdown } from "@/shared/lib/chatMarkdown";
+import { normalizeSourceDocs } from "@/shared/lib/sourceDocs";
 import { createClientId } from "@/shared/lib/id";
 import { useThemeStyles } from "@/shared/lib/useThemeStyles";
 import { AuthDialog } from "@/features/auth/components/AuthDialog";
@@ -70,7 +72,7 @@ function createSessionId(): string {
 
 function readStoredEngineMap(): Record<string, string> {
   try {
-    const raw = localStorage.getItem("ultrarag_react_active_engines") ?? "{}";
+    const raw = readStorage("ultrarag_react_active_engines") ?? "{}";
     const parsed = JSON.parse(raw) as Record<string, string>;
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
@@ -140,7 +142,7 @@ const DEFAULT_INDEX_CONFIG: IndexConfigState = {
 
 function readStoredJson<T>(storageKey: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(storageKey);
+    const raw = readStorage(storageKey);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as T;
     if (!parsed || typeof parsed !== "object") return fallback;
@@ -152,7 +154,7 @@ function readStoredJson<T>(storageKey: string, fallback: T): T {
 
 function saveStoredJson(storageKey: string, payload: unknown): void {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(payload));
+    writeStorage(storageKey, JSON.stringify(payload));
   } catch {
     // Ignore quota/storage errors and keep app behavior.
   }
@@ -389,6 +391,10 @@ function mergeThinkingSteps(steps: ThinkingStepEvent[]): ThinkingStepView[] {
   return merged;
 }
 
+const MessageMarkdown = lazy(() => import("@/features/chat/components/MessageMarkdown").then((module) => ({ default: module.MessageMarkdown })));
+const SourceDetailContent = lazy(() => import("@/features/chat/components/MessageMarkdown").then((module) => ({ default: module.SourceDetailContent })));
+const SimpleMarkdown = lazy(() => import("@/features/chat/components/MessageMarkdown").then((module) => ({ default: module.SimpleMarkdown })));
+
 function renderUserTextAsHtml(text: string): string {
   return text
     .replaceAll("&", "&amp;")
@@ -399,50 +405,7 @@ function renderUserTextAsHtml(text: string): string {
     .replaceAll("\n", "<br>");
 }
 
-const SOURCE_DETAIL_EMPTY_HTML =
-  '<div class="text-muted small text-center mt-5">Select a reference to view details</div>';
 const CHAT_SCROLL_FOLLOW_THRESHOLD = 48;
-
-function cleanPdfText(text: string): string {
-  if (!text) return "";
-  let cleaned = text.replace(/\r\n/g, "\n");
-  cleaned = cleaned.replace(/([a-zA-Z])-\n([a-zA-Z])/g, "$1$2");
-  cleaned = cleaned.replace(/\n\s*\n/g, "___PARAGRAPH_BREAK___");
-  cleaned = cleaned.replace(/\n/g, " ");
-  cleaned = cleaned.replace(/  +/g, " ");
-  return cleaned.replace(/___PARAGRAPH_BREAK___/g, "\n\n").trim();
-}
-
-function escapeDetailHtml(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function renderSourceDetailHtml(content: string): string {
-  const rawText = content || "No content available.";
-  let cleanedText = cleanPdfText(rawText);
-
-  const bibkeyMatch = cleanedText.match(/^bibkey:\s*\S+\s+([\s\S]*)/i);
-  if (bibkeyMatch) {
-    cleanedText = bibkeyMatch[1].trim();
-  }
-
-  const titleMatch = cleanedText.match(/^Title:\s*(.+?)(?:\n|Content:)/i);
-  const contentMatch = cleanedText.match(/Content:\s*([\s\S]*)/i);
-  if (titleMatch && contentMatch) {
-    const docTitle = titleMatch[1].trim();
-    const docContent = contentMatch[1].trim();
-    return `<div class="source-doc-title">${escapeDetailHtml(docTitle)}</div>${renderChatMarkdown(
-      docContent || "No content available.",
-    )}`;
-  }
-
-  return renderChatMarkdown(cleanedText || "No content available.");
-}
 
 function truncateRefPreview(text: string, maxLength = 110): string {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -667,7 +630,7 @@ export function ChatPage() {
     try {
       const urlPipeline = (new URLSearchParams(window.location.search).get("pipeline") ?? "").trim();
       if (urlPipeline) return urlPipeline;
-      return (localStorage.getItem("ultrarag_react_selected_pipeline") ?? "").trim();
+      return (readStorage("ultrarag_react_selected_pipeline") ?? "").trim();
     } catch {
       return "";
     }
@@ -787,8 +750,10 @@ export function ChatPage() {
   const [guestSessions, setGuestSessions] = useState<ChatSession[]>([]);
 
   const activeEngineRef = useRef<Record<string, string>>(readStoredEngineMap());
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const turnsRef = useRef(new ChatTurnController());
+  const historyLoadRef = useRef(0);
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
   const chatScrollTopRef = useRef(0);
   const thinkingBodyRef = useRef<HTMLDivElement | null>(null);
@@ -820,6 +785,31 @@ export function ChatPage() {
   const kbVisibilityDialogRef = useRef<HTMLDialogElement | null>(null);
   const kbFolderDetailDialogRef = useRef<HTMLDialogElement | null>(null);
   const backgroundDetailDialogRef = useRef<HTMLDialogElement | null>(null);
+
+  useEffect(() => {
+    const composer = composerRef.current;
+    if (!composer) return;
+    composer.style.height = "auto";
+    composer.style.height = `${Math.min(composer.scrollHeight, 200)}px`;
+  }, [input, activeView]);
+
+  useEffect(() => {
+    const turns = turnsRef.current;
+    return () => {
+      const sessionId = selectedPipeline ? activeEngineRef.current[selectedPipeline] : undefined;
+      void turns.stop(() => sessionId ? stopPipelineChatGeneration(sessionId) : Promise.resolve())
+        .catch(() => { /* The component is gone; its stream has already been aborted. */ });
+    };
+  }, [selectedPipeline]);
+
+  useEffect(() => {
+    if (!isMobileViewport || !mobileSidebarOpen) return;
+    const previousFocus = document.activeElement;
+    chatSidebarRef.current?.querySelector<HTMLElement>("button")?.focus();
+    return () => {
+      if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    };
+  }, [isMobileViewport, mobileSidebarOpen]);
 
   const sessions = loggedIn ? persistedSessions : guestSessions;
   const visibleSessions = useMemo(
@@ -904,15 +894,17 @@ export function ChatPage() {
     return t("kb_visibility_readonly_hint", "You do not have permission to modify this collection.");
   }, [kbVisibilityData?.can_manage, kbVisibilityData?.owner_user_id, loggedIn, t]);
   const chatStatusBadgeClass = useMemo(() => {
+    if (sending) return "bg-warning text-dark";
     if (chatStatus === "ready") return "bg-success text-white";
     if (chatStatus === "error") return "bg-danger text-white";
     return "bg-warning text-dark";
-  }, [chatStatus]);
+  }, [chatStatus, sending]);
   const demoLoading = useMemo(
-    () => chatStatus !== "ready" && chatStatus !== "error",
-    [chatStatus],
+    () => !sending && chatStatus !== "ready" && chatStatus !== "error",
+    [chatStatus, sending],
   );
   const displayStatusText = useMemo(() => {
+    if (sending) return locale === "zh" ? "处理中" : "Generating";
     if (chatStatus === "ready") {
       return t("status_ready", locale === "zh" ? "就绪" : "Ready");
     }
@@ -920,7 +912,7 @@ export function ChatPage() {
       return locale === "zh" ? "失败" : "Failed";
     }
     return locale === "zh" ? "加载中" : "Loading";
-  }, [chatStatus, locale, t]);
+  }, [chatStatus, locale, t, sending]);
   const greetingHeadline = useMemo(() => {
     const nickname = (authInfo?.nickname ?? "").trim();
     if (!nickname) {
@@ -935,10 +927,6 @@ export function ChatPage() {
     () => (detailSource ? `Reference [${detailSourceDisplayId ?? detailSource.id}]` : "Reference Detail"),
     [detailSource, detailSourceDisplayId],
   );
-  const sourceDetailHtml = useMemo(
-    () => (detailSource ? renderSourceDetailHtml(detailSource.content) : SOURCE_DETAIL_EMPTY_HTML),
-    [detailSource],
-  );
   const runningBackgroundCount = useMemo(
     () => backgroundTasks.filter((task) => task.status === "running").length,
     [backgroundTasks],
@@ -950,7 +938,7 @@ export function ChatPage() {
   }, [backgroundDetailTaskId, taskDetailMap, backgroundTasks]);
 
   useEffect(() => {
-    const storedSidebarCollapsed = localStorage.getItem("ultrarag_sidebar_collapsed");
+    const storedSidebarCollapsed = readStorage("ultrarag_sidebar_collapsed");
     if (storedSidebarCollapsed === "true") {
       setSidebarCollapsed(true);
     }
@@ -978,14 +966,14 @@ export function ChatPage() {
 
   useEffect(() => {
     if (!selectedPipeline) {
-      localStorage.removeItem("ultrarag_react_selected_pipeline");
+      removeStorage("ultrarag_react_selected_pipeline");
       return;
     }
-    localStorage.setItem("ultrarag_react_selected_pipeline", selectedPipeline);
+    writeStorage("ultrarag_react_selected_pipeline", selectedPipeline);
   }, [selectedPipeline]);
 
   useEffect(() => {
-    localStorage.setItem("ultrarag_sidebar_collapsed", String(sidebarCollapsed));
+    writeStorage("ultrarag_sidebar_collapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
   useEffect(() => {
@@ -1049,7 +1037,7 @@ export function ChatPage() {
     if (detailContentRef.current) {
       detailContentRef.current.scrollTop = 0;
     }
-  }, [detailPanelOpen, sourceDetailHtml]);
+  }, [detailPanelOpen, detailSource]);
 
   useEffect(() => {
     const dialog = kbImportDialogRef.current;
@@ -1449,7 +1437,7 @@ export function ChatPage() {
   }, [backgroundTasks, loadBackgroundTaskData]);
 
   const saveEngines = useCallback(() => {
-    localStorage.setItem("ultrarag_react_active_engines", JSON.stringify(activeEngineRef.current));
+    writeStorage("ultrarag_react_active_engines", JSON.stringify(activeEngineRef.current));
   }, []);
 
   const syncGuestSessionMessages = (sessionId: string, nextMessages: ChatMessage[]) => {
@@ -1498,15 +1486,11 @@ export function ChatPage() {
     if (!selectedPipeline) {
       throw new Error("Please select a pipeline before chatting.");
     }
-    setChatStatus("warn");
-    setStatusText("Initializing...");
     const cachedSessionId = activeEngineRef.current[selectedPipeline];
     if (cachedSessionId) {
       try {
         // Reuse existing engine session if possible; backend get_or_create is idempotent.
         await startPipelineDemoSession(selectedPipeline, cachedSessionId);
-        setChatStatus("ready");
-        setStatusText("Ready");
         return cachedSessionId;
       } catch {
         delete activeEngineRef.current[selectedPipeline];
@@ -1518,8 +1502,6 @@ export function ChatPage() {
     await startPipelineDemoSession(selectedPipeline, nextSessionId);
     activeEngineRef.current[selectedPipeline] = nextSessionId;
     saveEngines();
-    setChatStatus("ready");
-    setStatusText("Ready");
     return nextSessionId;
   }, [saveEngines, selectedPipeline]);
 
@@ -1531,13 +1513,15 @@ export function ChatPage() {
     }
     let cancelled = false;
     const warmupEngine = async () => {
+      setChatStatus("warn");
+      setStatusText("Initializing...");
       try {
         await ensureEngineSession();
-        if (cancelled) return;
+        if (cancelled || turnsRef.current.busy) return;
         setChatStatus("ready");
         setStatusText("Engine Ready");
       } catch {
-        if (cancelled) return;
+        if (cancelled || turnsRef.current.busy) return;
         setChatStatus("error");
         setStatusText("Engine Error");
       }
@@ -1549,6 +1533,8 @@ export function ChatPage() {
   }, [ensureEngineSession, selectedPipeline]);
 
   const handleNewChat = async () => {
+    historyLoadRef.current += 1;
+    await stopSending();
     setChatSessionContextMenu((previous) => (previous.open ? { ...previous, open: false } : previous));
     const previousSessionId = activeSessionId;
     const previousMessages = messages;
@@ -1571,6 +1557,8 @@ export function ChatPage() {
       danger: true,
     });
     if (!confirmed) return;
+
+    if (sessionId === activeSessionId) await stopSending();
 
     if (loggedIn) {
       await deleteChatSession(sessionId);
@@ -1659,6 +1647,7 @@ export function ChatPage() {
       danger: true,
     });
     if (!confirmed) return;
+    await stopSending();
 
     const runningSessionId = selectedPipeline ? activeEngineRef.current[selectedPipeline] : undefined;
     if (runningSessionId) {
@@ -1681,6 +1670,9 @@ export function ChatPage() {
   };
 
   const handleOpenSession = async (sessionId: string) => {
+    const loadId = ++historyLoadRef.current;
+    await stopSending();
+    if (loadId !== historyLoadRef.current) return;
     setChatSessionContextMenu((previous) => (previous.open ? { ...previous, open: false } : previous));
     setActiveView("chat");
     setActiveSessionId(sessionId);
@@ -1691,25 +1683,21 @@ export function ChatPage() {
       return;
     }
     const session = await fetchChatSession(sessionId);
-    setMessages(normalizeSessionMessages(session));
+    if (loadId === historyLoadRef.current) setMessages(normalizeSessionMessages(session));
   };
 
   const stopSending = async () => {
     const sessionId = selectedPipeline ? activeEngineRef.current[selectedPipeline] : undefined;
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+    try {
+      await turnsRef.current.stop(() => sessionId ? stopPipelineChatGeneration(sessionId) : Promise.resolve());
+    } catch {
+      // The browser stream is already aborted even if the server is unreachable.
     }
-    if (sessionId) {
-      try {
-        await stopPipelineChatGeneration(sessionId);
-      } catch {
-        // no-op
-      }
+    if (!turnsRef.current.busy) {
+      setSending(false);
+      setChatStatus("ready");
+      setStatusText("Ready");
     }
-    setSending(false);
-    setChatStatus("ready");
-    setStatusText("Ready");
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1717,12 +1705,13 @@ export function ChatPage() {
     if (event.shiftKey) return;
     if (inputComposing || event.nativeEvent.isComposing) return;
     event.preventDefault();
+    if (sending) return;
     event.currentTarget.form?.requestSubmit();
   };
 
   const handleSend = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (sending) {
+    if (turnsRef.current.busy) {
       await stopSending();
       return;
     }
@@ -1734,6 +1723,8 @@ export function ChatPage() {
       return;
     }
 
+    const turn = turnsRef.current.begin();
+    const controller = turn.controller;
     if (backgroundMode) {
       setInput("");
       setSending(true);
@@ -1741,12 +1732,14 @@ export function ChatPage() {
       setStatusText("Submitting...");
       try {
         const engineSessionId = await ensureEngineSession();
+        if (!turnsRef.current.isCurrent(turn)) return;
         await startPipelineBackgroundChat(selectedPipelineInfo.name, {
           question,
           sessionId: engineSessionId,
           userId,
           collectionName: selectedCollectionName || undefined,
         });
+        if (!turnsRef.current.isCurrent(turn)) return;
         setBackgroundMode(false);
         await loadBackgroundTaskData();
         await showAlertModal({
@@ -1762,6 +1755,7 @@ export function ChatPage() {
         setChatStatus("ready");
         setStatusText("Ready");
       } catch (error) {
+        if (!turnsRef.current.isCurrent(turn)) return;
         const message = error instanceof Error ? error.message : "Failed to send to background";
         await showAlertModal({
           title: t("status_error", "Error"),
@@ -1771,7 +1765,10 @@ export function ChatPage() {
         setChatStatus("error");
         setStatusText("Error");
       } finally {
-        setSending(false);
+        if (turnsRef.current.isCurrent(turn)) {
+          turnsRef.current.finish(turn);
+          setSending(false);
+        }
       }
       return;
     }
@@ -1804,12 +1801,10 @@ export function ChatPage() {
     setChatStatus("warn");
     setStatusText("Thinking...");
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
     try {
       const engineSessionId = await ensureEngineSession();
 
+      controller.signal.throwIfAborted();
       let assistantText = "";
       let assistantSources: SourceDoc[] = [];
       let assistantSteps: ThinkingStepEvent[] = [];
@@ -1854,6 +1849,7 @@ export function ChatPage() {
         collectionName: selectedCollectionName || undefined,
         signal: controller.signal,
       })) {
+        if (!turnsRef.current.isCurrent(turn)) break;
         if (streamEvent.type === "step_start" || streamEvent.type === "step_end") {
           const rawEvent = streamEvent as Record<string, unknown>;
           const stepName = String(rawEvent.name ?? "").trim();
@@ -1924,6 +1920,8 @@ export function ChatPage() {
         }
       }
 
+      controller.signal.throwIfAborted();
+      if (!turnsRef.current.isCurrent(turn)) return;
       const finalMessages = [
         ...historyBeforeAssistant,
         {
@@ -1940,9 +1938,11 @@ export function ChatPage() {
       ];
       setMessages(finalMessages);
       await persistSession(sessionId, finalMessages);
+      if (!turnsRef.current.isCurrent(turn)) return;
       setChatStatus("ready");
       setStatusText("Ready");
     } catch (error) {
+      if (!turnsRef.current.isCurrent(turn)) return;
       const message = error instanceof Error ? error.message : "Unknown error";
       setMessages((previous) => {
         const next = [...previous];
@@ -1954,8 +1954,10 @@ export function ChatPage() {
       setChatStatus("error");
       setStatusText("Error");
     } finally {
-      abortControllerRef.current = null;
-      setSending(false);
+      if (turnsRef.current.isCurrent(turn)) {
+        turnsRef.current.finish(turn);
+        setSending(false);
+      }
     }
   };
 
@@ -1980,6 +1982,8 @@ export function ChatPage() {
   };
 
   const handleLogout = async () => {
+    await stopSending();
+    historyLoadRef.current += 1;
     await logoutMutation.mutateAsync();
     setMessages([]);
     setActiveSessionId("");
@@ -2061,13 +2065,14 @@ export function ChatPage() {
     setPipelineDropdownOpen((previous) => !previous);
   };
 
-  const selectPipelineItem = (pipelineName: string) => {
+  const selectPipelineItem = async (pipelineName: string) => {
+    await stopSending();
     const pipelineChanged = pipelineName !== selectedPipeline;
     setSelectedPipeline(pipelineName);
     setPipelineDropdownOpen(false);
     if (pipelineChanged) {
       setActiveView("chat");
-      void handleNewChat();
+      await handleNewChat();
     }
   };
 
@@ -3315,6 +3320,31 @@ export function ChatPage() {
       >
       <main className="chat-layout">
         <aside
+          id="chat-navigation"
+          role={isMobileViewport && mobileSidebarOpen ? "dialog" : undefined}
+          aria-modal={isMobileViewport && mobileSidebarOpen ? true : undefined}
+          aria-label={t("chat_sidebar_toggle_title", "Navigation")}
+          inert={isMobileViewport && !mobileSidebarOpen}
+          onKeyDown={(event) => {
+            if (!isMobileViewport || !mobileSidebarOpen) return;
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setMobileSidebarOpen(false);
+            }
+            if (event.key !== "Tab") return;
+            const controls = [...event.currentTarget.querySelectorAll<HTMLElement>(
+              'button:not(:disabled), a[href], input, [tabindex="0"]',
+            )].filter((node) => !node.closest("[inert]") && node.getClientRects().length > 0);
+            const first = controls[0];
+            const last = controls.at(-1);
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
           ref={chatSidebarRef}
           className={`chat-sidebar ${mobileSidebarOpen ? "show" : ""} ${
             !isMobileViewport && sidebarCollapsed ? "collapsed" : ""
@@ -3331,14 +3361,17 @@ export function ChatPage() {
                   void handleNewChat();
                 }}
               >
-                <img src="/theme/ultrarag.svg" alt="UltraRAG" className="sidebar-logo-img" />
+                <img src="/theme/ultrarag.svg" alt="UltraRAG" className="sidebar-logo-img" width={134} height={20} />
               </button>
               <button
                 type="button"
                 id="sidebar-toggle-btn"
                 className="btn-sidebar-toggle"
                 title={t("chat_sidebar_toggle_title", "Toggle Sidebar")}
-                onClick={() => setSidebarCollapsed((previous) => !previous)}
+                onClick={() => {
+                  if (isMobileViewport) setMobileSidebarOpen(false);
+                  else setSidebarCollapsed((previous) => !previous);
+                }}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -3526,7 +3559,7 @@ export function ChatPage() {
                 </span>
               </button>
 
-              <div className="settings-dropdown" id="settings-dropdown">
+              <div className="settings-dropdown" inert={!settingsMenuOpen} id="settings-dropdown">
                 <button
                   type="button"
                   className="settings-item settings-user-entry"
@@ -3718,6 +3751,7 @@ export function ChatPage() {
         <button
           type="button"
           className="chat-mobile-backdrop"
+          aria-hidden={!isMobileViewport || !mobileSidebarOpen}
           tabIndex={isMobileViewport && mobileSidebarOpen ? 0 : -1}
           aria-label={t("common_close", "Close")}
           onClick={(event) => {
@@ -3726,14 +3760,17 @@ export function ChatPage() {
           }}
         />
 
-        <section className="chat-main" id="chat-main-view">
+        <section className="chat-main" id="chat-main-view" inert={isMobileViewport && mobileSidebarOpen}>
           {activeView === "chat" ? (
           <header className="view-header border-bottom-0 justify-content-start gap-3">
-            <div className="d-md-none">
+            <div className="chat-mobile-menu-wrapper">
               <button
                 type="button"
                 className="btn btn-icon chat-mobile-menu-btn"
                 id="chat-mobile-menu"
+                aria-label={t("chat_sidebar_toggle_title", "Toggle Sidebar")}
+                aria-expanded={mobileSidebarOpen}
+                aria-controls="chat-navigation"
                 data-mobile-sidebar-toggle="true"
                 onClick={toggleMobileSidebar}
               >
@@ -3754,7 +3791,7 @@ export function ChatPage() {
                 <span className="fw-bold fs-6" id="chat-pipeline-label">
                   {selectedPipeline || t("select_pipeline", "Select Pipeline")}
                 </span>
-                <span className="ms-1 small" style={{ color: "#8f8f8f" }}>
+                <span className="ms-1 small" style={{ color: "#6e6e6e" }}>
                   UltraRAG
                 </span>
               </button>
@@ -3819,6 +3856,7 @@ export function ChatPage() {
               </button>
               <span
                 id="chat-status"
+                role="status"
                 className={`badge rounded-pill border ${chatStatusBadgeClass}`}
               >
                 {displayStatusText}
@@ -3866,16 +3904,6 @@ export function ChatPage() {
                     message.role === "assistant" && sending && index === messages.length - 1;
                   const isThinkingExpanded =
                     expandedThinkingByMessage[messageKey] ?? isStreamingAssistant;
-                  const renderedAssistantHtml =
-                    message.role === "assistant"
-                      ? renderChatMarkdown(renderedMessageText, {
-                          enhanceBlocks: true,
-                          copyButtonLabel: t("chat_copy_button_title", "Copy"),
-                          copyCodeButtonAriaLabel: t("chat_copy_code_button_title", "Copy code"),
-                          copyTableButtonAriaLabel: t("chat_copy_table_button_title", "Copy table"),
-                          enableInteractiveControls: !isStreamingAssistant,
-                        })
-                      : "";
                   return (
                     <article
                       key={messageKey}
@@ -3952,11 +3980,15 @@ export function ChatPage() {
                         onClick={message.role === "assistant" ? handleMessageContentClick : undefined}
                       >
                         {message.role === "assistant" ? (
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: renderedAssistantHtml,
-                            }}
+                          <Suspense fallback={<div>{renderedMessageText}</div>}>
+                          <MessageMarkdown
+                            text={renderedMessageText}
+                            streaming={isStreamingAssistant}
+                            copyLabel={t("chat_copy_button_title", "Copy")}
+                            copyCodeLabel={t("chat_copy_code_button_title", "Copy code")}
+                            copyTableLabel={t("chat_copy_table_button_title", "Copy table")}
                           />
+                          </Suspense>
                         ) : (
                           <div
                             dangerouslySetInnerHTML={{
@@ -4120,6 +4152,8 @@ export function ChatPage() {
                 <form id="chat-form" className="chat-input-container shadow-sm" onSubmit={handleSend}>
                   <textarea
                     id="chat-input"
+                    ref={composerRef}
+                    aria-label={t("placeholder_chat_input", "Ask UltraRAG")}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     onKeyDown={handleComposerKeyDown}
@@ -4739,6 +4773,7 @@ export function ChatPage() {
 
         <aside
           className={`chat-detail-sidebar ${detailPanelOpen ? "show" : ""}`}
+          inert={!detailPanelOpen}
           id="source-detail-panel"
           ref={detailPanelRef}
         >
@@ -4760,8 +4795,13 @@ export function ChatPage() {
             className="detail-content"
             id="source-detail-content"
             ref={detailContentRef}
-            dangerouslySetInnerHTML={{ __html: sourceDetailHtml }}
-          />
+          >
+            {detailPanelOpen && detailSource ? (
+              <Suspense fallback={<p role="status">Loading reference…</p>}>
+                <SourceDetailContent content={detailSource.content} />
+              </Suspense>
+            ) : <p className="text-muted small text-center mt-5">Select a reference to view details</p>}
+          </div>
         </aside>
       </main>
       </section>
@@ -5924,10 +5964,11 @@ export function ChatPage() {
               {backgroundDetailTask.status === "completed" ? (
                 <div
                   className="bg-task-detail-answer"
-                  dangerouslySetInnerHTML={{
-                    __html: renderChatMarkdown(String(backgroundDetailTask.result || "")),
-                  }}
-                />
+                >
+                  <Suspense fallback={<div>{String(backgroundDetailTask.result || "")}</div>}>
+                    <SimpleMarkdown text={String(backgroundDetailTask.result || "")} />
+                  </Suspense>
+                </div>
               ) : backgroundDetailTask.status === "failed" ? (
                 <div
                   className="bg-task-detail-question"

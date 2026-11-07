@@ -1,3 +1,4 @@
+import { readStorage, writeStorage } from "@/shared/lib/storage";
 /* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
@@ -70,7 +71,7 @@ function loadScript(src: string): Promise<void> {
 }
 
 function getLocaleFromStorage(): LocaleCode {
-  const value = localStorage.getItem("ultrarag_ui_lang");
+  const value = readStorage("ultrarag_ui_lang");
   return value === "en" ? "en" : "zh";
 }
 
@@ -108,21 +109,23 @@ export function UltraI18nProvider({ children }: { children: ReactNode }) {
   const setLocale = useCallback(
     (nextLocale: LocaleCode) => {
       setLocaleInStore(nextLocale);
-      localStorage.setItem("ultrarag_ui_lang", nextLocale);
+      writeStorage("ultrarag_ui_lang", nextLocale);
     },
     [setLocaleInStore],
   );
 
-  const t = useCallback(
-    (key: string, fallback?: string) => {
-      const mergedLocale = {
-        ...FALLBACK_LOCALES[locale],
-        ...(dynamicLocales[locale] ?? {}),
-      };
-      return mergedLocale[key] ?? fallback ?? key;
-    },
+  const mergedLocale = useMemo(
+    () => ({ ...FALLBACK_LOCALES[locale], ...(dynamicLocales[locale] ?? {}) }),
     [dynamicLocales, locale],
   );
+  const t = useCallback(
+    (key: string, fallback?: string) => mergedLocale[key] ?? fallback ?? key,
+    [mergedLocale],
+  );
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
+  }, [locale]);
 
   const value = useMemo<I18nContextValue>(
     () => ({
