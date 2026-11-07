@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from ultrarag.mcp_logging import get_logger
+from ultrarag.mcp_logging import get_logger, normalize_log_level
 from ultrarag.registration import Registration, build_io_entry
 
 
@@ -54,7 +54,10 @@ class LocalServer:
             },
         )
         self.name = name
-        self.logger = get_logger(name, kwargs.get("log_level") or "warn")
+        # Server registration must not change the application-wide verbosity.
+        self.logger = get_logger(f"Server.{name}")
+        if kwargs.get("log_level") is not None:
+            self.logger.setLevel(normalize_log_level(kwargs["log_level"]))
         self.tools: dict[str, Registration] = {}
         self.prompts: dict[str, Registration] = {}
         self.lifespan = kwargs.get("lifespan")

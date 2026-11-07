@@ -18,7 +18,7 @@ from fastmcp.tools.tool_transform import ToolTransformConfig
 from mcp.server.lowlevel.server import LifespanResultT
 from mcp.types import AnyFunction, ToolAnnotations, TypeAlias
 
-from ultrarag.mcp_logging import get_logger
+from ultrarag.mcp_logging import get_logger, normalize_log_level
 from ultrarag.registration import build_io_entry, make_io_mapping
 
 NotSet = ...
@@ -103,8 +103,9 @@ class UltraRAG_MCP_Server(FastMCP):
             stateless_http: Enable stateless HTTP mode
         """
         name = name or "UltraRAG"
-        level = os.environ.get("log_level", "warn")
-        self.logger = get_logger(name, level)
+        self.logger = get_logger(f"Server.{name}")
+        if log_level is not None:
+            self.logger.setLevel(normalize_log_level(log_level))
         # FastMCP 3.x removed/renamed some __init__ parameters (e.g., resource_prefix_format)
         # Dynamically filter to keep only parameters supported by current version for compatibility
         super_kwargs = {
