@@ -18,7 +18,7 @@ ultrarag show ui --no-mcp --host 127.0.0.1 --port 5050
 
 使用 MCP 传输时，安装 `uv sync --extra mcp`，并省略 `--no-mcp`。本地模式中混用远程 MCP 条目仍需 MCP extra 和 Node.js 20 以上。两种模式共用 YAML 格式和生成的参数文件。
 
-<Note>搭建器的编辑操作和助手工作区工具需要管理员账号，请在提示时登录。CLI 没有 `--admin` 参数。本机使用时保留默认的回环地址。</Note>
+<Note>搭建器配置、Prompt 管理和助手工作区工具需要管理员账号，请在提示时登录。新建本地存储的默认管理员为 `admin`，初始密码为 `12345678`，请在共享服务前通过账号设置修改。CLI 没有 `--admin` 参数。本机使用时保留默认的回环地址。</Note>
 
 ## 新建并构建流程
 
@@ -38,7 +38,7 @@ ultrarag show ui --no-mcp --host 127.0.0.1 --port 5050
 
 ## 配置知识库
 
-进入知识库，配置向量数据库，再创建集合并上传文档。在索引前配置分块策略和嵌入模型地址。数据库部署见[准备环境](/pages/cn/ui/prepare)。
+管理员先配置共享向量数据库，其他用户使用已配置的连接。进入知识库后创建集合并上传文档。在索引前配置分块策略和嵌入模型地址。数据库部署见[准备环境](/pages/cn/ui/prepare)。
 
 默认处理配置位于 `examples/demos/parameter/`，包括 `corpus_chunk_parameter.yaml` 和索引流程参数。聊天流程应使用相同的集合及嵌入模型。
 
