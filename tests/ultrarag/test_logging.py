@@ -16,12 +16,14 @@ from ultrarag import client
 def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
     server = tmp_path / "probe"
     (server / "src").mkdir(parents=True)
-    (server / "parameter.yaml").write_text("{}", encoding="utf-8")
+    (server / "parameter.yaml").write_text(
+        "api_key: private-test-marker", encoding="utf-8"
+    )
     (server / "src" / "probe.py").write_text(
         "from ultrarag.server import UltraRAG_MCP_Server\n"
         "app = UltraRAG_MCP_Server('probe')\n"
-        "@app.tool(output='->answer')\n"
-        "def emit() -> dict:\n"
+        "@app.tool(output='api_key->answer')\n"
+        "def emit(api_key: str) -> dict:\n"
         "    app.logger.debug('SERVER_DEBUG_MARKER')\n"
         "    app.logger.info('SERVER_INFO_MARKER')\n"
         "    app.logger.warning('SERVER_WARNING_MARKER')\n"
@@ -33,21 +35,48 @@ def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
         yaml.safe_dump({"servers": {"probe": str(server)}, "pipeline": ["probe.emit"]}),
         encoding="utf-8",
     )
-    env = {**os.environ, "COLUMNS": "240", "PYTHONPATH": str(Path(client.__file__).parents[1])}
+    env = {
+        **os.environ,
+        "COLUMNS": "240",
+        "PYTHONPATH": str(Path(client.__file__).parents[1]),
+    }
     for command in ("build", "run"):
         result = subprocess.run(
-            [sys.executable, "-m", "ultrarag.client", command, str(pipeline),
-             "--no-mcp", "--log_level", level],
-            cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30, check=False,
+            [
+                sys.executable,
+                "-m",
+                "ultrarag.client",
+                command,
+                str(pipeline),
+                "--no-mcp",
+                "--log_level",
+                level,
+            ],
+            cwd=tmp_path,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         assert result.returncode == 0, result.stderr
-        info_marker = "All parameters have been saved" if command == "build" else "Pipeline execution completed"
+        assert "private-test-marker" not in result.stderr
+        info_marker = (
+            "All parameters have been saved"
+            if command == "build"
+            else "Pipeline execution completed"
+        )
         assert (info_marker in result.stderr) == (level in {"debug", "info"})
         if command == "run":
             assert ("SERVER_DEBUG_MARKER" in result.stderr) == (level == "debug")
-            assert ("SERVER_INFO_MARKER" in result.stderr) == (level in {"debug", "info"})
+            assert ("SERVER_INFO_MARKER" in result.stderr) == (
+                level in {"debug", "info"}
+            )
             assert ("SERVER_WARNING_MARKER" in result.stderr) == (level != "error")
-    log_text = "".join(p.read_text(encoding="utf-8") for p in (tmp_path / "logs").glob("*.log"))
+    log_text = "".join(
+        p.read_text(encoding="utf-8") for p in (tmp_path / "logs").glob("*.log")
+    )
+    assert "private-test-marker" not in log_text
     assert ("Pipeline execution completed" in log_text) == (level in {"debug", "info"})
 
 

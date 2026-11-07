@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import inspect
 import logging
-import os
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from types import EllipsisType
-from typing import Any, Callable, List, Literal, Optional, Union
+from typing import Any, Literal
 
-import yaml
 from fastmcp import FastMCP
 from fastmcp.prompts import Prompt
 from fastmcp.server.auth.auth import OAuthProvider
@@ -18,6 +17,7 @@ from fastmcp.tools.tool_transform import ToolTransformConfig
 from mcp.server.lowlevel.server import LifespanResultT
 from mcp.types import AnyFunction, ToolAnnotations, TypeAlias
 
+from ultrarag.configuration import Configuration
 from ultrarag.mcp_logging import get_logger, normalize_log_level
 from ultrarag.registration import build_io_entry, make_io_mapping
 
@@ -37,39 +37,37 @@ class UltraRAG_MCP_Server(FastMCP):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        instructions: Optional[str] = None,
+        name: str | None = None,
+        instructions: str | None = None,
         *,
-        version: Optional[str] = None,
-        auth: Optional[OAuthProvider] = None,
-        middleware: Optional[List[Middleware]] = None,
-        lifespan: Optional[
-            Callable[
-                [FastMCP[LifespanResultT]],
-                AbstractAsyncContextManager[LifespanResultT],
-            ]
-        ] = None,
-        tool_serializer: Optional[Callable[[Any], str]] = None,
-        on_duplicate_tools: Optional[DuplicateBehavior] = None,
-        on_duplicate_resources: Optional[DuplicateBehavior] = None,
-        on_duplicate_prompts: Optional[DuplicateBehavior] = None,
-        resource_prefix_format: Optional[Literal["protocol", "path"]] = None,
-        tool_transformations: Optional[dict[str, ToolTransformConfig]] = None,
-        mask_error_details: Optional[bool] = None,
-        tools: Optional[List[Union[Tool, Callable[..., Any]]]] = None,
-        dependencies: Optional[List[str]] = None,
-        include_tags: Optional[set[str]] = None,
-        exclude_tags: Optional[set[str]] = None,
-        include_fastmcp_meta: Optional[bool] = None,
-        log_level: Optional[str] = None,
-        debug: Optional[bool] = None,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        sse_path: Optional[str] = None,
-        message_path: Optional[str] = None,
-        streamable_http_path: Optional[str] = None,
-        json_response: Optional[bool] = None,
-        stateless_http: Optional[bool] = None,
+        version: str | None = None,
+        auth: OAuthProvider | None = None,
+        middleware: list[Middleware] | None = None,
+        lifespan: Callable[
+            [FastMCP[LifespanResultT]], AbstractAsyncContextManager[LifespanResultT]
+        ]
+        | None = None,
+        tool_serializer: Callable[[Any], str] | None = None,
+        on_duplicate_tools: DuplicateBehavior | None = None,
+        on_duplicate_resources: DuplicateBehavior | None = None,
+        on_duplicate_prompts: DuplicateBehavior | None = None,
+        resource_prefix_format: Literal["protocol", "path"] | None = None,
+        tool_transformations: dict[str, ToolTransformConfig] | None = None,
+        mask_error_details: bool | None = None,
+        tools: list[Tool | Callable[..., Any]] | None = None,
+        dependencies: list[str] | None = None,
+        include_tags: set[str] | None = None,
+        exclude_tags: set[str] | None = None,
+        include_fastmcp_meta: bool | None = None,
+        log_level: str | None = None,
+        debug: bool | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        sse_path: str | None = None,
+        message_path: str | None = None,
+        streamable_http_path: str | None = None,
+        json_response: bool | None = None,
+        stateless_http: bool | None = None,
     ) -> None:
         """Initialize UltraRAG MCP server.
 
@@ -167,11 +165,10 @@ class UltraRAG_MCP_Server(FastMCP):
         Returns:
             Dictionary containing configuration (empty dict if file is empty)
         """
-        with open(file_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
+        return Configuration.load_config(file_path)
 
     @staticmethod
-    def _extract_param_names(fn: Callable[..., Any]) -> List[str]:
+    def _extract_param_names(fn: Callable[..., Any]) -> list[str]:
         """Extract positional and keyword parameter names from function signature."""
         sig = inspect.signature(fn)
         return [
@@ -203,7 +200,7 @@ class UltraRAG_MCP_Server(FastMCP):
             "output": output,
         }
 
-    def _record_prompt_meta(self, prompt: Prompt, output: Optional[str] = None) -> None:
+    def _record_prompt_meta(self, prompt: Prompt, output: str | None = None) -> None:
         """Record prompt metadata for server.yaml generation."""
         fn = getattr(prompt, "fn", None)
         if not callable(fn):
@@ -243,19 +240,19 @@ class UltraRAG_MCP_Server(FastMCP):
 
     def tool(
         self,
-        name_or_fn: Optional[Union[str, AnyFunction]] = None,
+        name_or_fn: str | AnyFunction | None = None,
         *,
-        output: Optional[str] = None,
-        name: Optional[str] = None,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        icons: Optional[List] = None,
-        tags: Optional[set[str]] = None,
-        output_schema: Union[dict[str, Any], None, NotSetT] = NotSet,
-        annotations: Optional[Union[ToolAnnotations, dict[str, Any]]] = None,
-        exclude_args: Optional[List[str]] = None,
-        meta: Optional[dict[str, Any]] = None,
-        enabled: Optional[bool] = None,
+        output: str | None = None,
+        name: str | None = None,
+        title: str | None = None,
+        description: str | None = None,
+        icons: list | None = None,
+        tags: set[str] | None = None,
+        output_schema: dict[str, Any] | None | NotSetT = NotSet,
+        annotations: ToolAnnotations | dict[str, Any] | None = None,
+        exclude_args: list[str] | None = None,
+        meta: dict[str, Any] | None = None,
+        enabled: bool | None = None,
         **extra_kwargs: Any,
     ) -> Any:
         """Register a tool with UltraRAG-specific output annotation support.
@@ -350,13 +347,13 @@ class UltraRAG_MCP_Server(FastMCP):
 
     def prompt(
         self,
-        name_or_fn: Optional[Union[str, AnyFunction]] = None,
+        name_or_fn: str | AnyFunction | None = None,
         *,
-        output: Optional[str] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        tags: Optional[set[str]] = None,
-        enabled: Optional[bool] = None,
+        output: str | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        tags: set[str] | None = None,
+        enabled: bool | None = None,
         **extra_kwargs: Any,
     ) -> Any:
         """Register a prompt with UltraRAG-specific output annotation support.
@@ -377,7 +374,7 @@ class UltraRAG_MCP_Server(FastMCP):
             TypeError: If invalid argument combination is provided
         """
         if isinstance(name_or_fn, classmethod):
-            raise ValueError(
+            raise ValueError(  # noqa: TRY004 - preserve FastMCP decorator compatibility
                 inspect.cleandoc(
                     """
                     To decorate a classmethod, first define the method and then call
@@ -417,7 +414,7 @@ class UltraRAG_MCP_Server(FastMCP):
         if output is None:
             return result
 
-        declared_name: Optional[str] = None
+        declared_name: str | None = None
         if isinstance(name_or_fn, str):
             declared_name = name_or_fn
         elif isinstance(filtered_kwargs.get("name"), str):
@@ -489,7 +486,7 @@ class UltraRAG_MCP_Server(FastMCP):
         return tool
 
     def _make_io_mapping(
-        self, params: List[str], io_spec: Optional[str], param_cfg: dict[str, Any]
+        self, params: list[str], io_spec: str | None, param_cfg: dict[str, Any]
     ) -> dict[str, str]:
         """Create input/output mapping from parameter specification.
 
@@ -553,13 +550,11 @@ class UltraRAG_MCP_Server(FastMCP):
         if not Path(build_yaml["path"]).exists():
             raise FileNotFoundError(f"Server code not found: {build_yaml['path']}")
 
-        yaml.safe_dump(
-            build_yaml, out_path.open("w"), allow_unicode=True, sort_keys=False
-        )
+        Configuration.save_config(out_path, build_yaml)
 
     def run(
         self,
-        transport: Optional[Transport] = None,
+        transport: Transport | None = None,
         show_banner: bool = False,
         **transport_kwargs: Any,
     ) -> None:

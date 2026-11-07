@@ -110,6 +110,7 @@ class LocalExecutionClient:
         }
         self.remote = create_mcp_client(remote_cfg) if remote_names else None
         self._entered = False
+        self._entry_depth = 0
         self._lifespans = AsyncExitStack()
 
     def _load(self, name: str, path: str) -> Any:
@@ -173,6 +174,9 @@ class LocalExecutionClient:
         return app
 
     async def __aenter__(self) -> Self:
+        if self._entered:
+            self._entry_depth += 1
+            return self
         try:
             for name, cfg in self.server_cfg.items():
                 if name not in self.remote_names:
@@ -184,9 +188,10 @@ class LocalExecutionClient:
             if self.remote is not None:
                 await self.remote.__aenter__()
             self._entered = True
+            self._entry_depth = 1
             return self
-        except BaseException:
-            await self.__aexit__(None, None, None)
+        except BaseException as exc:
+            await self.__aexit__(type(exc), exc, exc.__traceback__)
             raise
 
     async def __aexit__(
@@ -195,6 +200,9 @@ class LocalExecutionClient:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
+        if self._entry_depth > 1:
+            self._entry_depth -= 1
+            return
         try:
             if self.remote is not None and self._entered:
                 await self.remote.__aexit__(exc_type, exc, tb)
@@ -224,6 +232,7 @@ class LocalExecutionClient:
                     _path_users[source_dir] = (count - 1, added)
         self._source_paths.clear()
         self._entered = False
+        self._entry_depth = 0
 
     def _split(self, full_name: str) -> tuple[str, str]:
         names = list(self.server_cfg)

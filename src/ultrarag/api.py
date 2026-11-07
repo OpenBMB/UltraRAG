@@ -2,21 +2,20 @@ import asyncio
 import os
 import sys
 from types import SimpleNamespace
-from typing import Any, List, Optional
-
-import yaml
+from typing import Any
 
 from . import client as _client_mod
+from .configuration import Configuration
 from .mcp_logging import get_logger
 
-_client: Optional[Any] = None
+_client: Any | None = None
 _client_entered = False
-_client_lock: Optional[asyncio.Lock] = None
-_pending_shutdown: Optional[asyncio.Task] = None
+_client_lock: asyncio.Lock | None = None
+_pending_shutdown: asyncio.Task | None = None
 _active_calls: set[asyncio.Task] = set()
 _shutting_down = False
 _shutdown_task: asyncio.Task | None = None
-_servers: Optional[List[str]] = None
+_servers: list[str] | None = None
 SERVER_ROOT = ""
 logger = None
 
@@ -40,7 +39,7 @@ async def _close_client(client: Any) -> None:
             if tool.name.endswith("vllm_shutdown"):
                 try:
                     await client.call_tool(tool.name, {})
-                except Exception as exc:
+                except Exception as exc:  # noqa: BLE001 - close all resources even if one cleanup fails
                     logger.warning("Cleanup tool %s failed: %s", tool.name, exc)
     finally:
         await client.__aexit__(None, None, None)
@@ -89,7 +88,7 @@ class _CallWrapper:
         self._multi = multi
 
     async def _ensure_client(self):
-        global _client, _client_entered, logger, _pending_shutdown
+        global _client_entered, _pending_shutdown
         if _client is None:
             raise RuntimeError(
                 "[UltraRAG Error] ToolCall was used before `initialize()` was called."
@@ -123,30 +122,25 @@ class _CallWrapper:
             _active_calls.discard(task)
 
     async def _invoke_call(self, *args, **kwargs):
-        global _client, SERVER_ROOT
         await self._ensure_client()
         if self._server not in (_servers or []):
             raise AttributeError(f"Server {self._server} has not been initialized!")
         concated = f"{self._server}_{self._tool}" if len(_servers) > 1 else self._tool
         param_file = os.path.join(SERVER_ROOT, self._server, "parameter.yaml")
-        if os.path.exists(param_file):
-            with open(param_file, "r", encoding="utf-8") as f:
-                parameter = yaml.safe_load(f) or {}
-        else:
-            parameter = {}
-
-        with open(
+        parameter = await asyncio.to_thread(
+            Configuration.load_parameter_config, param_file
+        )
+        metadata = await asyncio.to_thread(
+            Configuration.load_config,
             os.path.join(SERVER_ROOT, self._server, "server.yaml"),
-            "r",
-            encoding="utf-8",
-        ) as f:
-            try:
-                input_param = yaml.safe_load(f)["tools"][self._tool]["input"]
-                input_keys = list(input_param.keys())
-            except (KeyError, TypeError) as e:
-                raise ValueError(
-                    f"[UltraRAG Error] Tool {self._tool} not found in server {self._server} configuration!"
-                ) from e
+        )
+        try:
+            input_param = metadata["tools"][self._tool]["input"]
+            input_keys = list(input_param.keys())
+        except (KeyError, TypeError) as e:
+            raise ValueError(
+                f"[UltraRAG Error] Tool {self._tool} not found in server {self._server} configuration!"
+            ) from e
 
         for k, v in list(input_param.items()):
             if isinstance(v, str) and v.startswith("$"):
@@ -252,14 +246,13 @@ class _Router(SimpleNamespace):
         Raises:
             AttributeError: If server has not been initialized
         """
-        global _client, _servers
         if _servers is None or server not in _servers:
             raise AttributeError(f"Server {server} has not been initialized!")
         return _ServerProxy(_client, server, len(_servers) > 1)
 
 
 def initialize(
-    servers: List[str], server_root: str, log_level: str = "info", no_mcp: bool = False
+    servers: list[str], server_root: str, log_level: str = "info", no_mcp: bool = False
 ) -> None:
     """Initialize servers so they can be accessed via ToolCall.
 
