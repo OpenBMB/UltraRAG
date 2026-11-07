@@ -6,10 +6,12 @@ import sys
 import threading
 from concurrent.futures import (
     CancelledError as FutureCancelledError,
+)
+from concurrent.futures import (
     ThreadPoolExecutor,
 )
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -55,9 +57,41 @@ def test_interrupt_waits_for_pipeline_cleanup(session, monkeypatch):
             assert closed.is_set(), (
                 "Stop returned before the previous tool finished cleanup"
             )
+
+            async def next_turn(*args, **kwargs):
+                return "recovered"
+
+            monkeypatch.setattr(
+                pm, "_ensure_client_funcs", lambda: {"exec_pipe": next_turn}
+            )
+            assert session.run_chat(None) == "recovered"
         finally:
             session.stop()
         assert isinstance(result.result(timeout=3), FutureCancelledError)
+
+
+def test_concurrent_interrupts_do_not_cancel_cleanup_twice(session, monkeypatch):
+    started, closed = threading.Event(), threading.Event()
+
+    async def execute(*args, **kwargs):
+        started.set()
+        try:
+            await asyncio.sleep(30)
+        finally:
+            await asyncio.sleep(0.1)
+            closed.set()
+
+    monkeypatch.setattr(pm, "_ensure_client_funcs", lambda: {"exec_pipe": execute})
+    with ThreadPoolExecutor(3) as pool:
+        request = pool.submit(outcome, lambda: session.run_chat(None))
+        assert started.wait(2)
+        stops = [pool.submit(session.interrupt_task) for _ in range(2)]
+        try:
+            assert all(stop.result(timeout=3) for stop in stops)
+            assert closed.is_set()
+            assert isinstance(request.result(timeout=3), FutureCancelledError)
+        finally:
+            session.stop()
 
 
 def test_concurrent_session_starts_enter_one_client(session, monkeypatch):
