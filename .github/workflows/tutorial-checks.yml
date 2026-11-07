@@ -1,0 +1,25 @@
+name: Tutorial checks
+
+on:
+  pull_request:
+    branches: [page/tutorial]
+  push:
+    branches: [page/tutorial]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Validate bilingual documentation
+        run: npx --yes mint@4.3.5 validate
+      - name: Check internal links
+        run: npx --yes mint@4.3.5 broken-links
