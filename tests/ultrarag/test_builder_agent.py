@@ -298,3 +298,15 @@ def test_reasoning_model_budget_keeps_the_stream_protocol_compatible():
         )
     )
     assert events[-1]["type"] == "final"
+
+
+def test_branch_proposals_require_an_executable_router(workspace):
+    proposal = yaml.safe_dump(
+        {
+            "servers": {"hello": "servers/sayhello"},
+            "pipeline": [{"branch": {"router": [], "branches": {"done": []}}}],
+        }
+    )
+    report = workspace.call("propose_pipeline", {"yaml": proposal})
+    assert report["staged"] is False
+    assert any("nonempty router" in error for error in report["errors"])

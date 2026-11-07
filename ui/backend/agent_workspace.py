@@ -238,11 +238,15 @@ class ToolWorkspace:
                         continue
                     if isinstance(step, dict) and set(step) == {"branch"}:
                         block = step["branch"]
-                        if not isinstance(block, dict) or not isinstance(
-                            block.get("branches"), dict
+                        if (
+                            not isinstance(block, dict)
+                            or not isinstance(block.get("branches"), dict)
+                            or not block["branches"]
+                            or not isinstance(block.get("router"), list)
+                            or not block["router"]
                         ):
                             errors.append(
-                                f"{here}: branch requires router and named branches"
+                                f"{here}: branch requires a nonempty router and named branches"
                             )
                         else:
                             steps(block.get("router"), here + ".router")
