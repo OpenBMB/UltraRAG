@@ -5101,7 +5101,7 @@ export function ChatPage() {
               >
                 {t("kb_delete_all", "Delete All")}
               </button>
-              <button type="button" className="btn-close" onClick={closeKbImportModal} />
+              <button type="button" className="btn-close" aria-label={t("common_close", "Close")} onClick={closeKbImportModal} />
             </div>
           </div>
 
