@@ -18,7 +18,7 @@ and [OpenAI](https://platform.openai.com/docs/quickstart).
 
 The following example shows how to use the Generation Server to execute a basic text generation task. The process calls the LLM to generate an answer after constructing the input prompt through the Prompt Server, and finally completes result extraction and evaluation.
 
-```yaml examples/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+```yaml examples/experiments/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -40,11 +40,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/vanilla_llm.yaml
+ultrarag build examples/experiments/vanilla_llm.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -102,7 +102,7 @@ prompt:
 
 Run Pipeline:
 ```shell
-ultrarag run examples/vanilla_llm.yaml
+ultrarag run examples/experiments/vanilla_llm.yaml
 ```
 
 ### Multi-modal Inference
@@ -118,7 +118,7 @@ First, prepare an example dataset (including image paths):
 Before performing multi-modal generation, you need to add a new field `multimodal_path` in the `get_data` function of the Benchmark Server to specify the image input path.
 <Note>Please refer to [Add Dataset Loading Fields](/pages/en/rag_servers/benchmark) for how to add new fields.</Note>
 
-```yaml examples/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+```yaml examples/experiments/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -140,11 +140,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/vanilla_vlm.yaml
+ultrarag build examples/experiments/vanilla_vlm.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/vanilla_vlm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_vlm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -207,7 +207,7 @@ prompt:
 
 Run:
 ```shell
-ultrarag run examples/vanilla_vlm.yaml
+ultrarag run examples/experiments/vanilla_vlm.yaml
 ```
 
 <Tip>Note: You can set `image_tag` such as `<IMG>` to specify the position where you wish the image input to be. If empty, it defaults to the leftmost input.</Tip>
@@ -262,7 +262,7 @@ screen -r llm
 **Step 2: Modify Pipeline Parameters**
 
 Modify parameters:
-```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:

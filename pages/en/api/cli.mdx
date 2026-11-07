@@ -3,74 +3,36 @@ title: "CLI"
 icon: "command"
 ---
 
-## help — Command Overview
+Run from the repository root with the virtual environment activated. Use `ultrarag <command> --help` to check the installed version.
+
+## Build
 
 ```bash
-ultrarag --help
+ultrarag build examples/experiments/sayhello.yaml --no-mcp --log_level info
 ```
 
-```text
-usage: ultrarag [-h] {build,run,show} ...
+Generates `parameter/<name>_parameter.yaml` and `server/<name>_server.yaml` beside the pipeline. Rebuild after changing registrations or pipeline steps.
 
-UltraRAG CLI
-
-positional arguments:
-  {build,run,show}
-    build           Build the configuration
-    run             Run the pipeline with the given configuration
-    show            Show ui interfaces
-
-options:
-  -h, --help        show this help message and exit
-```
-
----
-
-## build — Build Configuration
-
-**Purpose**: Automatically generate a unified parameter configuration file based on `pipeline.yaml`.
+## Run
 
 ```bash
-ultrarag build <CONFIG> [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag run examples/experiments/sayhello.yaml --no-mcp --log_level info
+# Optional overrides:
+# --param <parameter.yaml> --is_demo
 ```
 
-| Parameter | Description |
-|---|---|
-| `<CONFIG>` | Pipeline configuration file path, e.g., `examples/pipeline.yaml` |
-| `--log_level` | Log level, default `INFO` |
+`--no-mcp` calls local registrations in process. The default transport uses MCP and requires `uv sync --extra mcp`. Remote MCP entries require the MCP extra and Node.js 20 or newer even in local mode. Log levels are `debug`, `info`, `warn` and `error`.
 
----
-
-## run — Execute Pipeline
-
-**Purpose**: Start Pipeline execution.
+## UI
 
 ```bash
-ultrarag run <CONFIG> [--param <PARAM_FILE>] [--is_demo] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag show ui --host 127.0.0.1 --port 5050 --no-mcp
 ```
 
-| Parameter | Description |
-|---|---|
-| `<CONFIG>` | Path to `pipeline.yaml` to be executed |
-| `--param <PARAM_FILE>` | Custom parameter file path, overrides default files under `parameter/` |
-| `--is_demo` | Enable demo mode |
-| `--log_level` | Log level, default `INFO` |
+Open `http://127.0.0.1:5050`. Builder edits and assistant tools require an administrator account. The UI subcommand has no `--admin` or `--log_level` argument; configure the `log_level` environment variable before launch. See [UI Quick Start](/pages/en/ui/start).
 
----
-
-## show ui — Start Web Control Interface
-
-**Purpose**: Start UI interface.
+## Case study
 
 ```bash
-ultrarag show ui [--host 127.0.0.1] [--port 5050] [--admin] [--log_level DEBUG|INFO|WARN|ERROR]
+ultrarag show case --config_path output/memory_<run>.json --host 127.0.0.1 --port 8080
 ```
-
-| Parameter | Description |
-|---|---|
-| `--host` | Web service binding IP (default `127.0.0.1`) |
-| `--port` | Web service port (default `5050`) |
-| `--admin` | Start full administrator UI (including Pipeline Builder), default starts Chat mode only |
-| `--log_level` | Log level, default `INFO` |
-
-Access `http://<host>:<port>` after startup to use the UI.

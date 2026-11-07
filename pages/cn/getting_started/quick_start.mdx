@@ -21,7 +21,7 @@ icon: "rocket-launch"
 
 在`examples`文件夹中创建并编写你的 Pipeline 配置文件，例如：
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg"
 # Vanilla RAG with Corpus Indexing Demo
 
 # MCP Server
@@ -58,16 +58,16 @@ UltraRAG 的 Pipeline 配置文件需要包含以下两个部分：
 系统会读取各个 Server 的 parameter.yaml 文件，解析本次流程中涉及的全部参数项，并统一汇总生成到一个独立的配置文件中。执行以下命令：
 
 ```shell
-ultrarag build examples/rag_full.yaml
+ultrarag build examples/experiments/rag_full.yaml
 ```
 
 执行后，终端将输出如下内容：
 
 ![](/images/getting_started/rag_build.png)
 
-系统会在`examples/parameters/`文件夹下生成对应的参数配置文件。打开文件后，可根据实际情况修改相关参数，例如：
+系统会在`examples/experiments/parameter/`文件夹下生成对应的参数配置文件。打开文件后，可根据实际情况修改相关参数，例如：
 
-```yaml examples/parameters/rag_full_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/rag_full_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -194,7 +194,7 @@ retriever:
 当参数配置完成后，即可一键运行完整流程。执行以下命令：
 
 ```shell
-ultrarag run examples/rag_full.yaml
+ultrarag run examples/experiments/rag_full.yaml
 ```
 
 系统将依次执行配置文件中定义的各个 Server 与 Tool，并在终端中实时输出运行日志与进度信息：

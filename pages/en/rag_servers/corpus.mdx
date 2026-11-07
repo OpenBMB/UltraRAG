@@ -36,7 +36,7 @@ Image Modality:
 
 The Corpus Server supports multiple text parsing formats, including `.pdf, .txt, .md, .docx, .xps, .oxps, .epub, .mobi, .fb2`, etc.
 
-```yaml examples/build_text_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_text_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -49,12 +49,12 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/build_text_corpus.yaml
+ultrarag build examples/experiments/build_text_corpus.yaml
 ```
 
 Modify corresponding fields according to the actual situation:
 
-```yaml examples/parameters/build_text_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_text_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   parse_file_path: data/UltraRAG.pdf
   text_corpus_save_path: corpora/text.jsonl
@@ -65,7 +65,7 @@ Where `parse_file_path` can be a single file or a folder path — when specified
 Run Pipeline:
 
 ```shell
-ultrarag run examples/build_text_corpus.yaml
+ultrarag run examples/experiments/build_text_corpus.yaml
 ```
 
 After successful execution, the system will automatically parse the text and output a standardized corpus file, for example:
@@ -78,7 +78,7 @@ After successful execution, the system will automatically parse the text and out
 In multi-modal RAG scenarios, [one approach](https://arxiv.org/abs/2410.10594) is to directly convert document pages into images and perform retrieval and generation in the form of complete images.
 The advantage of this method is that it can preserve the document's layout, format, and visual structure, making retrieval and understanding closer to real reading scenarios.
 
-```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -91,12 +91,12 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/build_image_corpus.yaml
+ultrarag build examples/experiments/build_image_corpus.yaml
 ```
 
 Modify corresponding fields according to the actual situation:
 
-```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl
   parse_file_path: data/UltraRAG.pdf
@@ -106,7 +106,7 @@ Similarly, the `parse_file_path` parameter can be specified as either a single f
 Run Pipeline:
 
 ```shell
-ultrarag run examples/build_image_corpus.yaml
+ultrarag run examples/experiments/build_image_corpus.yaml
 ```
 
 After successful execution, the system will save the generated image corpus file. Each record contains the image identifier and relative path. The generated .jsonl file can be directly used as input for multi-modal retrieval or generation tasks. Output example:
@@ -122,7 +122,7 @@ After successful execution, the system will save the generated image corpus file
 [MinerU](https://github.com/opendatalab/MinerU) is an industry-acclaimed PDF parsing framework that supports high-precision text and layout structure extraction.
 UltraRAG seamlessly integrates MinerU as a built-in tool, which can be called directly in the Pipeline to achieve one-stop PDF → Text + Image corpus construction.
 
-```yaml examples/build_mineru_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_mineru_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -136,12 +136,12 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/build_mineru_corpus.yaml
+ultrarag build examples/experiments/build_mineru_corpus.yaml
 ```
 
 Modify corresponding fields according to the actual situation:
 
-```yaml examples/parameters/build_mineru_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_mineru_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl    # Image corpus save path
   mineru_dir: corpora/                           # MinerU parsing result save directory
@@ -156,7 +156,7 @@ Similarly, the `parse_file_path` parameter can be either a single file or a fold
 Run Pipeline (downloading MinerU model is required for the first execution, which may be slow):
 
 ```shell
-ultrarag run examples/build_mineru_corpus.yaml
+ultrarag run examples/experiments/build_mineru_corpus.yaml
 ```
 
 After successful execution, the system will automatically output the corresponding Text Corpus and Image Corpus files, the formats of which are consistent with `build_text_corpus` and `build_image_corpus`, and can be directly used for multi-modal retrieval and generation tasks.
@@ -169,7 +169,7 @@ UltraRAG integrates the [chonkie](https://docs.chonkie.ai/common/welcome) docume
 - `Sentence Chunker`: Splits by sentence boundaries, ensuring semantic integrity.
 - `Recursive Chunker`: Suitable for well-structured long documents (such as books, papers), capable of automatically dividing content by hierarchy.
 
-```yaml examples/corpus_chunk.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_chunk.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -182,12 +182,12 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/corpus_chunk.yaml
+ultrarag build examples/experiments/corpus_chunk.yaml
 ```
 
 Modify corresponding fields according to the actual situation:
 
-```yaml examples/parameters/corpus_chunk_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_chunk_parameter.yaml icon="/images/yaml.svg"
 corpus:
   chunk_backend: token    # Chunking strategy, optional token / sentence / recursive
   chunk_backend_configs:
@@ -209,7 +209,7 @@ corpus:
 Run Pipeline:
 
 ```shell
-ultrarag run examples/corpus_chunk.yaml
+ultrarag run examples/experiments/corpus_chunk.yaml
 ```
 
 After execution, the system will output standardized chunked corpus files, which can be directly used for subsequent retrieval and generation modules.

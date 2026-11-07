@@ -49,7 +49,7 @@ def qa_rag_boxed(
 
 Before calling the model generation tool, you need to construct the input prompt through the corresponding Prompt Tool.
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever
@@ -76,7 +76,7 @@ pipeline:
 In some complex Pipelines, the model often needs to perform different tasks at different stages — for example, first generating sub-questions, and then generating the final answer based on new retrieval results.
 In this case, multiple Prompt Tools need to be configured in the same Pipeline, each responsible for different prompt construction logic.
 
-```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
+```yaml examples/experiments/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
 # MCP Server
 servers:
   benchmark: servers/benchmark

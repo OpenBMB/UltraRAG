@@ -13,7 +13,7 @@ Reranker Server 是 UltraRAG 中用于 对检索结果进行精排的模块。
 
 ## 使用示例
 
-```yaml examples/corpus_rerank.yaml icon="/images/yaml.svg" highlight="5,14,15"
+```yaml examples/experiments/corpus_rerank.yaml icon="/images/yaml.svg" highlight="5,14,15"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -34,11 +34,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/corpus_rerank.yaml
+ultrarag build examples/experiments/corpus_rerank.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -134,5 +134,5 @@ retriever:
 
 运行 Pipeline：
 ```shell
-ultrarag run examples/corpus_rerank.yaml
+ultrarag run examples/experiments/corpus_rerank.yaml
 ```

@@ -22,7 +22,7 @@ AgentCPM-Report Pipeline 采用基于状态机（State Machine）的动态循环
 
 ![](/images/demo/deep_arch.png)
 
-```yaml examples/AgentCPM-Report.yaml icon="/images/yaml.svg"
+```yaml examples/demos/AgentCPM-Report.yaml icon="/images/yaml.svg"
 # AgentCPM-Report Demo for UltraRAG UI
 
 # MCP Server
@@ -118,16 +118,16 @@ pipeline:
 执行以下命令编译该工作流：
 
 ```shell
-ultrarag build examples/AgentCPM-Report.yaml
+ultrarag build examples/demos/AgentCPM-Report.yaml
 ```
 
 ## 3. 配置运行参数
 
-修改 `examples/parameter/AgentCPM-Report_parameter.yaml`。
+修改 `examples/demos/parameter/AgentCPM-Report_parameter.yaml`。
 
 <Note>想要调整调研深度？ 请在 `custom` 配置中按需调整：增加 `surveycpm_max_step` 以延长研究时间，提高 `surveycpm_max_extend_step` 以获得更详实的扩写内容。若对质量有极高要求，请务必开启 `surveycpm_hard_mode`（硬核模式）。</Note>
 
-```yaml examples/parameter/AgentCPM-Report_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/demos/parameter/AgentCPM-Report_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:

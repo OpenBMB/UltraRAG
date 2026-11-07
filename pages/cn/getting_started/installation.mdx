@@ -75,6 +75,17 @@ uv pip install -e ".[retriever]"
 ```
 
 
+## 执行模式与冒烟测试
+
+使用 Python 3.11 或 3.12。`uv sync` 安装核心依赖，不包含 MCP 传输包。激活环境后可先运行无需外部模型的本地测试：
+
+```bash
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
+```
+
+使用默认 MCP 传输时安装 `uv sync --extra mcp` 并省略 `--no-mcp`。远程 MCP 条目需要 Node.js 20 以上，在本地模式混用远程条目时也一样。检索、生成等服务器还需对应的模块 extra。
+
 ## Docker 容器部署
 
 如果您不想配置本地 Python 环境，可以使用 Docker 一键启动。
@@ -112,7 +123,7 @@ docker run -it --gpus all -p 5050:5050 <docker_image_name>
 安装完成后，运行以下示例命令来检查环境是否正常：
 
 ```shell
-ultrarag run examples/sayhello.yaml
+ultrarag run examples/experiments/sayhello.yaml
 ```
 
 看到以下输出即代表安装成功：

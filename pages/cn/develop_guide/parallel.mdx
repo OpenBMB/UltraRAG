@@ -10,14 +10,14 @@ icon: "chart-waterfall"
 与常规运行流程一致，首先编译 Pipeline：
 
 ```shell
-ultrarag build examples/rag_full.yaml
+ultrarag build examples/experiments/rag_full.yaml
 ```
 步骤二：运行
 
 在生成的参数文件中修改相应字段后，直接运行以下命令即可执行：
 
 ```shell
-ultrarag run examples/rag_full.yaml
+ultrarag run examples/experiments/rag_full.yaml
 ```
 
 步骤三：创建新的参数文件
@@ -26,7 +26,7 @@ ultrarag run examples/rag_full.yaml
 
 随后运行命令时，通过 `--param` 参数指定使用该配置文件：
 ```shell
-ultrarag run examples/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
+ultrarag run examples/experiments/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
 ```
 
 这样，系统将使用新的参数文件执行相同的 Pipeline，从而轻松实现多组实验的并行与批量对比。

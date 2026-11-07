@@ -14,7 +14,7 @@ It natively supports multiple backend interfaces such as [Sentence-Transformers]
 
 The following example shows how to use the Retriever Server to perform encoding and index construction on a corpus.
 
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -29,7 +29,7 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 Modify the parameter file according to the actual situation. Two typical scenarios are shown below: Text Corpus Encoding and Image Corpus Encoding.
@@ -37,7 +37,7 @@ Modify the parameter file according to the actual situation. Two typical scenari
 1. **Text Corpus Encoding**
 
 Example: Using `Qwen3-Embedding-0.6B` to vectorize text corpus.
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
 retriever:
   backend: sentence_transformers # We take st as an example here
   backend_configs:
@@ -99,7 +99,7 @@ retriever:
 2. **Image Corpus Encoding**
 
 Example: Using `jinaai/jina-embeddings-v4` to vectorize image corpus.
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -168,20 +168,20 @@ retriever:
 Run the following command to execute this Pipeline:
 
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 The encoding and indexing phase usually involves large-scale corpus processing and takes a long time. It is recommended to use `screen` or `nohup` to mount the task to run in the background, for example:
 
 ```shell
-nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
+nohup ultrarag run examples/experiments/corpus_index.yaml > log.txt 2>&1 &
 ```
 
 ### Vector Retrieval
 
 The following example shows how to use the Retriever Server to perform vector retrieval tasks on the constructed index.
 
-```yaml examples/corpus_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -198,11 +198,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/corpus_search.yaml
+ultrarag build examples/experiments/corpus_search.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -274,7 +274,7 @@ retriever:
 Run Pipeline:
 
 ```shell
-ultrarag run examples/corpus_search.yaml
+ultrarag run examples/experiments/corpus_search.yaml
 ```
 
 ### BM25 Retrieval
@@ -285,7 +285,7 @@ In addition to vector retrieval, UltraRAG also has a built-in classic BM25 text 
 
 Before using BM25 for retrieval, you need to tokenize the document and build a sparse index.
 
-```yaml examples/bm25_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/bm25_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -299,11 +299,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/bm25_index.yaml
+ultrarag build examples/experiments/bm25_index.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/bm25_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/bm25_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers # [!code --]
   backend: bm25 # [!code ++]
@@ -362,14 +362,14 @@ retriever:
 ```
 Run:
 ```shell
-ultrarag run examples/bm25_index.yaml
+ultrarag run examples/experiments/bm25_index.yaml
 ```
 
 **Step 2: Execute BM25 Retrieval**
 
 After the index construction is completed, document retrieval based on BM25 can be performed.
 
-```yaml examples/bm25_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/bm25_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -385,11 +385,11 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/bm25_search.yaml
+ultrarag build examples/experiments/bm25_search.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/bm25_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/bm25_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -459,7 +459,7 @@ retriever:
 
 Run retrieval process:
 ```shell
-ultrarag run examples/bm25_search.yaml
+ultrarag run examples/experiments/bm25_search.yaml
 ```
 
 ### Hybrid Retrieval
@@ -472,7 +472,7 @@ The following example demonstrates how to run BM25 and vector retrieval simultan
 
 <Note>You can refer to this example to flexibly extend retrieval methods into any combination, such as combining local knowledge bases with online Web retrieval, or fusing multi-modal retrieval results such as text and images, to build a more powerful hybrid retrieval Pipeline.</Note>
 
-```yaml examples/hybrid_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/hybrid_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -502,11 +502,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/hybrid_search.yaml
+ultrarag build examples/experiments/hybrid_search.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/hybrid_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/hybrid_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -633,7 +633,7 @@ dense:
 
 Run Hybrid Search Pipeline:
 ```shell
-ultrarag run examples/hybrid_search.yaml
+ultrarag run examples/experiments/hybrid_search.yaml
 ```
 
 ### Deploy Retrieval Model
@@ -682,7 +682,7 @@ screen -r retriever
 **Step 2: Modify Pipeline Parameters**
 
 Taking corpus_search Pipeline as an example, just switch the retrieval backend to openai and point base_url to the local vLLM service:
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -786,7 +786,7 @@ UltraRAG will automatically read this file and load relevant configurations at s
 
 The following example demonstrates how to use Tavily API for Web retrieval:
 
-```yaml examples/web_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/web_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -801,11 +801,11 @@ pipeline:
 Compile Pipeline:
 
 ```shell
-ultrarag build examples/web_search.yaml
+ultrarag build examples/experiments/web_search.yaml
 ```
 
 Fill in the data path and retrieval parameters in the automatically generated parameter file:
-```yaml examples/parameters/web_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/web_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -823,7 +823,7 @@ retriever:
 
 Execute the following command to start the Web retrieval process:
 ```shell
-ultrarag run examples/web_search.yaml
+ultrarag run examples/experiments/web_search.yaml
 ```
 
 <Note>You can replace retriever_tavily_search with retriever_exa_search or retriever_zhipuai_search as the Web retrieval source.</Note>
@@ -934,7 +934,7 @@ After the Server starts, it will reside in memory without repeated loading of co
 
 During online retrieval, there is no need to re-initialize the retriever, just specify the deployed address in the pipeline:
 
-```yaml examples/deploy_corpus_search.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/deploy_corpus_search.yaml icon="/images/yaml.svg" 
 #  Deploy Corpus Search Demo
 
 # MCP Server
@@ -951,11 +951,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/deploy_corpus_search.yaml
+ultrarag build examples/experiments/deploy_corpus_search.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -974,5 +974,5 @@ retriever:
 
 Run Pipeline:
 ```shell
-ultrarag run examples/deploy_corpus_search.yaml
+ultrarag run examples/experiments/deploy_corpus_search.yaml
 ```

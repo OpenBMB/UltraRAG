@@ -15,7 +15,7 @@ By configuring different aliases for the same Server module, module reuse and in
 
 In `pipeline.yaml`, you can define multiple aliases for the same path under the `servers` field:
 
-```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="4,5"
+```yaml examples/experiments/hybrid_search.yaml icon="/images/yaml.svg" highlight="4,5"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -46,7 +46,7 @@ In this example, both dense and bm25 point to the same module path servers/retri
 
 In the Pipeline definition section, you can use their aliases just like calling different modules:
 
-```yaml examples/hybrid_search.yaml icon="/images/yaml.svg" highlight="11-18"
+```yaml examples/experiments/hybrid_search.yaml icon="/images/yaml.svg" highlight="11-18"
 # MCP Server
 servers:
   benchmark: servers/benchmark

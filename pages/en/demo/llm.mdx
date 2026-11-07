@@ -7,7 +7,7 @@ To quickly demonstrate Large Language Model (LLM) capabilities in UltraRAG UI, w
 
 ## 1. Pipeline Structure Overview
 
-```yaml examples/LLM.yaml icon="/images/yaml.svg"
+```yaml examples/demos/LLM.yaml icon="/images/yaml.svg"
 # LLM Demo for UltraRAG UI
 
 # MCP Server
@@ -29,14 +29,14 @@ pipeline:
 Execute the following command in the terminal to compile:
 
 ```shell
-ultrarag build examples/LLM.yaml
+ultrarag build examples/demos/LLM.yaml
 ```
 
 ## 3. Configure Running Parameters
 
-Modify `examples/parameter/LLM_parameter.yaml` according to your environment needs. The following example shows how to switch the backend from `vLLM` to `OpenAI API` standard interface and adjust the model name and system prompt.
+Modify `examples/demos/parameter/LLM_parameter.yaml` according to your environment needs. The following example shows how to switch the backend from `vLLM` to `OpenAI API` standard interface and adjust the model name and system prompt.
 
-```yaml examples/parameter/LLM_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/demos/parameter/LLM_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:

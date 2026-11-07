@@ -89,7 +89,7 @@ run 文件保存检索系统的输出结果，用于与 qrel 文件对比评估�
 
 <Note>你可以点击以下链接下载示例文件：[qrels.test](https://github.com/usnistgov/trec_eval/blob/main/test/qrels.test) 和 [results.test](https://github.com/usnistgov/trec_eval/blob/main/test/results.test)</Note>
 
-```yaml examples/eval_trec.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/eval_trec.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   evaluation: servers/evaluation
@@ -102,10 +102,10 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/eval_trec.yaml
+ultrarag build examples/experiments/eval_trec.yaml
 ```
 
-```yaml examples/parameters/eval_trec_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/eval_trec_parameter.yaml icon="/images/yaml.svg"
 evaluation:
   ir_metrics:
   - mrr
@@ -131,7 +131,7 @@ evaluation:
 运行以下命令执行该 Pipeline：
 
 ```shell
-ultrarag run examples/eval_trec.yaml
+ultrarag run examples/experiments/eval_trec.yaml
 ```
 
 #### 显著性分析
@@ -155,7 +155,7 @@ UltraRAG 内置 双侧置换检验（Two-sided Permutation Test），在自动�
 - **p_value** 为显著性检验的概率；
 - **significant** 为显著性判断（p < 0.05 时为 True）。
 
-```yaml examples/eval_trec_pvalue.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/eval_trec_pvalue.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   evaluation: servers/evaluation
@@ -168,10 +168,10 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/eval_trec_pvalue.yaml
+ultrarag build examples/experiments/eval_trec_pvalue.yaml
 ```
 
-```yaml examples/parameters/eval_trec_pvalue_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/eval_trec_pvalue_parameter.yaml icon="/images/yaml.svg"
 evaluation:
   ir_metrics:
   - mrr
@@ -196,13 +196,13 @@ evaluation:
 运行以下命令执行该 Pipeline：
 
 ```shell
-ultrarag run examples/eval_trec_pvalue.yaml
+ultrarag run examples/experiments/eval_trec_pvalue.yaml
 ```
 
 ### 生成
 #### 基本用法
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="5,19"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg" highlight="5,19"
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever
@@ -237,7 +237,7 @@ pipeline:
 ```
 
 
-```yaml examples/evaluate_results.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/evaluate_results.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -261,12 +261,12 @@ def get_data(
 然后，运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/evaluate_results.yaml
+ultrarag build examples/experiments/evaluate_results.yaml
 ```
 
 在生成的参数文件中，新增字段 pred_ls 并指定其在原始数据中的对应键名，同时修改数据路径和名称以指向新的评估文件：
 
-```yaml examples/parameters/evaluate_results_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/evaluate_results_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -296,5 +296,5 @@ evaluation:
 运行以下命令执行该 Pipeline：
 
 ```shell
-ultrarag run examples/evaluate_results.yaml
+ultrarag run examples/experiments/evaluate_results.yaml
 ```

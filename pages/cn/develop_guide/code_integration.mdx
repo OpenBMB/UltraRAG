@@ -3,100 +3,58 @@ title: "代码集成"
 icon: "code-merge"
 ---
 
-通过 **ToolCall** 和 **PipelineCall** 两种方式，你可以在本地代码中直接调用 UltraRAG 的能力。
-
+通过 `ToolCall` 调用单个已注册工具，通过 `PipelineCall` 执行完整流程。以下示例在仓库根目录运行，使用无需外部模型的 sayhello 服务器。
 
 ## ToolCall
 
-当你只需要 UltraRAG 的某个功能（例如数据加载、编码、检索等），不需要运行完整 Pipeline 时，可通过 `ToolCall` 以函数方式进行调用。
+```python
+from ultrarag.api import ToolCall, initialize, shutdown
 
-
-<Tip>`ToolCall` 需要先使用 `initialize` 指定要启用的 Server。</Tip>
-<Tip>`server_root` 推荐使用绝对路径，例如 `/home/user/project/UltraRAG/servers`。</Tip>
-
-```python script/api_usage_example.py
-from ultrarag.api import initialize, ToolCall
-
-
-initialize(["benchmark"], server_root="servers") 
-
-benchmark_param_dict = {
-    "key_map":{
-      "gt_ls": "golden_answers",
-      "q_ls": "question"
-    },
-    "limit": -1,
-    "seed": 42,
-    "name": "nq",
-    "path": "data/sample_nq_10.jsonl",
-    
-}
-benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
-
+initialize(["sayhello"], server_root="servers", no_mcp=True)
+try:
+    result = ToolCall.sayhello.greet(name="UltraRAG")
+    print(result)
+finally:
+    shutdown()
 ```
 
-<Note>使用方式与普通 Python 函数一致，按需传入对应参数即可。</Note>
+参数按关键字传入；字典使用 `**parameters` 展开。未显式传入的参数会从服务器的参数文件补齐。服务初始化状态由当前进程共享，请在重新配置服务或退出前完成正在执行的调用并释放资源。
 
+## Async ToolCall
 
-```python script/api_usage_example.py
-from ultrarag.api import initialize, ToolCall
+```python
+import asyncio
+from ultrarag.api import ToolCall, initialize, shutdown
 
+async def main():
+    initialize(["sayhello"], server_root="servers", no_mcp=True)
+    try:
+        result = await ToolCall.sayhello.greet(name="Async UltraRAG")
+        print(result)
+    finally:
+        await shutdown()
 
-initialize(["benchmark", "retriever"], server_root="servers") 
-
-benchmark_param_dict = {
-    "key_map":{
-      "gt_ls": "golden_answers",
-      "q_ls": "question"
-    },
-    "limit": -1,
-    "seed": 42,
-    "name": "nq",
-    "path": "data/sample_nq_10.jsonl",
-    
-}
-benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
-
-query_list = benchmark['q_ls']
-
-
-retriever_init_param_dict = {
-    "model_name_or_path": "Qwen/Qwen3-Embedding-0.6B",
-}
-
-ToolCall.retriever.retriever_init(
-    **retriever_init_param_dict
-)
-
-result = ToolCall.retriever.retriever_search(
-    query_list=query_list,
-    top_k=5,
-)
-
-retrieve_passages = result['ret_psg']
-
+asyncio.run(main())
 ```
-
-<Note>只需传入你希望修改的参数，其他参数会自动从 Server 的默认参数文件补全。</Note>
-
 
 ## PipelineCall
 
-如果你希望在本地直接运行一整个 UltraRAG Pipeline，并获得全部步骤的执行结果，可以使用 `PipelineCall`。
+先生成参数与服务器配置：
 
-<Note>你需要先通过 UltraRAG 的 `build` 功能生成对应 Pipeline 的 `pipeline_parameter.yaml` 与参数文件。</Note>
+```bash
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+```
 
-```python script/api_usage_example.py
+```python
 from ultrarag.api import PipelineCall
 
 result = PipelineCall(
-    pipeline_file="examples/rag_deploy.yaml",
-    parameter_file="examples/parameter/rag_deploy_parameter.yaml",
+    pipeline_file="examples/experiments/sayhello.yaml",
+    parameter_file="examples/experiments/parameter/sayhello_parameter.yaml",
+    no_mcp=True,
+    log_level="info",
 )
-
-final_step_result = result['final_result']
-all_steps_result = result['all_results']
-
+print(result)
 ```
 
-<Note>`final_result` 为 Pipeline 最后一个步骤的运行结果，`all_steps_result` 则包含所有步骤的运行结果。</Note>
+在运行中的异步事件循环里使用 `await PipelineCall(...)`。`PipelineCall` 自行管理本次流程的执行客户端。省略 `no_mcp=True` 会使用默认 MCP 传输，需要安装 `mcp` extra；本地模式混用远程 MCP 也需要该依赖。

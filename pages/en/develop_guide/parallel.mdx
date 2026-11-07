@@ -10,7 +10,7 @@ During experiments, we often need to perform parallel or batch experiments on th
 Consistent with the regular running process, first compile the Pipeline:
 
 ```shell
-ultrarag build examples/rag_full.yaml
+ultrarag build examples/experiments/rag_full.yaml
 ```
 
 ## Step 2: Run
@@ -18,7 +18,7 @@ ultrarag build examples/rag_full.yaml
 After modifying the corresponding fields in the generated parameter file, execute the following command directly to run:
 
 ```shell
-ultrarag run examples/rag_full.yaml
+ultrarag run examples/experiments/rag_full.yaml
 ```
 
 ## Step 3: Create New Parameter File
@@ -28,7 +28,7 @@ If you want to test different parameter combinations on the same Pipeline, you c
 Then, when running the command, specify the configuration file using the `--param` argument:
 
 ```shell
-ultrarag run examples/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
+ultrarag run examples/experiments/rag_full.yaml --param examples/parameter/rag_full_parameter_new.yaml
 ```
 
 In this way, the system will execute the same Pipeline using the new parameter file, making it easy to perform parallel and batch comparisons of multiple experiments.

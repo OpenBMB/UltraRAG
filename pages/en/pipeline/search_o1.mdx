@@ -21,7 +21,7 @@ In short, Search-o1 starts reasoning with the original question; once an informa
 
 Based on the above logic, the following Pipeline can be written:
 
-```yaml examples/search_o1.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/search_o1.yaml icon="/images/yaml.svg"
 # Search-o1 Demo
 
 # MCP Servers
@@ -70,12 +70,12 @@ pipeline:
 ### Compile Pipeline File
 
 ```shell
-ultrarag build examples/search_o1.yaml
+ultrarag build examples/experiments/search_o1.yaml
 ```
 
 ### Modify Parameter File
 
-```yaml examples/parameters/search_o1_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/parameter/search_o1_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:
@@ -199,5 +199,5 @@ retriever:
 ### Run Pipeline File
 
 ```shell
-ultrarag run examples/search_o1.yaml
+ultrarag run examples/experiments/search_o1.yaml
 ```
