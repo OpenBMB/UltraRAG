@@ -2189,7 +2189,8 @@ def main() -> None:
     global log_level, logger
     args = parser.parse_args()
     log_level = args.log_level.lower()
-    os.environ["LOG_LEVEL"] = log_level
+    # Preserve the public environment key consumed by MCP child processes.
+    os.environ["log_level"] = log_level
     logger = get_logger("Client", log_level)
 
     if args.cmd == "build":

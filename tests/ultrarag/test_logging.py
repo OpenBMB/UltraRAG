@@ -13,7 +13,10 @@ from ultrarag import client
 
 
 @pytest.mark.parametrize("level", ["debug", "info", "warn", "error"])
-def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
+@pytest.mark.parametrize("no_mcp", [True, False], ids=["local", "mcp"])
+def test_cli_keeps_requested_level(tmp_path: Path, level: str, no_mcp: bool) -> None:
+    if not no_mcp:
+        pytest.importorskip("fastmcp")
     server = tmp_path / "probe"
     (server / "src").mkdir(parents=True)
     (server / "parameter.yaml").write_text(
@@ -27,7 +30,9 @@ def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
         "    app.logger.debug('SERVER_DEBUG_MARKER')\n"
         "    app.logger.info('SERVER_INFO_MARKER')\n"
         "    app.logger.warning('SERVER_WARNING_MARKER')\n"
-        "    return {'answer': 'ok'}\n",
+        "    return {'answer': 'ok'}\n"
+        "if __name__ == '__main__':\n"
+        "    app.run(transport='stdio')\n",
         encoding="utf-8",
     )
     pipeline = tmp_path / "probe.yaml"
@@ -38,6 +43,7 @@ def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
     env = {
         **os.environ,
         "COLUMNS": "240",
+        "log_level": "warn",
         "PYTHONPATH": str(Path(client.__file__).parents[1]),
     }
     for command in ("build", "run"):
@@ -48,7 +54,7 @@ def test_local_cli_keeps_requested_level(tmp_path: Path, level: str) -> None:
                 "ultrarag.client",
                 command,
                 str(pipeline),
-                "--no-mcp",
+                *(["--no-mcp"] if no_mcp else []),
                 "--log_level",
                 level,
             ],
