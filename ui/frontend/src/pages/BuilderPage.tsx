@@ -1658,7 +1658,6 @@ export function BuilderPage() {
           })
         : t("builder_ai_pipeline_updated_message_default", "AI updated current YAML");
       setStatus(detail);
-      pushConsoleLog(detail);
       return true;
     },
     [pushConsoleLog, refetchPipelines, selectedPipeline, t],
@@ -1706,7 +1705,6 @@ export function BuilderPage() {
         name: targetPath,
       });
       setStatus(detail);
-      pushConsoleLog(detail);
       return true;
     },
     [openPromptTab, promptFiles, pushConsoleLog, selectedPromptPath, t],
@@ -1761,7 +1759,6 @@ export function BuilderPage() {
         path: normalizedPath,
       });
       setStatus(detail);
-      pushConsoleLog(detail);
       return true;
     },
     [parameterData, pushConsoleLog, selectedPipeline, t],
