@@ -579,6 +579,7 @@ class DemoSession:
             )
             return
 
+        future = None
         try:
             multiturn_param_path = _resolve_parameter_path(
                 "multiturn_chat", for_write=False
@@ -597,6 +598,8 @@ class DemoSession:
             self._multiturn_active = True
             LOGGER.info(f"Session {self.session_id} multiturn client initialized")
         except Exception as e:
+            if future is not None:
+                future.cancel()
             LOGGER.warning(
                 f"Failed to init multiturn client: {e}, will fall back to full pipeline"
             )
