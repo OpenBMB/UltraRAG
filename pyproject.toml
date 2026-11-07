@@ -81,7 +81,7 @@ evaluation = [
 
 corpus = [
     # Use the parsing backends without the unused Gradio UI / Starlette <1 pin.
-    "mineru[pipeline,vlm]>=3.4.5,<4",
+    "mineru[pipeline,vlm]>=4.1.6,<5",
 ]
 
 # LiteLLM generation backend: a pure API client, so it is kept separate from the
