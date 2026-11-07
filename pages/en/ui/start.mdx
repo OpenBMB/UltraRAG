@@ -1,130 +1,49 @@
 ---
-title: "Quick Start"
+title: "UI Quick Start"
 icon: "atom"
 ---
 
-UltraRAG UI is not just a chat interface, it is a complete RAG development and debugging platform.
+UltraRAG UI includes Chat, Knowledge Base and Pipeline Builder. Run commands from the repository root with the virtual environment activated.
 
-![](/images/ui/chat_menu.png)
-
-## Startup Command
-
-Use the following command to start the UI service:
+## Start the UI
 
 ```bash
-ultrarag show ui [OPTIONS]
+# Local execution: no MCP transport required for local servers
+uv sync
+source .venv/bin/activate
+ultrarag show ui --no-mcp --host 127.0.0.1 --port 5050
 ```
 
-### Common Options
+Open `http://127.0.0.1:5050`. Install the extras required by the servers you use, for example `uv sync --extra generation --extra retriever`.
 
-- `--port <INTEGER>`: Specify service port, default is `5050`.
-- `--host <TEXT>`: Specify binding address, default is `127.0.0.1`.
-- `--admin`: Enable administrator mode. By default, the UI only displays the chat interface (Chat Only). After enabling this option, Pipeline Builder (visual orchestration), parameter configuration, and online Prompt editing functions will be unlocked. In addition, an AI assistant is built into the administrator interface to help you efficiently complete Pipeline configuration and debugging.
+For MCP transport, install `uv sync --extra mcp` and omit `--no-mcp`. Remote MCP entries still require the MCP extra and Node.js 20 or newer in local mode. The YAML format and generated parameters are shared between both modes.
 
-### Examples
+<Note>Builder edits and workspace assistant tools require an administrator account. Sign in when prompted. The CLI has no `--admin` option. Keep the default loopback host for a local session.</Note>
 
-**Start Admin Mode with Full Functions:**
+## Create and build a pipeline
 
-```bash
-ultrarag show ui --admin
-```
+1. Open **Builder → New Pipeline**, enter a unique name starting with a letter or underscore, and confirm. The new draft is selected immediately and remains listed before Build.
+2. Edit YAML or use the canvas node menu. Inspect the declared servers, step order, input/output remapping, loops and branches.
+3. Click **Save** to save a draft, or **Build** to save the current YAML and generate parameters. Review the console for the result; an error leaves the draft available for correction.
+4. Open **Parameters**, configure the model endpoint, model name and credentials, and save. Use Prompt management to create, edit, rename or delete Jinja templates.
+5. A built pipeline is available in Chat. Send a test question and inspect its answer and sources. Use Stop to cancel a foreground response. Long-running pipelines can use the background task controls.
 
-**Start Chat Only Interface (Suitable for End Users):**
-
-```bash
-ultrarag show ui
-```
-
-After startup, access `http://127.0.0.1:5050` in your browser to enter the system.
-
-## 1. Chat
-
-Entering the system displays the chat page by default. You can directly select a compiled Pipeline to start a conversation.
-
-<Tip>We provide deployment tutorials for several developed Pipelines in [Typical Scenarios](/pages/en/demo/llm). You can also customize Pipelines according to your needs.</Tip>
-
-![](/images/ui/chat_menu.png)
-
-### Pipeline Switching
-
-You can quickly switch between Pipelines with configured parameters through the dropdown menu in the upper left corner.
-
-![](/images/ui/pipeline_select.png)
-
-### Select Knowledge Base
-
-Click the Knowledge Base icon to mount the constructed knowledge base, and you can perform document-based Q&A.
-
-![](/images/ui/kb_select.png)
-
-### Background Running
-
-For time-consuming Pipelines such as Deep Research, background running mode is supported. After the task execution is completed, the results will be automatically loaded into the current chat window.
-
-![](/images/ui/background.png)
-
-## 2. Knowledge Base
-UltraRAG UI provides full-process knowledge base management functions, supporting file upload, chunking, and embedding management.
-
-![](/images/ui/kb_menu.png)
-
-### Connect Vector Database
-
-<Tip>Don't know how to deploy Milvus vector library? Please refer to [Deployment Guide](/pages/en/ui/prepare).</Tip>
-
-Click Configure DB to establish a connection with the deployed Milvus vector library, and you can use the knowledge base function.
-
-![](/images/ui/kb_connect.png)
-
-### Build Knowledge Base
-
-Click New Collection to upload documents and create an exclusive knowledge base.
-
-![](/images/ui/kb_upload.png)
-
-Click the Settings button to customize the slicing strategy (Chunk) and Embedding model parameters.
-
-<Tip>Configuration is usually required for first-time use. If you want to achieve configuration-free deployment (users do not need to set manually), please modify relevant parameters in `examples/parameter/corpus_chunk_parameter.yaml` and `examples/parameter/milvus_index_parameter.yaml` in advance to skip the setting steps below.</Tip>
-
-![](/images/ui/kb_chunk.png)
-![](/images/ui/kb_index.png)
-
-
-## 3. Pipeline Builder
-If the `--admin` parameter is specified at startup, the sidebar will display the Settings entry. Click to enter the advanced configuration page.
-
-### Visual Pipeline Construction
-
-Supports bidirectional real-time synchronization between drag-and-drop orchestration on the left canvas and code editor on the right. You can build intuitively like building blocks, or fine-tune in the code editor.
+<Warning>Changing pipeline YAML invalidates its generated server metadata. Build again before running. A successful Build checks configuration generation; it does not prove that model, embedding or database services are reachable.</Warning>
 
 ![](/images/ui/pipeline_build.png)
 
-### Configure Parameters
+## Read the console
 
-After clicking the Build button to parse the Pipeline, you can view and modify running parameters in the parameter panel.
+The console shows the build start, backend build logs, success or failure, and assistant tool progress. Expand or collapse it with a click, Enter or Space. Long lines wrap and the output scrolls independently. Build keeps the console visible so you can inspect the result.
 
-![](/images/ui/pipeline_param.png)
+## Configure a knowledge base
 
-### Prompt Management
+Open Knowledge Base, configure the vector database, then create a collection and upload documents. Configure chunking and the embedding endpoint before indexing. See [database preparation](/pages/en/ui/prepare).
 
-Supports online creation, editing, and deletion of Prompts, and one-click application to the Pipeline.
+Default processing configurations live under `examples/demos/parameter/`, including `corpus_chunk_parameter.yaml` and the index pipeline parameters. Choose a chat pipeline that uses the same collection and embedding model.
 
-![](/images/ui/pipeline_prompt.png)
+![](/images/ui/kb_menu.png)
 
-### AI Assistant
+## Use the pipeline assistant
 
-The system has a built-in AI assistant that can assist you in building Pipelines, adjusting parameters, and writing Prompts.
-
-<Tip>Before using this function for the first time, you need to click Settings to configure the API Key and related model parameters.</Tip>
-
-**Usage Example: Optimize Prompt**
-
-Suppose you have a basic Prompt and want to adjust it to a style suitable for the legal field:
-
-1. Open the AI assistant and enter the original Prompt and modification requirements.
-
-![](/images/ui/ai_1.png)
-
-2. Click Apply, and the AI assistant will automatically generate optimized content and replace the original Prompt.
-
-![](/images/ui/ai_2.png)
+Configure an API endpoint, API key and a model in the assistant settings, then test the connection. OpenAI-compatible providers support the workspace tool loop. Follow the [agent assistant guide](/pages/en/ui/assistant) for inspecting tools, reviewing proposals and testing a pipeline.
