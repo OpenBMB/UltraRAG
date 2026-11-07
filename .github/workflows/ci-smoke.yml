@@ -51,7 +51,12 @@ jobs:
         run: uv sync --frozen --extra mcp
 
       - name: Test execution parity and regressions
-        run: uv run --frozen --extra mcp python -m pytest tests -q
+        run: uv run --frozen --extra mcp python -m pytest tests servers/generation/tests servers/retriever/tests -q
+
+      - name: Check core code quality
+        run: |
+          uv run --frozen --extra mcp ruff check src/ultrarag
+          uv run --frozen --extra mcp ruff format --check src/ultrarag
 
       - name: Build sayhello pipeline with MCP
         run: uv run --frozen --extra mcp ultrarag build examples/experiments/sayhello.yaml
@@ -77,8 +82,11 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
+      - name: Test frontend behavior
+        run: npm test
+
+      - name: Check and build frontend
+        run: npm run check
 
   cpu-image-smoke:
     name: CPU Image Runtime and UI
