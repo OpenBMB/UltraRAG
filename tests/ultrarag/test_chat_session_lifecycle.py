@@ -21,7 +21,7 @@ from ui.backend import pipeline_manager as pm
 def outcome(action):
     try:
         return action()
-    except BaseException as exc:
+    except (FutureCancelledError, pm.PipelineManagerError) as exc:
         return exc
 
 
