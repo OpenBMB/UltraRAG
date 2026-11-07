@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -15,10 +15,10 @@ _LOG_LEVELS = {
 }
 
 _LOGGING_INITIALIZED = False
-_LOGFILE_PATH: Optional[str] = None
+_LOGFILE_PATH: str | None = None
 
 
-def _level_from_str(level: Union[str, int]) -> int:
+def normalize_log_level(level: str | int) -> int:
     """Convert log level string or int to logging level constant.
 
     Args:
@@ -34,18 +34,19 @@ def _level_from_str(level: Union[str, int]) -> int:
 
 def get_logger(
     name: str,
-    level: Union[Literal["debug", "info", "warn", "error"], str] = "info",
+    level: Literal["debug", "info", "warn", "error"] | str | int | None = None,
     enable_rich_tracebacks: bool = True,
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
 ) -> logging.Logger:
     """Get or create a logger with Rich formatting and file output.
 
     Initializes logging system on first call with both console (stderr) and
-    file handlers. Subsequent calls reuse the initialized configuration.
+    file handlers. Calls without a level inherit the current configuration;
+    an explicit level reconfigures the application-wide handlers.
 
     Args:
         name: Logger name (child logger of "UltraRAG" if not "UltraRAG")
-        level: Log level as string or literal (default: "info")
+        level: Application log level; omitted calls preserve the current level
         enable_rich_tracebacks: Whether to enable Rich traceback formatting
         log_file: Optional path to log file (default: timestamped file in logs/)
 
@@ -54,8 +55,13 @@ def get_logger(
     """
     global _LOGGING_INITIALIZED, _LOGFILE_PATH
 
-    lvl = _level_from_str(level)
     base = logging.getLogger("UltraRAG")
+    lvl = (
+        normalize_log_level(level)
+        if level is not None
+        else base.level if _LOGGING_INITIALIZED
+        else normalize_log_level(os.environ.get("log_level", "info"))
+    )
 
     if not _LOGGING_INITIALIZED:
         os.makedirs("logs", exist_ok=True)
@@ -63,7 +69,7 @@ def get_logger(
         if log_file:
             _LOGFILE_PATH = log_file
         else:
-            ts = os.environ.get("ULTRARAG_LOG_TS") or datetime.now().strftime(
+            ts = os.environ.get("ULTRARAG_LOG_TS") or datetime.now().astimezone().strftime(
                 "%Y%m%d_%H%M%S"
             )
             _LOGFILE_PATH = os.path.join("logs", f"{ts}.log")
