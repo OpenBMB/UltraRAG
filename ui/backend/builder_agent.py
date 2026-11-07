@@ -16,6 +16,7 @@ from jinja2 import TemplateError
 
 from .pipeline_manager import PipelineManagerError
 
+from .ai_compat import completion_limit
 from .agent_workspace import MAX_TEXT, TOOLS, ToolWorkspace
 
 SYSTEM_PROMPT = """You help users design UltraRAG YAML pipelines. Use workspace tools to inspect actual
@@ -101,7 +102,7 @@ async def model_turn(
             "tools": TOOLS,
             "tool_choice": "auto",
             "stream": True,
-            "max_tokens": 4096,
+            **completion_limit(settings["model"], 4096),
         },
     ) as response:
         if response.status_code >= 400:

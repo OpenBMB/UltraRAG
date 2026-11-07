@@ -278,3 +278,23 @@ def test_pipeline_reads_reject_symlink_escape_before_loading(
     monkeypatch.setattr(pm, "_find_pipeline_file", lambda _: link)
     with pytest.raises(ValueError, match="inside the workspace"):
         workspace.call("read_pipeline", {"name": "linked"})
+
+
+def test_reasoning_model_budget_keeps_the_stream_protocol_compatible():
+    async def respond(request):
+        body = json.loads(request.content)
+        assert body["max_completion_tokens"] == 4096
+        assert "max_tokens" not in body
+        return stream_message(text="done")
+
+    events = []
+    asyncio.run(
+        agent.run_agent(
+            {**SETTINGS, "model": "gpt-5-mini"},
+            [],
+            {},
+            events.append,
+            transport=httpx.MockTransport(respond),
+        )
+    )
+    assert events[-1]["type"] == "final"

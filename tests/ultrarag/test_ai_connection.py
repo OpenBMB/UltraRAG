@@ -58,3 +58,17 @@ def test_selected_model_must_return_completion_choices(client, monkeypatch):
         "success": True,
         "model": "chosen-model",
     }
+
+
+def test_default_reasoning_model_uses_a_compatible_token_limit(client, monkeypatch):
+    def post(url, **kwargs):
+        assert "max_tokens" not in kwargs["json"]
+        assert kwargs["json"]["max_completion_tokens"] == 32
+        return SimpleNamespace(
+            status_code=200, json=lambda: {"choices": [{"message": {"content": "ok"}}]}
+        )
+
+    monkeypatch.setattr(requests, "post", post)
+    assert client.post(
+        "/api/ai/test", json={**SETTINGS, "model": "gpt-5-mini"}
+    ).get_json()["success"]
