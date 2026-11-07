@@ -62,9 +62,12 @@ def test_chat_metadata_contains_no_workspace_credentials(app, identity):
                 marker in response.get_data(as_text=True)
                 for marker in ("pipeline-secret", "database-secret", "password@db")
             )
-        assert client.post("/api/kb/config", json={}).status_code == 403
-        assert client.get("/api/pipelines/example").status_code == 403
-        assert client.get("/api/pipelines/example/parameters").status_code == 403
+        response = client.post("/api/kb/config", json={})
+        assert response.status_code == 403
+        response = client.get("/api/pipelines/example")
+        assert response.status_code == 403
+        response = client.get("/api/pipelines/example/parameters")
+        assert response.status_code == 403
 
 
 @pytest.mark.parametrize(
@@ -81,7 +84,8 @@ def test_chat_metadata_contains_no_workspace_credentials(app, identity):
 def test_prompt_operations_require_administrator(app, method, path, payload):
     application, folder = app
     with application.test_client() as client:
-        assert client.open(path, method=method, json=payload).status_code == 403
+        response = client.open(path, method=method, json=payload)
+        assert response.status_code == 403
     assert (folder / "example.jinja").read_text() == "original"
     assert not (folder / "new.jinja").exists()
 
@@ -94,39 +98,28 @@ def test_admin_access_and_prompt_writes_are_preserved(app, tmp_path):
     with application.test_client() as client:
         with client.session_transaction() as session:
             session["auth_user_id"] = "admin"
-        assert (
-            client.get("/api/pipelines/example/parameters").get_json()["api_key"]
-            == "parameter-secret"
+        response = client.get("/api/pipelines/example/parameters")
+        assert response.get_json()["api_key"] == "parameter-secret"
+        response = client.get("/api/kb/config")
+        assert response.get_json()["milvus"]["token"] == "database-secret"
+        response = client.post("/api/kb/config", json=CONFIG)
+        assert response.status_code == 200
+        response = client.post(
+            "/api/prompts", json={"name": "safe.jinja", "content": "hello"}
         )
-        assert (
-            client.get("/api/kb/config").get_json()["milvus"]["token"]
-            == "database-secret"
+        assert response.status_code == 200
+        response = client.put("/api/prompts/safe.jinja", json={"content": "updated"})
+        assert response.status_code == 200
+        response = client.get("/api/prompts/safe.jinja")
+        assert response.get_json()["content"] == "updated"
+        response = client.post(
+            "/api/prompts/safe.jinja/rename", json={"new_name": "renamed.jinja"}
         )
-        assert client.post("/api/kb/config", json=CONFIG).status_code == 200
-        assert (
-            client.post(
-                "/api/prompts", json={"name": "safe.jinja", "content": "hello"}
-            ).status_code
-            == 200
+        assert response.status_code == 200
+        response = client.delete("/api/prompts/renamed.jinja")
+        assert response.status_code == 200
+        response = client.post(
+            "/api/prompts", json={"name": "link/escape.jinja", "content": "blocked"}
         )
-        assert (
-            client.put(
-                "/api/prompts/safe.jinja", json={"content": "updated"}
-            ).status_code
-            == 200
-        )
-        assert client.get("/api/prompts/safe.jinja").get_json()["content"] == "updated"
-        assert (
-            client.post(
-                "/api/prompts/safe.jinja/rename", json={"new_name": "renamed.jinja"}
-            ).status_code
-            == 200
-        )
-        assert client.delete("/api/prompts/renamed.jinja").status_code == 200
-        assert (
-            client.post(
-                "/api/prompts", json={"name": "link/escape.jinja", "content": "blocked"}
-            ).status_code
-            == 400
-        )
+        assert response.status_code == 400
     assert not (outside / "escape.jinja").exists()
