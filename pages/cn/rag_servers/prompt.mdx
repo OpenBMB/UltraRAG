@@ -50,7 +50,7 @@ def qa_rag_boxed(
 
 在调用模型生成工具前，需要先通过对应的 Prompt Tool 构建输入提示。
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg" highlight="3,16"
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever
@@ -77,7 +77,7 @@ pipeline:
 在一些复杂的 Pipeline 中，模型往往需要在不同阶段执行不同任务——例如，先生成子问题，再根据新的检索结果生成最终答案。
 此时，就需要在同一 Pipeline 中配置多个 Prompt Tool，分别负责不同的提示构建逻辑。
 
-```yaml examples/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
+```yaml examples/experiments/rag_loop.yaml icon="/images/yaml.svg" highlight="19,29"
 # MCP Server
 servers:
   benchmark: servers/benchmark

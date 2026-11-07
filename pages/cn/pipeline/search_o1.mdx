@@ -22,7 +22,7 @@ Search-o1 提出一种将大规模推理模型与 **自主检索增强生成（A
 
 基于上面的逻辑，可以写出如下 Pipeline：
 
-```yaml examples/search_o1.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/search_o1.yaml icon="/images/yaml.svg"
 # Search-o1 Demo
 
 # MCP Servers
@@ -71,12 +71,12 @@ pipeline:
 ### 编译Pipeline文件
 
 ```shell
-ultrarag build examples/search_o1.yaml
+ultrarag build examples/experiments/search_o1.yaml
 ```
 
 ### 修改参数文件
 
-```yaml examples/parameters/search_o1_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/parameter/search_o1_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:
@@ -200,5 +200,5 @@ retriever:
 ### 运行Pipeline文件
 
 ```shell
-ultrarag run examples/search_o1.yaml
+ultrarag run examples/experiments/search_o1.yaml
 ```

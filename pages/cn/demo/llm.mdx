@@ -7,7 +7,7 @@ icon: "robot"
 
 ## 1. Pipeline 结构概览
 
-```yaml examples/LLM.yaml icon="/images/yaml.svg"
+```yaml examples/demos/LLM.yaml icon="/images/yaml.svg"
 # LLM Demo for UltraRAG UI
 
 # MCP Server
@@ -29,14 +29,14 @@ pipeline:
 在终端执行以下命令进行编译：
 
 ```shell
-ultrarag build examples/LLM.yaml
+ultrarag build examples/demos/LLM.yaml
 ```
 
 ## 3. 配置运行参数
 
-根据你的环境需求，修改 `examples/parameter/LLM_parameter.yaml`。以下示例展示了如何将后端从 `vLLM` 切换为 `OpenAI API` 标准接口，并调整了模型名称与系统提示词。
+根据你的环境需求，修改 `examples/demos/parameter/LLM_parameter.yaml`。以下示例展示了如何将后端从 `vLLM` 切换为 `OpenAI API` 标准接口，并调整了模型名称与系统提示词。
 
-```yaml examples/parameter/LLM_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/demos/parameter/LLM_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:

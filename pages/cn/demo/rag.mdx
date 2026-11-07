@@ -7,7 +7,7 @@ icon: "magnifying-glass"
 
 ## 1. Pipeline 结构概览
 
-```yaml examples/RAG.yaml icon="/images/yaml.svg"
+```yaml examples/demos/RAG.yaml icon="/images/yaml.svg"
 # RAG Demo for UltraRAG UI
 
 # MCP Server
@@ -35,14 +35,14 @@ pipeline:
 在终端执行以下命令进行编译：
 
 ```shell
-ultrarag build examples/RAG.yaml
+ultrarag build examples/demos/RAG.yaml
 ```
 
 ## 3. 配置运行参数
 
-修改 `examples/parameter/RAG_parameter.yaml`。在 RAG 场景中，除了配置 LLM 生成后端外，还需要重点配置 Embedding 检索后端。
+修改 `examples/demos/parameter/RAG_parameter.yaml`。在 RAG 场景中，除了配置 LLM 生成后端外，还需要重点配置 Embedding 检索后端。
 
-```yaml examples/parameter/RAG_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/demos/parameter/RAG_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:

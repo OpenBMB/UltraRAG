@@ -75,6 +75,17 @@ uv pip install -e ".[all]"
 uv pip install -e ".[retriever]"
 ```
 
+## Execution modes and a smoke test
+
+Use Python 3.11 or 3.12. `uv sync` installs the core without MCP transport packages. After activating the environment, run this local smoke test:
+
+```bash
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
+```
+
+For the default MCP transport, install `uv sync --extra mcp` and omit `--no-mcp`. Remote MCP entries require Node.js 20 or newer, including when mixed into a local-mode pipeline. Install the appropriate module extras for retrieval, generation and other server dependencies.
+
 ## Docker Container Deployment
 
 If you prefer not to configure a local Python environment, you can deploy using Docker.
@@ -113,7 +124,7 @@ docker run -it --gpus all -p 5050:5050 <docker_image_name>
 After installation is complete, run the following example command to check if the environment is normal:
 
 ```shell
-ultrarag run examples/sayhello.yaml
+ultrarag run examples/experiments/sayhello.yaml
 ```
 
 Seeing the following output indicates a successful installation:

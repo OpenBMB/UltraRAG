@@ -11,7 +11,7 @@ This module natively supports various mainstream backends including [Sentence-Tr
 
 ## Usage Examples
 
-```yaml examples/corpus_rerank.yaml icon="/images/yaml.svg" highlight="5,14,15"
+```yaml examples/experiments/corpus_rerank.yaml icon="/images/yaml.svg" highlight="5,14,15"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -32,11 +32,11 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/corpus_rerank.yaml
+ultrarag build examples/experiments/corpus_rerank.yaml
 ```
 
 Modify parameters:
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -132,5 +132,5 @@ retriever:
 
 Run Pipeline:
 ```shell
-ultrarag run examples/corpus_rerank.yaml
+ultrarag run examples/experiments/corpus_rerank.yaml
 ```

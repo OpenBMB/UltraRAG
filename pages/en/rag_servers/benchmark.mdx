@@ -23,7 +23,7 @@ Example data:
 
 ### Basic Usage
 
-```yaml examples/load_data.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/load_data.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -36,12 +36,12 @@ pipeline:
 Run the following command to compile the Pipeline:
 
 ```shell
-ultrarag build examples/load_data.yaml
+ultrarag build examples/experiments/load_data.yaml
 ```
 
 Modify corresponding fields according to the actual situation:
 
-```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -56,7 +56,7 @@ benchmark:
 Run the following command to execute the Pipeline:
 
 ```shell
-ultrarag run examples/load_data.yaml
+ultrarag run examples/experiments/load_data.yaml
 ```
 
 After completion, the system will automatically load and output data samples, providing input support for subsequent retrieval and generation tasks.
@@ -81,12 +81,12 @@ def get_data(
 Then, run the following command to recompile the Pipeline:
 
 ```shell
-ultrarag build examples/load_data.yaml
+ultrarag build examples/experiments/load_data.yaml
 ```
 
 In the generated parameter file, add the field `id_ls` and specify its corresponding key name in the original data:
 
-```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:

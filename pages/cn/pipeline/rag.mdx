@@ -47,7 +47,7 @@ RAG（Retrieval-Augmented Generation，检索增强生成）是一种让大语�
 
 ### 编写编码、索引Pipeline
 
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -63,12 +63,12 @@ pipeline:
 ### 编译Pipeline文件
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 ### 修改参数文件
 
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg" 
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -130,13 +130,13 @@ retriever:
 ### 运行Pipeline文件
 
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 编码与索引阶段通常涉及大规模语料处理，耗时较长。建议使用 `screen` 或 `nohup` 将任务挂载至后台运行，例如：
 
 ```shell
-nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
+nohup ultrarag run examples/experiments/corpus_index.yaml > log.txt 2>&1 &
 ```
 
 运行成功后，就会得到对应的语料向量和索引文件，后续 RAG Pipeline 就可以直接使用它们来完成检索。
@@ -166,7 +166,7 @@ nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
 
 ### 编写RAG Pipeline
 
-```yaml examples/rag.yaml icon="/images/yaml.svg"
+```yaml examples/demos/rag.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -194,12 +194,12 @@ pipeline:
 ### 编译 Pipeline 文件
 
 ```shell
-ultrarag build examples/rag.yaml
+ultrarag build examples/demos/rag.yaml
 ```
 
 ### 修改参数文件（指定数据集、模型与检索配置）
 
-```yaml examples/parameters/rag_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/rag_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -316,7 +316,7 @@ retriever:
 ### 运行Pipeline文件
 
 ```shell
-ultrarag run examples/rag.yaml
+ultrarag run examples/demos/rag.yaml
 ```
 
 ### 查看生成结果

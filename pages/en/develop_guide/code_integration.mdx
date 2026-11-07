@@ -3,98 +3,58 @@ title: "Code Integration"
 icon: "code-merge"
 ---
 
-Through two methods, **ToolCall** and **PipelineCall**, you can directly call UltraRAG's capabilities in your local code.
+Use `ToolCall` for one registered tool and `PipelineCall` for a complete pipeline. Run these examples from the repository root; sayhello requires no external model.
 
 ## ToolCall
 
-When you only need a specific function of UltraRAG (such as data loading, encoding, retrieval, etc.) and do not need to run the full Pipeline, you can call it as a function via `ToolCall`.
+```python
+from ultrarag.api import ToolCall, initialize, shutdown
 
-<Tip>`ToolCall` requires using `initialize` to specify the Servers to be enabled first.</Tip>
-<Tip>`server_root` recommends using an absolute path, e.g., `/home/user/project/UltraRAG/servers`.</Tip>
-
-```python script/api_usage_example.py
-from ultrarag.api import initialize, ToolCall
-
-
-initialize(["benchmark"], server_root="servers") 
-
-benchmark_param_dict = {
-    "key_map":{
-      "gt_ls": "golden_answers",
-      "q_ls": "question"
-    },
-    "limit": -1,
-    "seed": 42,
-    "name": "nq",
-    "path": "data/sample_nq_10.jsonl",
-    
-}
-benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
-
+initialize(["sayhello"], server_root="servers", no_mcp=True)
+try:
+    result = ToolCall.sayhello.greet(name="UltraRAG")
+    print(result)
+finally:
+    shutdown()
 ```
 
-<Note>The usage method is consistent with ordinary Python functions; just pass in the corresponding parameters as needed.</Note>
+Pass keyword arguments, or expand a dictionary with `**parameters`. Missing arguments are filled from the server parameter file. Initialization is process-wide; finish active calls and release resources before reconfiguring services or leaving the process.
 
+## Async ToolCall
 
-```python script/api_usage_example.py
-from ultrarag.api import initialize, ToolCall
+```python
+import asyncio
+from ultrarag.api import ToolCall, initialize, shutdown
 
+async def main():
+    initialize(["sayhello"], server_root="servers", no_mcp=True)
+    try:
+        result = await ToolCall.sayhello.greet(name="Async UltraRAG")
+        print(result)
+    finally:
+        await shutdown()
 
-initialize(["benchmark", "retriever"], server_root="servers") 
-
-benchmark_param_dict = {
-    "key_map":{
-      "gt_ls": "golden_answers",
-      "q_ls": "question"
-    },
-    "limit": -1,
-    "seed": 42,
-    "name": "nq",
-    "path": "data/sample_nq_10.jsonl",
-    
-}
-benchmark = ToolCall.benchmark.get_data(benchmark_param_dict)
-
-query_list = benchmark['q_ls']
-
-
-retriever_init_param_dict = {
-    "model_name_or_path": "Qwen/Qwen3-Embedding-0.6B",
-}
-
-ToolCall.retriever.retriever_init(
-    **retriever_init_param_dict
-)
-
-result = ToolCall.retriever.retriever_search(
-    query_list=query_list,
-    top_k=5,
-)
-
-retrieve_passages = result['ret_psg']
-
+asyncio.run(main())
 ```
-
-<Note>Only pass the parameters you wish to modify; other parameters will be automatically completed from the Server's default parameter file.</Note>
-
 
 ## PipelineCall
 
-If you wish to run an entire UltraRAG Pipeline directly locally and obtain the execution results of all steps, you can use `PipelineCall`.
+Generate the parameter and server configuration first:
 
-<Note>You need to first generate the `pipeline_parameter.yaml` and parameter files for the corresponding Pipeline via UltraRAG's `build` function.</Note>
+```bash
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+```
 
-```python script/api_usage_example.py
+```python
 from ultrarag.api import PipelineCall
 
 result = PipelineCall(
-    pipeline_file="examples/rag_deploy.yaml",
-    parameter_file="examples/parameter/rag_deploy_parameter.yaml",
+    pipeline_file="examples/experiments/sayhello.yaml",
+    parameter_file="examples/experiments/parameter/sayhello_parameter.yaml",
+    no_mcp=True,
+    log_level="info",
 )
-
-final_step_result = result['final_result']
-all_steps_result = result['all_results']
-
+print(result)
 ```
 
-<Note>`final_result` is the running result of the last step of the Pipeline, and `all_steps_result` contains the running results of all steps.</Note>
+Inside a running async event loop, use `await PipelineCall(...)`. `PipelineCall` owns the execution client for that run. Omitting `no_mcp=True` uses the default MCP transport and requires the `mcp` extra; mixed remote MCP entries also require it in local mode.

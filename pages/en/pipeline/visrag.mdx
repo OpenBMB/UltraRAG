@@ -34,7 +34,7 @@ Take "Nikon User Manual" as an example. You can [click here to download](https:/
 
 We use UltraRAG's Corpus Server to convert this PDF directly into an image corpus:
 
-```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -47,12 +47,12 @@ pipeline:
 Execute the following command:
 
 ```shell
-ultrarag build examples/build_image_corpus.yaml
+ultrarag build examples/experiments/build_image_corpus.yaml
 ```
 
 Modify parameters as follows:
 
-```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl
   parse_file_path: data/UltraRAG.pdf # [!code --]
@@ -61,7 +61,7 @@ corpus:
 
 Run Pipeline:
 ```shell
-ultrarag run examples/build_image_corpus.yaml
+ultrarag run examples/experiments/build_image_corpus.yaml
 ```
 
 After execution, the image corpus file will be automatically generated:
@@ -75,7 +75,7 @@ After execution, the image corpus file will be automatically generated:
 
 Next, use the Retriever Server to perform vector encoding and indexing on the image corpus:
 
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -90,12 +90,12 @@ pipeline:
 Execute the following command:
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 Modify parameters:
 
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -162,7 +162,7 @@ retriever:
 
 Run index construction:
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 ## VisRAG
@@ -174,7 +174,7 @@ Prepare user query file:
 ```
 
 Define VisRAG Pipeline:
-```yaml examples/visrag.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/visrag.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -199,12 +199,12 @@ pipeline:
 Execute the following command:
 
 ```shell
-ultrarag build examples/visrag.yaml
+ultrarag build examples/experiments/visrag.yaml
 ```
 
 Modify parameters:
 
-```yaml examples/parameters/visrag_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/visrag_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -319,7 +319,7 @@ retriever:
 
 Run this Pipeline:
 ```shell
-ultrarag run examples/visrag.yaml
+ultrarag run examples/experiments/visrag.yaml
 ```
 
 Execute the following command to start Case Study Viewer:

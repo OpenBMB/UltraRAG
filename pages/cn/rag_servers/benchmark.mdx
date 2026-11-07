@@ -23,7 +23,7 @@ Benchmark Server 用于加载评测数据集，常用于基准测试、问答任
 
 ### 基本用法
 
-```yaml examples/load_data.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/load_data.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -36,12 +36,12 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/load_data.yaml
+ultrarag build examples/experiments/load_data.yaml
 ```
 
 根据实际情况修改相应字段：
 
-```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -56,7 +56,7 @@ benchmark:
 运行以下命令执行该 Pipeline：
 
 ```shell
-ultrarag run examples/load_data.yaml
+ultrarag run examples/experiments/load_data.yaml
 ```
 
 运行完成后，系统将自动加载并输出数据样本信息，为后续的检索与生成任务提供输入支持。
@@ -81,12 +81,12 @@ def get_data(
 然后，运行以下命令重新编译 Pipeline：
 
 ```shell
-ultrarag build examples/load_data.yaml
+ultrarag build examples/experiments/load_data.yaml
 ```
 
 在生成的参数文件中，添加字段 `id_ls` 并指定其在原始数据中的对应键名：
 
-```yaml examples/parameters/load_data_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/load_data_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:

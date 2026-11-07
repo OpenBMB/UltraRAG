@@ -21,7 +21,7 @@ In addition, you can also analyze and evaluate the running results through visua
 
 Create and write your Pipeline configuration file in the `examples` folder, for example:
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg"
 # Vanilla RAG with Corpus Indexing Demo
 
 # MCP Server
@@ -58,16 +58,16 @@ Before running the code, you first need to configure the parameters required for
 The system will read the `parameter.yaml` file of each Server, parse all parameter items involved in this process, and consolidate them into an independent configuration file. Execute the following command:
 
 ```shell
-ultrarag build examples/rag_full.yaml
+ultrarag build examples/experiments/rag_full.yaml
 ```
 
 After execution, the terminal will output content as follows:
 
 ![](/images/getting_started/rag_build.png)
 
-The system will generate the corresponding parameter configuration file in the `examples/parameters/` folder. Open the file and modify relevant parameters according to the actual situation, for example:
+The system will generate the corresponding parameter configuration file in the `examples/experiments/parameter/` folder. Open the file and modify relevant parameters according to the actual situation, for example:
 
-```yaml examples/parameters/rag_full_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/rag_full_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -194,7 +194,7 @@ You can modify the parameters according to the actual situation, for example:
 When the parameter configuration is complete, you can run the entire process with one click. Execute the following command:
 
 ```shell
-ultrarag run examples/rag_full.yaml
+ultrarag run examples/experiments/rag_full.yaml
 ```
 
 The system will sequentially execute the various Servers and Tools defined in the configuration file, and output running logs and progress information in the terminal in real time:

@@ -35,7 +35,7 @@ icon: "eyes"
 
 我们使用 UltraRAG 的 Corpus Server 将该 PDF 直接转换为图像语料库：
 
-```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -48,12 +48,12 @@ pipeline:
 执行以下命令：
 
 ```shell
-ultrarag build examples/build_image_corpus.yaml
+ultrarag build examples/experiments/build_image_corpus.yaml
 ```
 
 修改参数如下：
 
-```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl
   parse_file_path: data/UltraRAG.pdf # [!code --]
@@ -62,7 +62,7 @@ corpus:
 
 运行 Pipeline：
 ```shell
-ultrarag run examples/build_image_corpus.yaml
+ultrarag run examples/experiments/build_image_corpus.yaml
 ```
 
 执行完成后，将自动生成图像语料文件：
@@ -76,7 +76,7 @@ ultrarag run examples/build_image_corpus.yaml
 
 接下来，使用 Retriever Server 对图像语料进行向量化编码与索引：
 
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -91,12 +91,12 @@ pipeline:
 执行以下命令：
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 修改参数：
 
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -163,7 +163,7 @@ retriever:
 
 运行索引构建：
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 ## VisRAG
@@ -175,7 +175,7 @@ ultrarag run examples/corpus_index.yaml
 ```
 
 定义 VisRAG Pipeline：
-```yaml examples/visrag.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/visrag.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -200,12 +200,12 @@ pipeline:
 执行以下命令：
 
 ```shell
-ultrarag build examples/visrag.yaml
+ultrarag build examples/experiments/visrag.yaml
 ```
 
 修改参数：
 
-```yaml examples/parameters/visrag_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/visrag_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -320,7 +320,7 @@ retriever:
 
 运行该Pipeline：
 ```shell
-ultrarag run examples/visrag.yaml
+ultrarag run examples/experiments/visrag.yaml
 ```
 
 执行以下命令启动 Case Study Viewer：

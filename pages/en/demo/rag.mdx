@@ -7,7 +7,7 @@ To deeply experience Retrieval-Augmented Generation (RAG) capabilities in UltraR
 
 ## 1. Pipeline Structure Overview
 
-```yaml examples/RAG.yaml icon="/images/yaml.svg"
+```yaml examples/demos/RAG.yaml icon="/images/yaml.svg"
 # RAG Demo for UltraRAG UI
 
 # MCP Server
@@ -35,14 +35,14 @@ pipeline:
 Execute the following command in the terminal to compile:
 
 ```shell
-ultrarag build examples/RAG.yaml
+ultrarag build examples/demos/RAG.yaml
 ```
 
 ## 3. Configure Running Parameters
 
-Modify `examples/parameter/RAG_parameter.yaml`. In RAG scenarios, in addition to configuring the LLM generation backend, you also need to focus on configuring the Embedding retrieval backend.
+Modify `examples/demos/parameter/RAG_parameter.yaml`. In RAG scenarios, in addition to configuring the LLM generation backend, you also need to focus on configuring the Embedding retrieval backend.
 
-```yaml examples/parameter/RAG_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/demos/parameter/RAG_parameter.yaml icon="/images/yaml.svg" 
 benchmark:
   benchmark:
     key_map:

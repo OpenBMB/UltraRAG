@@ -14,7 +14,7 @@ Retriever Server 是 UltraRAG 中的核心检索模块，集成了 模型加载�
 ### 语料库编码与索引
 
 以下示例展示如何使用 Retriever Server 对语料库进行编码与索引构建。
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -29,7 +29,7 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 根据实际情况修改参数文件。下面分别展示两种典型场景：文本语料编码 与 图像语料编码。
@@ -37,7 +37,7 @@ ultrarag build examples/corpus_index.yaml
 1. 文本语料编码
 
 示例：使用 `Qwen3-Embedding-0.6B` 对文本语料进行向量化。
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg" highlight="2"
 retriever:
   backend: sentence_transformers # 我们这里以st为例
   backend_configs:
@@ -98,7 +98,7 @@ retriever:
 2. 图像语料编码
 
 示例：使用 `jinaai/jina-embeddings-v4` 对图像语料进行向量化。
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -167,19 +167,19 @@ retriever:
 运行以下命令执行该 Pipeline：
 
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 编码与索引阶段通常涉及大规模语料处理，耗时较长。建议使用 `screen` 或 `nohup` 将任务挂载至后台运行，例如：
 
 ```shell
-nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
+nohup ultrarag run examples/experiments/corpus_index.yaml > log.txt 2>&1 &
 ```
 
 ### 向量检索
 
 以下示例展示如何使用 Retriever Server 在已构建的索引上执行向量检索任务。
-```yaml examples/corpus_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -196,11 +196,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/corpus_search.yaml
+ultrarag build examples/experiments/corpus_search.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -272,7 +272,7 @@ retriever:
 运行 Pipeline：
 
 ```shell
-ultrarag run examples/corpus_search.yaml
+ultrarag run examples/experiments/corpus_search.yaml
 ```
 
 ### BM25检索
@@ -284,7 +284,7 @@ Step 1：构建 BM25 索引
 
 使用 BM25 进行检索前，需要先对文档进行分词并构建稀疏索引。
 
-```yaml examples/bm25_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/bm25_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -298,11 +298,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/bm25_index.yaml
+ultrarag build examples/experiments/bm25_index.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/bm25_index_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/bm25_index_parameter.yaml icon="/images/yaml.svg"
 retriever:
   backend: sentence_transformers # [!code --]
   backend: bm25 # [!code ++]
@@ -361,14 +361,14 @@ retriever:
 ```
 运行：
 ```shell
-ultrarag run examples/bm25_index.yaml
+ultrarag run examples/experiments/bm25_index.yaml
 ```
 
 Step 2：执行 BM25 检索
 
 索引构建完成后，即可进行基于 BM25 的文档检索。
 
-```yaml examples/bm25_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/bm25_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -384,11 +384,11 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/bm25_search.yaml
+ultrarag build examples/experiments/bm25_search.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/bm25_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/bm25_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -458,7 +458,7 @@ retriever:
 
 运行检索流程：
 ```shell
-ultrarag run examples/bm25_search.yaml
+ultrarag run examples/experiments/bm25_search.yaml
 ```
 
 ### 混合检索
@@ -473,7 +473,7 @@ ultrarag run examples/bm25_search.yaml
 
 <Note>你可以参考本示例，将检索方式灵活扩展为任意组合，例如结合本地知识库与在线 Web 检索，或融合文本与图像等多模态检索结果，以构建更强大的混合检索 Pipeline。</Note>
 
-```yaml examples/hybrid_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/hybrid_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -503,11 +503,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/hybrid_search.yaml
+ultrarag build examples/experiments/hybrid_search.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/hybrid_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/hybrid_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -634,7 +634,7 @@ dense:
 
 运行混合检索 Pipeline：
 ```shell
-ultrarag run examples/hybrid_search.yaml
+ultrarag run examples/experiments/hybrid_search.yaml
 ```
 
 ### 部署检索模型
@@ -684,7 +684,7 @@ screen -r retriever
 
 以 corpus_search Pipeline 为例，只需将检索后端切换为 openai，
 并将 base_url 指向本地 vLLM 服务即可：
-```yaml examples/parameters/corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -789,7 +789,7 @@ UltraRAG 会在启动时自动读取该文件并加载相关配置。
 
 以下示例演示如何使用 Tavily API 进行 Web 检索：
 
-```yaml examples/web_search.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/web_search.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -804,11 +804,11 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/web_search.yaml
+ultrarag build examples/experiments/web_search.yaml
 ```
 
 在自动生成的参数文件中，填写数据路径与检索参数：
-```yaml examples/parameters/web_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/web_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -826,7 +826,7 @@ retriever:
 
 执行以下命令即可启动 Web 检索流程：
 ```shell
-ultrarag run examples/web_search.yaml
+ultrarag run examples/experiments/web_search.yaml
 ```
 
 <Note>你可以将 retriever_tavily_search 替换为 retriever_exa_search 或 retriever_zhipuai_search 作为 Web 检索源。</Note>
@@ -937,7 +937,7 @@ Server 启动后，将常驻内存，无需重复加载语料与索引。
 
 在线检索时，无需重新初始化 retriever，只需在 pipeline 中指定已部署的地址：
 
-```yaml examples/deploy_corpus_search.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/deploy_corpus_search.yaml icon="/images/yaml.svg" 
 #  Deploy Corpus Search Demo
 
 # MCP Server
@@ -954,11 +954,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/deploy_corpus_search.yaml
+ultrarag build examples/experiments/deploy_corpus_search.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/deploy_corpus_search_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -977,5 +977,5 @@ retriever:
 
 运行 Pipeline：
 ```shell
-ultrarag run examples/deploy_corpus_search.yaml
+ultrarag run examples/experiments/deploy_corpus_search.yaml
 ```

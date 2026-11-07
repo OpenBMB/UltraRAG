@@ -61,7 +61,7 @@ Finally, the model generates a complete answer based on the user's question and 
 
 The code implementation of this example is very concise, mainly relying on custom extensions of router and prompt tool. Interested users can view the source code directly. The following is the complete pipeline definition:
 
-```yaml examples/webnote_websearch.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/webnote_websearch.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -123,12 +123,12 @@ First, create a new file named `sample_light_ds.jsonl` under the data folder and
 Execute the following command to generate the parameter file corresponding to the pipeline:
 
 ```shell
-ultrarag build examples/webnote_websearch.yaml
+ultrarag build examples/experiments/webnote_websearch.yaml
 ```
 
 Modify parameters according to actual conditions, for example:
 
-```yaml examples/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -189,7 +189,7 @@ retriever:
 
 Before running, don't forget to set your API Key:
 ```shell
-ultrarag examples/webnote_websearch.yaml
+ultrarag examples/experiments/webnote_websearch.yaml
 ```
 
 After running, you can visually view the generated content through the Case Study Viewer:

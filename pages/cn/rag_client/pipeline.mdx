@@ -21,7 +21,7 @@ icon: "diagram-project"
 - `servers`：声明当前流程中所使用的所有 MCP Server 模块。每个 Server 对应一个功能模块（如检索、生成、评测等），键为模块名称，值为其在项目中的路径。
 - `pipeline`：定义任务的执行逻辑。其中每一项表示一个执行步骤或流程控制节点，支持串行、循环与分支判断等控制结构。
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg"
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever

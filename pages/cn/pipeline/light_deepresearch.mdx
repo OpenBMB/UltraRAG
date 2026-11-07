@@ -62,7 +62,7 @@ UltraRAG 会在启动时自动读取该文件并加载相关配置。
 
 这个示例的代码实现非常简洁，主要依赖 router 与 prompt tool 的自定义扩展。感兴趣的小伙伴可以直接查看源码。以下是完整的 pipeline 定义：
 
-```yaml examples/webnote_websearch.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/webnote_websearch.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -124,12 +124,12 @@ pipeline:
 执行以下命令生成 pipeline 对应的参数文件：
 
 ```shell
-ultrarag build examples/webnote_websearch.yaml
+ultrarag build examples/experiments/webnote_websearch.yaml
 ```
 
 根据实际情况对参数进行修改，例如：
 
-```yaml examples/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/webnote_websearch_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -190,7 +190,7 @@ retriever:
 
 在运行前，不要忘记设置你的 API Key：
 ```shell
-ultrarag examples/webnote_websearch.yaml
+ultrarag examples/experiments/webnote_websearch.yaml
 ```
 
 运行完成后，你可以通过 Case Study Viewer 可视化地查看生成内容：

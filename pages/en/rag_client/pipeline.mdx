@@ -21,7 +21,7 @@ In UltraRAG, Pipelines are written in the form of YAML files to define the compl
 - `servers`: Declares all MCP Server modules used in the current process. Each Server corresponds to a functional module (such as retrieval, generation, evaluation, etc.), where the key is the module name and the value is its path in the project.
 - `pipeline`: Defines the execution logic of the task. Each item represents an execution step or process control node, supporting control structures such as serial, loop, and branch judgment.
 
-```yaml examples/rag_full.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/rag_full.yaml icon="/images/yaml.svg"
 servers:
   benchmark: servers/benchmark
   retriever: servers/retriever

@@ -47,7 +47,7 @@ This is a typical Wiki corpus, where `id` is the unique identifier of the docume
 
 ### Write Encoding and Indexing Pipeline
 
-```yaml examples/corpus_index.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_index.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   retriever: servers/retriever
@@ -63,12 +63,12 @@ Here a minimal three-step process is defined: Initialization → Embedding → I
 ### Compile Pipeline File
 
 ```shell
-ultrarag build examples/corpus_index.yaml
+ultrarag build examples/experiments/corpus_index.yaml
 ```
 
 ### Modify Parameter File
 
-```yaml examples/parameters/corpus_index_parameter.yaml icon="/images/yaml.svg" 
+```yaml examples/experiments/parameter/corpus_index_parameter.yaml icon="/images/yaml.svg" 
 retriever:
   backend: sentence_transformers
   backend_configs:
@@ -130,13 +130,13 @@ retriever:
 ### Run Pipeline File
 
 ```shell
-ultrarag run examples/corpus_index.yaml
+ultrarag run examples/experiments/corpus_index.yaml
 ```
 
 The encoding and indexing phase usually involves large-scale corpus processing and takes a long time. It is recommended to use `screen` or `nohup` to mount the task to run in the background, for example:
 
 ```shell
-nohup ultrarag run examples/corpus_index.yaml > log.txt 2>&1 &
+nohup ultrarag run examples/experiments/corpus_index.yaml > log.txt 2>&1 &
 ```
 
 After successful execution, you will get the corresponding corpus vector and index files, which can be directly used by the subsequent RAG Pipeline for retrieval.
@@ -166,7 +166,7 @@ Each sample contains a question, standard answers (`golden_answers`), and additi
 
 ### Write RAG Pipeline
 
-```yaml examples/rag.yaml icon="/images/yaml.svg"
+```yaml examples/demos/rag.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -194,12 +194,12 @@ The entire process completes sequentially:
 ### Compile Pipeline File
 
 ```shell
-ultrarag build examples/rag.yaml
+ultrarag build examples/demos/rag.yaml
 ```
 
 ### Modify Parameter File (Specify Dataset, Model, and Retrieval Configuration)
 
-```yaml examples/parameters/rag_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/rag_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -316,7 +316,7 @@ retriever:
 ### Run Pipeline File
 
 ```shell
-ultrarag run examples/rag.yaml
+ultrarag run examples/demos/rag.yaml
 ```
 
 ### View Generation Results

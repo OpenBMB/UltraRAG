@@ -18,7 +18,7 @@ Generation Server 原生兼容以下主流后端：[vLLM](https://github.com/vll
 
 以下示例展示了如何使用 Generation Server 执行一个基础的文本生成任务。该流程通过 Prompt Server 构建输入提示后，调用 LLM 生成回答，并最终完成结果提取与评估。
 
-```yaml examples/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+```yaml examples/experiments/vanilla_llm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -40,11 +40,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/vanilla_llm.yaml
+ultrarag build examples/experiments/vanilla_llm.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -102,7 +102,7 @@ prompt:
 
 运行 Pipeline：
 ```shell
-ultrarag run examples/vanilla_llm.yaml
+ultrarag run examples/experiments/vanilla_llm.yaml
 ```
 
 ### 多模态推理
@@ -119,7 +119,7 @@ ultrarag run examples/vanilla_llm.yaml
 用于指定图像输入路径。
 <Note>如何新增字段请参考[新增加载数据集字段](/pages/cn/rag_servers/benchmark)。</Note>
 
-```yaml examples/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
+```yaml examples/experiments/vanilla_vlm.yaml icon="/images/yaml.svg" highlight="5,12,14"
 # MCP Server
 servers:
   benchmark: servers/benchmark
@@ -141,11 +141,11 @@ pipeline:
 运行以下命令编译 Pipeline：
 
 ```shell
-ultrarag build examples/vanilla_vlm.yaml
+ultrarag build examples/experiments/vanilla_vlm.yaml
 ```
 
 修改参数：
-```yaml examples/parameters/vanilla_vlm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_vlm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:
@@ -208,7 +208,7 @@ prompt:
 
 运行：
 ```shell
-ultrarag run examples/vanilla_vlm.yaml
+ultrarag run examples/experiments/vanilla_vlm.yaml
 ```
 
 <Tip>注意：你可以设置 `image_tag` 如 `<IMG>` 来指定你希望图像输入的位置，为空默认为最左侧输入。</Tip>
@@ -263,7 +263,7 @@ screen -r llm
 **Step 2：修改 Pipeline 参数**
 
 修改参数：
-```yaml examples/parameters/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/vanilla_llm_parameter.yaml icon="/images/yaml.svg"
 benchmark:
   benchmark:
     key_map:

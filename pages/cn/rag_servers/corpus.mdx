@@ -38,7 +38,7 @@ Corpus Server 的主要功能包括：
 
 Corpus Server 支持多种文本解析格式，包括 `.pdf、.txt、.md、.docx、.xps、.oxps、.epub、.mobi、.fb2` 等。
 
-```yaml examples/build_text_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_text_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -51,12 +51,12 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/build_text_corpus.yaml
+ultrarag build examples/experiments/build_text_corpus.yaml
 ```
 
 根据实际情况修改相应字段：
 
-```yaml examples/parameters/build_text_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_text_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   parse_file_path: data/UltraRAG.pdf
   text_corpus_save_path: corpora/text.jsonl
@@ -67,7 +67,7 @@ corpus:
 运行 Pipeline：
 
 ```shell
-ultrarag run examples/build_text_corpus.yaml
+ultrarag run examples/experiments/build_text_corpus.yaml
 ```
 
 执行成功后，系统会自动解析文本并输出标准化语料文件，示例如下：
@@ -80,7 +80,7 @@ ultrarag run examples/build_text_corpus.yaml
 在多模态 RAG 场景中，[一类方法](https://arxiv.org/abs/2410.10594)是将文档页面直接转换为图像，并以完整图像形式进行检索与生成。
 这种方式的优势在于能够保留文档的排版、格式与视觉结构，从而使检索和理解更贴近真实阅读场景。
 
-```yaml examples/build_image_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_image_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -93,12 +93,12 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/build_image_corpus.yaml
+ultrarag build examples/experiments/build_image_corpus.yaml
 ```
 
 根据实际情况修改相应字段：
 
-```yaml examples/parameters/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_image_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl
   parse_file_path: data/UltraRAG.pdf
@@ -108,7 +108,7 @@ corpus:
 运行 Pipeline：
 
 ```shell
-ultrarag run examples/build_image_corpus.yaml
+ultrarag run examples/experiments/build_image_corpus.yaml
 ```
 
 执行成功后，系统将保存生成的图像语料文件，每条记录包含图像标识符与相对路径，生成的 .jsonl 文件可直接作为多模态检索或生成任务的输入。输出示例如下：
@@ -124,7 +124,7 @@ ultrarag run examples/build_image_corpus.yaml
 [MinerU](https://github.com/opendatalab/MinerU) 是业界广受好评的 PDF 解析框架，支持高精度的文本与版面结构提取。
 UltraRAG 将 MinerU 无缝集成为内置工具，可直接在 Pipeline 中调用，实现一站式的 PDF → 文本 + 图像 语料构建。
 
-```yaml examples/build_mineru_corpus.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/build_mineru_corpus.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -138,12 +138,12 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/build_mineru_corpus.yaml
+ultrarag build examples/experiments/build_mineru_corpus.yaml
 ```
 
 根据实际情况修改相应字段：
 
-```yaml examples/parameters/build_mineru_corpus_parameter.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/parameter/build_mineru_corpus_parameter.yaml icon="/images/yaml.svg"
 corpus:
   image_corpus_save_path: corpora/image.jsonl    # 图像语料保存路径
   mineru_dir: corpora/                           # MinerU 解析结果保存目录
@@ -158,7 +158,7 @@ corpus:
 运行 Pipeline（首次执行时需下载 MinerU 模型，速度较慢）：
 
 ```shell
-ultrarag run examples/build_mineru_corpus.yaml
+ultrarag run examples/experiments/build_mineru_corpus.yaml
 ```
 
 执行成功后，系统将自动输出对应的 文本语料 与 图像语料 文件，其格式与 `build_text_corpus` 和 `build_image_corpus` 一致，可直接用于多模态检索与生成任务。
@@ -171,7 +171,7 @@ UltraRAG 集成了 [chonkie](https://docs.chonkie.ai/common/welcome) 文档切�
 - `Sentence Chunker`：按句子边界切分，保证语义完整性。
 - `Recursive Chunker`：适用于结构良好的长文档（如书籍、论文），能自动按层级划分内容。
 
-```yaml examples/corpus_chunk.yaml icon="/images/yaml.svg"
+```yaml examples/experiments/corpus_chunk.yaml icon="/images/yaml.svg"
 # MCP Server
 servers:
   corpus: servers/corpus
@@ -184,12 +184,12 @@ pipeline:
 编译 Pipeline：
 
 ```shell
-ultrarag build examples/corpus_chunk.yaml
+ultrarag build examples/experiments/corpus_chunk.yaml
 ```
 
 根据实际情况修改相应字段：
 
-```yaml examples/parameters/corpus_chunk_parameter.yaml icon="/images/yaml.svg"                       # 是否将标题附加到每个 chunk 开头
+```yaml examples/experiments/parameter/corpus_chunk_parameter.yaml icon="/images/yaml.svg"                       # 是否将标题附加到每个 chunk 开头
 corpus:
   chunk_backend: token    # 切块策略，可选 token / sentence / recursive
   chunk_backend_configs:
@@ -211,7 +211,7 @@ corpus:
 运行 Pipeline：
 
 ```shell
-ultrarag run examples/corpus_chunk.yaml
+ultrarag run examples/experiments/corpus_chunk.yaml
 ```
 
 执行完成后，系统将输出标准化的切块语料文件，可直接用于后续检索与生成模块。
