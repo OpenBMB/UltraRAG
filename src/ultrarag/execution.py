@@ -111,6 +111,7 @@ class LocalExecutionClient:
         self.remote = create_mcp_client(remote_cfg) if remote_names else None
         self._entered = False
         self._entry_depth = 0
+        self._lifecycle_lock = asyncio.Lock()
         self._lifespans = AsyncExitStack()
 
     def _load(self, name: str, path: str) -> Any:
@@ -174,6 +175,10 @@ class LocalExecutionClient:
         return app
 
     async def __aenter__(self) -> Self:
+        async with self._lifecycle_lock:
+            return await self._enter()
+
+    async def _enter(self) -> Self:
         if self._entered:
             self._entry_depth += 1
             return self
@@ -191,10 +196,19 @@ class LocalExecutionClient:
             self._entry_depth = 1
             return self
         except BaseException as exc:
-            await self.__aexit__(type(exc), exc, exc.__traceback__)
+            await self._exit(type(exc), exc, exc.__traceback__)
             raise
 
     async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        async with self._lifecycle_lock:
+            await self._exit(exc_type, exc, tb)
+
+    async def _exit(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,

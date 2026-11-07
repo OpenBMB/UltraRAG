@@ -14,6 +14,50 @@ from ultrarag.execution import LocalExecutionClient
 from ultrarag.local_server import LocalServer
 
 
+def test_concurrent_local_contexts_share_one_startup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def exercise() -> None:
+        entered, release = asyncio.Event(), asyncio.Event()
+        loads = []
+        exits = []
+
+        @asynccontextmanager
+        async def lifespan(app):
+            entered.set()
+            await release.wait()
+            try:
+                yield
+            finally:
+                exits.append(app.name)
+
+        app = LocalServer("shared", lifespan=lifespan)
+        adapter = LocalExecutionClient(
+            {"mcpServers": {}}, {"shared": {"path": "shared"}}
+        )
+
+        def load(*args):
+            loads.append(True)
+            return app
+
+        monkeypatch.setattr(adapter, "_load", load)
+        first = asyncio.create_task(adapter.__aenter__())
+        await entered.wait()
+        second = asyncio.create_task(adapter.__aenter__())
+        await asyncio.sleep(0.02)
+        release.set()
+        await asyncio.gather(first, second)
+        try:
+            assert len(loads) == 1
+            await adapter.__aexit__(None, None, None)
+            assert adapter.local["shared"] is app
+        finally:
+            await adapter.__aexit__(None, None, None)
+        assert exits == ["shared"]
+
+    asyncio.run(exercise())
+
+
 def test_nested_local_client_keeps_registrations_until_outer_exit(
     tmp_path: Path,
 ) -> None:
