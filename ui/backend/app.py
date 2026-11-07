@@ -25,6 +25,8 @@ from flask import (
 )
 from werkzeug.exceptions import HTTPException
 
+from ultrarag.mcp_logging import redact_config
+
 from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
@@ -2735,7 +2737,9 @@ Be concise and helpful. Provide complete code when suggesting changes.
     if context.get("parameters"):
         import json
 
-        params_str = json.dumps(context["parameters"], indent=2, ensure_ascii=False)
+        params_str = json.dumps(
+            redact_config(context["parameters"]), indent=2, ensure_ascii=False
+        )
         context_info.append(f"Current parameters:\n```json\n{params_str}\n```")
 
     if context_info:
