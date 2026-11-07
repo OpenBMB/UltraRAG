@@ -24,16 +24,16 @@ def redact_config(value: Any) -> Any:
     if isinstance(value, Mapping):
         result = {}
         for key, item in value.items():
-            name = str(key).lower()
+            name = str(key).lower().replace("_", "").replace("-", "")
             sensitive = name in {"token", "key"} or any(
                 part in name
                 for part in (
-                    "api_key",
+                    "apikey",
                     "password",
                     "secret",
                     "authorization",
-                    "access_token",
-                    "refresh_token",
+                    "accesstoken",
+                    "refreshtoken",
                 )
             )
             result[key] = "[REDACTED]" if sensitive and item else redact_config(item)
