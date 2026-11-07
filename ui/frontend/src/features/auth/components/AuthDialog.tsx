@@ -40,6 +40,7 @@ export function AuthDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!username.trim() || !password.trim()) return;
+    try {
     if (mode === "login") {
       await onLogin({ username: username.trim(), password });
     } else {
@@ -47,6 +48,9 @@ export function AuthDialog({
     }
     setPassword("");
     onOpenChange(false);
+    } catch {
+      // Keep the dialog and inputs available; the caller supplies the error message.
+    }
   };
 
   return (
