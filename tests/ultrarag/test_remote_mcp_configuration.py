@@ -3,13 +3,13 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
 import yaml
 from fastmcp import Client
 
-import ultrarag.client as client
+from ultrarag import client
 
 
 def write_yaml(path: Path, data: dict[str, Any]) -> None:
@@ -58,10 +58,10 @@ def test_build_accepts_remote_configuration(
             self.validated_client = Client(config)
             captured.update(config)
 
-        async def __aenter__(self) -> "BuildClient":
+        async def __aenter__(self) -> Self:
             return self
 
-        async def __aexit__(self, *args: Any) -> None:
+        async def __aexit__(self, *args: object) -> None:
             return None
 
         async def call_tool(self, name: str, arguments: dict[str, Any]) -> None:
@@ -69,11 +69,11 @@ def test_build_accepts_remote_configuration(
             parameter_file = Path(arguments["parameter_file"])
             write_yaml(parameter_file.with_name("server.yaml"), server_metadata(url))
 
-    monkeypatch.setattr(client, "Client", BuildClient)
+    monkeypatch.setattr(client, "create_mcp_client", BuildClient)
     asyncio.run(client.build(str(pipeline)))
 
     assert checked_versions == [20]
-    assert captured["mcpServers"]["remote"]["args"] == ["-y", "mcp-remote", url]
+    assert captured["mcpServers"]["remote"]["args"] == ["-y", "mcp-remote@0.16.1", url]
     generated = yaml.safe_load(
         (pipeline.parent / "server" / "pipeline_server.yaml").read_text("utf-8")
     )
@@ -84,7 +84,7 @@ def test_build_accepts_remote_configuration(
 def test_runtime_accepts_remote_configuration(
     remote_pipeline: tuple[Path, Path, list[int]], scheme: str
 ) -> None:
-    pipeline, directory, checked_versions = remote_pipeline
+    pipeline, _directory, checked_versions = remote_pipeline
     url = f"{scheme}://example.invalid/mcp"
     write_yaml(
         pipeline.parent / "server" / "pipeline_server.yaml",
@@ -101,6 +101,6 @@ def test_runtime_accepts_remote_configuration(
     assert checked_versions == [20]
     assert context["mcp_cfg"]["mcpServers"]["remote"]["args"] == [
         "-y",
-        "mcp-remote",
+        "mcp-remote@0.16.1",
         url,
     ]

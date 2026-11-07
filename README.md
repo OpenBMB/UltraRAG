@@ -127,7 +127,7 @@ If you haven't installed uv yet, please execute:
 
 ```shell
 ## Direct installation
-pip install uv==0.12.0
+python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 ## Download
 curl -LsSf https://astral.sh/uv/0.12.0/install.sh | sh
 ```
@@ -149,6 +149,14 @@ Choose one of the following modes to install dependencies based on your use case
   ```shell
   uv sync
   ```
+  This installs the local execution mode. Use `--no-mcp` with `build`, `run`,
+  and `show ui`. Local pipelines do not start MCP server processes.
+
+- MCP execution (the default when `--no-mcp` is omitted):
+  ```shell
+  uv sync --extra mcp
+  ```
+  Remote MCP servers also require this extra when mixed into a local pipeline.
 
 - Full installation: If you want to fully experience UltraRAG's retrieval, generation, corpus processing, and evaluation functions, please run:
   ```shell
@@ -183,6 +191,9 @@ source .venv/bin/activate
 ```shell
 # Core dependencies
 uv pip install -e .
+
+# Existing MCP execution mode
+uv pip install -e ".[mcp]"
 
 # Full installation
 uv pip install -e ".[all]"
@@ -220,7 +231,8 @@ manually to force a rebuild. The existing `v0.3.0`, `v0.3.0-base-cpu`, and
 moving tags; pin an image digest when you need a reproducible deployment.
 
 All three images include the built frontend and Node.js 22 with npm/npx for
-remote HTTP MCP servers. Base images install core Python dependencies; install
+remote HTTP MCP servers. Base images install core Python dependencies and the
+`mcp` extra for their default startup command; install
 the relevant extras if your pipeline uses local retrieval or generation backends.
 
 **Start the Container**
@@ -240,8 +252,20 @@ Note: After the container starts, UltraRAG UI will run automatically. You can di
 After installation, run the following example command to check if the environment is normal:
 
 ```shell
-ultrarag run examples/experiments/sayhello.yaml
+ultrarag build examples/experiments/sayhello.yaml --no-mcp
+ultrarag run examples/experiments/sayhello.yaml --no-mcp
 ```
+
+Use `ultrarag show ui --no-mcp` to select local execution for UI sessions and
+knowledge-base jobs. Python callers select the same mode with
+`initialize(..., no_mcp=True)` or `PipelineCall(..., no_mcp=True)`.
+Pipeline YAML and parameter files are shared by both modes. Local server scripts
+must register through `UltraRAG_MCP_Server`; scripts using FastMCP directly need
+to migrate their registrations or continue using the default MCP mode.
+Local execution supports registered tools and prompts. FastMCP-specific Context
+injection, authentication, middleware and resources require MCP mode.
+Long-running Python applications should call `ultrarag.api.shutdown()` when
+finished with `ToolCall`; inside an async function, use `await shutdown()`.
 
 If you see the following output, the installation is successful:
 

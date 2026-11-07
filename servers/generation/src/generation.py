@@ -6,16 +6,15 @@ from contextlib import contextmanager
 from typing import Any, Dict, List, Union, Optional
 
 from openai import AsyncOpenAI, AuthenticationError
-from openai._utils._logs import httpx_logger
 from tqdm import tqdm
 import base64
 import mimetypes
 
-from fastmcp.exceptions import ToolError
+from ultrarag.errors import ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 
 app = UltraRAG_MCP_Server("generation")
-httpx_logger.setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 @contextmanager
@@ -783,6 +782,7 @@ class Generation:
             app.logger.warning(f"[vllm_shutdown] cleanup warning: {e}")
 
 
+provider = Generation(app)
+
 if __name__ == "__main__":
-    Generation(app)
     app.run(transport="stdio")

@@ -256,7 +256,7 @@ def test_lightresearch_keeps_answer_last_and_saves_state_mapping():
 
 
 def test_documented_lightresearch_pipeline_matches_executable_example():
-    documentation = (ROOT / "docs/llms.txt").read_text()
+    documentation = (ROOT / "docs/llms.txt").read_text(encoding="utf-8")
     marker = '```yaml examples/LightResearch.yaml icon="/images/yaml.svg"\n'
     documented_yaml = documentation.split(marker, 1)[1].split("```", 1)[0]
     executable_yaml = (ROOT / "examples/demos/LightResearch.yaml").read_text()
@@ -334,7 +334,7 @@ def test_ui_sse_final_event_preserves_answer_and_source_ids(
 
     monkeypatch.setattr(ui, "SESSION_MANAGER", SimpleNamespace(get=lambda _: Session()))
     monkeypatch.setattr(
-        ui, "_prepare_chat_context", lambda *args: (parameter_path, "{}", None)
+        ui, "_prepare_chat_context", lambda *args: ({}, None)
     )
     monkeypatch.setattr(
         ui, "_find_memory_answer", lambda *args: ("incorrect memory fallback", None)

@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 from aiohttp import web
-from fastmcp.exceptions import ToolError
+
+from ultrarag.errors import ToolError
 
 RETRIEVER_SRC = Path(__file__).resolve().parents[3] / "servers" / "retriever" / "src"
 sys.path.insert(0, str(RETRIEVER_SRC))

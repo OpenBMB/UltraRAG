@@ -3140,7 +3140,7 @@ If you haven't installed uv yet, please execute:
 
 ```shell
 ## Direct install
-pip install uv
+python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 ## Download script
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```

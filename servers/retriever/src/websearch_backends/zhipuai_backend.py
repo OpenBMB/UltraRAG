@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict, List, Optional, Sequence
 
 import aiohttp
-from fastmcp.exceptions import ToolError
+from ultrarag.errors import ToolError
 
 from .base import BaseWebSearchBackend
 

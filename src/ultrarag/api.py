@@ -1,59 +1,145 @@
 import asyncio
 import os
+import sys
 from types import SimpleNamespace
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import yaml
-from fastmcp import Client
 
-from .mcp_logging import get_logger
 from . import client as _client_mod
+from .mcp_logging import get_logger
 
-_client: Optional[Client] = None
+_client: Optional[Any] = None
+_client_entered = False
+_client_lock: Optional[asyncio.Lock] = None
+_pending_shutdown: Optional[asyncio.Task] = None
+_active_calls: set[asyncio.Task] = set()
+_shutting_down = False
+_shutdown_task: asyncio.Task | None = None
 _servers: Optional[List[str]] = None
 SERVER_ROOT = ""
 logger = None
 
 
-class _CallWrapper:
-    """Wraps a MCP tool so it can be called like a normal Python function."""
+def _event_loop() -> asyncio.AbstractEventLoop:
+    """Reuse an available loop, including after a caller used asyncio.run()."""
+    try:
+        loop = asyncio.get_event_loop_policy().get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
 
-    def __init__(self, client: Client, server: str, tool: str, multi: bool):
+
+async def _close_client(client: Any) -> None:
+    try:
+        for tool in await client.list_tools():
+            if tool.name.endswith("vllm_shutdown"):
+                try:
+                    await client.call_tool(tool.name, {})
+                except Exception as exc:
+                    logger.warning("Cleanup tool %s failed: %s", tool.name, exc)
+    finally:
+        await client.__aexit__(None, None, None)
+
+
+async def _shutdown_async() -> None:
+    global _client, _client_entered, _servers, _pending_shutdown
+    global _shutting_down
+    try:
+        if _active_calls:
+            await asyncio.gather(*tuple(_active_calls), return_exceptions=True)
+        if _pending_shutdown is not None:
+            pending = _pending_shutdown
+            _pending_shutdown = None
+            await pending
+        client, entered = _client, _client_entered
+        _client = None
+        _client_entered = False
+        _servers = None
+        if client is not None and entered:
+            await _close_client(client)
+    finally:
+        _shutting_down = False
+
+
+def shutdown() -> Any:
+    """Release ToolCall services; await the returned task in async applications."""
+    global _shutting_down, _shutdown_task
+    if _shutdown_task is not None and not _shutdown_task.done():
+        return _shutdown_task
+    _shutting_down = True
+    loop = _event_loop()
+    if loop.is_running():
+        _shutdown_task = loop.create_task(_shutdown_async())
+        return _shutdown_task
+    return loop.run_until_complete(_shutdown_async())
+
+
+class _CallWrapper:
+    """Wrap a registered tool so it can be called like a Python function."""
+
+    def __init__(self, client: Any, server: str, tool: str, multi: bool):
         self._client = client
         self._server = server
         self._tool = tool
         self._multi = multi
 
     async def _ensure_client(self):
-        global _client, logger
+        global _client, _client_entered, logger, _pending_shutdown
         if _client is None:
             raise RuntimeError(
                 "[UltraRAG Error] ToolCall was used before `initialize()` was called."
             )
-        try:
-            _ = _client.session
-        except RuntimeError:
-            await _client.__aenter__()
-            tools = await _client.list_tools()
-            tool_name_lst = [
-                tool.name
-                for tool in tools
-                if not tool.name.endswith("_build" if "_" in tool.name else "build")
-            ]
-            logger.info(f"Available tools: {tool_name_lst}")
+        async with _client_lock:
+            if _pending_shutdown is not None:
+                pending = _pending_shutdown
+                _pending_shutdown = None
+                await pending
+            if not _client_entered:
+                await _client.__aenter__()
+                _client_entered = True
+                tools = await _client.list_tools()
+                tool_name_lst = [
+                    tool.name
+                    for tool in tools
+                    if not tool.name.endswith("_build" if "_" in tool.name else "build")
+                ]
+                logger.info(f"Available tools: {tool_name_lst}")
 
     async def _async_call(self, *args, **kwargs):
+        task = asyncio.current_task()
+        if _shutting_down and task not in _active_calls:
+            raise RuntimeError(
+                "ToolCall is shutting down; wait before starting new calls."
+            )
+        _active_calls.add(task)
+        try:
+            return await self._invoke_call(*args, **kwargs)
+        finally:
+            _active_calls.discard(task)
+
+    async def _invoke_call(self, *args, **kwargs):
         global _client, SERVER_ROOT
         await self._ensure_client()
-        concated = f"{self._server}_{self._tool}" if self._multi else self._tool
+        if self._server not in (_servers or []):
+            raise AttributeError(f"Server {self._server} has not been initialized!")
+        concated = f"{self._server}_{self._tool}" if len(_servers) > 1 else self._tool
         param_file = os.path.join(SERVER_ROOT, self._server, "parameter.yaml")
         if os.path.exists(param_file):
-            with open(param_file, "r") as f:
-                parameter = yaml.safe_load(f)
+            with open(param_file, "r", encoding="utf-8") as f:
+                parameter = yaml.safe_load(f) or {}
         else:
             parameter = {}
 
-        with open(os.path.join(SERVER_ROOT, self._server, "server.yaml"), "r") as f:
+        with open(
+            os.path.join(SERVER_ROOT, self._server, "server.yaml"),
+            "r",
+            encoding="utf-8",
+        ) as f:
             try:
                 input_param = yaml.safe_load(f)["tools"][self._tool]["input"]
                 input_keys = list(input_param.keys())
@@ -87,7 +173,7 @@ class _CallWrapper:
         missing = [k for k, v in input_param.items() if v is None]
         if missing:
             raise ValueError(f"[UltraRAG Error] Missing value for key(s): {missing}")
-        result = await self._client.call_tool(concated, input_param)
+        result = await _client.call_tool(concated, input_param)
         return result.data if result else None
 
     def __call__(self, *args, **kwargs):
@@ -100,9 +186,16 @@ class _CallWrapper:
         Returns:
             Tool result (synchronous) or Task (asynchronous if loop is running)
         """
-        loop = asyncio.get_event_loop_policy().get_event_loop()
+        if _shutting_down:
+            raise RuntimeError(
+                "ToolCall is shutting down; wait before starting new calls."
+            )
+        loop = _event_loop()
         if loop.is_running():
-            return loop.create_task(self._async_call(*args, **kwargs))
+            task = loop.create_task(self._async_call(*args, **kwargs))
+            _active_calls.add(task)
+            task.add_done_callback(_active_calls.discard)
+            return task
         else:
             return loop.run_until_complete(self._async_call(*args, **kwargs))
 
@@ -114,7 +207,7 @@ class _ServerProxy(SimpleNamespace):
     `_CallWrapper` bound to that (server, tool) pair.
     """
 
-    def __init__(self, client: Client, name: str, multi: bool):
+    def __init__(self, client: Any, name: str, multi: bool):
         """Initialize server proxy.
 
         Args:
@@ -165,32 +258,53 @@ class _Router(SimpleNamespace):
         return _ServerProxy(_client, server, len(_servers) > 1)
 
 
-def initialize(servers: List[str], server_root: str, log_level: str = "info") -> None:
-    """Initialize MCP servers so they can be accessed via ToolCall.
+def initialize(
+    servers: List[str], server_root: str, log_level: str = "info", no_mcp: bool = False
+) -> None:
+    """Initialize servers so they can be accessed via ToolCall.
 
     Args:
         servers: List of server names to initialize
         server_root: Root directory containing server directories
         log_level: Logging level (default: "info")
+        no_mcp: Execute local registrations in process when True
 
     Raises:
         ValueError: If server path does not exist
     """
-    global _client, _servers, SERVER_ROOT, logger
+    global _client, _client_entered, _servers, SERVER_ROOT, logger
+    global _client_lock, _pending_shutdown
+    if _shutting_down or any(not task.done() for task in _active_calls):
+        raise RuntimeError(
+            "Cannot initialize while ToolCall calls or shutdown are active. "
+            "Await their completion before reinitializing."
+        )
     logger = get_logger("Client", log_level)
-    SERVER_ROOT = server_root
     mcp_cfg = {"mcpServers": {}}
+    server_cfg = {}
     for server_name in servers:
         path = os.path.join(server_root, server_name, "src", f"{server_name}.py")
         if not os.path.exists(path):
             raise ValueError(f"Server path {path} does not exist!")
         mcp_cfg["mcpServers"][server_name] = {
-            "command": "python",
+            "command": sys.executable,
             "args": [path],
             "env": os.environ.copy(),
         }
+        server_cfg[server_name] = {"path": path}
 
-    _client = Client(mcp_cfg)
+    new_client = _client_mod.create_execution_client(mcp_cfg, server_cfg, no_mcp)
+    if _client is not None and _client_entered:
+        loop = _event_loop()
+        closing = _close_client(_client)
+        if loop.is_running():
+            _pending_shutdown = loop.create_task(closing)
+        else:
+            loop.run_until_complete(closing)
+    _client = new_client
+    SERVER_ROOT = server_root
+    _client_lock = asyncio.Lock()
+    _client_entered = False
     _servers = servers
 
 
@@ -201,6 +315,7 @@ async def _pipeline_async(
     pipeline_file: str,
     parameter_file: str,
     log_level: str = "error",
+    no_mcp: bool = False,
 ):
     """Internal async helper that runs a full UltraRAG pipeline.
 
@@ -214,13 +329,16 @@ async def _pipeline_async(
     """
     _client_mod.logger = get_logger("Client", log_level)
 
-    return await _client_mod.run(pipeline_file, parameter_file, return_all=True)
+    return await _client_mod.run(
+        pipeline_file, parameter_file, return_all=True, no_mcp=no_mcp
+    )
 
 
 def PipelineCall(
     pipeline_file: str,
     parameter_file: str,
     log_level: str = "error",
+    no_mcp: bool = False,
 ):
     """Run a full UltraRAG pipeline from Python.
 
@@ -231,16 +349,17 @@ def PipelineCall(
         pipeline_file: Path to pipeline YAML file
         parameter_file: Path to parameter YAML file
         log_level: Logging level (default: "error")
+        no_mcp: Execute local registrations in process when True
 
     Returns:
         Pipeline execution results (synchronous) or Task (asynchronous if loop is running)
     """
-    loop = asyncio.get_event_loop_policy().get_event_loop()
+    loop = _event_loop()
     if loop.is_running():
         return loop.create_task(
-            _pipeline_async(pipeline_file, parameter_file, log_level)
+            _pipeline_async(pipeline_file, parameter_file, log_level, no_mcp)
         )
     else:
         return loop.run_until_complete(
-            _pipeline_async(pipeline_file, parameter_file, log_level)
+            _pipeline_async(pipeline_file, parameter_file, log_level, no_mcp)
         )

@@ -458,7 +458,7 @@ def _run_memory_sync_background(
         KB_TASKS[task_id]["error"] = str(e)
 
 
-def create_app(admin_mode: bool = False) -> Flask:
+def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
     """Create and configure Flask application.
 
     Args:
@@ -467,6 +467,7 @@ def create_app(admin_mode: bool = False) -> Flask:
     Returns:
         Configured Flask application instance
     """
+    pm.configure_execution_mode(no_mcp)
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
     app.config["ADMIN_MODE"] = admin_mode
     app.config["SECRET_KEY"] = os.getenv(

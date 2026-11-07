@@ -25,7 +25,7 @@ _WANTED = {
 
 
 def _load():
-    tree = ast.parse(EVALUATION_SRC.read_text())
+    tree = ast.parse(EVALUATION_SRC.read_text(encoding="utf-8"))
     module = ast.Module(
         body=[
             node

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from PIL import Image
 import uuid
 
-from fastmcp.exceptions import ValidationError, NotFoundError, ToolError
+from ultrarag.errors import ValidationError, NotFoundError, ToolError
 from ultrarag.server import UltraRAG_MCP_Server
 from bm25_tokenizer import build_bm25_splitter
 from index_backends import BaseIndexBackend, create_index_backend
@@ -455,7 +455,7 @@ class Retriever:
         self.contents = []
 
         should_load_corpus_to_memory = (self.backend == "bm25") or (
-            self.index_backend_name in ("faiss", "qdrant")
+            self.index_backend_name in ("faiss", "milvus", "qdrant")
         )
         if should_load_corpus_to_memory and corpus_path and os.path.exists(corpus_path):
             app.logger.info(
@@ -899,10 +899,10 @@ class Retriever:
             vec_ids = np.arange(embedding.shape[0]).astype(np.int64)
 
             build_kwargs: Dict[str, Any] = {}
-            if self.index_backend_name == "qdrant":
+            if self.index_backend_name in ("milvus", "qdrant"):
                 if len(self.contents) != embedding.shape[0]:
                     err_msg = (
-                        f"[qdrant] Corpus size ({len(self.contents)}) does not match "
+                        f"[{self.index_backend_name}] Corpus size ({len(self.contents)}) does not match "
                         f"embedding rows ({embedding.shape[0]})."
                     )
                     app.logger.error(err_msg)
@@ -1211,11 +1211,11 @@ class Retriever:
             app.logger.info(info_msg)
             return
 
-        if overwrite and os.path.exists(bm25_save_path):
-            os.remove(bm25_save_path)
-
-        corpus_tokens = self.tokenizer.tokenize(self.contents, return_as="tuple")
+        corpus_tokens = self.tokenizer.tokenize(
+            self.contents, return_as="tuple", update_vocab=True
+        )
         self.model.index(corpus_tokens)
+        # BM25S saves a directory and replaces its index files in place.
         self.model.save(bm25_save_path, corpus=None)
         self.tokenizer.save_stopwords(bm25_save_path)
         self.tokenizer.save_vocab(bm25_save_path)
@@ -1339,13 +1339,20 @@ class Retriever:
         return {"ret_psg_ls": ret_psg_ls}
 
 
+provider = Retriever(app)
+
 if __name__ == "__main__":
-    if os.name == "nt" and os.environ.get("ULTRARAG_PRELOAD_FAISS") == "1":
+    if os.name == "nt":
+        # On Windows, importing native BLAS/FAISS libraries after the stdio
+        # event loop starts can hang the loader (also reached by BM25/Milvus).
+        # Keep these optional imports outside the MCP event loop.
         try:
-            # Load FAISS before FastMCP starts its event loop on Windows.
+            import scipy.linalg  # noqa: F401
+        except ImportError:
+            pass
+        try:
             import faiss  # noqa: F401
         except ImportError:
             pass
 
-    Retriever(app)
     app.run(transport="stdio")

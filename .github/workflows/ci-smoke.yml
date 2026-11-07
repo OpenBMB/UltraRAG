@@ -9,8 +9,12 @@ on:
 
 jobs:
   sayhello-build-run:
-    name: Sayhello Build and Run
+    name: Sayhello Build and Run (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -18,10 +22,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        run: python -m pip install --upgrade pip uv==0.12.0
+        run: python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 
       - name: Validate dependency lock
         run: |
@@ -32,16 +36,28 @@ jobs:
           fi
 
       - name: Sync Python dependencies
-        run: uv sync
+        run: uv sync --frozen
 
-      - name: Test client launch configurations
-        run: uv run pytest tests/ultrarag -q
+      - name: Verify core installation has no MCP packages
+        run: uv run --frozen python -c "import importlib.util; assert importlib.util.find_spec('fastmcp') is None; assert importlib.util.find_spec('mcp') is None"
 
-      - name: Build sayhello pipeline
-        run: uv run ultrarag build examples/experiments/sayhello.yaml
+      - name: Build sayhello pipeline without MCP
+        run: uv run --frozen ultrarag build examples/experiments/sayhello.yaml --no-mcp
 
-      - name: Run sayhello pipeline
-        run: uv run ultrarag run examples/experiments/sayhello.yaml
+      - name: Run sayhello pipeline without MCP
+        run: uv run --frozen ultrarag run examples/experiments/sayhello.yaml --no-mcp
+
+      - name: Sync MCP dependencies
+        run: uv sync --frozen --extra mcp
+
+      - name: Test execution parity and regressions
+        run: uv run --frozen --extra mcp python -m pytest tests -q
+
+      - name: Build sayhello pipeline with MCP
+        run: uv run --frozen --extra mcp ultrarag build examples/experiments/sayhello.yaml
+
+      - name: Run sayhello pipeline with MCP
+        run: uv run --frozen --extra mcp ultrarag run examples/experiments/sayhello.yaml
 
   frontend-build:
     name: Frontend Build
@@ -85,17 +101,25 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Verify Node bridge prerequisites and frontend route
+      - name: Verify MCP pipelines, Node bridge, and frontend route
         run: |
           docker run --rm --entrypoint sh ultrarag:cpu-smoke -ec '
             node --version
             npx --version
+            ultrarag build examples/experiments/sayhello.yaml
+            ultrarag run examples/experiments/sayhello.yaml
+            ultrarag build examples/experiments/sayhello.yaml --no-mcp
+            ultrarag run examples/experiments/sayhello.yaml --no-mcp
             python -c "from ui.backend.app import create_app; response = create_app().test_client().get(\"/\"); assert response.status_code == 200, response.status_code; assert b\"<html\" in response.data.lower()"
           '
 
   dependency-resolution:
-    name: Resolve unified all-extras environment
+    name: Resolve unified all-extras environment (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -103,10 +127,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install uv
-        run: python -m pip install --upgrade pip uv==0.12.0
+        run: python -m pip install --upgrade "pip>=26.2.2" "uv==0.13.7"
 
       - name: Verify unified environment
         run: uv sync --frozen --dry-run --no-dev --all-extras
