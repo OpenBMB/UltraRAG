@@ -29,6 +29,7 @@ from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
+from .static_assets import prepare_static_response
 from .storage_paths import (
     UI_MEMORY_ROOT_DIR,
     UI_STORAGE_ROOT,
@@ -494,12 +495,8 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
     app.config["KB_VISIBILITY_STORE"] = visibility_store
 
     @app.after_request
-    def _dev_no_cache(response):
-        path = request.path
-        if path.endswith((".js", ".css", ".html")) and "/vendor/" not in path:
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-        return response
+    def _frontend_response(response: Response) -> Response:
+        return prepare_static_response(response)
 
     def _get_authenticated_user_id() -> Optional[str]:
         raw_value = session.get("auth_user_id")
