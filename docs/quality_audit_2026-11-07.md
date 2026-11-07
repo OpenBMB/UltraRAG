@@ -38,6 +38,7 @@ The main weaknesses found were shared state leaking across those boundaries, dup
 | Subprocesses / CLI | `prctl` was attempted on macOS; `preexec_fn` could deadlock in threaded hosts; large logos wrapped on narrow terminals | Linux setup runs in a fresh interpreter; other platforms use their supported path; narrow banners stay readable |
 | SSE | Parsing depended on packet boundaries and LF-only separators | Incremental UTF-8 and line parsing supports CR/LF/CRLF, mixed endings, multiline data, malformed-frame recovery, final frames, and reader cleanup |
 | Chat state | An old turn could write into a newly opened chat; cancellation could display an error or race the next turn | Turn ownership gates updates; new/open/clear/delete/logout paths stop active work; stale history responses are ignored |
+| Engine initialization | Page warmup and immediate send could create competing sessions and overwrite the active engine | Pending initialization is shared per pipeline; failures are released so a later request can retry |
 | Request recovery | A stalled request could hold the UI indefinitely; `Headers` arguments were not merged correctly | JSON requests have bounded timeouts and caller cancellation; stop requests time out after 15 seconds and discard an uncertain cached engine |
 | Settings | Clearing model settings left old values visible; rejected actions could create unhandled promises | Successful clearing resets visible fields, keys are masked, and async action errors are handled |
 | Responsive navigation | Sidebar hid at 992px while its launcher disappeared at 768px | One consistent breakpoint; keyboard focus/escape handling; hidden sidebars and panels are inert |
@@ -52,7 +53,7 @@ The main weaknesses found were shared state leaking across those boundaries, dup
 - Baseline checkout: 96 existing Python tests passed, 1 skipped with FAISS available. The new logging regressions fail against the original implementation and pass after the fix.
 - Updated checkout: 144 Python tests passed, 1 skipped with FAISS available. The suite includes all four CLI logging levels in both transports, real stdio/local parity, remapping, loops, snapshots, independent sessions/imports, shutdown, partial startup, stream failure, failed API batches, configuration writes, static negotiation, and subprocess portability.
 - Core Ruff lint and formatting pass. All 79 repository Python source files were parsed successfully.
-- Frontend lint, TypeScript, production build, and 15 behavioral tests pass. Frontend tests cover SSE framing, UTF-8, cancellation, turn races, stop failures, blocked storage, HTTP deadlines, cancellation reasons, headers, and error status preservation.
+- Frontend lint, TypeScript, production build, and 18 behavioral tests pass. Frontend tests cover SSE framing, UTF-8, cancellation, turn races, stop failures, blocked storage, HTTP deadlines, cancellation reasons, headers, error status preservation, and shared/retryable engine initialization.
 - CI now runs those frontend checks and the generation/retriever regression suites, alongside the existing Python 3.11/3.12, CPU image, dependency-resolution, and CodeQL checks.
 
 ### Live API parity
@@ -85,7 +86,7 @@ The live audit additionally needs the optional CPU FAISS dependency. Temporary t
 
 Both pages were checked at `320×568`, `390×844`, `768×1024`, `820×1180`, `992×900`, `1280×800`, `1920×1080`, and landscape `844×390`. Page width matched viewport width; editor/input/send/toolbar bounds remained reachable.
 
-Observed interactions include sidebar open/close and focus restoration, Escape, language switching and document language, multiline composition, pipeline selection, all builder panels and the assistant drawer, rich tables/code/math, real streaming, starting a new chat during generation, subsequent generation, and clearing model settings. Blocking a lazy builder asset produced the recovery screen; unblocking and reloading restored the builder. Browser emulation/blocking was reset afterward.
+Observed interactions include sidebar open/close and focus restoration, Escape, language switching and document language, multiline composition, pipeline selection, all builder panels and the assistant drawer, rich tables/code/math, real streaming, starting a new chat during generation, subsequent generation, and clearing model settings. Pausing engine warmup, sending, stopping, and starting a new chat produced one initialization request and no duplicate; normal readiness recovered after releasing the request. Blocking a lazy builder asset produced the recovery screen; unblocking and reloading restored the builder. Browser emulation/blocking was reset afterward.
 
 ### Lighthouse
 
@@ -93,12 +94,12 @@ Lighthouse 13.6.0, local production bundle served by Flask, default simulated mo
 
 | Page / device | Baseline P / A / BP / SEO | Updated P / A / BP / SEO |
 | --- | --- | --- |
-| Chat / mobile | 55 / 96 / 100 / 91 | 90 / 100 / 100 / 100 |
+| Chat / mobile | 55 / 96 / 100 / 91 | 100 / 100 / 100 / 100 |
 | Chat / desktop | 74 / 96 / 100 / 91 | 100 / 100 / 100 / 100 |
 | Builder / mobile | Not recorded as an initial baseline | 90 / 100 / 100 / 100 |
 | Builder / desktop | Not recorded as an initial baseline | 100 / 100 / 100 / 100 |
 
-The table uses the final release runs. An earlier updated chat/mobile run scored 100; the final run scored 90 (LCP 3.6 seconds), so the best run is not presented as a guaranteed result. Both sets of reports are retained for comparison.
+The table uses the final release runs after the initialization-race fix. Updated chat/mobile runs ranged from 90 to 100; the final run scored 100 (LCP 1.4 seconds), while the preceding run scored 90 (LCP 3.6 seconds). These measurements are not guaranteed scores. Earlier reports are retained for comparison.
 
 The initial monolithic JavaScript asset was about 1.85 MB (578 KB gzip). The new bootstrap is about 259 KB (82 KB gzip), with separate chat, builder, shared, and Markdown chunks. Chat's initial application chunks total approximately 466 KB before gzip; rich Markdown is deferred until used. The original theme and visual treatment are preserved.
 

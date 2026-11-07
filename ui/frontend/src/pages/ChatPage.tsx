@@ -1,4 +1,5 @@
 import { ChatTurnController } from "@/features/chat/ChatTurnController";
+import { SingleFlight } from "@/shared/lib/singleFlight";
 import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, MouseEvent } from "react";
@@ -750,6 +751,7 @@ export function ChatPage() {
   const [guestSessions, setGuestSessions] = useState<ChatSession[]>([]);
 
   const activeEngineRef = useRef<Record<string, string>>(readStoredEngineMap());
+  const engineStartsRef = useRef(new SingleFlight<string>());
   const turnsRef = useRef(new ChatTurnController());
   const historyLoadRef = useRef(0);
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
@@ -1486,23 +1488,25 @@ export function ChatPage() {
     if (!selectedPipeline) {
       throw new Error("Please select a pipeline before chatting.");
     }
-    const cachedSessionId = activeEngineRef.current[selectedPipeline];
-    if (cachedSessionId) {
-      try {
-        // Reuse existing engine session if possible; backend get_or_create is idempotent.
-        await startPipelineDemoSession(selectedPipeline, cachedSessionId);
-        return cachedSessionId;
-      } catch {
-        delete activeEngineRef.current[selectedPipeline];
-        saveEngines();
+    return engineStartsRef.current.run(selectedPipeline, async () => {
+      const cachedSessionId = activeEngineRef.current[selectedPipeline];
+      if (cachedSessionId) {
+        try {
+          // Reuse existing engine session if possible; backend get_or_create is idempotent.
+          await startPipelineDemoSession(selectedPipeline, cachedSessionId);
+          return cachedSessionId;
+        } catch {
+          delete activeEngineRef.current[selectedPipeline];
+          saveEngines();
+        }
       }
-    }
 
-    const nextSessionId = createSessionId();
-    await startPipelineDemoSession(selectedPipeline, nextSessionId);
-    activeEngineRef.current[selectedPipeline] = nextSessionId;
-    saveEngines();
-    return nextSessionId;
+      const nextSessionId = createSessionId();
+      await startPipelineDemoSession(selectedPipeline, nextSessionId);
+      activeEngineRef.current[selectedPipeline] = nextSessionId;
+      saveEngines();
+      return nextSessionId;
+    });
   }, [saveEngines, selectedPipeline]);
 
   useEffect(() => {
