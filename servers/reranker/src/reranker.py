@@ -145,6 +145,7 @@ class Reranker:
                 raise ValueError(err_msg)
 
             self.rerank_url = base_url
+            self.api_key = cfg.get("api_key") or os.environ.get("LLM_API_KEY")
             self.model_name = model_name
             self.concurrency = concurrency
 
@@ -250,7 +251,10 @@ class Reranker:
                                 ret.append(doc_val)
                         return ret
 
-            async with aiohttp.ClientSession() as session:
+            headers = (
+                {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+            )
+            async with aiohttp.ClientSession(headers=headers) as session:
                 reranked_results = await asyncio.gather(
                     *[
                         rerank_single_oa(session, query, docs)
