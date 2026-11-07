@@ -30,6 +30,7 @@ from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
 from .static_assets import prepare_static_response
+from .session_secret import load_session_secret
 from .storage_paths import (
     UI_MEMORY_ROOT_DIR,
     UI_STORAGE_ROOT,
@@ -471,9 +472,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
     pm.configure_execution_mode(no_mcp)
     app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
     app.config["ADMIN_MODE"] = admin_mode
-    app.config["SECRET_KEY"] = os.getenv(
-        "ULTRARAG_SESSION_SECRET", "ultrarag-dev-session-secret"
-    )
+    app.config["SECRET_KEY"] = load_session_secret(AUTH_DB_PATH.parent / "session.secret")
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
