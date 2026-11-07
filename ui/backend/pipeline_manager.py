@@ -3063,7 +3063,11 @@ def _get_milvus_client() -> Any:
         uri = milvus_cfg.get("uri", "")
         if not uri:
             raise ValueError("URI is empty")
-        return MilvusClient(uri=uri, token=milvus_cfg.get("token", ""))
+        options = {}
+        if str(uri).endswith(".db") and "://" not in str(uri):
+            # Lite rejects idle keepalive pings from newer SDK connection pools.
+            options["grpc_options"] = {"grpc.keepalive_permit_without_calls": False}
+        return MilvusClient(uri=uri, token=milvus_cfg.get("token", ""), **options)
     except Exception as e:
         LOGGER.error(f"Failed to connect to Milvus: {e}")
         raise e
@@ -3088,6 +3092,14 @@ def _get_qdrant_client() -> Any:
     except Exception as e:
         LOGGER.error(f"Failed to connect to Qdrant: {e}")
         raise e
+
+
+def _close_vector_client(client: Any) -> None:
+    if client is not None:
+        try:
+            client.close()
+        except Exception:
+            LOGGER.warning("Vector database client cleanup failed")
 
 
 def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
@@ -3165,6 +3177,7 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
         return items
 
     collections = []
+    client = None
     db_status = "unknown"
     index_backend = load_kb_config().get("index_backend", "milvus")
     try:
@@ -3180,7 +3193,6 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
                         "category": "collection",
                     }
                 )
-            client.close()
         else:
             client = _get_milvus_client()
             names = client.list_collections()
@@ -3199,11 +3211,12 @@ def list_kb_files() -> Dict[str, List[Dict[str, Any]]]:
                         "category": "collection",
                     }
                 )
-            client.close()
         db_status = "connected"
     except Exception as e:
         LOGGER.warning(f"{index_backend.capitalize()} connection failed: {e}")
         db_status = "error"
+    finally:
+        _close_vector_client(client)
 
     return {
         "raw": _scan_files(KB_RAW_DIR, "raw"),
@@ -3460,29 +3473,33 @@ def delete_kb_file(category: str, filename: str) -> Dict[str, str]:
 
 
 def _delete_milvus_collection(name: str) -> Dict[str, str]:
+    client = None
     try:
         client = _get_milvus_client()
         if client.has_collection(name):
             client.drop_collection(name)
             LOGGER.info(f"Dropped collection: {name}")
-        client.close()
         return {"status": "deleted", "collection": name}
     except Exception as e:
         LOGGER.error(f"Failed to drop collection {name}: {e}")
         raise e
+    finally:
+        _close_vector_client(client)
 
 
 def _delete_qdrant_collection(name: str) -> Dict[str, str]:
+    client = None
     try:
         client = _get_qdrant_client()
         if client.collection_exists(name):
             client.delete_collection(name)
             LOGGER.info(f"Dropped Qdrant collection: {name}")
-        client.close()
         return {"status": "deleted", "collection": name}
     except Exception as e:
         LOGGER.error(f"Failed to drop Qdrant collection {name}: {e}")
         raise e
+    finally:
+        _close_vector_client(client)
 
 
 def clear_staging_area() -> Dict[str, Any]:
