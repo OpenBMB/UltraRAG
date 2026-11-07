@@ -178,7 +178,19 @@ class ToolWorkspace:
     def _pipeline(self, name: str = "") -> dict:
         if not name and self.draft:
             return parse_document(self.draft)
-        document = pm.load_pipeline(pm._sanitize_pipeline_name(name or self.name))
+        safe_name = pm._sanitize_pipeline_name(name or self.name)
+        path = pm._find_pipeline_file(safe_name)
+        if path is not None:
+            if not any(
+                path.resolve().is_relative_to(folder.resolve())
+                for folder in pm.PIPELINE_SEARCH_DIRS
+            ):
+                raise ValueError(
+                    "Pipeline must stay inside the workspace pipeline directories"
+                )
+            if path.stat().st_size > MAX_TEXT:
+                raise ValueError("Pipeline is too large")
+        document = pm.load_pipeline(safe_name)
         document.pop("_raw_yaml", None)
         return document
 
