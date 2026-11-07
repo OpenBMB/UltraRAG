@@ -16,7 +16,7 @@ from typing import Any
 
 
 async def exercise(
-    root: Path, mode: str, model: str, embedding_model: str
+    root: Path, mode: str, model: str, embedding_model: str, backend: str = "openai"
 ) -> dict[str, Any]:
     import numpy as np
 
@@ -36,6 +36,10 @@ async def exercise(
         "base_url": os.environ["ULTRARAG_AUDIT_API_BASE"],
         "api_key": os.environ["ULTRARAG_AUDIT_API_KEY"],
     }
+    routed_model = f"openai/{model}" if backend == "litellm" else model
+    routed_embedding = (
+        f"openai/{embedding_model}" if backend == "litellm" else embedding_model
+    )
     passages = [
         "Paris is the capital of France.",
         "Beijing is the capital of China.",
@@ -55,17 +59,17 @@ async def exercise(
             await adapter.call_tool(
                 "retriever_retriever_init",
                 {
-                    "model_name_or_path": embedding_model,
+                    "model_name_or_path": routed_embedding,
                     "backend_configs": {
-                        "openai": {
+                        backend: {
                             **endpoint,
-                            "model_name": embedding_model,
+                            "model_name": routed_embedding,
                             "concurrency": 2,
                         }
                     },
                     "batch_size": 2,
                     "corpus_path": str(corpus),
-                    "backend": "openai",
+                    "backend": backend,
                     "index_backend": "faiss",
                     "gpu_ids": None,
                     "index_backend_configs": {
@@ -103,9 +107,9 @@ async def exercise(
                 "generation_generation_init",
                 {
                     "backend_configs": {
-                        "openai": {
+                        backend: {
                             **endpoint,
-                            "model_name": model,
+                            "model_name": routed_model,
                             "concurrency": 2,
                             "retries": 1,
                         }
@@ -114,7 +118,7 @@ async def exercise(
                     "extra_params": {
                         "chat_template_kwargs": {"enable_thinking": False}
                     },
-                    "backend": "openai",
+                    "backend": backend,
                 },
             )
             answers = await adapter.call_tool(
@@ -146,6 +150,7 @@ def main() -> None:
     )
     parser.add_argument("--model", required=True)
     parser.add_argument("--embedding-model", required=True)
+    parser.add_argument("--backend", choices=("openai", "litellm"), default="openai")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     for name in ("ULTRARAG_AUDIT_API_KEY", "ULTRARAG_AUDIT_API_BASE"):
@@ -154,12 +159,13 @@ def main() -> None:
     root = args.repository.resolve()
     sys.path.insert(0, str(root / "src"))
     os.environ["PYTHONPATH"] = os.pathsep.join([str(root / "src"), str(root)])
+    os.environ["LITELLM_TELEMETRY"] = "False"
     # Import native FAISS before entering the event loop, as in server startup.
     import faiss  # noqa: F401
 
     async def run() -> list[dict[str, Any]]:
         return [
-            await exercise(root, mode, args.model, args.embedding_model)
+            await exercise(root, mode, args.model, args.embedding_model, args.backend)
             for mode in ("mcp", "local")
         ]
 
