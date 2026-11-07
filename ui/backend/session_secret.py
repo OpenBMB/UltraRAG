@@ -28,6 +28,7 @@ def load_session_secret(path: Path) -> str:
                 # key created concurrently by another application worker.
                 os.link(temporary, path)
             except FileExistsError:
+                # Another worker published its complete key first; reuse it below.
                 pass
         finally:
             if temporary is not None:
