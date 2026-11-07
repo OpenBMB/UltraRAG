@@ -18,7 +18,7 @@ Open `http://127.0.0.1:5050`. Install the extras required by the servers you use
 
 For MCP transport, install `uv sync --extra mcp` and omit `--no-mcp`. Remote MCP entries still require the MCP extra and Node.js 20 or newer in local mode. The YAML format and generated parameters are shared between both modes.
 
-<Note>Builder edits and workspace assistant tools require an administrator account. Sign in when prompted. The CLI has no `--admin` option. Keep the default loopback host for a local session.</Note>
+<Note>Pipeline configuration, Prompt management and workspace assistant tools require an administrator account. Sign in when prompted. A fresh local store initializes `admin` with password `12345678`; change it in account settings before sharing the service. The CLI has no `--admin` option. Keep the default loopback host for a local session.</Note>
 
 ## Create and build a pipeline
 
@@ -38,7 +38,7 @@ The console shows the build start, backend build logs, success or failure, and a
 
 ## Configure a knowledge base
 
-Open Knowledge Base, configure the vector database, then create a collection and upload documents. Configure chunking and the embedding endpoint before indexing. See [database preparation](/pages/en/ui/prepare).
+An administrator configures the shared vector database; other users use that managed connection. Open Knowledge Base, create a collection and upload documents. Configure chunking and the embedding endpoint before indexing. See [database preparation](/pages/en/ui/prepare).
 
 Default processing configurations live under `examples/demos/parameter/`, including `corpus_chunk_parameter.yaml` and the index pipeline parameters. Choose a chat pipeline that uses the same collection and embedding model.
 
