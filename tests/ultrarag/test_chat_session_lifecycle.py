@@ -138,6 +138,46 @@ def test_concurrent_session_starts_enter_one_client(session, monkeypatch):
     assert len(clients) == 1
 
 
+def test_timed_out_multiturn_startup_is_cancelled(session, monkeypatch):
+    cancelled = []
+
+    class Client:
+        async def __aenter__(self):
+            pass
+
+        async def __aexit__(self, *args):
+            pass
+
+    class Future:
+        def result(self, timeout):
+            raise TimeoutError("startup timed out")
+
+        def cancel(self):
+            cancelled.append(True)
+
+    def submit(coroutine, loop):
+        coroutine.close()
+        return Future()
+
+    with monkeypatch.context() as patch:
+        patch.setattr(pm, "_find_pipeline_file", lambda _: Path("multiturn.yaml"))
+        patch.setattr(
+            pm, "_resolve_parameter_path", lambda *args, **kwargs: Path("params.yaml")
+        )
+        patch.setattr(
+            pm,
+            "_ensure_client_funcs",
+            lambda: {
+                "load_ctx": lambda *args, **kwargs: {"mcp_cfg": {}, "server_cfg": {}},
+                "create_client": lambda *args: Client(),
+            },
+        )
+        patch.setattr(pm.asyncio, "run_coroutine_threadsafe", submit)
+        session.init_multiturn_client()
+    assert cancelled == [True]
+    assert session._multiturn_active is False
+
+
 def test_overlapping_requests_cannot_replace_the_running_task(session, monkeypatch):
     started, release = threading.Event(), threading.Event()
 
