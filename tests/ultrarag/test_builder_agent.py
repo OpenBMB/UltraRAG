@@ -245,3 +245,21 @@ def test_parameter_proposals_reject_nested_unsafe_keys(workspace):
             "propose_parameter",
             {"path": "hello.count", "value": {"__proto__": {"x": 1}}},
         )
+
+
+def test_event_bursts_fail_with_a_visible_error_instead_of_silent_completion(
+    monkeypatch,
+):
+    async def burst(settings, messages, context, emit):
+        for _ in range(1000):
+            emit({"type": "token", "content": "x"})
+
+    monkeypatch.setattr(agent, "run_agent", burst)
+    run = agent.AgentRun("admin", (SETTINGS, [], {}))
+    run.worker()
+    events = []
+    while not run.events.empty():
+        events.append(run.events.get_nowait())
+    assert run.cancelled.is_set()
+    assert any(event and event["type"] == "error" for event in events)
+    assert not any(event and event["type"] == "final" for event in events)
