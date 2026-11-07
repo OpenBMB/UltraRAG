@@ -5,6 +5,10 @@
   background: var(--bg-surface);
 }
 
+#chat-view .chat-session-bar-title {
+  color: #666;
+}
+
 .react-chat-sidebar {
   width: 280px;
   flex-shrink: 0;
