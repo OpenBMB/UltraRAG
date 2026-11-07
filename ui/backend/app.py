@@ -2378,33 +2378,23 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
                     "Content-Type": "application/json",
                 }
 
-                # Try to list models or send a simple request
-                test_url = f"{base_url}/models"
-                resp = requests.get(test_url, headers=headers, timeout=10)
-
-                if resp.status_code == 200:
-                    return jsonify({"success": True, "model": model})
-                else:
-                    # Try a simple completion as fallback
-                    chat_url = f"{base_url}/chat/completions"
-                    test_payload = {
-                        "model": model,
-                        "messages": [{"role": "user", "content": "Hi"}],
-                        "max_tokens": 5,
-                    }
-                    resp = requests.post(
-                        chat_url, headers=headers, json=test_payload, timeout=15
-                    )
-
-                    if resp.status_code == 200:
-                        return jsonify({"success": True, "model": model})
-                    else:
-                        return jsonify(
-                            {
-                                "success": False,
-                                "error": f"API returned {resp.status_code}: {resp.text[:200]}",
-                            }
-                        )
+                # A reachable catalog does not prove that this key can use the selected model.
+                resp = requests.post(
+                    f"{base_url}/chat/completions",
+                    headers=headers,
+                    json={"model": model, "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 5},
+                    timeout=15,
+                )
+                if resp.status_code != 200:
+                    return jsonify({"success": False, "error": f"Selected model returned HTTP {resp.status_code}"})
+                try:
+                    result = resp.json()
+                except ValueError:
+                    return jsonify({"success": False, "error": "Model returned invalid JSON"})
+                choices = result.get("choices") if isinstance(result, dict) else None
+                if not isinstance(choices, list) or not choices:
+                    return jsonify({"success": False, "error": "Model returned no completion choices"})
+                return jsonify({"success": True, "model": model})
 
             elif provider == "anthropic":
                 headers = {
