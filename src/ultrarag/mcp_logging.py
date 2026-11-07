@@ -1,7 +1,8 @@
 import logging
 import os
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -16,6 +17,30 @@ _LOG_LEVELS = {
 
 _LOGGING_INITIALIZED = False
 _LOGFILE_PATH: str | None = None
+
+
+def redact_config(value: Any) -> Any:
+    """Copy diagnostic payloads while hiding credential-bearing fields."""
+    if isinstance(value, Mapping):
+        result = {}
+        for key, item in value.items():
+            name = str(key).lower()
+            sensitive = name in {"token", "key"} or any(
+                part in name
+                for part in (
+                    "api_key",
+                    "password",
+                    "secret",
+                    "authorization",
+                    "access_token",
+                    "refresh_token",
+                )
+            )
+            result[key] = "[REDACTED]" if sensitive and item else redact_config(item)
+        return result
+    if isinstance(value, (list, tuple)):
+        return [redact_config(item) for item in value]
+    return value
 
 
 def normalize_log_level(level: str | int) -> int:
@@ -59,7 +84,8 @@ def get_logger(
     lvl = (
         normalize_log_level(level)
         if level is not None
-        else base.level if _LOGGING_INITIALIZED
+        else base.level
+        if _LOGGING_INITIALIZED
         else normalize_log_level(os.environ.get("log_level", "info"))
     )
 
@@ -69,9 +95,9 @@ def get_logger(
         if log_file:
             _LOGFILE_PATH = log_file
         else:
-            ts = os.environ.get("ULTRARAG_LOG_TS") or datetime.now().astimezone().strftime(
-                "%Y%m%d_%H%M%S"
-            )
+            ts = os.environ.get(
+                "ULTRARAG_LOG_TS"
+            ) or datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
             _LOGFILE_PATH = os.path.join("logs", f"{ts}.log")
 
         rich_handler = RichHandler(

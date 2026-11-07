@@ -7,8 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+from ultrarag.configuration import Configuration
 from ultrarag.mcp_logging import get_logger, normalize_log_level
 from ultrarag.registration import Registration, build_io_entry
 
@@ -54,7 +53,8 @@ class LocalServer:
             },
         )
         self.name = name
-        # Server registration must not change the application-wide verbosity.
+        # Local servers share the CLI process: registration must not change the
+        # application-wide level or silence other servers and the orchestrator.
         self.logger = get_logger(f"Server.{name}")
         if kwargs.get("log_level") is not None:
             self.logger.setLevel(normalize_log_level(kwargs["log_level"]))
@@ -155,11 +155,7 @@ class LocalServer:
 
     def build(self, parameter_file: str) -> None:
         path = Path(parameter_file)
-        parameters = (
-            yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-            if path.exists()
-            else {}
-        )
+        parameters = Configuration.load_parameter_config(path)
         server_path = parameters.get(
             "path", str(path.parent / "src" / f"{path.parent.name}.py")
         )
@@ -175,8 +171,7 @@ class LocalServer:
                 name: self._entry(reg, parameters) for name, reg in self.prompts.items()
             },
         }
-        with (path.parent / "server.yaml").open("w", encoding="utf-8") as stream:
-            yaml.safe_dump(data, stream, allow_unicode=True, sort_keys=False)
+        Configuration.save_config(path.parent / "server.yaml", data)
 
     def run(self, *args: Any, **kwargs: Any) -> None:
         # Main-guarded server registration can be evaluated locally; starting a

@@ -1,3 +1,10 @@
+"""CLI and YAML pipeline orchestration.
+
+Configuration loading lives in ``configuration``, registrations in
+``registration``/``local_server``/``mcp_server``, and transport lifecycles in
+``execution``. This module owns variable resolution and pipeline step order.
+"""
+
 import argparse
 import asyncio
 import contextvars
@@ -6,26 +13,23 @@ import json
 import logging
 import os
 import sys
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Union
-
-import yaml
-from dotenv import load_dotenv
+from typing import Any
 
 from ultrarag.cli import log_server_banner
+from ultrarag.configuration import Configuration
 from ultrarag.execution import LocalExecutionClient
 from ultrarag.execution import create_mcp_client as _create_mcp_client
 from ultrarag.mcp_exceptions import (
-    NodeNotInstalledError,
-    NodeVersionTooLowError,
     check_node_version,
 )
-from ultrarag.mcp_logging import get_logger
+from ultrarag.mcp_logging import get_logger, redact_config
 
 log_level = ""
 logger = get_logger("Client", os.getenv("log_level", "info"))
-PipelineStep = Union[str, Dict[str, Any]]
+PipelineStep = str | dict[str, Any]
 node_status = False
 
 
@@ -77,7 +81,7 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050, no_mcp: bool = False) -
         ) from exc
 
     app = create_app(admin_mode=True, no_mcp=no_mcp)
-    ui_logger = logging.getLogger("UltraRAG-UI")
+    ui_logger = get_logger("UI")
     ui_logger.info("UltraRAG UI started: http://%s:%d", host, port)
 
     try:
@@ -89,7 +93,7 @@ def launch_ui(host: str = "127.0.0.1", port: int = 5050, no_mcp: bool = False) -
 
 
 def launch_case_study(
-    config_path: Optional[str] = None,
+    config_path: str | None = None,
     host: str = "127.0.0.1",
     port: int = 8080,
 ) -> None:
@@ -113,11 +117,13 @@ def launch_case_study(
 
     try:
         from case_study import (
-            app as case_app,
             STATE,
-            load_cases,
-            _expand_cases_if_needed,
             _collect_image_dirs,
+            _expand_cases_if_needed,
+            load_cases,
+        )
+        from case_study import (
+            app as case_app,
         )
     except Exception as exc:
         raise RuntimeError(
@@ -142,9 +148,7 @@ def launch_case_study(
                 "Please provide --config_path or ensure the output/ folder exists."
             )
         pattern = os.path.join(output_dir, "memory_*.json")
-        data_files = sorted(
-            glob_mod.glob(pattern), key=os.path.getmtime, reverse=True
-        )
+        data_files = sorted(glob_mod.glob(pattern), key=os.path.getmtime, reverse=True)
         if not data_files:
             raise RuntimeError(
                 f"No memory_*.json files found in {output_dir}. "
@@ -169,7 +173,7 @@ def launch_case_study(
         allow_headers=["*"],
     )
 
-    case_logger = logging.getLogger("UltraRAG-CaseStudy")
+    case_logger = get_logger("CaseStudy")
     case_logger.info(
         "Case Study Viewer started: http://%s:%d/ (%d files, %d cases from %s)",
         host,
@@ -187,53 +191,12 @@ def launch_case_study(
         ) from exc
 
 
-class Configuration:
-    """Configuration manager for loading environment variables and YAML files."""
-
-    def __init__(self) -> None:
-        """Initialize configuration and load environment variables."""
-        self.load_env()
-
-    @staticmethod
-    def load_env() -> None:
-        """Load environment variables from .env file."""
-        load_dotenv()
-
-    @staticmethod
-    def load_config(file_path: str) -> Dict[str, Any]:
-        """Load YAML configuration file.
-
-        Args:
-            file_path: Path to YAML file
-
-        Returns:
-            Dictionary containing configuration (None if file is empty)
-        """
-        with open(file_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-
-    @staticmethod
-    def load_parameter_config(file_path: Union[str, Path]) -> Dict[str, Any]:
-        """Load parameter configuration from YAML file.
-
-        Args:
-            file_path: Path to parameter YAML file
-
-        Returns:
-            Dictionary containing parameters (empty dict if file doesn't exist)
-        """
-        path = Path(file_path)
-        if not path.is_file():
-            return {}
-        return yaml.safe_load(path.read_text(encoding="utf-8"))
-
-
 ROOT = "BASE"
 SEP = "/"
 # Use ContextVar to implement coroutine-safe loop termination flag
 # Each coroutine (user request) has an independent LoopTerminal copy
-_loop_terminal_var: contextvars.ContextVar[List[bool]] = contextvars.ContextVar(
-    "loop_terminal", default=[]
+_loop_terminal_var: contextvars.ContextVar[list[bool]] = contextvars.ContextVar(
+    "loop_terminal"
 )
 
 
@@ -250,7 +213,7 @@ class _Unset:
 UNSET = _Unset()
 
 
-def parse_path(path: str) -> List[Tuple[int, str]]:
+def parse_path(path: str) -> list[tuple[int, str]]:
     """Parse branch path string into list of (depth, state) tuples.
 
     Example: 'branch1_finished/branch2_retry' → [(1,'finished'), (2,'retry')]
@@ -264,15 +227,14 @@ def parse_path(path: str) -> List[Tuple[int, str]]:
     if not path or path == ROOT:
         return []
     pairs = []
-    if path.startswith(ROOT + SEP):
-        path = path[len(ROOT + SEP) :]
+    path = path.removeprefix(ROOT + SEP)
     for seg in path.split(SEP):
         depth, state = seg.split("_", 1)
         pairs.append((int(depth.replace("branch", "")), state))
     return pairs
 
 
-def elem_match(elem: Dict, pairs: List[Tuple[int, str]]) -> bool:
+def elem_match(elem: dict, pairs: list[tuple[int, str]]) -> bool:
     """Check if element matches all branch state pairs.
 
     Args:
@@ -300,7 +262,7 @@ def is_wrapped_list(lst: Any) -> bool:
     if not isinstance(first, dict):
         return False
     # Check if there are any branch*_state keys
-    return any(k.startswith("branch") and k.endswith("_state") for k in first.keys())
+    return any(k.startswith("branch") and k.endswith("_state") for k in first)
 
 
 class UltraData:
@@ -313,8 +275,8 @@ class UltraData:
     def __init__(
         self,
         pipeline_yaml_path: str,
-        server_configs: Optional[Dict[str, Dict]] = None,
-        parameter_file: Optional[Union[str, Path]] = None,
+        server_configs: dict[str, dict] | None = None,
+        parameter_file: str | Path | None = None,
     ) -> None:
         """Initialize UltraData with pipeline configuration.
 
@@ -354,7 +316,7 @@ class UltraData:
         self.global_vars = {}
         self._extract_io(pipeline.get("pipeline", []))
         # Store history of memory states after each step
-        self.snapshots: List[Dict[str, Any]] = []
+        self.snapshots: list[dict[str, Any]] = []
 
     def _canonical_mem(self, name: str) -> str:
         """Convert memory variable name to canonical format.
@@ -369,7 +331,7 @@ class UltraData:
             return "memory_" + name[4:]
         return name
 
-    def _get_branch_skeleton(self, depth: int) -> Optional[List[Dict[str, Any]]]:
+    def _get_branch_skeleton(self, depth: int) -> list[dict[str, Any]] | None:
         """Get branch skeleton structure for a given depth.
 
         Args:
@@ -386,10 +348,10 @@ class UltraData:
 
     def _pad_to_skeleton(
         self,
-        skeleton: List[Dict[str, Any]],
-        parent_pairs: List[Tuple[int, str]],
-        sub_list: List[Any],
-    ) -> List[Dict[str, Any]]:
+        skeleton: list[dict[str, Any]],
+        parent_pairs: list[tuple[int, str]],
+        sub_list: list[Any],
+    ) -> list[dict[str, Any]]:
         """Pad sub-list to match skeleton structure.
 
         Args:
@@ -445,7 +407,7 @@ class UltraData:
 
         logger.debug("Updated memory %s -> %s", mem_key, self.global_vars[mem_key][-1])
 
-    def _extract_io(self, pipeline: List[Any]) -> None:
+    def _extract_io(self, pipeline: list[Any]) -> None:
         """Extract input/output mappings from pipeline configuration.
 
         Args:
@@ -468,7 +430,7 @@ class UltraData:
                         "output": set(),
                     }
 
-                if not srv_name == "prompt":
+                if srv_name != "prompt":
                     tool_input = self.servers[srv_name]["tools"][tool_name][
                         "input"
                     ].copy()
@@ -478,7 +440,7 @@ class UltraData:
                     ].copy()
                 self.io[tool_name_concated]["input"].update(tool_input)
 
-                for _, input_val in tool_input.items():
+                for input_val in tool_input.values():
                     if input_val.startswith("$"):
                         stripped = input_val[1:]
                         if stripped not in self.local_vals[srv_name]:
@@ -493,14 +455,14 @@ class UltraData:
                             if mem_name not in self.global_vars:
                                 self.global_vars[mem_name] = []
                         else:
-                            if input_val not in self.global_vars.keys():
+                            if input_val not in self.global_vars:
                                 raise ValueError(
                                     f"[UltraRAG Error] Variable {input_val} cannot be found from pipeline before {srv_name}.{tool_name} step"
                                 )
                             if f"memory_{input_val}" not in self.global_vars:
                                 self.global_vars[f"memory_{input_val}"] = []
 
-                if not srv_name == "prompt":
+                if srv_name != "prompt":
                     tool_output = self.servers[srv_name]["tools"][tool_name].get(
                         "output", []
                     )
@@ -524,11 +486,11 @@ class UltraData:
                 self._extract_io(pipe["loop"].get("steps", []))
             elif isinstance(pipe, dict) and "branch" in pipe:
                 self._extract_io(pipe["branch"].get("router", []))
-                for _, branch_steps in pipe["branch"]["branches"].items():
+                for branch_steps in pipe["branch"]["branches"].values():
                     self._extract_io(branch_steps)
-            elif isinstance(pipe, dict) and "." in list(pipe.keys())[0]:
-                srv_name, tool_name = list(pipe.keys())[0].split(".")
-                tool_value = pipe[list(pipe.keys())[0]]
+            elif isinstance(pipe, dict) and "." in next(iter(pipe.keys())):
+                srv_name, tool_name = next(iter(pipe.keys())).split(".")
+                tool_value = pipe[next(iter(pipe.keys()))]
                 if len(self.servers) > 1:
                     tool_name_concated = f"{srv_name}_{tool_name}"
                 else:
@@ -540,7 +502,7 @@ class UltraData:
                         "output": set(),
                     }
 
-                if not srv_name == "prompt":
+                if srv_name != "prompt":
                     tool_input = self.servers[srv_name]["tools"][tool_name][
                         "input"
                     ].copy()
@@ -551,7 +513,7 @@ class UltraData:
                 self.io[tool_name_concated]["input"].update(tool_input)
                 tool_input.update(tool_value.get("input", {}))
 
-                for _, input_val in tool_input.items():
+                for input_val in tool_input.values():
                     if input_val.startswith("$"):
                         stripped = input_val[1:]
                         if stripped not in self.local_vals[srv_name]:
@@ -566,14 +528,14 @@ class UltraData:
                             if mem_name not in self.global_vars:
                                 self.global_vars[mem_name] = []
                         else:
-                            if input_val not in self.global_vars.keys():
+                            if input_val not in self.global_vars:
                                 raise ValueError(
                                     f"[UltraRAG Error] Variable {input_val} cannot be found from pipeline before {srv_name}.{tool_name} step"
                                 )
                             if f"memory_{input_val}" not in self.global_vars:
                                 self.global_vars[f"memory_{input_val}"] = []
 
-                if not srv_name == "prompt":
+                if srv_name != "prompt":
                     tool_output = self.servers[srv_name]["tools"][tool_name].get(
                         "output", []
                     )
@@ -603,8 +565,8 @@ class UltraData:
         server_name: str,
         tool_name: str,
         branch_state: str,
-        input_dict: Optional[Dict[str, str]] = None,
-    ) -> Tuple[str, Dict[str, Any], bool]:
+        input_dict: dict[str, str] | None = None,
+    ) -> tuple[str, dict[str, Any], bool]:
         """Get input data for a tool execution step.
 
         Args:
@@ -667,7 +629,10 @@ class UltraData:
                             f"Variable {v} not found in var pool for step {server_name}.{tool_name}"
                         )
         logger.debug(
-            f"Executing step {server_name}.{tool_name} with args: {args_input}"
+            "Executing step %s.%s with args: %s",
+            server_name,
+            tool_name,
+            redact_config(args_input),
         )
         return concated, args_input, signal or False
 
@@ -677,7 +642,7 @@ class UltraData:
         tool_name: str,
         data: Any,
         state: str,
-        output_dict: Optional[Dict[str, str]] = None,
+        output_dict: dict[str, str] | None = None,
     ) -> None:
         """Save output data from a tool execution step.
 
@@ -697,7 +662,7 @@ class UltraData:
         # Track which memory keys are updated for this step
         updated_mem_keys = []
         if server_name == "prompt":
-            output_key = list(self.io[concated]["output"])[0]
+            output_key = next(iter(self.io[concated]["output"]))
             var_name = output_dict.get(output_key, output_key)
 
             # Handle branch case: if in branch, need to pad result to full length
@@ -842,18 +807,20 @@ class UltraData:
                                 for other_key, other_val in self.global_vars.items():
                                     if other_key == output_dict.get(key, key):
                                         continue
-                                    if isinstance(other_val, list) and len(
-                                        other_val
-                                    ) == len(full_list):
-                                        if other_val and isinstance(other_val[0], dict):
-                                            for i in range(len(other_val)):
-                                                if state_key in other_val[i]:
-                                                    other_val[i][state_key] = full_list[
-                                                        i
-                                                    ][state_key]
-                                self.remain_branch = set(
-                                    [new_elem["state"] for new_elem in sub_list]
-                                )
+                                    if (
+                                        isinstance(other_val, list)
+                                        and len(other_val) == len(full_list)
+                                        and other_val
+                                        and isinstance(other_val[0], dict)
+                                    ):
+                                        for i, item in enumerate(other_val):
+                                            if state_key in item:
+                                                item[state_key] = full_list[i][
+                                                    state_key
+                                                ]
+                                self.remain_branch = {
+                                    item["state"] for item in sub_list
+                                }
                             else:
                                 skeleton = self._get_branch_skeleton(depth)
                                 if skeleton:
@@ -890,7 +857,7 @@ class UltraData:
                 return [_serialise(e) for e in obj]
             # FastMCP Message → .content.text
             if hasattr(obj, "content"):
-                content = getattr(obj, "content")
+                content = obj.content
                 if hasattr(content, "text"):
                     return content.text
             # TextContent or similar → .text
@@ -950,7 +917,7 @@ class UltraData:
         return self.remain_branch
 
 
-def local_server_launch_config(path: str) -> Dict[str, Any]:
+def local_server_launch_config(path: str) -> dict[str, Any]:
     """Launch configuration for a local python MCP server.
 
     Spawns the server with ``sys.executable`` rather than the bare ``"python"``
@@ -974,13 +941,34 @@ def local_server_launch_config(path: str) -> Dict[str, Any]:
     }
 
 
-def remote_server_launch_config(url: str) -> Dict[str, Any]:
+def remote_server_launch_config(url: str) -> dict[str, Any]:
     """Create the stdio bridge configuration for a remote HTTP MCP server."""
     return {
         "command": "npx",
         "args": ["-y", "mcp-remote@0.16.1", url],
         "env": os.environ.copy(),
     }
+
+
+def _server_launch_config(name: str, path: str) -> dict[str, Any]:
+    """Validate one server and share launch semantics between build and run.
+
+    Library callers receive typed exceptions. Only the CLI owns process exit;
+    UI requests and Python API users must be able to handle configuration errors.
+    """
+    global node_status
+    if not isinstance(path, str):
+        raise TypeError(f"Server path for {name} must be a string: {path!r}")
+    if path.endswith(".py"):
+        if not Path(path).is_file():
+            raise FileNotFoundError(f"Cannot find the server file of {name}: {path}")
+        return local_server_launch_config(path)
+    if path.startswith(("http://", "https://")):
+        if not node_status:
+            check_node_version(20)
+            node_status = True
+        return remote_server_launch_config(path)
+    raise ValueError(f"Unsupported server type for {name}: {path}")
 
 
 async def build(config_path: str, no_mcp: bool = False) -> None:
@@ -995,7 +983,6 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
         NodeNotInstalledError: If Node.js is required but not installed
         NodeVersionTooLowError: If Node.js version is too low
     """
-    global node_status
     logger.info(f"Building configuration {config_path}")
     cfg_path = Path(config_path)
     pipline_name = cfg_path.stem
@@ -1025,51 +1012,23 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
             "path", str(Path(actual_server_path) / "src" / f"{base_dir_name}.py")
         )
 
-    logger.debug("Server configurations loaded: %s", server_cfgs)
+    logger.debug("Server configurations loaded: %s", redact_config(server_cfgs))
 
-    mcp_servers: Dict[str, Any] = {}
-    for name, conf in server_cfgs.items():
-        path = conf.get("path", "")
-        if path.endswith(".py"):
-            if not os.path.exists(path):
-                raise FileNotFoundError(
-                    f"[UltraRAG Error] Cannot find the server file of {name}: {path}"
-                )
-            mcp_servers[name] = local_server_launch_config(path)
-        elif path.startswith(("http://", "https://")):
-            if not node_status:
-                try:
-                    check_node_version(20)
-                    node_status = True
-                except NodeNotInstalledError as e:
-                    logger.error(
-                        "[UltraRAG Error] Node.js is not installed or not found in PATH. Please install Node.js >= 20."
-                    )
-                    logger.error(str(e))
-                    sys.exit(1)
-                except NodeVersionTooLowError as e:
-                    logger.error(
-                        "[UltraRAG Error] Node.js version is too low. Please upgrade to Node.js >= 20."
-                    )
-                    logger.error(str(e))
-                    sys.exit(1)
-            mcp_servers[name] = remote_server_launch_config(path)
-        else:
-            raise ValueError(
-                f"[UltraRAG Error] Unsupported server type for {name}: {path}"
-            )
+    mcp_servers = {
+        name: _server_launch_config(name, conf.get("path", ""))
+        for name, conf in server_cfgs.items()
+    }
 
     mcp_cfg = {"mcpServers": mcp_servers}
-    logger.debug("Initializing MCP client with config: %s", mcp_cfg)
+    logger.debug("Initializing execution client for servers: %s", list(server_cfgs))
 
     client = create_execution_client(mcp_cfg, server_cfgs, no_mcp=no_mcp)
-    # logging.getLogger("FastMCP").setLevel(logging.WARNING)
     logger.info("Building server configs")
     already_built = []
     parameter_all = {}
     server_all = {}
 
-    async def build_steps(steps: List[PipelineStep]):
+    async def build_steps(steps: list[PipelineStep]):
         nonlocal already_built, parameter_all, server_all
         for step in steps:
             if isinstance(step, str):
@@ -1096,11 +1055,11 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                     if srv_name not in parameter_all:
                         parameter_all[srv_name] = {}
                     if srv_name == "prompt":
-                        input_values: List[str] = serv["prompts"][tool_name][
+                        input_values: list[str] = serv["prompts"][tool_name][
                             "input"
                         ].values()
                     else:
-                        input_values: List[str] = serv["tools"][tool_name][
+                        input_values: list[str] = serv["tools"][tool_name][
                             "input"
                         ].values()
                     for k in input_values:
@@ -1122,15 +1081,14 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                     await build_steps(loop_steps)
                 elif "branch" in step:
                     await build_steps(step["branch"].get("router", []))
-                    for _, branch_steps in step["branch"]["branches"].items():
+                    for branch_steps in step["branch"]["branches"].values():
                         await build_steps(branch_steps)
-                elif "." in list(step.keys())[0]:
-                    srv_name, tool_name = list(step.keys())[0].split(".")
+                elif "." in next(iter(step.keys())):
+                    srv_name, tool_name = next(iter(step.keys())).split(".")
                     full_tool = (
                         f"{srv_name}_build" if len(server_cfgs.keys()) > 1 else "build"
                     )
                     if not srv_name in server_all:
-
                         server_all[srv_name] = {
                             "prompts" if srv_name == "prompt" else "tools": {}
                         }
@@ -1153,11 +1111,11 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                         if srv_name not in parameter_all:
                             parameter_all[srv_name] = {}
                         if srv_name == "prompt":
-                            input_values: List[str] = serv["prompts"][tool_name][
+                            input_values: list[str] = serv["prompts"][tool_name][
                                 "input"
                             ].values()
                         else:
-                            input_values: List[str] = serv["tools"][tool_name][
+                            input_values: list[str] = serv["tools"][tool_name][
                                 "input"
                             ].values()
                         for k in input_values:
@@ -1180,7 +1138,7 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
                         f"[UltraRAG Error] Unrecognized step in branch: {step}"
                     )
             else:
-                raise ValueError(f"[UltraRAG Error] Unrecognized pipeline step: {step}")
+                raise ValueError(f"[UltraRAG Error] Unrecognized pipeline step: {step}")  # noqa: TRY004 - preserve the pipeline validation API
 
     async with client:
         await build_steps(init_cfg.get("pipeline", []))
@@ -1192,24 +1150,21 @@ async def build(config_path: str, no_mcp: bool = False) -> None:
     server_save_path.parent.mkdir(parents=True, exist_ok=True)
     logger.info(f"Saving all server configs to {server_save_path}")
 
-    with open(param_save_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(parameter_all, f, allow_unicode=True, sort_keys=False)
+    await asyncio.to_thread(Configuration.save_config, param_save_path, parameter_all)
     logger.info(f"All parameters have been saved in {param_save_path}")
 
-    for srv_name in server_all:
-        if "path" not in server_all[srv_name]:
-            server_all[srv_name]["path"] = server_cfgs[srv_name]["path"]
+    for srv_name, config in server_all.items():
+        config.setdefault("path", server_cfgs[srv_name]["path"])
 
-    with open(server_save_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(server_all, f, allow_unicode=True, sort_keys=False)
+    await asyncio.to_thread(Configuration.save_config, server_save_path, server_all)
     logger.info(f"All server configurations have been saved in {server_save_path}")
 
 
 def load_pipeline_context(
     config_path: str,
-    param_path: Optional[Union[str, Path]] = None,
+    param_path: str | Path | None = None,
     no_mcp: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Load pipeline context from configuration files.
 
     Args:
@@ -1223,7 +1178,6 @@ def load_pipeline_context(
     Raises:
         FileNotFoundError: If parameter file doesn't exist
     """
-    global node_status
     cfg_path = Path(config_path)
     logger.info(f"Executing pipeline with configuration {config_path}")
     cfg = Configuration()
@@ -1237,6 +1191,12 @@ def load_pipeline_context(
 
     server_config_path = root_path / "server" / f"{cfg_name}_server.yaml"
     all_server_configs = cfg.load_config(server_config_path)
+    missing_servers = set(server_paths) - set(all_server_configs)
+    if missing_servers:
+        raise ValueError(
+            f"Missing built server configuration for {', '.join(sorted(missing_servers))}. "
+            f"Rebuild the pipeline: ultrarag build {config_path}"
+        )
     server_cfg = {
         name: all_server_configs[name]
         for name in server_paths
@@ -1262,34 +1222,15 @@ def load_pipeline_context(
         param_config_path = root_path / "parameter" / f"{cfg_name}_parameter.yaml"
 
     param_cfg = cfg.load_parameter_config(param_config_path)
-    for srv_name in server_cfg.keys():
-        server_cfg[srv_name]["parameter"] = param_cfg.get(srv_name, {})
+    for srv_name, config in server_cfg.items():
+        config["parameter"] = param_cfg.get(srv_name, {})
 
-    mcp_cfg = {"mcpServers": {}}
-    for name, sc in server_cfg.items():
-        path = sc.get("path", "")
-        if path.endswith(".py"):
-            mcp_cfg["mcpServers"][name] = local_server_launch_config(path)
-        elif path.startswith(("http://", "https://")):
-            if not node_status:
-                try:
-                    check_node_version(20)
-                    node_status = True
-                except NodeNotInstalledError as e:
-                    logger.error(
-                        "[UltraRAG Error] Node.js is not installed or not found in PATH. Please install Node.js >= 20."
-                    )
-                    logger.error(str(e))
-                    sys.exit(1)
-                except NodeVersionTooLowError as e:
-                    logger.error(
-                        "[UltraRAG Error] Node.js version is too low. Please upgrade to Node.js >= 20."
-                    )
-                    logger.error(str(e))
-                    sys.exit(1)
-            mcp_cfg["mcpServers"][name] = remote_server_launch_config(path)
-        else:
-            raise ValueError(f"Unsupported server type for {name}: {path}")
+    mcp_cfg = {
+        "mcpServers": {
+            name: _server_launch_config(name, config.get("path", ""))
+            for name, config in server_cfg.items()
+        }
+    }
 
     return {
         "config_path": config_path,
@@ -1303,7 +1244,7 @@ def load_pipeline_context(
     }
 
 
-def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Any:
+def create_mcp_client(mcp_cfg: dict[str, Any]) -> Any:
     """Create and initialize MCP client.
 
     Args:
@@ -1317,7 +1258,7 @@ def create_mcp_client(mcp_cfg: Dict[str, Any]) -> Any:
 
 
 def create_execution_client(
-    mcp_cfg: Dict[str, Any], server_cfg: Dict[str, Any], no_mcp: bool = False
+    mcp_cfg: dict[str, Any], server_cfg: dict[str, Any], no_mcp: bool = False
 ) -> Any:
     """Select the client protocol used by build, run, UI, and Python API."""
     if no_mcp:
@@ -1346,12 +1287,12 @@ def _summarize_step_result(step_name: str, result: Any) -> str:
         else:
             try:
                 content = json.dumps(result)
-            except Exception:
+            except (TypeError, ValueError):
                 return "Step completed."
 
         try:
             data = json.loads(content)
-        except Exception:
+        except (TypeError, ValueError):
             return f"Output: {str(content)[:100]}..."
 
         docs = data.get("ret_psg")
@@ -1366,31 +1307,48 @@ def _summarize_step_result(step_name: str, result: Any) -> str:
                 if isinstance(doc, str):
                     # Relax truncation limit to 300 characters to show more document content
                     doc_preview = doc[:300] + "..." if len(doc) > 300 else doc
-                    summary += f"{i+1}. {doc_preview}\n"
+                    summary += f"{i + 1}. {doc_preview}\n"
 
             return summary.strip()
 
-        if "generate" in step_name.lower():
-            if "ans_ls" in data and data["ans_ls"]:
-                full_text = data["ans_ls"][0]
-                if len(full_text) > 500:
-                    return f"Generated:\n{full_text[:500]}...\n"
-                return f"Generated:\n{full_text}"
+        if "generate" in step_name.lower() and data.get("ans_ls"):
+            full_text = data["ans_ls"][0]
+            if len(full_text) > 500:
+                return f"Generated:\n{full_text[:500]}...\n"
+            return f"Generated:\n{full_text}"
 
         keys = list(data.keys())
         return f"Output Keys: {keys}"
 
-    except Exception as e:
+    except (AttributeError, TypeError, ValueError, IndexError):
         return f"Output: {str(content)[:100]}..."
 
 
 async def execute_pipeline(
     client: Any,
-    context: Dict[str, Any],
+    context: dict[str, Any],
     is_demo: bool = False,
     return_all: bool = False,
-    stream_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
-    override_params: Optional[Dict[str, Any]] = None,
+    stream_callback: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+    override_params: dict[str, Any] | None = None,
+) -> Any:
+    """Execute a pipeline with loop state isolated from nested runs and callers."""
+    token = _loop_terminal_var.set([])
+    try:
+        return await _execute_pipeline(
+            client, context, is_demo, return_all, stream_callback, override_params
+        )
+    finally:
+        _loop_terminal_var.reset(token)
+
+
+async def _execute_pipeline(
+    client: Any,
+    context: dict[str, Any],
+    is_demo: bool = False,
+    return_all: bool = False,
+    stream_callback: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
+    override_params: dict[str, Any] | None = None,
 ) -> Any:
     """Execute UltraRAG pipeline with given context.
 
@@ -1405,10 +1363,6 @@ async def execute_pipeline(
     Returns:
         Pipeline execution results
     """
-    # Create independent loop termination flag list for current coroutine
-    # Use ContextVar to ensure no interference between concurrent users
-    _loop_terminal_var.set([])
-
     config_path = context["config_path"]
     server_cfg = context["server_cfg"]
     param_config_path = context["param_config_path"]
@@ -1423,9 +1377,13 @@ async def execute_pipeline(
         for srv_name, params in override_params.items():
             if srv_name in Data.local_vals:
                 Data.local_vals[srv_name].update(params)
-                logger.info(f"Dynamic Override applied for '{srv_name}': {params}")
+                logger.info(
+                    "Dynamic override applied for '%s' (keys: %s)",
+                    srv_name,
+                    list(params),
+                )
 
-    memory_save_aliases: List[str] = []
+    memory_save_aliases: list[str] = []
     for srv_name, srv_conf in server_cfg.items():
         if not isinstance(srv_conf, dict):
             continue
@@ -1434,8 +1392,7 @@ async def execute_pipeline(
             "save_memory" in srv_conf.get("tools", {})
         )
         is_memory_server = (
-            srv_path.endswith("/memory.py")
-            and "/servers/memory/" in f"/{srv_path}/"
+            srv_path.endswith("/memory.py") and "/servers/memory/" in f"/{srv_path}/"
         )
         if has_declared_save_tool or is_memory_server:
             memory_save_aliases.append(srv_name)
@@ -1448,7 +1405,7 @@ async def execute_pipeline(
         if isinstance(step, str):
             step_name = step
         elif isinstance(step, dict) and len(step) > 0:
-            step_name = list(step.keys())[0]
+            step_name = next(iter(step.keys()))
 
         if not step_name or "." not in step_name:
             return False
@@ -1492,10 +1449,10 @@ async def execute_pipeline(
             if text_val is not None:
                 return str(text_val).strip()
         if hasattr(item, "text"):
-            return str(getattr(item, "text")).strip()
+            return str(item.text).strip()
         return str(item).strip()
 
-    def _extract_first_answer_text(result_obj: Any) -> Optional[str]:
+    def _extract_first_answer_text(result_obj: Any) -> str | None:
         payload: Any = None
         if hasattr(result_obj, "content") and result_obj.content:
             payload = result_obj.content[0].text
@@ -1512,7 +1469,7 @@ async def execute_pipeline(
         elif isinstance(payload, str):
             try:
                 parsed = json.loads(payload)
-            except Exception:
+            except json.JSONDecodeError:
                 stripped = payload.strip()
                 return stripped if stripped else None
         else:
@@ -1534,7 +1491,7 @@ async def execute_pipeline(
         memory_params = Data.local_vals.get(memory_srv, {})
         user_id = str(memory_params.get("user_id", "default")).strip() or "default"
 
-        question_ls: List[str] = []
+        question_ls: list[str] = []
         q_candidate = _unwrap_branch_data(Data.global_vars.get("q_ls"))
         if isinstance(q_candidate, list) and q_candidate:
             parsed_questions = [
@@ -1565,7 +1522,7 @@ async def execute_pipeline(
         try:
             await client.call_tool(save_tool, payload)
             logger.info("Auto-saved memory with %s (input=q_ls).", save_tool)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - optional memory persistence
             logger.warning("Auto memory save failed (%s): %s", save_tool, exc)
 
     generation_services_map = {}
@@ -1576,7 +1533,8 @@ async def execute_pipeline(
             srv_path = str(srv_conf.get("path", "")).replace("\\", "/")
 
             if "servers/generation" in srv_path:
-                sys.path.append(os.getcwd())
+                if os.getcwd() not in sys.path:
+                    sys.path.append(os.getcwd())
                 try:
                     from servers.generation.src.local_generation import (
                         LocalGenerationService,
@@ -1594,7 +1552,7 @@ async def execute_pipeline(
                             backend="openai",
                         )
                         generation_services_map[srv_name] = service_instance
-                    except Exception as e:
+                    except Exception as e:  # noqa: BLE001 - retain normal generation fallback
                         logger.warning(
                             f"Failed to init LocalGenerationService for '{srv_name}': {e}"
                         )
@@ -1606,7 +1564,7 @@ async def execute_pipeline(
     doc_content_to_id = {}
 
     async def _execute_steps(
-        steps: List[PipelineStep],
+        steps: list[PipelineStep],
         depth: int = 0,
         state: str = ROOT,
     ):
@@ -1619,7 +1577,7 @@ async def execute_pipeline(
             if isinstance(step, str):
                 current_step_name = step
             elif isinstance(step, dict) and len(step) > 0:
-                current_step_name = list(step.keys())[0]
+                current_step_name = next(iter(step.keys()))
             else:
                 current_step_name = "Unknown"
 
@@ -1685,8 +1643,8 @@ async def execute_pipeline(
                         server_name, tool_name, router_res, f"{state}{SEP}router"
                     )
                 else:
-                    server_name, tool_name = list(router[-1].keys())[0].split(".")
-                    tool_value = router[-1][list(router[-1].keys())[0]]
+                    server_name, tool_name = next(iter(router[-1].keys())).split(".")
+                    tool_value = router[-1][next(iter(router[-1].keys()))]
                     concated, args_input, _ = Data.get_data(
                         server_name, tool_name, state, tool_value.get("input", {})
                     )
@@ -1719,9 +1677,9 @@ async def execute_pipeline(
                     )
                     if branch_res is not None:
                         result = branch_res
-            elif isinstance(step, dict) and "." in list(step.keys())[0]:
-                server_name, tool_name = list(step.keys())[0].split(".")
-                tool_value = step[list(step.keys())[0]]
+            elif isinstance(step, dict) and "." in next(iter(step.keys())):
+                server_name, tool_name = next(iter(step.keys())).split(".")
+                tool_value = step[next(iter(step.keys()))]
                 concated, args_input, signal = Data.get_data(
                     server_name, tool_name, state, tool_value.get("input", {})
                 )
@@ -1762,8 +1720,9 @@ async def execute_pipeline(
                                         }
                                     )
 
-                        except Exception as e:
-                            logger.error(f"Stream Error: {e}")
+                        except Exception:
+                            logger.exception("Generation stream failed")
+                            raise
                         print("\n")
 
                         mock_json = json.dumps({"ans_ls": [full_content]})
@@ -1845,7 +1804,7 @@ async def execute_pipeline(
                                         title = (
                                             lines[0][:30] + "..."
                                             if lines
-                                            else f"Doc {i+1}"
+                                            else f"Doc {i + 1}"
                                         )
                                         content = text
 
@@ -1868,7 +1827,7 @@ async def execute_pipeline(
                                 await stream_callback(
                                     {"type": "sources", "data": sources}
                                 )
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001 - optional source display must not discard the answer
                             logger.warning(f"Failed to extract sources: {e}")
 
                     if stream_callback:
@@ -1934,8 +1893,9 @@ async def execute_pipeline(
                                         }
                                     )
 
-                        except Exception as e:
-                            logger.error(f"Stream Error: {e}")
+                        except Exception:
+                            logger.exception("Generation stream failed")
+                            raise
                         print("\n")
 
                         mock_json = json.dumps({"ans_ls": [full_content]})
@@ -2010,7 +1970,7 @@ async def execute_pipeline(
                                         title = (
                                             lines[0][:30] + "..."
                                             if lines
-                                            else f"Doc {i+1}"
+                                            else f"Doc {i + 1}"
                                         )
                                         content = text
 
@@ -2032,7 +1992,7 @@ async def execute_pipeline(
                                 await stream_callback(
                                     {"type": "sources", "data": sources}
                                 )
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001 - optional source display must not discard the answer
                             logger.warning(f"Failed to extract sources: {e}")
 
                     if stream_callback:
@@ -2072,7 +2032,7 @@ async def execute_pipeline(
             try:
                 logger.info(f"Invoking cleanup tool: {tool_name}")
                 await client.call_tool(tool_name, {})
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - cleanup must not mask a pipeline failure
                 logger.warning(
                     f"Cleanup tool {tool_name} raised {exc.__class__.__name__}: {exc}"
                 )
@@ -2080,7 +2040,9 @@ async def execute_pipeline(
     await _auto_save_memory_turn(result)
 
     # save memory snapshots
-    Data.write_memory_output(cfg_name, datetime.now().strftime("%Y%m%d_%H%M%S"))
+    Data.write_memory_output(
+        cfg_name, datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
+    )
 
     if return_all:
         if result is None:
@@ -2109,7 +2071,7 @@ async def execute_pipeline(
 
 async def run(
     config_path: str,
-    param_path: Optional[Union[str, Path]] = None,
+    param_path: str | Path | None = None,
     return_all: bool = False,
     is_demo: bool = False,
     no_mcp: bool = False,
@@ -2162,13 +2124,17 @@ def main() -> None:
 
     p_val = subparsers.add_parser("build", help="Build the configuration")
     p_val.add_argument("config")
-    p_val.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
+    p_val.add_argument(
+        "--no-mcp", action="store_true", help="Call local tools without MCP"
+    )
 
     p_run = subparsers.add_parser(
         "run", help="Run the pipeline with the given configuration"
     )
     p_run.add_argument("config")
-    p_run.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
+    p_run.add_argument(
+        "--no-mcp", action="store_true", help="Call local tools without MCP"
+    )
     p_run.add_argument(
         "--param",
         type=str,
@@ -2198,7 +2164,9 @@ def main() -> None:
     p_show_ui = show_sub.add_parser("ui", help="Launch the UltraRAG web UI")
     p_show_ui.add_argument("--host", default="127.0.0.1")
     p_show_ui.add_argument("--port", type=int, default=5050)
-    p_show_ui.add_argument("--no-mcp", action="store_true", help="Call local tools without MCP")
+    p_show_ui.add_argument(
+        "--no-mcp", action="store_true", help="Call local tools without MCP"
+    )
 
     p_show_case = show_sub.add_parser("case", help="Launch Case Study Viewer")
     p_show_case.add_argument(
@@ -2221,14 +2189,16 @@ def main() -> None:
     global log_level, logger
     args = parser.parse_args()
     log_level = args.log_level.lower()
-    os.environ["log_level"] = log_level
+    os.environ["LOG_LEVEL"] = log_level
     logger = get_logger("Client", log_level)
 
     if args.cmd == "build":
         log_server_banner("Building", no_mcp=args.no_mcp)
         asyncio.run(build(args.config, no_mcp=args.no_mcp))
     elif args.cmd == "run":
-        asyncio.run(run(args.config, args.param, is_demo=args.is_demo, no_mcp=args.no_mcp))
+        asyncio.run(
+            run(args.config, args.param, is_demo=args.is_demo, no_mcp=args.no_mcp)
+        )
     elif args.cmd == "show":
         if args.show_target == "ui":
             launch_ui(host=args.host, port=args.port, no_mcp=args.no_mcp)
