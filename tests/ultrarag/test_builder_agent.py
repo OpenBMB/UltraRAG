@@ -263,3 +263,18 @@ def test_event_bursts_fail_with_a_visible_error_instead_of_silent_completion(
     assert run.cancelled.is_set()
     assert any(event and event["type"] == "error" for event in events)
     assert not any(event and event["type"] == "final" for event in events)
+
+
+def test_pipeline_reads_reject_symlink_escape_before_loading(
+    workspace, tmp_path, monkeypatch
+):
+    folder = tmp_path / "demos"
+    folder.mkdir()
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("private: data")
+    link = folder / "linked.yaml"
+    link.symlink_to(outside)
+    monkeypatch.setattr(pm, "PIPELINE_SEARCH_DIRS", (folder,))
+    monkeypatch.setattr(pm, "_find_pipeline_file", lambda _: link)
+    with pytest.raises(ValueError, match="inside the workspace"):
+        workspace.call("read_pipeline", {"name": "linked"})
