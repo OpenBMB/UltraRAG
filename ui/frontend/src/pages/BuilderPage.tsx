@@ -1,4 +1,6 @@
 import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
+import { RequestOwner } from "@/shared/lib/requestOwner";
+import { readJsonEvents } from "@/shared/api/sse";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { RefreshCcw } from "lucide-react";
@@ -536,7 +538,11 @@ export function BuilderPage() {
   const aiPanelResizerRef = useRef<HTMLDivElement | null>(null);
   const preferredPipelineRef = useRef<string>("");
   const aiHistoryLoadedRef = useRef(false);
-  const aiRequestControllerRef = useRef<AbortController | null>(null);
+  const aiRequestsRef = useRef(new RequestOwner());
+  const cancelAiRequest = useCallback(() => {
+    aiRequestsRef.current.cancel();
+    setAiBusy(false);
+  }, []);
   const buildStateTimerRef = useRef<number | null>(null);
   const parameterSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const parameterFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1462,9 +1468,9 @@ export function BuilderPage() {
   }, [aiCurrentSessionId, aiHistoryReady, aiSessions]);
 
   useEffect(() => {
+    const requests = aiRequestsRef.current;
     return () => {
-      aiRequestControllerRef.current?.abort();
-      aiRequestControllerRef.current = null;
+      requests.cancel();
     };
   }, []);
 
@@ -1509,18 +1515,18 @@ export function BuilderPage() {
   }, []);
 
   const switchAiSession = useCallback((sessionId: string) => {
-    aiRequestControllerRef.current?.abort();
     const target = aiSessions.find((session) => session.id === sessionId);
     if (!target) return;
+    cancelAiRequest();
     setAiCurrentSessionId(target.id);
     setAiMessages(target.messages);
     setAiPanelOpen(true);
     setAiView("chat");
     setAiSettingsOpen(false);
-  }, [aiSessions]);
+  }, [aiSessions, cancelAiRequest]);
 
   const handleNewAiSession = useCallback(() => {
-    aiRequestControllerRef.current?.abort();
+    cancelAiRequest();
     const current = aiSessions.find((session) => session.id === aiCurrentSessionId);
     if (current && current.messages.length === 0) {
       setAiPanelOpen(true);
@@ -1535,16 +1541,16 @@ export function BuilderPage() {
     setAiPanelOpen(true);
     setAiView("chat");
     setAiSettingsOpen(false);
-  }, [aiCurrentSessionId, aiSessions, createEmptyAiSession]);
+  }, [aiCurrentSessionId, aiSessions, createEmptyAiSession, cancelAiRequest]);
 
   const deleteAiSession = useCallback((sessionId?: string) => {
     const targetId = sessionId || aiCurrentSessionId;
     if (!targetId) return;
-    aiRequestControllerRef.current?.abort();
     const confirmed = window.confirm(
       t("ai_session_delete_confirm", "Are you sure you want to delete this session?"),
     );
     if (!confirmed) return;
+    if (targetId === aiCurrentSessionId) cancelAiRequest();
     setAiSessions((previous) => {
       const filtered = previous.filter((session) => session.id !== targetId);
       if (!filtered.length) {
@@ -1559,7 +1565,7 @@ export function BuilderPage() {
       return filtered;
     });
     setAiView("home");
-  }, [aiCurrentSessionId, createEmptyAiSession, t]);
+  }, [aiCurrentSessionId, createEmptyAiSession, t, cancelAiRequest]);
 
   const deleteAllAiSessions = useCallback(() => {
     const nonEmptySessions = aiSessions.filter((session) => session.messages.length > 0);
@@ -1571,13 +1577,13 @@ export function BuilderPage() {
       ),
     );
     if (!confirmed) return;
-    aiRequestControllerRef.current?.abort();
+    cancelAiRequest();
     const fallback = createEmptyAiSession();
     setAiSessions([fallback]);
     setAiCurrentSessionId(fallback.id);
     setAiMessages([]);
     setAiView("home");
-  }, [aiSessions, createEmptyAiSession, t]);
+  }, [aiSessions, createEmptyAiSession, t, cancelAiRequest]);
 
   const setAiActionState = useCallback(
     (messageId: string, actionIndex: number, state: AiActionState) => {
@@ -1857,8 +1863,8 @@ export function BuilderPage() {
   }, [panelMode, parameterData, promptText, selectedPipeline, selectedPipelineMeta?.is_ready, selectedPromptPath, yamlText]);
 
   const handleSendAiMessage = async (rawInput?: string) => {
-    if (aiBusy) {
-      aiRequestControllerRef.current?.abort();
+    if (aiRequestsRef.current.busy) {
+      aiRequestsRef.current.abort();
       return;
     }
 
@@ -1896,8 +1902,7 @@ export function BuilderPage() {
     addAiMessage("user", message);
     const placeholder = addAiMessage("assistant", "", [], true);
     setAiBusy(true);
-    const controller = new AbortController();
-    aiRequestControllerRef.current = controller;
+    const controller = aiRequestsRef.current.begin();
     let accumulated = "";
     let finalActions: AiAction[] = [];
 
@@ -1914,6 +1919,8 @@ export function BuilderPage() {
         signal: controller.signal,
       });
 
+      if (!aiRequestsRef.current.owns(controller)) return;
+      controller.signal.throwIfAborted();
       if (!response.ok) {
         throw new Error(response.statusText || t("builder_ai_error_request_failed", "Request failed"));
       }
@@ -1927,6 +1934,8 @@ export function BuilderPage() {
           actions?: unknown[];
           error?: string;
         };
+        if (!aiRequestsRef.current.owns(controller)) return;
+        controller.signal.throwIfAborted();
         if (result.error) throw new Error(String(result.error));
         const content =
           result.content ||
@@ -1944,56 +1953,25 @@ export function BuilderPage() {
         return;
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error(t("builder_ai_error_request_failed", "Request failed"));
-      }
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split("\n\n");
-        buffer = chunks.pop() ?? "";
-
-        for (const chunk of chunks) {
-          const lines = chunk
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean);
-          for (const line of lines) {
-            if (!line.startsWith("data:")) continue;
-            const jsonText = line.slice(5).trim();
-            if (!jsonText) continue;
-            let payload: Record<string, unknown>;
-            try {
-              payload = JSON.parse(jsonText) as Record<string, unknown>;
-            } catch {
-              continue;
-            }
-            const type = String(payload.type ?? "");
-            if (type === "token") {
-              const token = typeof payload.content === "string" ? payload.content : "";
-              if (!token) continue;
-              accumulated += token;
-              updateAiMessage(placeholder.id, { content: accumulated, pending: true });
-            } else if (type === "final") {
-              if (typeof payload.content === "string") {
-                accumulated = payload.content;
-              }
-              finalActions = normalizeAiActions(payload.actions);
-            } else if (type === "error") {
-              throw new Error(
-                typeof payload.message === "string"
-                  ? payload.message
-                  : t("builder_ai_error_generic", "Request failed. Please try again."),
-              );
-            }
-          }
+      if (!response.body) throw new Error(t("builder_ai_error_request_failed", "Request failed"));
+      for await (const raw of readJsonEvents(response.body)) {
+        if (!aiRequestsRef.current.owns(controller)) return;
+        controller.signal.throwIfAborted();
+        if (!raw || typeof raw !== "object") continue;
+        const payload = raw as Record<string, unknown>;
+        if (payload.type === "token") {
+          const token = typeof payload.content === "string" ? payload.content : "";
+          accumulated += token;
+          updateAiMessage(placeholder.id, { content: accumulated, pending: true });
+        } else if (payload.type === "final") {
+          if (typeof payload.content === "string") accumulated = payload.content;
+          finalActions = normalizeAiActions(payload.actions);
+        } else if (payload.type === "error") {
+          throw new Error(typeof payload.message === "string" ? payload.message : t("builder_ai_error_generic", "Request failed. Please try again."));
         }
       }
+      if (!aiRequestsRef.current.owns(controller)) return;
+      controller.signal.throwIfAborted();
 
       if (!accumulated.trim()) {
         accumulated = t("builder_ai_no_response", "No response");
@@ -2006,7 +1984,8 @@ export function BuilderPage() {
       });
       setAiConnected(true);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+      if (!aiRequestsRef.current.owns(controller)) return;
+      if (controller.signal.aborted) {
         if (accumulated.trim()) {
           updateAiMessage(placeholder.id, {
             content: `${accumulated}\n\n*(Stopped)*`,
@@ -2030,8 +2009,7 @@ export function BuilderPage() {
       });
       pushConsoleLog(t("builder_ai_error_with_message", `Request failed: ${errorText}`).replace("{error}", errorText));
     } finally {
-      setAiBusy(false);
-      aiRequestControllerRef.current = null;
+      if (aiRequestsRef.current.finish(controller)) setAiBusy(false);
     }
   };
 
@@ -3971,8 +3949,8 @@ export function BuilderPage() {
                       title={aiBusy ? t("builder_ai_stop", "Stop") : t("builder_ai_send", "Send")}
                       disabled={!aiBusy && !aiInput.trim()}
                       onClick={() => {
-                        if (aiBusy) {
-                          aiRequestControllerRef.current?.abort();
+                        if (aiRequestsRef.current.busy) {
+                          aiRequestsRef.current.abort();
                           return;
                         }
                         void handleSendAiMessage();

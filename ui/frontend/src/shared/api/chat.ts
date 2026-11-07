@@ -15,8 +15,8 @@ export async function fetchChatSessions(limit = 300): Promise<ChatSession[]> {
   return Array.isArray(payload) ? (payload as ChatSession[]) : [];
 }
 
-export async function fetchChatSession(sessionId: string): Promise<ChatSession> {
-  return httpRequest<ChatSession>(`/api/chat/sessions/${encodeURIComponent(sessionId)}`);
+export async function fetchChatSession(sessionId: string, signal?: AbortSignal): Promise<ChatSession> {
+  return httpRequest<ChatSession>(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, { signal });
 }
 
 export async function upsertChatSession(payload: UpsertChatSessionPayload): Promise<ChatSession> {

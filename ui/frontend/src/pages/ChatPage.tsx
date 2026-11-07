@@ -1,5 +1,6 @@
 import { ChatTurnController } from "@/features/chat/ChatTurnController";
 import { SingleFlight } from "@/shared/lib/singleFlight";
+import { RequestOwner } from "@/shared/lib/requestOwner";
 import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent, MouseEvent } from "react";
@@ -753,7 +754,12 @@ export function ChatPage() {
   const activeEngineRef = useRef<Record<string, string>>(readStoredEngineMap());
   const engineStartsRef = useRef(new SingleFlight<string>());
   const turnsRef = useRef(new ChatTurnController());
-  const historyLoadRef = useRef(0);
+  const historyRequestsRef = useRef(new RequestOwner());
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const cancelHistoryLoad = useCallback(() => {
+    historyRequestsRef.current.cancel();
+    setHistoryLoading(false);
+  }, []);
   const chatHistoryRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -797,12 +803,17 @@ export function ChatPage() {
 
   useEffect(() => {
     const turns = turnsRef.current;
+    const historyRequests = historyRequestsRef.current;
+    const engines = activeEngineRef.current;
+    cancelHistoryLoad();
     return () => {
-      const sessionId = selectedPipeline ? activeEngineRef.current[selectedPipeline] : undefined;
+      historyRequests.cancel();
+      const sessionId = selectedPipeline ? engines[selectedPipeline] : undefined;
       void turns.stop(() => sessionId ? stopPipelineChatGeneration(sessionId) : Promise.resolve())
-        .catch(() => { /* The component is gone; its stream has already been aborted. */ });
+        .catch(() => { /* Its stream has already been aborted. */ })
+        .finally(() => { if (!turns.busy) setSending(false); });
     };
-  }, [selectedPipeline]);
+  }, [selectedPipeline, cancelHistoryLoad]);
 
   useEffect(() => {
     if (!isMobileViewport || !mobileSidebarOpen) return;
@@ -896,16 +907,17 @@ export function ChatPage() {
     return t("kb_visibility_readonly_hint", "You do not have permission to modify this collection.");
   }, [kbVisibilityData?.can_manage, kbVisibilityData?.owner_user_id, loggedIn, t]);
   const chatStatusBadgeClass = useMemo(() => {
-    if (sending) return "bg-warning text-dark";
+    if (sending || historyLoading) return "bg-warning text-dark";
     if (chatStatus === "ready") return "bg-success text-white";
     if (chatStatus === "error") return "bg-danger text-white";
     return "bg-warning text-dark";
-  }, [chatStatus, sending]);
+  }, [chatStatus, sending, historyLoading]);
   const demoLoading = useMemo(
     () => !sending && chatStatus !== "ready" && chatStatus !== "error",
     [chatStatus, sending],
   );
   const displayStatusText = useMemo(() => {
+    if (historyLoading) return locale === "zh" ? "正在加载对话" : "Loading conversation";
     if (sending) return locale === "zh" ? "处理中" : "Generating";
     if (chatStatus === "ready") {
       return t("status_ready", locale === "zh" ? "就绪" : "Ready");
@@ -914,7 +926,7 @@ export function ChatPage() {
       return locale === "zh" ? "失败" : "Failed";
     }
     return locale === "zh" ? "加载中" : "Loading";
-  }, [chatStatus, locale, t, sending]);
+  }, [chatStatus, locale, t, sending, historyLoading]);
   const greetingHeadline = useMemo(() => {
     const nickname = (authInfo?.nickname ?? "").trim();
     if (!nickname) {
@@ -979,6 +991,7 @@ export function ChatPage() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    if (historyRequestsRef.current.busy || turnsRef.current.busy) return;
     if (!visibleSessions.length) {
       if (!activeSessionId) {
         setMessages([]);
@@ -1537,7 +1550,7 @@ export function ChatPage() {
   }, [ensureEngineSession, selectedPipeline]);
 
   const handleNewChat = async () => {
-    historyLoadRef.current += 1;
+    cancelHistoryLoad();
     await stopSending();
     setChatSessionContextMenu((previous) => (previous.open ? { ...previous, open: false } : previous));
     const previousSessionId = activeSessionId;
@@ -1562,7 +1575,10 @@ export function ChatPage() {
     });
     if (!confirmed) return;
 
-    if (sessionId === activeSessionId) await stopSending();
+    if (sessionId === activeSessionId) {
+      cancelHistoryLoad();
+      await stopSending();
+    }
 
     if (loggedIn) {
       await deleteChatSession(sessionId);
@@ -1651,6 +1667,7 @@ export function ChatPage() {
       danger: true,
     });
     if (!confirmed) return;
+    cancelHistoryLoad();
     await stopSending();
 
     const runningSessionId = selectedPipeline ? activeEngineRef.current[selectedPipeline] : undefined;
@@ -1674,20 +1691,28 @@ export function ChatPage() {
   };
 
   const handleOpenSession = async (sessionId: string) => {
-    const loadId = ++historyLoadRef.current;
-    await stopSending();
-    if (loadId !== historyLoadRef.current) return;
-    setChatSessionContextMenu((previous) => (previous.open ? { ...previous, open: false } : previous));
-    setActiveView("chat");
-    setActiveSessionId(sessionId);
-    setMobileSidebarOpen(false);
-    if (!loggedIn) {
-      const localSession = guestSessions.find((session) => session.id === sessionId);
-      setMessages(normalizeSessionMessages(localSession));
-      return;
+    const controller = historyRequestsRef.current.begin();
+    setHistoryLoading(true);
+    try {
+      await stopSending();
+      if (!historyRequestsRef.current.owns(controller)) return;
+      setChatSessionContextMenu((previous) => (previous.open ? { ...previous, open: false } : previous));
+      setActiveView("chat");
+      setActiveSessionId(sessionId);
+      setMessages([]);
+      setMobileSidebarOpen(false);
+      const session = loggedIn
+        ? await fetchChatSession(sessionId, controller.signal)
+        : guestSessions.find((item) => item.id === sessionId);
+      if (historyRequestsRef.current.owns(controller)) setMessages(normalizeSessionMessages(session));
+    } catch (error) {
+      if (!historyRequestsRef.current.owns(controller)) return;
+      setActiveSessionId("");
+      setChatStatus("error");
+      setStatusText(error instanceof Error ? error.message : "Failed to load chat history");
+    } finally {
+      if (historyRequestsRef.current.finish(controller)) setHistoryLoading(false);
     }
-    const session = await fetchChatSession(sessionId);
-    if (loadId === historyLoadRef.current) setMessages(normalizeSessionMessages(session));
   };
 
   const stopSending = async () => {
@@ -1719,6 +1744,7 @@ export function ChatPage() {
 
   const handleSend = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (historyRequestsRef.current.busy) return;
     if (turnsRef.current.busy) {
       await stopSending();
       return;
@@ -1991,7 +2017,7 @@ export function ChatPage() {
 
   const handleLogout = async () => {
     await stopSending();
-    historyLoadRef.current += 1;
+    cancelHistoryLoad();
     await logoutMutation.mutateAsync();
     setMessages([]);
     setActiveSessionId("");
@@ -2074,6 +2100,7 @@ export function ChatPage() {
   };
 
   const selectPipelineItem = async (pipelineName: string) => {
+    cancelHistoryLoad();
     await stopSending();
     const pipelineChanged = pipelineName !== selectedPipeline;
     setSelectedPipeline(pipelineName);
@@ -4160,6 +4187,7 @@ export function ChatPage() {
                 <form id="chat-form" className="chat-input-container shadow-sm" onSubmit={handleSend}>
                   <textarea
                     id="chat-input"
+                    disabled={historyLoading}
                     ref={composerRef}
                     aria-label={t("placeholder_chat_input", "Ask UltraRAG")}
                     value={input}
@@ -4311,6 +4339,7 @@ export function ChatPage() {
                         className={`btn btn-send ${sending ? "stop" : ""}`}
                         type="submit"
                         id="chat-send"
+                        disabled={historyLoading}
                         title={
                           sending
                             ? t("chat_stop_button_title", "Stop")
