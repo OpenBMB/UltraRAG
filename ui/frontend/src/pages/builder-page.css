@@ -1045,3 +1045,9 @@
     font-size: 16px;
   }
 }
+
+.ai-tool-trace { margin-block: 8px; max-width: 100%; font-size: 0.8rem; }
+.ai-tool-trace pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 200px; overflow: auto; }
+.ai-mode-note { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; }
+.console-output { overflow-wrap: anywhere; white-space: pre-wrap; min-width: 0; color: var(--text-primary, #1e293b); }
+.console-header:focus-visible { outline: 2px solid var(--accent-color, #722ea5); outline-offset: -2px; }

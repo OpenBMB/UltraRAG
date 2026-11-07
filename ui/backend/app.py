@@ -2465,6 +2465,26 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
 
+    @app.route("/api/ai/agent", methods=["POST"])
+    @require_admin_user
+    def ai_agent():
+        from .builder_agent import create_run
+
+        try:
+            run = create_run(get_current_user_id(), request.get_json(force=True))
+        except (ValueError, TypeError) as exc:
+            return jsonify({"error": str(exc)}), 400
+        return Response(run.stream(), mimetype="text/event-stream", headers={
+            "Cache-Control": "no-cache", "X-Accel-Buffering": "no",
+        })
+
+    @app.route("/api/ai/agent/<run_id>/stop", methods=["POST"])
+    @require_admin_user
+    def ai_agent_stop(run_id: str):
+        from .builder_agent import stop_run
+
+        return jsonify({"stopped": stop_run(get_current_user_id(), run_id)})
+
     @app.route("/api/ai/chat", methods=["POST"])
     def ai_chat():
         """Handle AI chat request"""

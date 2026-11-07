@@ -1,6 +1,10 @@
 import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
 import { RequestOwner } from "@/shared/lib/requestOwner";
+import { ApiHttpError } from "@/shared/api/http";
 import { readJsonEvents } from "@/shared/api/sse";
+import { AuthDialog } from "@/features/auth/components/AuthDialog";
+import { useAuthMe } from "@/features/auth/hooks/useAuthMe";
+import { useAuthMutations } from "@/features/auth/hooks/useAuthMutations";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { RefreshCcw } from "lucide-react";
@@ -68,6 +72,8 @@ function flashHighlight(element: HTMLElement | null): void {
 type AiRole = "user" | "assistant";
 
 type AiAction = {
+  targetPipeline?: string;
+  baseYamlHash?: string;
   type: string;
   preview?: string;
   content?: string;
@@ -88,6 +94,7 @@ type AiMessage = {
   actions?: AiAction[];
   actionStates?: Record<number, AiActionState>;
   pending?: boolean;
+  toolTrace?: string[];
 };
 
 type AiSession = {
@@ -368,6 +375,8 @@ function normalizeAiActions(raw: unknown): AiAction[] {
     const record = item as Record<string, unknown>;
     const action: AiAction = {
       type: String(record.type ?? ""),
+      targetPipeline: typeof record.targetPipeline === "string" ? record.targetPipeline : undefined,
+      baseYamlHash: typeof record.baseYamlHash === "string" ? record.baseYamlHash : undefined,
       preview: typeof record.preview === "string" ? record.preview : undefined,
       content: typeof record.content === "string" ? record.content : undefined,
       filename: typeof record.filename === "string" ? record.filename : undefined,
@@ -421,14 +430,15 @@ function toAiMessageList(raw: unknown): AiMessage[] {
       if (!item || typeof item !== "object") return null;
       const record = item as Record<string, unknown>;
       const role = record.role === "assistant" ? "assistant" : "user";
-      const content = String(record.content ?? "");
+      const content = String(record.content ?? "") || (record.pending ? "Generation stopped." : "");
       return {
         id: String(record.id ?? `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`),
         role,
         content,
         actions: normalizeAiActions(record.actions),
         actionStates: parseAiActionStates(record.actionStates),
-        pending: Boolean(record.pending),
+        pending: false,
+        toolTrace: Array.isArray(record.toolTrace) ? record.toolTrace.filter((line): line is string => typeof line === "string").slice(-160) : undefined,
       } as AiMessage;
     })
     .filter((item): item is AiMessage => Boolean(item));
@@ -502,6 +512,16 @@ export function BuilderPage() {
   const [toolCatalog, setToolCatalog] = useState<ToolCatalog>({ order: [], byServer: {} });
   const [paramsSimplified, setParamsSimplified] = useState(true);
   const [consoleCollapsed, setConsoleCollapsed] = useState(true);
+  const { data: authInfo } = useAuthMe();
+  const { loginMutation, registerMutation } = useAuthMutations();
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const requireAdmin = () => {
+    if (authInfo?.is_admin) return true;
+    if (!authInfo?.logged_in) setAuthOpen(true);
+    setStatus(t("builder_admin_required", "Sign in with an administrator account to edit pipelines."));
+    return false;
+  };
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiView, setAiView] = useState<"home" | "chat">("home");
@@ -539,10 +559,22 @@ export function BuilderPage() {
   const preferredPipelineRef = useRef<string>("");
   const aiHistoryLoadedRef = useRef(false);
   const aiRequestsRef = useRef(new RequestOwner());
-  const cancelAiRequest = useCallback(() => {
-    aiRequestsRef.current.cancel();
-    setAiBusy(false);
+  const agentRunRef = useRef<string | null>(null);
+  const stopAgent = useCallback(() => {
+    const run = agentRunRef.current;
+    agentRunRef.current = null;
+    if (run) void fetch(`/api/ai/agent/${encodeURIComponent(run)}/stop`, { method: "POST", keepalive: true }).catch(() => {});
   }, []);
+  const cancelAiRequest = useCallback(() => {
+    stopAgent();
+    aiRequestsRef.current.cancel();
+    const settle = (message: AiMessage): AiMessage => message.pending
+      ? { ...message, pending: false, content: message.content || t("builder_ai_stopped", "Generation stopped.") }
+      : message;
+    setAiMessages((messages) => messages.map(settle));
+    setAiSessions((sessions) => sessions.map((item) => ({ ...item, messages: item.messages.map(settle) })));
+    setAiBusy(false);
+  }, [stopAgent, t]);
   const buildStateTimerRef = useRef<number | null>(null);
   const parameterSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const parameterFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -823,7 +855,7 @@ export function BuilderPage() {
     const content = message.trim();
     if (!content) return;
     const timestamp = new Date().toLocaleTimeString();
-    setConsoleLogs((previous) => [...previous.slice(-199), `[${timestamp}] ${content}`]);
+    setConsoleLogs((previous) => [...previous.slice(-199), `[${timestamp}] ${content.slice(0, 8000)}`]);
   }, []);
 
   const updateAiPanelOffset = useCallback(() => {
@@ -1112,7 +1144,9 @@ export function BuilderPage() {
         const message = error instanceof Error
           ? error.message
           : t("builder_params_not_found", "Parameters not found. Build first.");
-        setStatus(message || t("builder_params_not_found", "Parameters not found. Build first."));
+        setStatus(message.includes("Build first")
+          ? t("builder_draft_loaded", "Draft loaded. Build to generate parameters.")
+          : message);
       }
     };
     void load();
@@ -1470,9 +1504,10 @@ export function BuilderPage() {
   useEffect(() => {
     const requests = aiRequestsRef.current;
     return () => {
+      stopAgent();
       requests.cancel();
     };
-  }, []);
+  }, [stopAgent]);
 
   const addAiMessage = useCallback((role: AiRole, content: string, actions: AiAction[] = [], pending = false) => {
     const next: AiMessage = {
@@ -1490,7 +1525,7 @@ export function BuilderPage() {
   const updateAiMessage = useCallback(
     (
       messageId: string,
-      next: Partial<Pick<AiMessage, "content" | "actions" | "actionStates" | "pending">>,
+      next: Partial<Pick<AiMessage, "content" | "actions" | "actionStates" | "pending" | "toolTrace">>,
     ) => {
       setAiMessages((previous) =>
         previous.map((message) => {
@@ -1611,6 +1646,7 @@ export function BuilderPage() {
       setYamlValidation("idle");
       if (selectedPipeline) {
         await savePipelineYaml(selectedPipeline, action.content);
+        setYamlValidation("valid");
         await refetchPipelines();
       }
       window.setTimeout(() => {
@@ -1734,6 +1770,17 @@ export function BuilderPage() {
   const handleApplyAiAction = useCallback(
     async (messageId: string, actionIndex: number, action: AiAction) => {
       try {
+        if (action.targetPipeline !== undefined && action.targetPipeline !== selectedPipeline) {
+          throw new Error(t("builder_ai_target_changed", "Select the original pipeline before applying this proposal."));
+        }
+        if (action.type === "modify_pipeline" && action.baseYamlHash) {
+          const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(yamlText));
+          const current = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+          if (current !== action.baseYamlHash) throw new Error(t("builder_ai_draft_changed", "The pipeline changed after this request. Ask for an updated proposal."));
+        }
+        if (action.path?.split(".").some((part) => ["__proto__", "prototype", "constructor"].includes(part))) {
+          throw new Error("Invalid parameter path");
+        }
         if (action.type === "modify_pipeline" && panelMode === "parameters") {
           const ignored = t("builder_ai_pipeline_change_ignored_hint", "You are editing parameters. Ask explicitly to update the pipeline YAML or switch to Pipeline view.");
           setAiActionState(messageId, actionIndex, { status: "error", message: ignored });
@@ -1780,6 +1827,8 @@ export function BuilderPage() {
       applyPipelineModification,
       applyPromptModification,
       panelMode,
+      selectedPipeline,
+      yamlText,
       pushConsoleLog,
       setAiActionState,
       t,
@@ -1864,10 +1913,12 @@ export function BuilderPage() {
 
   const handleSendAiMessage = async (rawInput?: string) => {
     if (aiRequestsRef.current.busy) {
+      stopAgent();
       aiRequestsRef.current.abort();
       return;
     }
 
+    if (!requireAdmin()) return;
     const message = (rawInput ?? aiInput).trim();
     if (!message) return;
     if (!aiCurrentSessionId) {
@@ -1907,13 +1958,15 @@ export function BuilderPage() {
     let finalActions: AiAction[] = [];
 
     try {
-      const response = await fetch("/api/ai/chat", {
+      const agentMode = ["openai", "custom"].includes(aiSettings.provider);
+      const trace: string[] = [];
+      const response = await fetch(agentMode ? "/api/ai/agent" : "/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           settings: aiSettings,
-          messages: requestMessages,
-          context: buildAiContext(),
+          messages: requestMessages.slice(-20),
+          context: { ...buildAiContext(), pipelineYaml: yamlText },
           stream: true,
         }),
         signal: controller.signal,
@@ -1922,7 +1975,8 @@ export function BuilderPage() {
       if (!aiRequestsRef.current.owns(controller)) return;
       controller.signal.throwIfAborted();
       if (!response.ok) {
-        throw new Error(response.statusText || t("builder_ai_error_request_failed", "Request failed"));
+        const detail = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(detail.error || response.statusText || t("builder_ai_error_request_failed", "Request failed"));
       }
 
       const contentType = (response.headers.get("content-type") || "").toLowerCase();
@@ -1959,7 +2013,14 @@ export function BuilderPage() {
         controller.signal.throwIfAborted();
         if (!raw || typeof raw !== "object") continue;
         const payload = raw as Record<string, unknown>;
-        if (payload.type === "token") {
+        if (payload.type === "agent_start" && typeof payload.run_id === "string") {
+          agentRunRef.current = payload.run_id;
+        } else if (payload.type === "agent_step" || payload.type === "tool_start" || payload.type === "tool_end") {
+          const line = payload.type === "agent_step" ? `Step ${String(payload.step)}/${String(payload.limit)}` : `${String(payload.name)}: ${payload.type === "tool_start" ? "running" : payload.ok ? "✓" : "!"} ${typeof payload.summary === "string" ? payload.summary : ""}`;
+          trace.push(line);
+          updateAiMessage(placeholder.id, { toolTrace: [...trace] });
+          pushConsoleLog(line);
+        } else if (payload.type === "token") {
           const token = typeof payload.content === "string" ? payload.content : "";
           accumulated += token;
           updateAiMessage(placeholder.id, { content: accumulated, pending: true });
@@ -2009,7 +2070,10 @@ export function BuilderPage() {
       });
       pushConsoleLog(t("builder_ai_error_with_message", `Request failed: ${errorText}`).replace("{error}", errorText));
     } finally {
-      if (aiRequestsRef.current.finish(controller)) setAiBusy(false);
+      if (aiRequestsRef.current.finish(controller)) {
+        stopAgent();
+        setAiBusy(false);
+      }
     }
   };
 
@@ -2216,6 +2280,7 @@ export function BuilderPage() {
   }, [editingNodeId, editingNodeLabelDraft, mutatePreviewNodes]);
 
   const handleCreatePipeline = async (rawName: string) => {
+    if (!requireAdmin()) return;
     const name = rawName.trim();
     if (!name) {
       setStatus(t("builder_pipeline_name_required", "Pipeline name is required."));
@@ -2236,13 +2301,12 @@ export function BuilderPage() {
       const templatePipeline: unknown[] = Array.isArray(VANILLA_PIPELINE_TEMPLATE.pipeline)
         ? (cloneJsonObject(VANILLA_PIPELINE_TEMPLATE.pipeline) as unknown[])
         : [];
-      await createPipeline(name, templatePipeline);
+      await createPipeline(name, templatePipeline, VANILLA_PIPELINE_TEMPLATE.servers as Record<string, unknown>);
       const defaultYaml = dumpYaml(VANILLA_PIPELINE_TEMPLATE, {
         lineWidth: 120,
         noRefs: true,
         sortKeys: false,
       }).trimEnd();
-      await savePipelineYaml(name, defaultYaml);
       await refetchPipelines();
       setSelectedPipeline(name);
       setPipelineNameDraft(name);
@@ -2290,12 +2354,13 @@ export function BuilderPage() {
       if (draftName && draftName !== selectedPipeline) {
         await renamePipeline(selectedPipeline, draftName);
         targetName = draftName;
-        setSelectedPipeline(draftName);
       }
       await savePipelineYaml(targetName, yamlText);
       setYamlValidation("valid");
       setStatus(`Pipeline "${targetName}" saved.`);
       await refetchPipelines();
+      setSelectedPipeline(targetName);
+      setPipelineNameDraft(targetName);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to save pipeline");
     } finally {
@@ -2314,7 +2379,10 @@ export function BuilderPage() {
     setBuildState("running");
     setStatus("");
     try {
-      await buildPipeline(selectedPipeline);
+      pushConsoleLog(`Building ${selectedPipeline}...`);
+      await savePipelineYaml(selectedPipeline, yamlText);
+      const result = await buildPipeline(selectedPipeline);
+      result.logs?.forEach(pushConsoleLog);
       await refetchPipelines();
       setYamlValidation("valid");
       setStatus(`Pipeline "${selectedPipeline}" built successfully.`);
@@ -2334,9 +2402,14 @@ export function BuilderPage() {
         pushConsoleLog(message);
       }
       setPanelMode("parameters");
-      setConsoleCollapsed(true);
+
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Failed to build pipeline");
+      if (error instanceof ApiHttpError) {
+        const logs = (error.payload as { logs?: unknown } | null)?.logs;
+        if (Array.isArray(logs)) logs.filter((line): line is string => typeof line === "string").forEach(pushConsoleLog);
+      }
+      const message = error instanceof Error ? error.message : "Failed to build pipeline";
+      setStatus(message);
       setBuildState("error");
     } finally {
       setSaving(false);
@@ -2637,6 +2710,11 @@ export function BuilderPage() {
 
   return (
     <>
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen}
+        isSubmitting={loginMutation.isPending || registerMutation.isPending} errorMessage={authError}
+        onLogin={async (payload) => { setAuthError(""); try { await loginMutation.mutateAsync(payload); } catch (error) { setAuthError(error instanceof Error ? error.message : "Login failed"); throw error; } }}
+        onRegister={async (payload) => { setAuthError(""); try { await registerMutation.mutateAsync(payload); } catch (error) { setAuthError(error instanceof Error ? error.message : "Registration failed"); throw error; } }} />
+
       <nav className="navbar fixed-top builder-navbar">
         <div className="navbar-container">
           <div className="navbar-left">
@@ -2886,7 +2964,11 @@ export function BuilderPage() {
                         className="btn btn-sm builder-action-btn"
                         disabled={saving}
                         onClick={() => {
-                          setNewPipelineNameDraft("NewPipeline");
+                          let candidate = "NewPipeline";
+                          let index = 2;
+                          while (pipelines.some((item) => item.name === candidate)) candidate = `NewPipeline${index++}`;
+                          setStatus("");
+                          setNewPipelineNameDraft(candidate);
                           setCreatePipelineDialogOpen(true);
                         }}
                       >
@@ -3480,6 +3562,8 @@ export function BuilderPage() {
           <div
             className="console-header"
             id="console-toggle"
+            role="button" tabIndex={0} aria-expanded={!consoleCollapsed} aria-controls="log"
+            onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setConsoleCollapsed((previous) => !previous); } }}
             onClick={() => setConsoleCollapsed((previous) => !previous)}
           >
             <div className="console-title">
@@ -3514,7 +3598,7 @@ export function BuilderPage() {
               </svg>
             </button>
           </div>
-          <pre id="log" className="console-output" ref={consoleOutputRef}>
+          <pre id="log" className="console-output" ref={consoleOutputRef} role="log" aria-label={t("builder_console", "Console")} tabIndex={0}>
             {consoleLogs.join("\n")}
           </pre>
         </div>
@@ -3694,6 +3778,7 @@ export function BuilderPage() {
                           )}
                         </div>
                         <div className="ai-message-content">
+                          {message.toolTrace?.length ? <details className="ai-tool-trace" open={message.pending}><summary>{t("builder_ai_tool_trace", "Workspace tools")}</summary><pre>{message.toolTrace.join("\n")}</pre></details> : null}
                           {message.pending ? (
                             <div className="ai-thinking">
                               <span className="ai-thinking-dot" />
@@ -3950,7 +4035,8 @@ export function BuilderPage() {
                       disabled={!aiBusy && !aiInput.trim()}
                       onClick={() => {
                         if (aiRequestsRef.current.busy) {
-                          aiRequestsRef.current.abort();
+                          stopAgent();
+      aiRequestsRef.current.abort();
                           return;
                         }
                         void handleSendAiMessage();
@@ -3991,6 +4077,7 @@ export function BuilderPage() {
                   </button>
                 </div>
                 <div className="ai-settings-body">
+                  <p className="ai-mode-note">{t("builder_ai_agent_note", "OpenAI-compatible providers use workspace tools and validation. Review proposals before Apply, then Build and test. Other providers use chat mode.")}</p>
                   <div className="ai-settings-group">
                     <label className="ai-settings-label">{t("builder_ai_settings_provider", "Provider")}</label>
                     <select
@@ -4466,9 +4553,10 @@ export function BuilderPage() {
             <p>
               {t("builder_new_pipeline_prompt", "Please enter a new pipeline name:")}
             </p>
+            {status ? <p role="alert" className="text-danger">{status}</p> : null}
             <input
               className="builder-inline-modal-input"
-              type="text"
+              type="text" maxLength={128} aria-label={t("builder_pipeline_name", "Pipeline name")}
               value={newPipelineNameDraft}
               onChange={(event) => setNewPipelineNameDraft(event.target.value)}
               autoFocus
