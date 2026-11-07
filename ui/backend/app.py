@@ -31,6 +31,7 @@ from . import auth as auth_backend
 from . import chat_store as chat_store_backend
 from . import kb_visibility_store as kb_visibility_backend
 from . import pipeline_manager as pm
+from .ai_compat import completion_limit
 from .static_assets import prepare_static_response
 from .session_secret import load_session_secret
 from .storage_paths import (
@@ -2382,7 +2383,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
                 resp = requests.post(
                     f"{base_url}/chat/completions",
                     headers=headers,
-                    json={"model": model, "messages": [{"role": "user", "content": "Hi"}], "max_tokens": 5},
+                    json={"model": model, "messages": [{"role": "user", "content": "Hi"}], **completion_limit(model, 32)},
                     timeout=15,
                 )
                 if resp.status_code != 200:
