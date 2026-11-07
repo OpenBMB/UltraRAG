@@ -1,129 +1,49 @@
 ---
-title: "快速开始"
+title: "UI 快速开始"
 icon: "atom"
 ---
 
-UltraRAG UI 不仅仅是一个聊天界面，它是一个完整的 RAG 开发与调试平台。
+UltraRAG UI 包含聊天、知识库和流程搭建器。以下命令在仓库根目录执行，并使用项目虚拟环境。
 
-![](/images/ui/chat_menu.png)
-
-## 启动命令
-
-使用以下命令启动 UI 服务：
+## 启动界面
 
 ```bash
-ultrarag show ui [OPTIONS]
+# 本地执行：本地服务器无需 MCP 传输依赖
+uv sync
+source .venv/bin/activate
+ultrarag show ui --no-mcp --host 127.0.0.1 --port 5050
 ```
 
-### 常用选项
+打开 `http://127.0.0.1:5050`。根据流程实际使用的服务器安装额外依赖，例如 `uv sync --extra generation --extra retriever`。
 
-- `--port <INTEGER>`: 指定服务端口，默认为 `5050`。
-- `--host <TEXT>`: 指定绑定地址，默认为 `127.0.0.1`。
-- `--admin`: 启用管理员模式。默认情况下 UI 仅展示对话界面（Chat Only）。开启此选项后，将解锁 Pipeline Builder（可视化编排）、参数配置与在线 Prompt 编辑功能。此外，管理员界面内置了 AI 助手，可辅助您高效完成 Pipeline 的配置与调试。
+使用 MCP 传输时，安装 `uv sync --extra mcp`，并省略 `--no-mcp`。本地模式中混用远程 MCP 条目仍需 MCP extra 和 Node.js 20 以上。两种模式共用 YAML 格式和生成的参数文件。
 
-### 示例
+<Note>搭建器的编辑操作和助手工作区工具需要管理员账号，请在提示时登录。CLI 没有 `--admin` 参数。本机使用时保留默认的回环地址。</Note>
 
-**启动完整功能的 Admin 模式：**
+## 新建并构建流程
 
-```bash
-ultrarag show ui --admin
-```
+1. 打开 **搭建器 → 新建流程**，输入以字母或下划线开头的唯一名称并确认。新草稿会立即选中，Build 前也会保留在列表中。
+2. 编辑 YAML，或通过画布节点菜单添加步骤。检查服务器声明、步骤顺序、输入输出重映射、循环与分支。
+3. 点击 **保存** 保留草稿，或点击 **Build** 保存当前 YAML 并生成参数。在控制台查看结果；失败后可直接修改草稿重试。
+4. 在 **参数** 面板配置模型地址、模型名称和凭据并保存。可在 Prompt 管理中创建、编辑、重命名或删除 Jinja 模板。
+5. 已构建的流程可在聊天页选择。发送测试问题，检查回答和来源；用停止按钮取消前台响应。耗时流程可以使用后台任务控制。
 
-**仅启动对话界面（适合最终用户）：**
-
-```bash
-ultrarag show ui
-```
-
-启动后，在浏览器访问 `http://127.0.0.1:5050` 即可进入系统。
-
-## 1. Chat（对话）
-进入系统默认展示对话页面，您可以直接选择已编译的 Pipeline 开启对话。
-
-<Tip>我们在[典型场景](/pages/cn/demo/llm)中提供了多个开发好的 Pipeline 的部署教程，您也可以根据需求自定义 Pipeline。</Tip>
-
-![](/images/ui/chat_menu.png)
-
-### Pipline 切换
-
-通过左上角的下拉菜单，可以在已配置好参数的 Pipeline 之间快速切换。
-
-![](/images/ui/pipeline_select.png)
-
-### 选择知识库
-
-点击 Knowledge Base 图标，挂载已构建的知识库，即可进行基于文档的问答。
-
-![](/images/ui/kb_select.png)
-
-### 后台运行
-
-针对 Deep Research 等耗时较长的 Pipeline，支持后台运行模式。任务执行完成后，结果将自动加载至当前聊天窗口。
-
-![](/images/ui/background.png)
-
-## 2. Knowledge Base
-UltraRAG UI 提供了全流程的知识库管理功能，支持文件的上传、切片（Chunking）及向量化（Embedding）管理。
-
-![](/images/ui/kb_menu.png)
-
-### 连接向量库
-
-<Tip>不知道如何部署 Milvus 向量库？ 请参考[部署指南](/pages/cn/ui/prepare)。</Tip>
-
-点击 Configure DB，与部署好的 Milvus 向量库建立连接，即可使用知识库功能。
-
-![](/images/ui/kb_connect.png)
-
-### 构建知识库
-
-点击 New Collection，上传文档并创建专属知识库。
-
-![](/images/ui/kb_upload.png)
-
-点击 Settings 按钮，可自定义切片策略（Chunk）和 Embedding 模型的相关参数。
-
-<Tip>首次使用通常需要配置参数。若希望实现免配置部署（用户无需手动设置），请预先修改`examples/parameter/corpus_chunk_parameter.yaml`与`examples/parameter/milvus_index_parameter.yaml`中的相关参数，即可跳过下方设置步骤。</Tip>
-
-![](/images/ui/kb_chunk.png)
-![](/images/ui/kb_index.png)
-
-
-## 3. Pipeline Builder
-若启动时指定了 `--admin` 参数，侧边栏将显示 Settings 入口，点击即可进入高级配置页面。
-
-### Pipeline 可视化搭建
-
-支持左侧画布拖拽式编排与右侧代码编辑器的双向实时同步。您既可以像搭积木一样直观构建，也可以在代码编辑器中进行精细微调。
+<Warning>修改流程 YAML 后，原来的服务器元数据会失效，需要重新 Build。Build 成功表示配置生成完成，仍需测试模型、嵌入和数据库服务能否正常调用。</Warning>
 
 ![](/images/ui/pipeline_build.png)
 
-### 配置参数
+## 查看终端输出
 
-点击 Build 按钮解析 Pipeline 后，您可以在参数面板中查看并修改运行参数。
+控制台展示构建开始、后端构建日志、成功或失败结果，以及助手工具进度。点击标题或用 Enter、空格键展开和收起。长行自动换行，输出区域可独立滚动；Build 后保留展开状态，便于核对结果。
 
-![](/images/ui/pipeline_param.png)
+## 配置知识库
 
-### Prompt 管理
+进入知识库，配置向量数据库，再创建集合并上传文档。在索引前配置分块策略和嵌入模型地址。数据库部署见[准备环境](/pages/cn/ui/prepare)。
 
-支持在线新建、编辑及删除 Prompt，并将其一键应用到 Pipeline 中。
+默认处理配置位于 `examples/demos/parameter/`，包括 `corpus_chunk_parameter.yaml` 和索引流程参数。聊天流程应使用相同的集合及嵌入模型。
 
-![](/images/ui/pipeline_prompt.png)
+![](/images/ui/kb_menu.png)
 
-### Ai 助手
+## 使用流程助手
 
-系统内置了 AI 助手，可辅助您搭建 Pipeline、调整参数及编写 Prompt。
-
-<Tip>首次使用该功能前，需先点击设置配置 API Key 及相关模型参数。</Tip>
-
-**使用示例：优化 Prompt**
-
-假设您已有一个基础 Prompt，希望将其调整为适配法律领域的风格：
-
-1. 打开 AI 助手，输入原始 Prompt 及修改需求。
-
-![](/images/ui/ai_1.png)
-
-2. 点击 Apply，AI 助手将自动生成优化后的内容并替换原有 Prompt。
-
-![](/images/ui/ai_2.png)
+在助手设置中填写 API 地址、密钥和模型，先测试连接。兼容 OpenAI 的服务支持工作区工具循环。[Agent 助手指南](/pages/cn/ui/assistant)介绍工具检查、方案审阅和流程测试。

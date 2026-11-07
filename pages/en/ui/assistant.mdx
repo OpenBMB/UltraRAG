@@ -1,0 +1,28 @@
+---
+title: "Agent Assistant"
+icon: "wand-magic-sparkles"
+---
+
+The builder assistant uses a bounded model → tool → result loop for OpenAI-compatible providers. It inspects the actual workspace instead of guessing tool names. Other providers retain chat mode.
+
+## Configure and ask
+
+Sign in with an administrator account, create or select a pipeline, then open the assistant. In Settings, choose OpenAI or a compatible custom provider and enter the API base URL (including `/v1` if required), model and key. Test the connection first. The model must support function/tool calling; a successful connection test alone does not establish that support.
+
+For example: “Inspect the available retriever and generation tools. Propose a RAG pipeline for my existing collection. Check the tool names and input/output mappings before proposing it.” For an embedding endpoint, configure the retriever parameters separately; an embedding model cannot serve as the assistant chat model.
+
+## Inspect the tool trace
+
+The assistant can list and inspect servers, read saved pipelines or the current draft, read redacted parameters and Jinja templates, and validate or stage proposals. Tool results are fed back to the model so it can correct invalid names or YAML. Expand **Workspace tools** to inspect progress and validation failures. The console also records tool progress.
+
+Each request has at most eight model steps, up to eight tool calls per step and a three-minute time limit. Narrow the request if it reaches a limit. Stop cancels the owned model request and prevents later tool dispatch; switching assistant sessions also stops the previous request.
+
+## Review, apply and test
+
+1. Read the proposal preview. Static validation checks YAML structure, registered server/tool names and remapping keys. It does not execute the pipeline or establish service availability.
+2. Click **Apply** or **Reject** for each proposal. Pipeline proposals apply to their original selected pipeline; return to Pipeline view when editing YAML. The tool loop itself does not save files or run shell commands.
+3. Build after changing YAML, configure parameters and credentials yourself, then run a representative question. Verify answer, sources and console output. Use a deliberately invalid configuration to check error recovery as well.
+
+<Warning>Workspace text and model output may be inaccurate. Review proposed paths, data flow and parameters before Apply. Credentials are redacted from parameter tool results and cannot be proposed through parameter tools. Assistant settings and conversation history use this browser’s local storage; use a trusted browser profile.</Warning>
+
+The loop follows the model/tool/result pattern described in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/agent-loop/README.md), with tools scoped to UltraRAG pipeline drafting.

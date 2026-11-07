@@ -89,7 +89,8 @@
                 "group": "开始使用",
                 "pages": [
                   "pages/cn/ui/start",
-                  "pages/cn/ui/prepare"
+                  "pages/cn/ui/prepare",
+                  "pages/cn/ui/assistant"
                 ]
               },
               {
@@ -205,7 +206,8 @@
                 "group": "Get Started",
                 "pages": [
                   "pages/en/ui/start",
-                  "pages/en/ui/prepare"
+                  "pages/en/ui/prepare",
+                  "pages/en/ui/assistant"
                 ]
               },
               {
