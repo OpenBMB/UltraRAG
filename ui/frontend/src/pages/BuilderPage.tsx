@@ -2743,7 +2743,7 @@ export function BuilderPage() {
                   : t("builder_build", "Build")}
               </span>
             ) : null}
-            {!authInfo?.is_admin ? <button type="button" className="btn btn-sm btn-ghost text-primary" onClick={() => setAuthOpen(true)}>{t("builder_admin_sign_in", "Admin sign in")}</button> : null}
+            {!authInfo?.is_admin ? <button type="button" className="btn btn-sm btn-ghost builder-admin-sign-in" onClick={() => setAuthOpen(true)}>{t("builder_admin_sign_in", "Admin sign in")}</button> : null}
             <div className="vr mx-2" />
             <button
               type="button"
