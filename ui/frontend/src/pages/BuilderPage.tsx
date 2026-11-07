@@ -575,6 +575,9 @@ export function BuilderPage() {
     setAiSessions((sessions) => sessions.map((item) => ({ ...item, messages: item.messages.map(settle) })));
     setAiBusy(false);
   }, [stopAgent, t]);
+  useEffect(() => {
+    if (authInfo?.is_admin === false) cancelAiRequest();
+  }, [authInfo?.is_admin, cancelAiRequest]);
   const buildStateTimerRef = useRef<number | null>(null);
   const parameterSectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const parameterFieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -1112,6 +1115,10 @@ export function BuilderPage() {
   }, [selectedPipeline]);
 
   useEffect(() => {
+    if (!authInfo?.is_admin) {
+      setPipelineConfig(null); setYamlText(""); setParameterData(null); setParamsText("{}"); setParameterDrafts({});
+      return;
+    }
     if (!selectedPipeline) return;
     let mounted = true;
     const load = async () => {
@@ -1153,7 +1160,7 @@ export function BuilderPage() {
     return () => {
       mounted = false;
     };
-  }, [selectedPipeline, t]);
+  }, [selectedPipeline, t, authInfo?.is_admin]);
 
   useEffect(() => {
     setActiveContextId(PIPELINE_PREVIEW_ROOT_ID);
@@ -1185,6 +1192,10 @@ export function BuilderPage() {
   }, [nodePickerOpen, nodePickerServer, nodePickerTool, toolCatalog.byServer]);
 
   useEffect(() => {
+    if (!authInfo?.is_admin) {
+      setPromptFiles([]); setPromptOpenTabs([]); setPromptTabState({}); setSelectedPromptPath(""); setPromptText(""); setPromptSavedText("");
+      return;
+    }
     let mounted = true;
     const loadPrompts = async () => {
       try {
@@ -1209,7 +1220,7 @@ export function BuilderPage() {
     return () => {
       mounted = false;
     };
-  }, [openPromptTab]);
+  }, [openPromptTab, authInfo?.is_admin]);
 
   useEffect(() => {
     if (!selectedPromptPath) {
@@ -2732,6 +2743,7 @@ export function BuilderPage() {
                   : t("builder_build", "Build")}
               </span>
             ) : null}
+            {!authInfo?.is_admin ? <button type="button" className="btn btn-sm btn-ghost" onClick={() => setAuthOpen(true)}>{t("builder_admin_sign_in", "Admin sign in")}</button> : null}
             <div className="vr mx-2" />
             <button
               type="button"
