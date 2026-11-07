@@ -107,8 +107,8 @@ export async function savePipelineYaml(name: string, yamlText: string): Promise<
   return response.json();
 }
 
-export async function buildPipeline(name: string): Promise<unknown> {
-  return httpRequest<unknown>(`/api/pipelines/${encodeURIComponent(name)}/build`, {
+export async function buildPipeline(name: string): Promise<{ logs?: string[] }> {
+  return httpRequest<{ logs?: string[] }>(`/api/pipelines/${encodeURIComponent(name)}/build`, {
     method: "POST",
   });
 }
@@ -129,12 +129,12 @@ export async function savePipelineParameters(
   });
 }
 
-export async function createPipeline(name: string, steps: unknown[] = []): Promise<{
+export async function createPipeline(name: string, steps: unknown[] = [], servers?: Record<string, unknown>): Promise<{
   name: string;
 }> {
   return httpRequest<{ name: string }>("/api/pipelines", {
     method: "POST",
-    body: { name, pipeline: steps },
+    body: { name, pipeline: steps, ...(servers ? { servers } : {}) },
   });
 }
 
