@@ -1,5 +1,6 @@
 import { buildApiUrl, ApiHttpError } from "@/shared/api/http";
 import type { PipelineChatEvent } from "@/shared/api/types";
+import { readJsonEvents } from "@/shared/api/sse";
 
 type StreamPipelineChatPayload = {
   pipelineName: string;
@@ -62,32 +63,8 @@ export async function* streamPipelineChat(
     throw new Error("Pipeline chat stream body is empty");
   }
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const blocks = buffer.split("\n\n");
-    buffer = blocks.pop() ?? "";
-
-    for (const block of blocks) {
-      const line = block
-        .split("\n")
-        .map((segment) => segment.trim())
-        .find((segment) => segment.startsWith("data:"));
-      if (!line) continue;
-      const jsonPayload = line.slice(5).trim();
-      if (!jsonPayload) continue;
-      try {
-        const parsed = JSON.parse(jsonPayload);
-        const event = toEvent(parsed);
-        if (event) yield event;
-      } catch {
-        // Skip malformed event chunk.
-      }
-    }
+  for await (const raw of readJsonEvents(response.body)) {
+    const event = toEvent(raw);
+    if (event) yield event;
   }
 }

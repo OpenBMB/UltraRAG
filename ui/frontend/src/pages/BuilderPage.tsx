@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { readStorage, writeStorage, removeStorage } from "@/shared/lib/storage";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { RefreshCcw } from "lucide-react";
 import { dump as dumpYaml, load as parseYaml } from "js-yaml";
@@ -36,10 +37,11 @@ import {
   updatePreviewNodeLabel,
   type PipelinePreviewNode,
 } from "@/shared/lib/pipelinePreview";
-import { renderChatMarkdown } from "@/shared/lib/chatMarkdown";
 import { useI18n } from "@/shared/i18n/provider";
 import { useThemeStyles } from "@/shared/lib/useThemeStyles";
 import "@/pages/builder-page.css";
+
+const SimpleMarkdown = lazy(() => import("@/features/chat/components/MessageMarkdown").then((module) => ({ default: module.SimpleMarkdown })));
 
 function yamlFromConfig(config: Record<string, unknown>): string {
   const rawYaml = config._raw_yaml;
@@ -158,7 +160,7 @@ function loadAiSettings(): AiSettings {
     model: "gpt-5-mini",
   };
   try {
-    const raw = localStorage.getItem(AI_SETTINGS_STORAGE_KEY);
+    const raw = readStorage(AI_SETTINGS_STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     return {
@@ -647,7 +649,7 @@ export function BuilderPage() {
   }, [buildState, t]);
   const getWorkspacePaneWidth = useCallback(() => {
     try {
-      const stored = Number(localStorage.getItem(WORKSPACE_PANE_WIDTH_KEY));
+      const stored = Number(readStorage(WORKSPACE_PANE_WIDTH_KEY));
       if (Number.isFinite(stored) && stored > 0) return stored;
     } catch {
       // ignore storage read failures
@@ -659,7 +661,7 @@ export function BuilderPage() {
     document.documentElement.style.setProperty("--workspace-pane-width", `${next}px`);
     if (!persist) return;
     try {
-      localStorage.setItem(WORKSPACE_PANE_WIDTH_KEY, String(next));
+      writeStorage(WORKSPACE_PANE_WIDTH_KEY, String(next));
     } catch {
       // ignore storage write failures
     }
@@ -825,7 +827,7 @@ export function BuilderPage() {
     const rounded = Math.round(width);
     document.documentElement.style.setProperty("--ai-panel-width", `${rounded}px`);
     try {
-      localStorage.setItem(AI_PANEL_WIDTH_STORAGE_KEY, String(rounded));
+      writeStorage(AI_PANEL_WIDTH_STORAGE_KEY, String(rounded));
     } catch {
       // ignore storage failures
     }
@@ -876,8 +878,8 @@ export function BuilderPage() {
 
   useEffect(() => {
     preferredPipelineRef.current = (
-      localStorage.getItem("ultrarag_react_selected_pipeline") ??
-      localStorage.getItem("ultrarag_selected_pipeline") ??
+      readStorage("ultrarag_react_selected_pipeline") ??
+      readStorage("ultrarag_selected_pipeline") ??
       ""
     ).trim();
   }, []);
@@ -1053,10 +1055,10 @@ export function BuilderPage() {
 
   useEffect(() => {
     if (!selectedPipeline) {
-      localStorage.removeItem("ultrarag_react_selected_pipeline");
+      removeStorage("ultrarag_react_selected_pipeline");
       return;
     }
-    localStorage.setItem("ultrarag_react_selected_pipeline", selectedPipeline);
+    writeStorage("ultrarag_react_selected_pipeline", selectedPipeline);
   }, [selectedPipeline]);
 
   useEffect(() => {
@@ -1260,7 +1262,7 @@ export function BuilderPage() {
 
   useEffect(() => {
     try {
-      const saved = Number(localStorage.getItem(AI_PANEL_WIDTH_STORAGE_KEY));
+      const saved = Number(readStorage(AI_PANEL_WIDTH_STORAGE_KEY));
       if (!Number.isFinite(saved) || saved <= 0) return;
       const width = Math.min(Math.max(saved, 300), 600);
       if (aiPanelRef.current) {
@@ -1332,7 +1334,7 @@ export function BuilderPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiSettings));
+      writeStorage(AI_SETTINGS_STORAGE_KEY, JSON.stringify(aiSettings));
     } catch {
       // ignore localStorage write failures
     }
@@ -1353,7 +1355,7 @@ export function BuilderPage() {
     if (aiHistoryLoadedRef.current) return;
     aiHistoryLoadedRef.current = true;
     try {
-      const saved = localStorage.getItem(AI_HISTORY_STORAGE_KEY);
+      const saved = readStorage(AI_HISTORY_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as {
           sessions?: unknown[];
@@ -1447,7 +1449,7 @@ export function BuilderPage() {
   useEffect(() => {
     if (!aiHistoryReady) return;
     try {
-      localStorage.setItem(
+      writeStorage(
         AI_HISTORY_STORAGE_KEY,
         JSON.stringify({
           sessions: aiSessions,
@@ -2661,7 +2663,7 @@ export function BuilderPage() {
         <div className="navbar-container">
           <div className="navbar-left">
             <a href="#pipeline-form" className="navbar-logo-link" id="builder-logo-link">
-              <img src="/theme/ultrarag.svg" alt="UltraRAG" className="navbar-logo-img" />
+              <img src="/theme/ultrarag.svg" alt="UltraRAG" className="navbar-logo-img" width={134} height={20} />
             </a>
           </div>
           <div className="navbar-right">
@@ -2892,6 +2894,7 @@ export function BuilderPage() {
                       <input
                         type="text"
                         id="pipeline-name"
+                        aria-label={t("builder_pipeline_name_placeholder", "Pipeline name")}
                         className="pipeline-name-input"
                         value={pipelineNameDraft}
                         onChange={(event) => setPipelineNameDraft(event.target.value)}
@@ -2999,6 +3002,7 @@ export function BuilderPage() {
                       </div>
                       <textarea
                         id="yaml-editor"
+                        aria-label={t("builder_nav_pipeline_yaml", "Pipeline YAML")}
                         className="yaml-editor"
                         ref={yamlEditorRef}
                         spellCheck={false}
@@ -3085,7 +3089,7 @@ export function BuilderPage() {
 
                 <div className="workspace-split-resizer" id="params-resizer" ref={paramsResizerRef} />
 
-                <main className="params-main">
+                <section className="params-main">
                   <div className="params-main-header canvas-panel-header">
                     <div className="panel-title-group">
                       <svg
@@ -3170,6 +3174,15 @@ export function BuilderPage() {
                             >
                               <div
                                 className="parameter-section-header"
+                                role="button"
+                                tabIndex={0}
+                                aria-expanded={expanded}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    toggleParameterSection(serverName);
+                                  }
+                                }}
                                 onClick={() => toggleParameterSection(serverName)}
                               >
                                 <div className="section-header-left">
@@ -3180,7 +3193,7 @@ export function BuilderPage() {
                                   <span className="section-badge">{entries.length} params</span>
                                 </div>
                               </div>
-                              <div className="parameter-section-content">
+                              <div className="parameter-section-content" inert={!expanded}>
                                 <div className="parameter-grid">
                                   {entries.map((entry) => {
                                     const isComplex = entry.type === "array" || entry.type === "object";
@@ -3194,11 +3207,12 @@ export function BuilderPage() {
                                           parameterFieldRefs.current[entry.fullPath] = node;
                                         }}
                                       >
-                                        <label className="parameter-label" title={entry.fullPath}>
+                                        <label className="parameter-label" title={entry.fullPath} htmlFor={`parameter-${encodeURIComponent(entry.fullPath)}`}>
                                           {entry.displayPath}
                                         </label>
                                         {isComplex ? (
                                           <textarea
+                                            id={`parameter-${encodeURIComponent(entry.fullPath)}`}
                                             className="parameter-input"
                                             rows={4}
                                             value={displayValue}
@@ -3211,8 +3225,9 @@ export function BuilderPage() {
                                           />
                                         ) : (
                                           <input
+                                            id={`parameter-${encodeURIComponent(entry.fullPath)}`}
                                             className="parameter-input"
-                                            type="text"
+                                            type={/(^|\.)(api_key|token|password)$/.test(entry.fullPath) ? "password" : "text"}
                                             value={displayValue}
                                             onChange={(event) =>
                                               handleParameterFieldChange(entry, event.target.value)
@@ -3233,7 +3248,7 @@ export function BuilderPage() {
                       </div>
                     )}
                   </div>
-                </main>
+                </section>
               </div>
             </div>
 
@@ -3279,7 +3294,7 @@ export function BuilderPage() {
 
                 <div className="workspace-split-resizer" id="prompts-resizer" ref={promptsResizerRef} />
 
-                <main className="prompts-main">
+                <section className="prompts-main">
                   <div className="prompts-editor-header canvas-panel-header">
                     <div className="panel-title-group">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -3366,21 +3381,15 @@ export function BuilderPage() {
                         <div
                           key={path}
                           className={`prompt-tab ${selectedPromptPath === path ? "active" : ""} ${unsaved ? "unsaved" : ""}`}
-                          onClick={() => openPromptTab(path)}
                           onContextMenu={(event) => openPromptContextMenu(event, path)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              openPromptTab(path);
-                            }
-                          }}
                         >
-                          <span className="prompt-tab-name">{name}</span>
+                          <button type="button" className="prompt-tab-select" onClick={() => openPromptTab(path)}>
+                            <span className="prompt-tab-name">{name}</span>
+                          </button>
                           <button
                             type="button"
                             className="prompt-tab-close"
+                            aria-label={`${t("common_close", "Close")} ${name}`}
                             title={t("common_close", "Close")}
                             onClick={(event) => {
                               event.stopPropagation();
@@ -3415,6 +3424,7 @@ export function BuilderPage() {
                       </div>
                       <textarea
                         id="prompt-editor"
+                        aria-label={t("builder_nav_prompt_templates", "Prompt template")}
                         className="prompt-editor"
                         ref={promptEditorRef}
                         spellCheck={false}
@@ -3482,7 +3492,7 @@ export function BuilderPage() {
                       />
                     </div>
                   </div>
-                </main>
+                </section>
               </div>
             </div>
           </div>
@@ -3535,6 +3545,7 @@ export function BuilderPage() {
           <div
             className={`ai-assistant-panel ${aiPanelOpen ? "open" : ""}`}
             id="ai-assistant-panel"
+            inert={!aiPanelOpen}
             ref={aiPanelRef}
           >
             <div className="ai-panel-resizer" id="ai-panel-resizer" ref={aiPanelResizerRef} />
@@ -3712,7 +3723,7 @@ export function BuilderPage() {
                               <span className="ai-thinking-dot" />
                             </div>
                           ) : (
-                            <div dangerouslySetInnerHTML={{ __html: renderChatMarkdown(message.content) }} />
+                            <Suspense fallback={<div>{message.content}</div>}><SimpleMarkdown text={message.content} /></Suspense>
                           )}
                           {!message.pending && message.role === "assistant" && (message.actions?.length ?? 0) > 0
                             ? message.actions?.map((action, actionIndex) => {

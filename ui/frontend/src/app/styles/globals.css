@@ -32,6 +32,27 @@ select {
   font: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+
+.route-loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .missing-page {
   min-height: 100dvh;
   display: grid;

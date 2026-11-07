@@ -1,8 +1,9 @@
 import DOMPurify from "dompurify";
-import hljs from "highlight.js";
+// The common bundle retains the usual code languages without shipping every
+// grammar. Unregistered languages still render safely as plain text.
+import hljs from "highlight.js/lib/common";
 import katex from "katex";
 import { Marked } from "marked";
-import type { SourceDoc } from "@/shared/api/types";
 
 type RenderChatMarkdownOptions = {
   enhanceBlocks?: boolean;
@@ -58,7 +59,7 @@ function renderCodeBlock(code: string, language: string | undefined, options: Re
     const highlighted =
       lang && hljs.getLanguage(lang)
         ? hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
-        : hljs.highlightAuto(code).value;
+        : lang ? escapeHtml(code) : hljs.highlightAuto(code).value;
     if (options.enhanceBlocks !== true) {
       return `<pre><code class="hljs language-${safeLang}">${highlighted}</code></pre>`;
     }
@@ -177,27 +178,4 @@ export function renderChatMarkdown(rawText: string, options: RenderChatMarkdownO
   return DOMPurify.sanitize(withCitations, {
     ADD_ATTR: ["class", "target", "rel", "aria-label", "data-source-id", "data-copy-text", "data-tooltip"],
   });
-}
-
-function toSourceDoc(raw: unknown): SourceDoc | null {
-  if (!raw || typeof raw !== "object") return null;
-  const record = raw as Record<string, unknown>;
-  const id = Number(record.id);
-  if (!Number.isFinite(id)) return null;
-  const displayIdRaw = Number(record.displayId);
-  const displayId = Number.isFinite(displayIdRaw) ? displayIdRaw : undefined;
-  const title = String(record.title ?? `Source ${id}`);
-  const content = String(record.content ?? "");
-  return { id, displayId, title, content };
-}
-
-export function normalizeSourceDocs(raw: unknown): SourceDoc[] {
-  if (!Array.isArray(raw)) return [];
-  const map = new Map<number, SourceDoc>();
-  for (const item of raw) {
-    const doc = toSourceDoc(item);
-    if (!doc) continue;
-    map.set(doc.id, doc);
-  }
-  return [...map.values()].sort((left, right) => left.id - right.id);
 }
