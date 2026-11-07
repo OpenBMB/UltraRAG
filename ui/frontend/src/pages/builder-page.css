@@ -907,6 +907,22 @@
   color: #065f46;
 }
 
+.builder-navbar .badge.text-success {
+  color: #146c43 !important;
+}
+
+.canvas-main .flow-node-server[data-module="custom"] {
+  color: #1d4ed8;
+}
+
+.canvas-main .flow-node-server[data-module="router"] {
+  color: #155e75;
+}
+
+.canvas-main .btn-link {
+  color: #1d4ed8;
+}
+
 @media (max-width: 992px) {
   .canvas-main .workspace-layout {
     flex-direction: column;
