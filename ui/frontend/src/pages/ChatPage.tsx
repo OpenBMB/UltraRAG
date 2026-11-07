@@ -867,6 +867,7 @@ export function ChatPage() {
     return t("kb_disconnected", "Disconnected");
   }, [kbData.db_status, t]);
   const kbUriDisplay = useMemo(() => {
+    if (!authInfo?.is_admin) return t("kb_managed_endpoint", "Managed by administrator");
     const config =
       kbData.db_config && typeof kbData.db_config === "object"
         ? (kbData.db_config as Record<string, unknown>)
@@ -876,7 +877,7 @@ export function ChatPage() {
       (config.endpoint as string | undefined) ??
       ((config.milvus as Record<string, unknown> | undefined)?.uri as string | undefined);
     return endpoint || "—";
-  }, [kbData.db_config]);
+  }, [kbData.db_config, authInfo?.is_admin, t]);
   const kbVisibilityCandidateUsers = useMemo(() => {
     const merged = new Set<string>([
       ...kbVisibilityUsers,
@@ -2178,6 +2179,7 @@ export function ChatPage() {
   };
 
   const openKbConfigModal = () => {
+    if (!authInfo?.is_admin) return;
     void loadKbConfigData();
     setKbConfigModalOpen(true);
   };
@@ -4398,6 +4400,7 @@ export function ChatPage() {
                       type="button"
                       className="kb-conn-chip"
                       id="db-connection-chip"
+                      disabled={!authInfo?.is_admin}
                       title={`${t("kb_endpoint", "Endpoint")}: ${kbUriDisplay}`}
                       onClick={openKbConfigModal}
                     >
@@ -4414,7 +4417,7 @@ export function ChatPage() {
                   <button
                     type="button"
                     className="btn btn-outline-secondary btn-sm"
-                    disabled={kbConfigBusy}
+                    disabled={kbConfigBusy || !authInfo?.is_admin}
                     onClick={openKbConfigModal}
                   >
                     {t("kb_configure_db", "Configure DB")}

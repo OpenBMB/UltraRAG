@@ -1151,7 +1151,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         Returns:
             JSON response with list of pipelines
         """
-        return jsonify(pm.list_pipelines())
+        return jsonify([{ "name": item["name"], "is_ready": item["is_ready"] } for item in pm.list_pipelines()])
 
     @app.route("/api/pipelines", methods=["POST"])
     @require_admin_user
@@ -1200,6 +1200,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         return jsonify(parsed)
 
     @app.route("/api/pipelines/<string:name>", methods=["GET"])
+    @require_admin_user
     def get_pipeline(name: str):
         return jsonify(pm.load_pipeline(name))
 
@@ -1222,6 +1223,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         return jsonify(result)
 
     @app.route("/api/pipelines/<string:name>/parameters", methods=["GET"])
+    @require_admin_user
     def get_parameters(name: str):
         return jsonify(pm.load_parameters(name))
 
@@ -1817,9 +1819,11 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         Returns:
             JSON response with KB configuration
         """
-        return jsonify(pm.load_kb_config())
+        config = pm.load_kb_config()
+        return jsonify(config if _is_admin_user() else {"index_backend": config.get("index_backend", "milvus")})
 
     @app.route("/api/kb/config", methods=["POST"])
+    @require_admin_user
     def save_kb_config() -> Response:
         """Save knowledge base configuration.
 
@@ -1841,6 +1845,9 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
             JSON response with list of KB files
         """
         data = pm.list_kb_files()
+        if not _is_admin_user():
+            config = data.get("db_config", {})
+            data["db_config"] = {"index_backend": config.get("index_backend", "milvus")}
         all_collections = data.get("index", [])
         data["index"] = _filter_collections_by_acl(
             all_collections, get_current_user_id()
@@ -2232,7 +2239,14 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
 
     PROMPTS_DIR = BASE_DIR.parent.parent / "prompt"
 
+    def _prompt_path(relative: str) -> Path:
+        path = PROMPTS_DIR / relative
+        if not path.resolve().is_relative_to(PROMPTS_DIR.resolve()):
+            raise pm.PipelineManagerError("Invalid prompt path")
+        return path
+
     @app.route("/api/prompts", methods=["GET"])
+    @require_admin_user
     def list_prompts() -> Response:
         """List all prompt template files.
 
@@ -2249,6 +2263,7 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         return jsonify(prompts)
 
     @app.route("/api/prompts/<path:filepath>", methods=["GET"])
+    @require_admin_user
     def get_prompt(filepath: str) -> Response:
         """Read a prompt template file.
 
@@ -2258,16 +2273,15 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         Returns:
             JSON response with file content
         """
-        file_path = PROMPTS_DIR / filepath
+        file_path = _prompt_path(filepath)
         if not file_path.exists():
             return jsonify({"error": "File not found"}), 404
-        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
-            return jsonify({"error": "Invalid path"}), 400
 
         content = file_path.read_text(encoding="utf-8")
         return jsonify({"path": filepath, "content": content})
 
     @app.route("/api/prompts", methods=["POST"])
+    @require_admin_user
     def create_prompt() -> Response:
         """Create a new prompt template file.
 
@@ -2285,25 +2299,28 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         if ".." in name or name.startswith("/"):
             return jsonify({"error": "Invalid filename"}), 400
 
-        file_path = PROMPTS_DIR / name
+        file_path = _prompt_path(name)
         if file_path.exists():
             return jsonify({"error": "File already exists"}), 409
 
         # Ensure directory exists
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content, encoding="utf-8")
+        from ultrarag.configuration import Configuration
 
+        try:
+            Configuration.save_text(file_path, content, overwrite=False)
+        except FileExistsError:
+            return jsonify({"error": "File already exists"}), 409
         return jsonify({"status": "created", "path": name})
 
     @app.route("/api/prompts/<path:filepath>", methods=["PUT"])
+    @require_admin_user
     def update_prompt(filepath: str):
         """Update a prompt template file"""
         payload = request.get_json(force=True)
         content = payload.get("content", "")
 
-        file_path = PROMPTS_DIR / filepath
-        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
-            return jsonify({"error": "Invalid path"}), 400
+        file_path = _prompt_path(filepath)
 
         # Ensure directory exists
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2312,18 +2329,18 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         return jsonify({"status": "saved", "path": filepath})
 
     @app.route("/api/prompts/<path:filepath>", methods=["DELETE"])
+    @require_admin_user
     def delete_prompt(filepath: str):
         """Delete a prompt template file"""
-        file_path = PROMPTS_DIR / filepath
+        file_path = _prompt_path(filepath)
         if not file_path.exists():
             return jsonify({"error": "File not found"}), 404
-        if not str(file_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
-            return jsonify({"error": "Invalid path"}), 400
 
         file_path.unlink()
         return jsonify({"status": "deleted"})
 
     @app.route("/api/prompts/<path:filepath>/rename", methods=["POST"])
+    @require_admin_user
     def rename_prompt(filepath: str):
         """Rename a prompt template file"""
         payload = request.get_json(force=True)
@@ -2335,13 +2352,11 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
         if ".." in new_name or new_name.startswith("/"):
             return jsonify({"error": "Invalid filename"}), 400
 
-        old_path = PROMPTS_DIR / filepath
+        old_path = _prompt_path(filepath)
         if not old_path.exists():
             return jsonify({"error": "File not found"}), 404
-        if not str(old_path.resolve()).startswith(str(PROMPTS_DIR.resolve())):
-            return jsonify({"error": "Invalid path"}), 400
 
-        new_path = PROMPTS_DIR / new_name
+        new_path = _prompt_path(new_name)
         if new_path.exists():
             return jsonify({"error": "A file with this name already exists"}), 409
 
@@ -2383,18 +2398,34 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
                 resp = requests.post(
                     f"{base_url}/chat/completions",
                     headers=headers,
-                    json={"model": model, "messages": [{"role": "user", "content": "Hi"}], **completion_limit(model, 32)},
+                    json={
+                        "model": model,
+                        "messages": [{"role": "user", "content": "Hi"}],
+                        **completion_limit(model, 32),
+                    },
                     timeout=15,
                 )
                 if resp.status_code != 200:
-                    return jsonify({"success": False, "error": f"Selected model returned HTTP {resp.status_code}"})
+                    return jsonify(
+                        {
+                            "success": False,
+                            "error": f"Selected model returned HTTP {resp.status_code}",
+                        }
+                    )
                 try:
                     result = resp.json()
                 except ValueError:
-                    return jsonify({"success": False, "error": "Model returned invalid JSON"})
+                    return jsonify(
+                        {"success": False, "error": "Model returned invalid JSON"}
+                    )
                 choices = result.get("choices") if isinstance(result, dict) else None
                 if not isinstance(choices, list) or not choices:
-                    return jsonify({"success": False, "error": "Model returned no completion choices"})
+                    return jsonify(
+                        {
+                            "success": False,
+                            "error": "Model returned no completion choices",
+                        }
+                    )
                 return jsonify({"success": True, "model": model})
 
             elif provider == "anthropic":
@@ -2465,9 +2496,14 @@ def create_app(admin_mode: bool = False, no_mcp: bool = False) -> Flask:
             run = create_run(get_current_user_id(), request.get_json(force=True))
         except (ValueError, TypeError) as exc:
             return jsonify({"error": str(exc)}), 400
-        return Response(run.stream(), mimetype="text/event-stream", headers={
-            "Cache-Control": "no-cache", "X-Accel-Buffering": "no",
-        })
+        return Response(
+            run.stream(),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @app.route("/api/ai/agent/<run_id>/stop", methods=["POST"])
     @require_admin_user

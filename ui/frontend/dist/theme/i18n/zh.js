@@ -515,6 +515,8 @@ window.I18N_LOCALES.zh = {
   builder_ai_input_placeholder: "问我任何关于流程的问题...",
   builder_ai_input_hint: "回车发送，Shift+回车换行",
   builder_draft_loaded: "草稿已加载，点击 Build 生成参数。",
+  builder_admin_sign_in: "管理员登录",
+  kb_managed_endpoint: "由管理员管理",
   builder_admin_required: "请使用管理员账号登录后编辑流程。",
   builder_ai_draft_changed: "流程已在请求后修改，请重新请求更新方案。",
   builder_ai_target_changed: "请先切回提出方案时的流程，再应用修改。",

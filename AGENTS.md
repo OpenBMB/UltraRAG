@@ -371,6 +371,17 @@ if __name__ == "__main__":
 - Exposes chat/pipeline/KB/auth endpoints
 - Reads optional frontend override via `ULTRARAG_FRONTEND_DIR`
 
+Workspace configuration and Prompt CRUD endpoints require an authenticated administrator. Public chat clients receive pipeline names/readiness and KB status, without connection credentials. Database connection changes are administrative operations.
+
+### Builder assistant
+
+- `agent_workspace.py`: scoped read tools, static validation and in-memory proposals; never writes or executes pipelines.
+- `builder_agent.py`: bounded model/tool/result iteration, request-owned HTTPX cancellation and a bounded SSE bridge.
+- `ai_compat.py`: compatible completion token budgets for supported model families.
+- `build_logs.py`: bounded build logs owned by the current request thread.
+
+The user reviews and applies proposals, then builds and tests the pipeline. Static validation does not establish runtime or external-service correctness.
+
 ### `pipeline_manager.py`
 
 This module is large and central to UI behavior.

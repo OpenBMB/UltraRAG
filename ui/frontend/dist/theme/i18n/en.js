@@ -515,6 +515,8 @@ window.I18N_LOCALES.en = {
   builder_ai_input_placeholder: "Ask me anything about your pipeline...",
   builder_ai_input_hint: "Press Enter to send, Shift+Enter for new line",
   builder_draft_loaded: "Draft loaded. Build to generate parameters.",
+  builder_admin_sign_in: "Admin sign in",
+  kb_managed_endpoint: "Managed by administrator",
   builder_admin_required: "Sign in with an administrator account to edit pipelines.",
   builder_ai_draft_changed: "The pipeline changed after this request. Ask for an updated proposal.",
   builder_ai_target_changed: "Select the original pipeline before applying this proposal.",
