@@ -1,3 +1,4 @@
+import { useMarkdownStyles } from "@/shared/lib/useThemeStyles";
 import { memo, useMemo } from "react";
 import { renderChatMarkdown } from "@/shared/lib/chatMarkdown";
 
@@ -13,6 +14,7 @@ type MessageMarkdownProps = {
 export const MessageMarkdown = memo(function MessageMarkdown({
   text, streaming, copyLabel, copyCodeLabel, copyTableLabel,
 }: MessageMarkdownProps) {
+  useMarkdownStyles();
   const html = useMemo(() => renderChatMarkdown(text, {
     enhanceBlocks: true,
     copyButtonLabel: copyLabel,
@@ -24,6 +26,7 @@ export const MessageMarkdown = memo(function MessageMarkdown({
 });
 
 export const SimpleMarkdown = memo(function SimpleMarkdown({ text }: { text: string }) {
+  useMarkdownStyles();
   const html = useMemo(() => renderChatMarkdown(text), [text]);
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 });
@@ -71,6 +74,7 @@ function renderSourceDetailHtml(content: string): string {
 
 
 export const SourceDetailContent = memo(function SourceDetailContent({ content }: { content: string }) {
+  useMarkdownStyles();
   const html = useMemo(() => renderSourceDetailHtml(content), [content]);
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 });
