@@ -1692,6 +1692,10 @@ export function ChatPage() {
       await turnsRef.current.stop(() => sessionId ? stopPipelineChatGeneration(sessionId) : Promise.resolve());
     } catch {
       // The browser stream is already aborted even if the server is unreachable.
+      if (selectedPipeline && activeEngineRef.current[selectedPipeline] === sessionId) {
+        delete activeEngineRef.current[selectedPipeline];
+        saveEngines();
+      }
     }
     if (!turnsRef.current.busy) {
       setSending(false);

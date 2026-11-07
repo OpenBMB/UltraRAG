@@ -7,6 +7,7 @@ type RequestOptions = {
   body?: unknown;
   headers?: HeadersInit;
   signal?: AbortSignal;
+  timeoutMs?: number;
 };
 
 const DEFAULT_HEADERS: HeadersInit = {
@@ -41,27 +42,39 @@ export class ApiHttpError extends Error {
 }
 
 export async function httpRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, headers, signal } = options;
-  const response = await fetch(buildApiUrl(path), {
-    method,
-    credentials: "include",
-    headers: {
-      ...DEFAULT_HEADERS,
-      ...headers,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal,
-  });
-
-  if (!response.ok) {
-    let payload: ApiErrorPayload | null = null;
-    try {
-      payload = await parseResponse<ApiErrorPayload>(response);
-    } catch {
-      payload = null;
+  const { method = "GET", body, headers, signal, timeoutMs = 120_000 } = options;
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) onAbort();
+  else signal?.addEventListener("abort", onAbort, { once: true });
+  const timeout = timeoutMs > 0
+    ? setTimeout(() => controller.abort(new DOMException("Request timed out. Please try again.", "TimeoutError")), timeoutMs)
+    : undefined;
+  try {
+    const requestHeaders = new Headers(DEFAULT_HEADERS);
+    new Headers(headers).forEach((value, key) => requestHeaders.set(key, value));
+    const response = await fetch(buildApiUrl(path), {
+      method,
+      credentials: "include",
+      headers: requestHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      let payload: ApiErrorPayload | null = null;
+      try {
+        payload = await parseResponse<ApiErrorPayload>(response);
+      } catch {
+        payload = null;
+      }
+      throw new ApiHttpError(response.status, payload, `Request failed: ${method} ${path}`);
     }
-    throw new ApiHttpError(response.status, payload, `Request failed: ${method} ${path}`);
+    return await parseResponse<T>(response);
+  } catch (error) {
+    if (controller.signal.aborted) throw controller.signal.reason;
+    throw error;
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+    signal?.removeEventListener("abort", onAbort);
   }
-
-  return parseResponse<T>(response);
 }

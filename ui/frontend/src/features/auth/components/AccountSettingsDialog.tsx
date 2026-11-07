@@ -65,10 +65,20 @@ export function AccountSettingsDialog({
   );
   const [localError, setLocalError] = useState("");
 
+  const runAction = async (action: () => Promise<void>): Promise<boolean> => {
+    setLocalError("");
+    try {
+      await action();
+      return true;
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : "操作失败，请重试。");
+      return false;
+    }
+  };
+
   const handleNicknameSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLocalError("");
-    await onSaveNickname(nickname.trim());
+    await runAction(() => onSaveNickname(nickname.trim()));
   };
 
   const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -86,10 +96,11 @@ export function AccountSettingsDialog({
       setLocalError("新密码不能与旧密码相同。");
       return;
     }
-    await onChangePassword({
+    const saved = await runAction(() => onChangePassword({
       current_password: currentPassword,
       new_password: newPassword,
-    });
+    }));
+    if (!saved) return;
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -97,11 +108,16 @@ export function AccountSettingsDialog({
 
   const handleModelSettingsSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setLocalError("");
-    await onSaveModelSettings({
+    await runAction(() => onSaveModelSettings({
       retriever,
       generation,
-    });
+    }));
+  };
+
+  const handleClearModelSettings = async () => {
+    if (!await runAction(onClearModelSettings)) return;
+    setRetriever(parseRoleSettings(null));
+    setGeneration(parseRoleSettings(null));
   };
 
   const dialogTitle = mode === "model" ? "模型设置" : "账号设置";
@@ -176,6 +192,8 @@ export function AccountSettingsDialog({
                 <span>Retriever API Key</span>
                 <input
                   className="auth-input"
+                  type="password"
+                  autoComplete="off"
                   value={retriever.api_key}
                   onChange={(event) =>
                     setRetriever((previous) => ({ ...previous, api_key: event.target.value }))
@@ -209,6 +227,8 @@ export function AccountSettingsDialog({
                 <span>Generation API Key</span>
                 <input
                   className="auth-input"
+                  type="password"
+                  autoComplete="off"
                   value={generation.api_key}
                   onChange={(event) =>
                     setGeneration((previous) => ({ ...previous, api_key: event.target.value }))
@@ -245,7 +265,7 @@ export function AccountSettingsDialog({
                 size="sm"
                 variant="outline"
                 disabled={isSubmitting}
-                onClick={() => void onClearModelSettings()}
+                onClick={() => void handleClearModelSettings()}
               >
                 清空设置
               </Button>

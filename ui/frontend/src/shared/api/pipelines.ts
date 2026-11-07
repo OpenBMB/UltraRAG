@@ -47,6 +47,7 @@ export async function stopPipelineChatGeneration(sessionId: string): Promise<unk
   return httpRequest<unknown>("/api/pipelines/chat/stop", {
     method: "POST",
     body: { session_id: sessionId },
+    timeoutMs: 15_000,
   });
 }
 
