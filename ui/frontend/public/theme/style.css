@@ -7397,7 +7397,15 @@ button.explore-feature-card:hover {
 }
 
 .params-toggle-checkbox {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.params-toggle-checkbox:focus-visible + .params-toggle-switch {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 3px;
 }
 
 .params-toggle-switch {
