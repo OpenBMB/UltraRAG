@@ -1930,7 +1930,6 @@ export function BuilderPage() {
     setAiPanelOpen(true);
     setAiView("chat");
     setAiSettingsOpen(false);
-    setAiInput("");
 
     if (!aiSettings.apiKey.trim()) {
       addAiMessage(
@@ -1943,6 +1942,7 @@ export function BuilderPage() {
       return;
     }
 
+    setAiInput("");
     const requestMessages = [
       ...aiMessages
         .filter((item) => !item.pending)
