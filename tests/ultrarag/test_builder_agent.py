@@ -365,3 +365,54 @@ def test_streamed_tool_calls_reject_invalid_explicit_indices(index):
                 await agent.model_turn(client, SETTINGS, [], lambda _: None)
 
     asyncio.run(check())
+
+
+@pytest.mark.parametrize("fragmented", [False, True])
+@pytest.mark.parametrize("count", [2, agent.MAX_CALLS + 1])
+def test_streamed_tool_calls_without_indices_stay_separate(fragmented, count):
+    expected = [
+        {
+            "id": f"call{i}",
+            "type": "function",
+            "function": {"name": "inspect_server", "arguments": '{"name":"sayhello"}'},
+        }
+        for i in range(count)
+    ]
+    fragments = []
+    for call in expected:
+        if fragmented:
+            fragments.extend(
+                [
+                    {
+                        "id": call["id"],
+                        "function": {"name": "inspect_server", "arguments": '{"name":'},
+                    },
+                    {"id": call["id"], "function": {"arguments": '"sayhello"}'}},
+                ]
+            )
+        else:
+            fragments.append(call)
+    chunks = [
+        {
+            "choices": [
+                {"delta": {"tool_calls": fragments}, "finish_reason": "tool_calls"}
+            ]
+        }
+    ]
+
+    async def check():
+        async def respond(request):
+            return httpx.Response(
+                200,
+                text="".join("data: " + json.dumps(chunk) + "\n\n" for chunk in chunks),
+            )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            if count > agent.MAX_CALLS:
+                with pytest.raises(ValueError, match="too many tool calls"):
+                    await agent.model_turn(client, SETTINGS, [], lambda _: None)
+            else:
+                message = await agent.model_turn(client, SETTINGS, [], lambda _: None)
+                assert message["tool_calls"] == expected
+
+    asyncio.run(check())
