@@ -138,7 +138,8 @@ async def model_turn(
                     raise ValueError("Model text exceeded the size limit")
                 emit({"type": "token", "content": token})
             for fragment in delta.get("tool_calls") or []:
-                index = fragment.get("index")
+                # Some compatible endpoints omit the index for a single call.
+                index = fragment.get("index", 0)
                 if type(index) is not int or not 0 <= index < MAX_CALLS:
                     raise ValueError("Model requested too many tool calls")
                 call = calls.setdefault(

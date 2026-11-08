@@ -310,3 +310,58 @@ def test_branch_proposals_require_an_executable_router(workspace):
     report = workspace.call("propose_pipeline", {"yaml": proposal})
     assert report["staged"] is False
     assert any("nonempty router" in error for error in report["errors"])
+
+
+@pytest.mark.parametrize("include_index", [False, True])
+def test_streamed_tool_call_fragments_are_assembled(include_index):
+    fragments = [
+        {
+            "id": "call0",
+            "function": {"name": "inspect_server", "arguments": '{"name":'},
+        },
+        {"function": {"arguments": '"sayhello"}'}},
+    ]
+    if include_index:
+        for fragment in fragments:
+            fragment["index"] = 0
+    chunks = [
+        {"choices": [{"delta": {"tool_calls": [fragment]}, "finish_reason": None}]}
+        for fragment in fragments
+    ]
+    chunks.append({"choices": [{"delta": {}, "finish_reason": "tool_calls"}]})
+
+    async def check():
+        async def respond(request):
+            return httpx.Response(
+                200,
+                text="".join("data: " + json.dumps(chunk) + "\n\n" for chunk in chunks),
+            )
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            message = await agent.model_turn(client, SETTINGS, [], lambda _: None)
+        assert message["tool_calls"] == [
+            {
+                "id": "call0",
+                "type": "function",
+                "function": {
+                    "name": "inspect_server",
+                    "arguments": '{"name":"sayhello"}',
+                },
+            }
+        ]
+
+    asyncio.run(check())
+
+
+@pytest.mark.parametrize("index", [None, -1, agent.MAX_CALLS, "0", True])
+def test_streamed_tool_calls_reject_invalid_explicit_indices(index):
+    async def check():
+        async def respond(request):
+            chunk = {"choices": [{"delta": {"tool_calls": [{"index": index}]}}]}
+            return httpx.Response(200, text="data: " + json.dumps(chunk) + "\n\n")
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+            with pytest.raises(ValueError, match="too many tool calls"):
+                await agent.model_turn(client, SETTINGS, [], lambda _: None)
+
+    asyncio.run(check())
