@@ -89,6 +89,7 @@ async def model_turn(
 ) -> dict:
     text = ""
     calls: dict[int, dict] = {}
+    last_index = 0
     wire = 0
     finished = False
     async with client.stream(
@@ -138,9 +139,20 @@ async def model_turn(
                     raise ValueError("Model text exceeded the size limit")
                 emit({"type": "token", "content": token})
             for fragment in delta.get("tool_calls") or []:
-                index = fragment.get("index")
+                # Without indices, a new nonempty ID starts the next call.
+                if "index" in fragment:
+                    index = fragment["index"]
+                else:
+                    index = last_index
+                    if (
+                        calls
+                        and fragment.get("id")
+                        and fragment["id"] != calls[last_index]["id"]
+                    ):
+                        index = max(calls) + 1
                 if type(index) is not int or not 0 <= index < MAX_CALLS:
                     raise ValueError("Model requested too many tool calls")
+                last_index = index
                 call = calls.setdefault(
                     index,
                     {
@@ -149,7 +161,7 @@ async def model_turn(
                         "function": {"name": "", "arguments": ""},
                     },
                 )
-                if fragment.get("id"):
+                if fragment.get("id") and fragment["id"] != call["id"]:
                     call["id"] += fragment["id"]
                 function = fragment.get("function") or {}
                 for key in ("name", "arguments"):
