@@ -691,15 +691,16 @@ def api_switch(file: str):
 def get_file(path: str):
     # Security: only serve files under configured static roots (if provided / detected)
     real = os.path.realpath(path)
-    if STATE.static_roots:
-        allowed = False
-        for root in STATE.static_roots:
-            r = os.path.realpath(root)
-            if real == r or real.startswith(r + os.sep):
-                allowed = True
-                break
-        if not allowed:
-            return PlainTextResponse("Forbidden", status_code=403)
+    if not STATE.static_roots:
+        return PlainTextResponse("Forbidden", status_code=403)
+    allowed = False
+    for root in STATE.static_roots:
+        r = os.path.realpath(root)
+        if real == r or real.startswith(r + os.sep):
+            allowed = True
+            break
+    if not allowed:
+        return PlainTextResponse("Forbidden", status_code=403)
     if not os.path.exists(real):
         return PlainTextResponse("Not Found", status_code=404)
     mime = guess_type(real)[0] or "application/octet-stream"

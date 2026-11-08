@@ -111,6 +111,7 @@ ultrarag = "ultrarag.client:main"
 
 [dependency-groups]
 dev = [
+    "fastapi",
     "ruff",
     "ipython",
     "jupyter",

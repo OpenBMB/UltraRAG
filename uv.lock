@@ -5895,6 +5895,7 @@ retriever = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "ipython" },
     { name = "jupyter" },
     { name = "pytest" },
@@ -5973,6 +5974,7 @@ provides-extras = ["mcp", "retriever", "generation", "evaluation", "corpus", "li
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi" },
     { name = "ipython" },
     { name = "jupyter" },
     { name = "pytest" },
