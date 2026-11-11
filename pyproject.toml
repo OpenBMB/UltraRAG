@@ -44,7 +44,7 @@ dependencies = [
 [project.optional-dependencies]
 mcp = [
     # Keep the supported adapter API while including maintenance security fixes.
-    "fastmcp>=3.4.11,<4",
+    "fastmcp>=4.1.6,<5",
     "mcp>=1.30.0,<2",
     "authlib>=1.9.1,<2",
     "PyJWT>=2.15.0,<3",
