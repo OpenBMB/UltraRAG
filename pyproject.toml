@@ -45,7 +45,7 @@ dependencies = [
 mcp = [
     # Keep the supported adapter API while including maintenance security fixes.
     "fastmcp>=3.4.11,<4",
-    "mcp>=1.30.0,<2",
+    "mcp>=2.3.0,<3",
     "authlib>=1.9.1,<2",
     "PyJWT>=2.15.0,<3",
 ]
