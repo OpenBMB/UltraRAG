@@ -358,7 +358,7 @@ if __name__ == "__main__":
 
 - Uses `SandboxedEnvironment` from Jinja2 for safer rendering.
 - Validates template paths to reduce traversal risk.
-- Escapes string inputs before template rendering.
+- Renders values as plain text, without HTML escaping; prompts go to the model, not a browser.
 
 ---
 
