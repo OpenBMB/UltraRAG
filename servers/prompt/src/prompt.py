@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from jinja2 import Template
 from jinja2.sandbox import SandboxedEnvironment
-from markupsafe import escape
 
 from typing import Any as PromptMessage
 from ultrarag.server import UltraRAG_MCP_Server
@@ -24,8 +23,10 @@ def _prompt_text(message: Any) -> str:
     text = content.get("text") if isinstance(content, dict) else content.text
     return str(text)
 
-# Create a sandboxed Jinja2 environment for security
-_sandboxed_env = SandboxedEnvironment(autoescape=True)
+# Prompts are plain text for the model, so values are not HTML-escaped: an
+# escaped "What's" reaches the model as "What&#39;s". The sandbox guards the
+# template source; values passed to render() are never parsed as templates.
+_sandboxed_env = SandboxedEnvironment(autoescape=False)
 
 
 def _validate_template_path(template_path: Union[str, Path]) -> Path:
@@ -83,27 +84,8 @@ def load_prompt_template(template_path: Union[str, Path]) -> Template:
 
 
 def _safe_render(template: Template, **kwargs: Any) -> str:
-    """Safely render a template with escaped user inputs.
-    
-    Args:
-        template: Jinja2 Template object
-        **kwargs: Template variables (will be escaped if strings)
-        
-    Returns:
-        Rendered template string
-    """
-    # Escape all string inputs to prevent XSS and injection
-    safe_kwargs = {}
-    for key, value in kwargs.items():
-        if isinstance(value, str):
-            safe_kwargs[key] = escape(value)
-        elif isinstance(value, list):
-            # Escape string items in lists
-            safe_kwargs[key] = [escape(str(item)) if isinstance(item, str) else item for item in value]
-        else:
-            safe_kwargs[key] = value
-    
-    return template.render(**safe_kwargs)
+    """Render a sandboxed template with the values passed through unchanged."""
+    return template.render(**kwargs)
 
 
 @app.prompt(output="q_ls,template->prompt_ls")
