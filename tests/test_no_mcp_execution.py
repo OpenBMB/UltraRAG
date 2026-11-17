@@ -555,3 +555,65 @@ def test_mcp_and_local_pipeline_agree(
         assert local["final_result"] == mcp["final_result"]
 
     asyncio.run(exercise())
+
+
+def test_step_input_mapping_does_not_leak_into_later_calls(tmp_path: Path) -> None:
+    source = _server(
+        tmp_path,
+        "source",
+        """from ultrarag.server import UltraRAG_MCP_Server
+app = UltraRAG_MCP_Server('source')
+@app.tool(output='->q_ls')
+def emit():
+    return {'q_ls': ['Ada']}
+if __name__ == '__main__':
+    app.run(transport='stdio')
+""",
+    )
+    echo = _server(
+        tmp_path,
+        "echo",
+        """import json, os
+from ultrarag.server import UltraRAG_MCP_Server
+app = UltraRAG_MCP_Server('echo')
+LOG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'calls.jsonl')
+@app.tool(output='fallback->ans_ls')
+def answer(prompt_ls: list) -> dict:
+    with open(LOG, 'a', encoding='utf-8') as fp:
+        fp.write(json.dumps(prompt_ls) + '\\n')
+    return {'ans_ls': prompt_ls}
+if __name__ == '__main__':
+    app.run(transport='stdio')
+""",
+    )
+    # Declared default for answer(prompt_ls); the step mapping below overrides it.
+    (echo / "parameter.yaml").write_text("fallback:\n  - Default\n", encoding="utf-8")
+    path = tmp_path / "pipeline.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "servers": {"source": str(source), "echo": str(echo)},
+                "pipeline": [
+                    "source.emit",
+                    {"echo.answer": {"input": {"prompt_ls": "q_ls"}}},
+                    "echo.answer",
+                ],
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+
+    async def exercise() -> None:
+        await build(str(path), no_mcp=True)
+        result = await run(str(path), no_mcp=True, return_all=True)
+        assert result["final_result"] == {"ans_ls": ["Default"]}
+
+    asyncio.run(exercise())
+    calls = [
+        json.loads(line)
+        for line in (echo / "calls.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    # The second call has no mapping of its own: it must use the declared default.
+    assert calls == [["Ada"], ["Default"]]
