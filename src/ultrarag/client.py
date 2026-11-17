@@ -585,7 +585,7 @@ class UltraData:
         path_pairs = parse_path(branch_state)
         args_input = {}
         signal = None
-        input_items = self.io[concated]["input"]
+        input_items = dict(self.io[concated]["input"])
         input_items.update(input_dict or {})
         for k, v in input_items.items():
             if isinstance(v, str):
