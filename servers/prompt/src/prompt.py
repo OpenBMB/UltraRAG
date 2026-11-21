@@ -26,10 +26,12 @@ def _prompt_text(message: Any) -> str:
 
 # Create a sandboxed Jinja2 environment for security
 _sandboxed_env = SandboxedEnvironment(autoescape=True)
+_PROMPTS_DIR = (Path(__file__).resolve().parents[3] / "prompt").resolve()
+_ALLOWED_TEMPLATE_SUFFIXES = {".jinja", ".jinja2", ".j2"}
 
 
 def _validate_template_path(template_path: Union[str, Path]) -> Path:
-    """Validate template path to prevent path traversal.
+    """Validate template path to prevent path traversal and restrict to prompt/.
     
     Args:
         template_path: Path to template file
@@ -38,19 +40,33 @@ def _validate_template_path(template_path: Union[str, Path]) -> Path:
         Validated Path object
         
     Raises:
-        ValueError: If path is invalid or contains traversal attempts
+        ValueError: If path is invalid, outside prompt/, or contains traversal attempts
     """
     path = Path(template_path)
     
     # Check for path traversal
-    if ".." in str(path):
+    if ".." in path.parts or ".." in str(path):
         raise ValueError(f"Path traversal detected in template path: {template_path}")
     
+    if not path.is_absolute():
+        parts = path.parts
+        if parts and parts[0] == "prompt":
+            candidate = _PROMPTS_DIR.joinpath(*parts[1:])
+        else:
+            candidate = _PROMPTS_DIR / path
+    else:
+        candidate = path
+
     # Resolve to absolute path
     try:
-        resolved = path.resolve()
+        resolved = candidate.resolve()
     except (OSError, RuntimeError) as e:
         raise ValueError(f"Invalid template path: {template_path}") from e
+    
+    if not resolved.is_relative_to(_PROMPTS_DIR) or resolved.suffix not in _ALLOWED_TEMPLATE_SUFFIXES:
+        raise ValueError(
+            f"Template path must be a Jinja template inside {_PROMPTS_DIR}: {template_path}"
+        )
     
     return resolved
 
